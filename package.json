@@ -1,6 +1,6 @@
 {
   "name": "@krizaka/config",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "The shared configuration of every Krizaka JavaScript repository: ESLint flat configs (base, Next.js, the four UI rules, the three stack rules, no locale ternary), the dependency-cruiser boundary, tsconfig bases, Prettier, EditorConfig, and the krizaka-ratchet debt counter.",
   "keywords": [
     "krizaka",
