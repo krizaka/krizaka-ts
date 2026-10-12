@@ -6,12 +6,14 @@ import { COUNTERS, RatchetError, runRatchet } from "../ratchet/ratchet.js";
 
 const USAGE = `Usage: krizaka-ratchet [globs…] [--init | --update] [--json] [--root <dir>] [--file <name>]
 
-Counts raw palette colours, light: variants, [var(--…)] utilities and className template strings in the
-source files (default: app/**/*.tsx components/**/*.tsx src/**/*.tsx) and compares them with lint-ratchet.json.
+Counts the UI debts — raw palette colours, light: variants, [var(--…)] utilities, className template strings — in the
+source files (default: app/**/*.tsx components/**/*.tsx src/**/*.tsx), and the stack debts — fetch in a client effect,
+direct @tanstack/* imports, hand-written tables and forms, imports of the dependencies listed in "retire" — in every
+source file of app, components, src, lib, hooks and features; compares them with lint-ratchet.json.
 
   (no flag)  fail (exit 1) when a counter is above its recorded value
   --init     create lint-ratchet.json with the current counters
-  --update   lower the recorded counters to the current values (never raises them)
+  --update   lower the recorded counters to the current values (never raises them), record the new ones
   --json     machine-readable report on stdout (for CI)
   --root     repository root (default: current directory)
   --file     ratchet file name (default: lint-ratchet.json)`;
@@ -21,6 +23,10 @@ const LABELS = {
   light: "light: variants",
   arbitraryVar: "[var(--…)] utilities",
   classNameTemplate: "className template strings",
+  fetchInClientEffect: "fetch in a client effect",
+  directTanstackImport: "direct @tanstack/* imports",
+  localTableOrForm: "hand-written tables / forms",
+  retiredImport: "imports of retired deps",
 };
 
 let args;
@@ -61,7 +67,7 @@ try {
   if (values.json) {
     console.log(JSON.stringify(result, null, 2));
   } else {
-    console.log(`krizaka-ratchet — ${result.files} files (${result.globs.join(", ")})`);
+    console.log(`krizaka-ratchet — ${result.files} files for the UI, ${result.stackFiles} for the stack`);
     for (const name of COUNTERS) {
       const { recorded, current, delta } = result.counters[name];
       const mark = delta > 0 ? "✗" : delta < 0 ? "↓" : "=";
@@ -69,9 +75,14 @@ try {
       console.log(`  ${mark} ${LABELS[name].padEnd(28)} ${String(current).padStart(6)}  (recorded ${recorded}, ${sign})`);
     }
     if (result.mode === "init") console.log(`Created ${result.file}.`);
-    else if (result.written) console.log(`Lowered ${result.file}: commit it.`);
+    else if (result.written) console.log(`${result.decreased.length > 0 ? "Lowered" : "Completed"} ${result.file}: commit it.`);
     else if (result.decreased.length > 0) console.log(`Debt went down: run krizaka-ratchet --update and commit ${result.file}.`);
-    if (!result.ok) console.error(`Debt went up (${result.increased.join(", ")}): use the roles of @krizaka/tailwind and cn().`);
+    else if (result.added.length > 0) console.log(`New counters (${result.added.join(", ")}): run krizaka-ratchet --update and commit ${result.file}.`);
+    if (!result.ok) {
+      console.error(
+        `Debt went up (${result.increased.join(", ")}): roles of @krizaka/tailwind and cn() for the UI; @krizaka/query, @krizaka/ui/data-table and @krizaka/ui/form for the stack.`,
+      );
+    }
   }
   process.exit(result.ok ? 0 : 1);
 } catch (error) {

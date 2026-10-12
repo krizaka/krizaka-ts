@@ -1,14 +1,16 @@
 {
   "name": "@krizaka/config",
   "version": "0.1.0",
-  "description": "The shared configuration of every Krizaka JavaScript repository: ESLint flat configs (base, Next.js, the four UI rules, no locale ternary), tsconfig bases, Prettier, EditorConfig, and the krizaka-ratchet debt counter.",
+  "description": "The shared configuration of every Krizaka JavaScript repository: ESLint flat configs (base, Next.js, the four UI rules, the three stack rules, no locale ternary), the dependency-cruiser boundary, tsconfig bases, Prettier, EditorConfig, and the krizaka-ratchet debt counter.",
   "keywords": [
     "krizaka",
     "eslint-config",
     "tsconfig",
     "prettier-config",
     "ratchet",
-    "design-system"
+    "design-system",
+    "dependency-cruiser",
+    "tanstack"
   ],
   "homepage": "https://github.com/krizaka/krizaka-ui/tree/main/packages/config#readme",
   "bugs": "https://github.com/krizaka/krizaka-ui/issues",
@@ -25,6 +27,9 @@
     "./eslint/next": "./eslint/next.js",
     "./eslint/krizaka-ui": "./eslint/krizaka-ui.js",
     "./eslint/no-locale-ternary": "./eslint/no-locale-ternary.js",
+    "./eslint/stack": "./eslint/stack.js",
+    "./eslint/plugin": "./eslint/plugin.js",
+    "./dependency-cruiser": "./dependency-cruiser.cjs",
     "./patterns": "./patterns.js",
     "./ratchet": "./ratchet/ratchet.js",
     "./prettier": "./prettier.config.js",
@@ -44,6 +49,7 @@
     "ratchet",
     "tsconfig",
     "patterns.js",
+    "dependency-cruiser.cjs",
     "prettier.config.js",
     ".editorconfig",
     "README.md",
@@ -83,6 +89,7 @@
     "@size-limit/file": "^14.2.0",
     "@types/estree": "^1.0.8",
     "@types/node": "^22.15.0",
+    "dependency-cruiser": "^18.6.0",
     "eslint": "^9.39.0",
     "eslint-config-next": "^16.4.0",
     "next": "^16.4.0",
@@ -106,7 +113,7 @@
         "ratchet/ratchet.js",
         "patterns.js"
       ],
-      "limit": "5 kB",
+      "limit": "8 kB",
       "gzip": true
     }
   ]

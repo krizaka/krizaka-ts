@@ -47,6 +47,9 @@ describe("package surface", () => {
         "./eslint/next",
         "./eslint/krizaka-ui",
         "./eslint/no-locale-ternary",
+        "./eslint/stack",
+        "./eslint/plugin",
+        "./dependency-cruiser",
         "./prettier",
         "./tsconfig/base.json",
         "./tsconfig/react-library.json",
@@ -63,6 +66,7 @@ describe("package surface", () => {
     const shipped = [
       ...["bin", "eslint", "ratchet", "tsconfig"].flatMap((dir) => readdirSync(join(root, dir)).map((f) => `${dir}/${f}`)),
       "patterns.js",
+      "dependency-cruiser.cjs",
       "prettier.config.js",
       ".editorconfig",
     ];

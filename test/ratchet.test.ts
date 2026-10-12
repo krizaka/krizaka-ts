@@ -4,11 +4,15 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { countRepository, countSource, runRatchet } from "../ratchet/ratchet.js";
+import { countRepository, countSource, countStackSource, runRatchet } from "../ratchet/ratchet.js";
 
 const FIXTURE = fileURLToPath(new URL("./fixtures/repo", import.meta.url));
 const BIN = fileURLToPath(new URL("../bin/krizaka-ratchet.mjs", import.meta.url));
-const TOTAL = { palette: 6, light: 3, arbitraryVar: 2, classNameTemplate: 2 };
+const UI = { palette: 6, light: 3, arbitraryVar: 2, classNameTemplate: 2 };
+// lib/use-data.ts (fetch in a client effect ×2, @tanstack ×2) · features/forms.tsx (a table, a form of two fields)
+const STACK = { fetchInClientEffect: 2, directTanstackImport: 2, localTableOrForm: 2, retiredImport: 0 };
+const TOTAL = { ...UI, ...STACK };
+const STACK_GLOBS = ["app", "components", "src", "lib", "hooks", "features"].map((d) => `${d}/**/*.{js,jsx,mjs,ts,tsx,mts}`);
 
 let root: string;
 beforeEach(() => {
@@ -49,14 +53,45 @@ describe("countSource", () => {
   });
 });
 
+describe("countStackSource", () => {
+  it("counts a fetch only inside the effects of a client file", () => {
+    const effect = `useEffect(() => { fetch(a); window.fetch(b); refetch(); }, []);\nconst f = () => fetch(c);`;
+    expect(countStackSource(`"use client";\n${effect}`).fetchInClientEffect).toBe(2);
+    expect(countStackSource(`// a "use client" word in a comment\n${effect}`).fetchInClientEffect).toBe(0);
+    expect(countStackSource(`/* header */\n'use client'\nReact.useLayoutEffect(() => void krizakaFetch(u))`).fetchInClientEffect).toBe(1);
+  });
+
+  it("counts every form of @tanstack import, never the facades", () => {
+    const code = [
+      `import { useQuery } from "@tanstack/react-query";`,
+      `export * from "@tanstack/table-core";`,
+      `const v = await import("@tanstack/react-virtual");`,
+      `import { useKrizakaQuery } from "@krizaka/query";`,
+    ].join("\n");
+    expect(countStackSource(code).directTanstackImport).toBe(3);
+  });
+
+  it("counts tables and forms of more than one field", () => {
+    expect(countStackSource(`<table><tr /></table><form><input name="q" /></form>`).localTableOrForm).toBe(1);
+    expect(countStackSource(`<form><Input /><Select /></form>`).localTableOrForm).toBe(1);
+    expect(countStackSource(`<form><Input /><Select /></form>`, { maxFormFields: 2 }).localTableOrForm).toBe(0);
+    expect(countStackSource(`<tableau /><formula />`).localTableOrForm).toBe(0);
+  });
+});
+
 describe("countRepository", () => {
   it("scans the default globs (app, components, src .tsx) and skips node_modules", async () => {
-    expect(await countRepository({ root })).toEqual({ counters: TOTAL, files: 4 });
+    expect(await countRepository({ root })).toEqual({ counters: TOTAL, files: 4, stackFiles: 9 });
+  });
+
+  it("counts the imports of the retired dependencies", async () => {
+    expect((await countRepository({ root, retire: ["framer-motion"] })).counters.retiredImport).toBe(1);
   });
 
   it("takes custom globs", async () => {
-    const { counters, files } = await countRepository({ root, globs: ["lib/**/*.tsx", "app/**/*.ts"] });
+    const { counters, files } = await countRepository({ root, globs: ["lib/**/*.tsx", "app/**/*.ts"], stackGlobs: [] });
     expect(files).toBe(2);
+    expect(counters.fetchInClientEffect).toBe(0);
     expect(counters).toMatchObject({ palette: 4, light: 2 });
   });
 });
@@ -65,7 +100,11 @@ describe("runRatchet", () => {
   it("--init records the current counters and the globs", async () => {
     const result = await runRatchet({ root, mode: "init" });
     expect(result).toMatchObject({ ok: true, written: true, file: "lint-ratchet.json" });
-    expect(ratchetFile()).toEqual({ globs: ["app/**/*.tsx", "components/**/*.tsx", "src/**/*.tsx"], counters: TOTAL });
+    expect(ratchetFile()).toEqual({
+      globs: ["app/**/*.tsx", "components/**/*.tsx", "src/**/*.tsx"],
+      stackGlobs: STACK_GLOBS,
+      counters: TOTAL,
+    });
   });
 
   it("--init refuses to overwrite an existing file", async () => {
@@ -98,7 +137,29 @@ describe("runRatchet", () => {
     const result = await runRatchet({ root, mode: "update" });
     expect(result.ok).toBe(false); // an increase still fails, even when lowering the others
     expect(result.written).toBe(true);
-    expect(ratchetFile().counters).toEqual({ palette: 5, light: 3, arbitraryVar: 0, classNameTemplate: 2 });
+    expect(ratchetFile().counters).toEqual({ ...STACK, palette: 5, light: 3, arbitraryVar: 0, classNameTemplate: 2 });
+  });
+
+  const APP_UI = { palette: 4, light: 2, arbitraryVar: 2, classNameTemplate: 1 }; // app/**/*.tsx only
+
+  it("a file without the stack counters still checks, and --update records them", async () => {
+    writeFileSync(join(root, "lint-ratchet.json"), JSON.stringify({ globs: ["app/**/*.tsx"], counters: APP_UI }));
+    const check = await runRatchet({ root });
+    expect(check).toMatchObject({ ok: true, written: false, added: Object.keys(STACK) });
+    const update = await runRatchet({ root, mode: "update" });
+    expect(update).toMatchObject({ ok: true, written: true });
+    expect(ratchetFile()).toEqual({ globs: ["app/**/*.tsx"], stackGlobs: STACK_GLOBS, counters: { ...APP_UI, ...STACK } });
+  });
+
+  it("fails when a stack debt goes up, and reads `retire` and `maxFormFields` from the file", async () => {
+    writeFileSync(
+      join(root, "lint-ratchet.json"),
+      JSON.stringify({ retire: ["framer-motion"], maxFormFields: 2, counters: { ...TOTAL, localTableOrForm: 1, retiredImport: 1 } }),
+    );
+    expect((await runRatchet({ root })).ok).toBe(true); // the two-field form is allowed with maxFormFields 2
+    addDebt(`"use client";\nimport { m } from "framer-motion/m";\nuseEffect(() => { fetch("/a"); }, []);`);
+    const result = await runRatchet({ root });
+    expect(result.increased).toEqual(["fetchInClientEffect", "retiredImport"]);
   });
 
   it("uses the globs recorded in the file", async () => {
@@ -149,6 +210,6 @@ describe("krizaka-ratchet CLI", () => {
     const run = cli("--update");
     expect(run.status).toBe(0);
     expect(run.stdout).toMatch(/Lowered lint-ratchet.json/);
-    expect(ratchetFile().counters).toEqual({ palette: 4, light: 2, arbitraryVar: 2, classNameTemplate: 1 });
+    expect(ratchetFile().counters).toEqual({ ...STACK, palette: 4, light: 2, arbitraryVar: 2, classNameTemplate: 1 });
   });
 });

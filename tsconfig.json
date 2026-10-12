@@ -6,5 +6,5 @@
     "noEmit": true,
     "types": ["node", "vitest/globals"]
   },
-  "include": ["bin", "eslint", "ratchet", "test/*.ts", "patterns.js", "prettier.config.js", "vitest.config.ts"]
+  "include": ["bin", "eslint", "ratchet", "test/*.ts", "patterns.js", "dependency-cruiser.cjs", "prettier.config.js", "vitest.config.ts"]
 }
