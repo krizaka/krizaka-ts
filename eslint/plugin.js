@@ -1,6 +1,6 @@
 // The `krizaka` ESLint plugin: one object carrying every rule, so that configs registering it compose (flat config
 // refuses two different objects under the same plugin name).
-import { noDirectTanstackImport, noFetchInClientEffect, noLocaleTernaryRule,noLocalTableOrForm } from "./rules.js";
+import { envName, noDirectTanstackImport, noFetchInClientEffect, noLocaleTernaryRule, noLocalTableOrForm } from "./rules.js";
 
 /** @type {import("eslint").ESLint.Plugin} */
 export const krizakaPlugin = {
@@ -10,6 +10,7 @@ export const krizakaPlugin = {
     "no-fetch-in-client-effect": noFetchInClientEffect,
     "no-direct-tanstack-import": noDirectTanstackImport,
     "no-local-table-or-form": noLocalTableOrForm,
+    "env-name": envName,
   },
 };
 

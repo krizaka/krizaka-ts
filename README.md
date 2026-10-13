@@ -109,6 +109,23 @@ only as a dependency of a facade is caught too), and allows it from `node_module
 `noLocaleTernary({ files, routing })`: `routing` lists the files allowed to compare locales (default: `proxy.ts`,
 `middleware.ts`, `i18n.ts`, `seo.ts`, `app/[locale]/layout.tsx`, `I18nProvider.tsx`).
 
+### Environment variable names (`krizaka/env-name`)
+
+Environment variables are named by bounded context (krizaka/.github#46): `<CONTEXT>_<THING>` with CONTEXT one of
+`APP_` `DATABASE_` `AUTH_` `MEDIA_` `MAIL_` `PUSH_` `PAYMENTS_` `REALTIME_` `ABUSE_` `OBSERVABILITY_` `AI_` `OPERATOR_`.
+The rule — on in `krizakaBase` and `krizakaNext` — refuses a name read through `process.env.X`, `process.env["X"]` or
+`import.meta.env.X` that starts (after `NEXT_PUBLIC_`, `EXPO_PUBLIC_` or `VITE_`) with:
+
+- a **product**: the organisation's name, the repository's own (the first word of its package.json name,
+  `acme-monorepo` → `ACME_`), or one you name — a deployment already says which product it is;
+- a **vendor** (`BUNNY_`, `MAILGUN_`, `RESEND_`, `STRIPE_`, `GOOGLE_`, `EXPO_`, `REDIS_`, `VERCEL_`…): the vendor is a
+  value (`MEDIA_STORAGE_PROVIDER=bunny`, `MAIL_PROVIDER=mailgun`) and its settings sit under the context
+  (`MEDIA_STORAGE_API_KEY`, `MAIL_API_KEY`).
+
+The platforms' own names (`GITHUB_TOKEN`, `VERCEL_URL`, `EAS_BUILD`, …) pass. Tune it with
+`envNames({ products, vendors, allow })` from `@krizaka/config/eslint/env-names`; `envNamePrefixProblem(name)` gives
+the same verdict to a script (a `.env.example` or deployment spec check).
+
 ## The ratchet
 
 A repository with debt cannot turn the rules on in one pull request. The ratchet lets it adopt them now: it counts

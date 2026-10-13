@@ -1,10 +1,12 @@
 // The base flat config of every Krizaka JavaScript repository: @eslint/js and typescript-eslint recommended,
-// the React hooks rules, and a light import ordering (autofixable, a warning).
+// the React hooks rules, a light import ordering (autofixable, a warning) and env names by bounded context.
 import js from "@eslint/js";
 import reactHooks from "eslint-plugin-react-hooks";
 import simpleImportSort from "eslint-plugin-simple-import-sort";
 import globals from "globals";
 import tseslint from "typescript-eslint";
+
+import { envNames } from "./env-names.js";
 
 /** Generated or vendored output, never linted. */
 export const KRIZAKA_IGNORES = Object.freeze([
@@ -43,6 +45,8 @@ export const krizakaCommon = [
       "simple-import-sort/exports": "warn",
     },
   },
+  // Environment variables named by bounded context, never a product or a vendor (krizaka/.github#46).
+  ...envNames(),
 ];
 
 /**

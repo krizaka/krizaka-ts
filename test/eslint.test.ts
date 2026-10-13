@@ -1,8 +1,11 @@
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 import { ESLint, type Linter } from "eslint";
 import tseslint from "typescript-eslint";
 
+import { envNamePrefixProblem, envNames, ownProductPrefix } from "../eslint/env-names.js";
 import { krizakaBase } from "../eslint/index.js";
 import { krizakaUi, krizakaUiRestrictedSyntax, krizakaUiRules } from "../eslint/krizaka-ui.js";
 import { krizakaNext } from "../eslint/next.js";
@@ -204,5 +207,64 @@ describe("krizakaStack — the three stack rules (S1–S3, S11)", () => {
   it("names exactly three rules", () => {
     expect(STACK_RULES).toHaveLength(3);
     expect(Object.keys(krizakaStack()[0]!.rules!)).toEqual([...STACK_RULES]);
+  });
+});
+
+describe("krizaka/env-name — environment variables named by bounded context (krizaka/.github#46)", () => {
+  it("is on in krizakaBase and krizakaNext", async () => {
+    const code = `export const k = process.env.BUNNY_STORAGE_API_KEY;`;
+    expect(ids(await lint(krizakaBase, code, "lib/storage.ts"))).toContain("krizaka/env-name");
+    expect(ids(await lint(krizakaNext, code, "lib/storage.ts"))).toContain("krizaka/env-name");
+  });
+
+  it("refuses a product or a vendor prefix, also behind NEXT_PUBLIC_ / EXPO_PUBLIC_ and in import.meta.env", async () => {
+    const code = [
+      `export const a = process.env.KRIZAKA_ADMIN_API_TOKEN;`,
+      `export const b = process.env["MAILGUN_API_KEY"];`,
+      `export const c = process.env.NEXT_PUBLIC_ACME_APP_URL;`,
+      `export const d = process.env.EXPO_PUBLIC_ACME_URL;`,
+      `export const e = import.meta.env.VITE_BUNNY_CDN;`,
+    ].join("\n");
+    const messages = (await lint(envNames({ products: ["ACME"] }), code, "lib/env.ts")).filter((m) => m.ruleId === "krizaka/env-name");
+    expect(messages).toHaveLength(5);
+    expect(messages[0]!.message).toMatch(/product \(KRIZAKA_\)/);
+    expect(messages[1]!.message).toMatch(/vendor \(MAILGUN_\).*MAIL_API_KEY/);
+  });
+
+  it("accepts context names, the runtime's and the platforms' own", async () => {
+    const code = [
+      `export const a = process.env.MEDIA_STORAGE_API_KEY;`,
+      `export const b = process.env.NEXT_PUBLIC_APP_URL;`,
+      `export const c = process.env.EXPO_PUBLIC_APP_URL;`,
+      `export const d = process.env.NODE_ENV + process.env.PORT + process.env.CI;`,
+      `export const e = process.env.GITHUB_TOKEN ?? process.env.VERCEL_URL;`,
+      `export const f = process.env[name];`,
+    ].join("\n");
+    expect((await lint(envNames(), code, "lib/env.ts")).filter((m) => m.ruleId === "krizaka/env-name")).toEqual([]);
+  });
+
+  it("refuses the repository's own product, read from its package.json", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "env-name-"));
+    writeFileSync(join(dir, "package.json"), JSON.stringify({ name: "@acme/zebra-admin" }));
+    expect(ownProductPrefix(dir)).toBe("ZEBRA");
+    const block = mkdtempSync(join(tmpdir(), "env-name-"));
+    writeFileSync(join(block, "package.json"), JSON.stringify({ name: "@acme/realtime" }));
+    expect(ownProductPrefix(block)).toBeNull();
+    const eslint = new ESLint({ cwd: dir, overrideConfigFile: true, overrideConfig: [TSX, ...envNames()] });
+    const [result] = await eslint.lintText(`export const t = process.env.ZEBRA_API_TOKEN;`, { filePath: join(dir, "lib/a.ts") });
+    expect(result!.messages.map((m) => m.message)).toEqual([expect.stringMatching(/product \(ZEBRA_\)/)]);
+  });
+
+  it("takes extra products, vendors and allowed names", async () => {
+    const code = `export const a = process.env.ACME_KEY; export const b = process.env.BUNNY_LEGACY;`;
+    const messages = await lint(envNames({ vendors: ["ACME"], allow: ["BUNNY_LEGACY"] }), code, "lib/env.ts");
+    expect(messages.map((m) => m.message)).toEqual([expect.stringMatching(/ACME_/)]);
+  });
+
+  it("names the refused prefix for scripts (envNamePrefixProblem)", () => {
+    expect(envNamePrefixProblem("ACME_RELEASE_APPROVAL", { products: ["ACME"] })).toEqual({ prefix: "ACME", kind: "product" });
+    expect(envNamePrefixProblem("MAILGUN_DOMAIN")).toEqual({ prefix: "MAILGUN", kind: "vendor" });
+    expect(envNamePrefixProblem("NEXT_PUBLIC_CDN_URL")).toBeNull();
+    expect(envNamePrefixProblem("APP_RELEASE_APPROVAL")).toBeNull();
   });
 });

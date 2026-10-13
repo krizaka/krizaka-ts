@@ -1,5 +1,8 @@
 // The rule modules of the `krizaka` ESLint plugin (eslint/plugin.js). Patterns come from ../patterns.js, which the
 // ratchet reads too: a rule and its counter never diverge.
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+
 import { countFormFields, EFFECT_NAMES_SOURCE, FETCH_NAMES_SOURCE, TANSTACK_SCOPE } from "../patterns.js";
 
 /** @typedef {import("eslint").Rule.RuleModule} RuleModule */
@@ -123,6 +126,140 @@ export const noLocalTableOrForm = {
         if (node.name.name === "table") return context.report({ node, messageId: "table" });
         const fields = countFormFields(context.sourceCode.getText(node.parent));
         if (fields > maxFormFields) context.report({ node, messageId: "form", data: { fields: String(fields) } });
+      },
+    };
+  },
+};
+
+/**
+ * The organisation's name is never a prefix; a repository's own product is found from its package.json (below) and a
+ * config may name more (`products`): a deployment already says which product it is (krizaka/.github#46).
+ */
+export const ENV_PRODUCT_PREFIXES = Object.freeze(["KRIZAKA"]);
+
+/** The bounded contexts a name starts with (krizaka/.github#46). */
+export const ENV_CONTEXT_WORDS = Object.freeze(["APP", "DATABASE", "AUTH", "MEDIA", "MAIL", "PUSH", "PAYMENTS", "REALTIME", "ABUSE", "OBSERVABILITY", "AI", "OPERATOR"]);
+
+/** @type {Map<string, string | null>} */
+const ownProductCache = new Map();
+
+/**
+ * The product a repository is: the first word of the nearest package.json's name, scope removed
+ * (`acme-monorepo` → ACME, `@org/acme-admin` → ACME); null for a one-word name (`@org/realtime`) or a context word.
+ * @param {string} cwd
+ */
+export function ownProductPrefix(cwd) {
+  if (ownProductCache.has(cwd)) return ownProductCache.get(cwd) ?? null;
+  let found = null;
+  for (let dir = cwd; ; dir = dirname(dir)) {
+    const file = join(dir, "package.json");
+    if (existsSync(file)) {
+      try {
+        const name = String(JSON.parse(readFileSync(file, "utf8")).name ?? "");
+        // A product names its packages `<product>-<part>` (acme-monorepo, @org/acme-admin); a one-word package
+        // (@org/realtime, @org/ui) is a building block, not a product, and a context word is never one.
+        const words = name.replace(/^@[^/]+\//, "").split(/[-_.]/).filter(Boolean);
+        const word = words.length > 1 ? words[0].toUpperCase() : "";
+        found = /^[A-Z][A-Z0-9]+$/.test(word) && !ENV_CONTEXT_WORDS.includes(word) ? word : null;
+      } catch {
+        found = null;
+      }
+      break;
+    }
+    if (dirname(dir) === dir) break;
+  }
+  ownProductCache.set(cwd, found);
+  return found;
+}
+
+/** Vendors: a vendor is a value (`MEDIA_STORAGE_PROVIDER=bunny`, `MAIL_PROVIDER=mailgun`), never a name. */
+export const ENV_VENDOR_PREFIXES = Object.freeze([
+  "BUNNY", "MAILGUN", "RESEND", "SENDGRID", "POSTMARK", "STRIPE", "CCBILL", "SEGPAY", "NOWPAYMENTS", "PAYPAL",
+  "TURNSTILE", "CLOUDFLARE", "VERCEL", "DIGITALOCEAN", "DO", "AWS", "GCP", "AZURE", "GOOGLE", "FACEBOOK", "APPLE",
+  "GITHUB", "GH", "EXPO", "FIREBASE", "FCM", "APNS", "REDIS", "VALKEY", "OPENAI", "ANTHROPIC", "OLLAMA", "SENTRY",
+  "TWILIO", "SUPABASE", "MAPBOX",
+]);
+
+/** Names the platforms set themselves (GitHub Actions, Vercel, EAS): read, never chosen. */
+export const ENV_PLATFORM_NAMES = Object.freeze([
+  "GITHUB_ACTIONS", "GITHUB_TOKEN", "GITHUB_SHA", "GITHUB_REF", "GITHUB_REF_NAME", "GITHUB_REPOSITORY", "GITHUB_RUN_ID",
+  "GITHUB_RUN_NUMBER", "GITHUB_WORKSPACE", "GITHUB_OUTPUT", "GITHUB_STEP_SUMMARY", "GITHUB_EVENT_NAME", "GITHUB_SERVER_URL",
+  "VERCEL", "VERCEL_ENV", "VERCEL_URL", "VERCEL_GIT_COMMIT_SHA", "EAS_BUILD", "EAS_BUILD_PLATFORM", "EAS_BUILD_PROFILE",
+  "EXPO_TOKEN",
+]);
+
+/** The framework prefixes a client-exposed value needs; the name after them follows the same rule. */
+const PUBLIC_PREFIX = /^(?:NEXT_PUBLIC_|EXPO_PUBLIC_|VITE_)/;
+
+/**
+ * The prefix that makes an environment variable name refused, or null. Exported for scripts and tests.
+ * @param {string} name
+ * @param {{ products?: readonly string[], vendors?: readonly string[], allow?: readonly string[] }} [options]
+ * @returns {{ prefix: string, kind: "product" | "vendor" } | null}
+ */
+export function envNamePrefixProblem(name, { products = ENV_PRODUCT_PREFIXES, vendors = ENV_VENDOR_PREFIXES, allow = ENV_PLATFORM_NAMES } = {}) {
+  if (allow.includes(name)) return null;
+  const bare = name.replace(PUBLIC_PREFIX, "");
+  const head = bare.split("_")[0] ?? "";
+  if (bare === head) return null; // one word (PORT, CI): no prefix to judge
+  if (products.includes(head)) return { prefix: head, kind: "product" };
+  if (vendors.includes(head)) return { prefix: head, kind: "vendor" };
+  return null;
+}
+
+/** The name read by `process.env.X`, `process.env["X"]` or `import.meta.env.X`, or null. */
+function envNameOf(/** @type {any} */ node) {
+  const object = node.object;
+  const isProcessEnv = object?.type === "MemberExpression" && object.object?.type === "Identifier" && object.object.name === "process" && !object.computed && object.property?.name === "env";
+  const isImportMetaEnv = object?.type === "MemberExpression" && object.object?.type === "MetaProperty" && !object.computed && object.property?.name === "env";
+  if (!isProcessEnv && !isImportMetaEnv) return null;
+  if (!node.computed && node.property?.type === "Identifier") return node.property.name;
+  if (node.computed && node.property?.type === "Literal" && typeof node.property.value === "string") return node.property.value;
+  return null;
+}
+
+/**
+ * Environment variables are named by bounded context — `<CONTEXT>_<THING>` (APP_, DATABASE_, AUTH_, MEDIA_, MAIL_,
+ * PUSH_, PAYMENTS_, REALTIME_, ABUSE_, OBSERVABILITY_, AI_, OPERATOR_) — never after a product or a vendor
+ * (krizaka/.github#46). The products refused: the organisation's name and the repository's own (its package.json). Options:
+ * `products`, `vendors` (extra prefixes), `allow` (extra names a platform sets).
+ * @type {RuleModule}
+ */
+export const envName = {
+  meta: {
+    type: "problem",
+    docs: { description: "Forbid environment variable names prefixed with a product or a vendor (krizaka/.github#46)." },
+    schema: [
+      {
+        type: "object",
+        properties: {
+          products: { type: "array", items: { type: "string" } },
+          vendors: { type: "array", items: { type: "string" } },
+          allow: { type: "array", items: { type: "string" } },
+        },
+        additionalProperties: false,
+      },
+    ],
+    messages: {
+      product:
+        "{{name}} is named after a product ({{prefix}}_): name it by its bounded context, <CONTEXT>_<THING> (APP_, DATABASE_, AUTH_, MEDIA_, MAIL_, PUSH_, PAYMENTS_, REALTIME_, ABUSE_, OBSERVABILITY_, AI_, OPERATOR_).",
+      vendor:
+        "{{name}} is named after a vendor ({{prefix}}_): the vendor is a value (<CONTEXT>_PROVIDER={{lower}}) and its settings sit under the context (e.g. MEDIA_STORAGE_API_KEY, MAIL_API_KEY).",
+    },
+  },
+  create(context) {
+    const options = context.options[0] ?? {};
+    const own = ownProductPrefix(context.cwd);
+    const products = [...ENV_PRODUCT_PREFIXES, ...(own && !ENV_VENDOR_PREFIXES.includes(own) ? [own] : []), ...(options.products ?? [])];
+    const vendors = [...ENV_VENDOR_PREFIXES, ...(options.vendors ?? [])];
+    const allow = [...ENV_PLATFORM_NAMES, ...(options.allow ?? [])];
+    return {
+      /** @param {any} node */
+      MemberExpression(node) {
+        const name = envNameOf(node);
+        if (!name) return;
+        const problem = envNamePrefixProblem(name, { products, vendors, allow });
+        if (problem) context.report({ node, messageId: problem.kind, data: { name, prefix: problem.prefix, lower: problem.prefix.toLowerCase() } });
       },
     };
   },
