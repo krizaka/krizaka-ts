@@ -1,5 +1,11 @@
 # @krizaka/config
 
+## 0.3.1
+
+### Patch Changes
+
+- [#143](https://github.com/krizaka/krizaka-ui/pull/143) [`d0e43fd`](https://github.com/krizaka/krizaka-ui/commit/d0e43fd7defaba8be14d61c3b84799fec817dad5) Thanks [@oussamaABID](https://github.com/oussamaABID)! - Package homepage points to the documentation on krizaka.com (the page the npm listing links to is the one that explains the package).
+
 ## 0.3.0
 
 ### Minor Changes
