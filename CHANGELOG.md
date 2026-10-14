@@ -1,5 +1,11 @@
 # @krizaka/config
 
+## 0.4.0
+
+### Minor Changes
+
+- [#169](https://github.com/krizaka/krizaka-ui/pull/169) [`c08ae66`](https://github.com/krizaka/krizaka-ui/commit/c08ae666adba7bcf4bbda889266d79e5e40c3e22) Thanks [@oussamaABID](https://github.com/oussamaABID)! - Two named ESLint rules for the adoption: `krizaka/no-light-variant` (refuse Tailwind `light:` in products — tokens do the theming) and `krizaka/no-raw-palette` (refuse `bg-zinc-900`, `text-violet-400`… — use a role; `allow` families for isolated cases), registered on the `krizaka` plugin and shipped as warnings by `krizakaUiWarnings()` (`@krizaka/config/eslint/ui-warnings`). `krizaka-ratchet` already counts the same patterns (`light`, `palette`): a product adopts the warnings now and brings both counts to 0. `krizakaUi()` stays the strict set.
+
 ## 0.3.1
 
 ### Patch Changes
