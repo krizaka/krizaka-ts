@@ -48,6 +48,7 @@ the package.
 | `@krizaka/config/eslint/next` | `krizakaNext`: `eslint-config-next` (core web vitals + TypeScript, which already carry typescript-eslint, React hooks and import) + the same basics. |
 | `@krizaka/config/eslint/krizaka-ui` | `krizakaUi(options?)`: the four UI rules below. Also `krizakaUiRules` and `krizakaUiRestrictedSyntax(options?)`. |
 | `@krizaka/config/eslint/no-locale-ternary` | `noLocaleTernary(options?)`: `krizaka/no-locale-ternary` — no `locale === "fr" ? … : …` outside routing code. |
+| `@krizaka/config/eslint/ui-warnings` | `krizakaUiWarnings(options?)`: the same two debts as named plugin rules, as warnings — `krizaka/no-light-variant` (no `light:`: tokens do the theming) and `krizaka/no-raw-palette` (no `bg-zinc-900`, `text-violet-400`: a role; `allow` families). `krizaka-ratchet` counts them (`light`, `palette`), so a product adopts them now and brings the counts to 0. |
 | `@krizaka/config/eslint/stack` | `krizakaStack(options?)`: the three stack rules below (warnings). Also `STACK_RULES`. |
 | `@krizaka/config/eslint/plugin` | `krizakaPlugin`: the `krizaka` plugin carrying every rule, for a hand-written config. |
 | `@krizaka/config/dependency-cruiser` | The shared dependency-cruiser config: `krizaka-no-direct-tanstack` (no `@tanstack/*` from an app). |

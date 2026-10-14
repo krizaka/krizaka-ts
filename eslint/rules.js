@@ -3,7 +3,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { countFormFields, EFFECT_NAMES_SOURCE, FETCH_NAMES_SOURCE, TANSTACK_SCOPE } from "../patterns.js";
+import { countFormFields, EFFECT_NAMES_SOURCE, FETCH_NAMES_SOURCE, LIGHT_VARIANT_SOURCE, paletteSource, TANSTACK_SCOPE } from "../patterns.js";
 
 /** @typedef {import("eslint").Rule.RuleModule} RuleModule */
 /** @typedef {import("estree").Node} Node */
@@ -264,3 +264,40 @@ export const envName = {
     };
   },
 };
+
+/**
+ * A rule that reports the className strings (literals and template chunks, in `className` attributes) matching a pattern.
+ * @param {(options: { allow?: string[] }) => RegExp} pattern
+ * @param {string} message
+ * @returns {RuleModule}
+ */
+function classNameRule(pattern, message) {
+  return {
+    meta: {
+      type: "suggestion",
+      docs: { description: message },
+      schema: [{ type: "object", properties: { allow: { type: "array", items: { type: "string" } } }, additionalProperties: false }],
+      messages: { found: message },
+    },
+    create(context) {
+      const options = /** @type {{ allow?: string[] }} */ (context.options[0] ?? {});
+      const regex = pattern(options);
+      const check = (/** @type {Node} */ node, /** @type {unknown} */ value) => {
+        if (typeof value === "string" && regex.test(value)) context.report({ node, messageId: "found" });
+      };
+      return {
+        "JSXAttribute[name.name='className'] Literal": (/** @type {any} */ node) => check(node, node.value),
+        "JSXAttribute[name.name='className'] TemplateElement": (/** @type {any} */ node) => check(node, node.value.cooked),
+      };
+    },
+  };
+}
+
+/** `krizaka/no-light-variant`: a theme is a set of tokens, never a `light:` variant (a dark island: `.theme-dark`). */
+export const noLightVariant = classNameRule(() => new RegExp(LIGHT_VARIANT_SOURCE), "`light:` is forbidden in products: a theme is a set of tokens. A dark island? `.theme-dark` on the ancestor.");
+
+/** `krizaka/no-raw-palette`: a component reads a role (`bg-surface-1`, `text-accent`), never a palette step (`bg-zinc-900`). */
+export const noRawPalette = classNameRule(
+  ({ allow = [] }) => new RegExp(paletteSource(allow)),
+  "Raw palette colour: use a role (bg-surface-1, text-fg-secondary, border-border-default, text-accent, text-danger).",
+);

@@ -11,6 +11,7 @@ import { krizakaUi, krizakaUiRestrictedSyntax, krizakaUiRules } from "../eslint/
 import { krizakaNext } from "../eslint/next.js";
 import { LOCALE_TERNARY_SELECTORS, noLocaleTernary } from "../eslint/no-locale-ternary.js";
 import { krizakaStack, STACK_RULES } from "../eslint/stack.js";
+import { krizakaUiWarnings, UI_WARNING_RULES } from "../eslint/ui-warnings.js";
 
 const TSX = { files: ["**/*.{ts,tsx}"], languageOptions: { parser: tseslint.parser } } satisfies Linter.Config;
 
@@ -266,5 +267,40 @@ describe("krizaka/env-name — environment variables named by bounded context (k
     expect(envNamePrefixProblem("MAILGUN_DOMAIN")).toEqual({ prefix: "MAILGUN", kind: "vendor" });
     expect(envNamePrefixProblem("NEXT_PUBLIC_CDN_URL")).toBeNull();
     expect(envNamePrefixProblem("APP_RELEASE_APPROVAL")).toBeNull();
+  });
+});
+
+describe("krizakaUiWarnings — no-light-variant and no-raw-palette, named, as warnings", () => {
+  it("names the two rules", () => {
+    expect(UI_WARNING_RULES).toEqual(["krizaka/no-light-variant", "krizaka/no-raw-palette"]);
+  });
+
+  it("no-raw-palette: a palette step in className, nested in cn() and ternaries too; a role is fine", async () => {
+    const code = `export const A = ({ on }: { on: boolean }) => <><div className="p-2 bg-zinc-900/60" /><i className={cn("p-2", on ? "text-violet-400" : "text-fg")} /><b className="bg-surface-1 text-accent" /></>;`;
+    const messages = await lint(krizakaUiWarnings(), code);
+    expect(ids(messages)).toEqual(["krizaka/no-raw-palette", "krizaka/no-raw-palette"]);
+    expect(messages[0]!.severity).toBe(1); // a warning: the ratchet holds the count
+  });
+
+  it("no-raw-palette: `allow` tolerates a family for a documented case", async () => {
+    const code = `export const A = () => <div className="text-emerald-400 bg-zinc-900" />;`;
+    expect(ids(await lint(krizakaUiWarnings({ allow: ["emerald"] }), code))).toEqual(["krizaka/no-raw-palette"]);
+  });
+
+  it("no-light-variant: `light:` in className, never a `.light` word elsewhere", async () => {
+    const code = `export const A = () => <><div className="light:bg-white" /><p className="text-fg">light: a word</p></>;`;
+    const messages = await lint(krizakaUiWarnings(), code);
+    expect(ids(messages)).toEqual(["krizaka/no-light-variant"]);
+    expect(messages[0]!.message).toMatch(/theme is a set of tokens/);
+  });
+
+  it("only looks at className, and at the files given", async () => {
+    expect(await lint(krizakaUiWarnings(), `export const a = "bg-zinc-900 light:x";`)).toEqual([]);
+    expect(await lint(krizakaUiWarnings({ files: ["**/*.nope"] }), `export const A = () => <div className="bg-zinc-900" />;`)).toEqual([]);
+  });
+
+  it("can be raised to errors", async () => {
+    const messages = await lint(krizakaUiWarnings({ severity: "error" }), `export const A = () => <div className="light:x bg-zinc-900" />;`);
+    expect(messages.map((m) => m.severity)).toEqual([2, 2]);
   });
 });
