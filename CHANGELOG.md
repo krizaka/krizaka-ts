@@ -1,5 +1,11 @@
 # @krizaka/config
 
+## 0.7.0
+
+### Minor Changes
+
+- [#496](https://github.com/krizaka/krizaka-ui/pull/496) [`64ede61`](https://github.com/krizaka/krizaka-ui/commit/64ede61bac6321beda339f9a63820ba073a1162b) Thanks [@krizaka-agents](https://github.com/apps/krizaka-agents)! - Peer range `eslint: ^9 || ^10` (and `@eslint/js` likewise). The ESLint suite and the lint of the package pass under both ESLint 9.39 and 10.13 (krizaka-ui#141).
+
 ## 0.6.0
 
 ### Minor Changes
