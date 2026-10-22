@@ -3,9 +3,17 @@
 TypeScript backend building blocks for every Krizaka product, like [Krizaka Java](https://java.krizaka.com): one implementation, no
 copies. Published on npm under `@krizaka/` (Apache-2.0).
 
-| Package | What it is |
-| --- | --- |
-| [`@krizaka/organize`](packages/organize) | A name, an avatar, a description, tags, collections and an undeletable default collection for any entity |
+| Package | What it is | npm |
+| --- | --- | --- |
+| [`@krizaka/auth`](packages/auth#readme) | Accounts and roles: profile, language, theme, avatar, e-mail change by link, password, sessions, export, deletion; roles and invitations as data | [![npm](https://img.shields.io/npm/v/@krizaka/auth?label=&color=3e76a8&logo=npm)](https://www.npmjs.com/package/@krizaka/auth) |
+| [`@krizaka/settings`](packages/settings#readme) | Configuration as data: a typed registry resolved user > workspace > global > default, every change audited | [![npm](https://img.shields.io/npm/v/@krizaka/settings?label=&color=3e76a8&logo=npm)](https://www.npmjs.com/package/@krizaka/settings) |
+| [`@krizaka/api-keys`](packages/api-keys#readme) | API keys: created, rotated, revoked and authenticated behind a store port | [![npm](https://img.shields.io/npm/v/@krizaka/api-keys?label=&color=3e76a8&logo=npm)](https://www.npmjs.com/package/@krizaka/api-keys) |
+| [`@krizaka/webhooks`](packages/webhooks#readme) | Signed, idempotent webhooks, both ways | [![npm](https://img.shields.io/npm/v/@krizaka/webhooks?label=&color=3e76a8&logo=npm)](https://www.npmjs.com/package/@krizaka/webhooks) |
+| [`@krizaka/organize`](packages/organize#readme) | A name, an avatar, tags and collections for any entity, with a conformance kit | [![npm](https://img.shields.io/npm/v/@krizaka/organize?label=&color=3e76a8&logo=npm)](https://www.npmjs.com/package/@krizaka/organize) |
+| [`@krizaka/brief`](packages/brief#readme) | The weekly brief: figured recommendations, each with one action; guards, ranking, the week in the shop's time zone | [![npm](https://img.shields.io/npm/v/@krizaka/brief?label=&color=3e76a8&logo=npm)](https://www.npmjs.com/package/@krizaka/brief) |
+
+**Documentation**: each package's README (linked above) is its documentation — install, API, examples; the products using it are
+Akinaza and Yomizaka. A site (ts.krizaka.com, like java.krizaka.com) is tracked in [#28](https://github.com/krizaka/krizaka-ts/issues/28).
 
 Decision: [ADR-006](https://github.com/krizaka/.github/blob/main/docs/adr/ADR-006-krizaka-ts-organize.md). Contract for contributors and agents: [AGENTS.md](AGENTS.md).
 
