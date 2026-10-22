@@ -58,7 +58,7 @@ describe("package surface", () => {
       ]),
     );
     expect(pkg.bin).toEqual({ "krizaka-ratchet": "./bin/krizaka-ratchet.mjs" });
-    expect(pkg.peerDependencies).toMatchObject({ eslint: "^9", typescript: "^5" });
+    expect(pkg.peerDependencies).toMatchObject({ eslint: "^9 || ^10", typescript: "^5" });
   });
 
   it("carries no product word", () => {
