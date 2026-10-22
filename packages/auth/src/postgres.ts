@@ -9,6 +9,8 @@ export type Query = <T = Record<string, unknown>>(sql: string, params?: unknown[
 
 export interface Mail {
   to: string;
+  /** The language of the mail (the person's). */
+  locale: "en" | "fr";
   subject: string;
   text: string;
 }
@@ -119,7 +121,7 @@ export function postgresAccounts(deps: AccountDeps): AccountService {
       const token = (deps.token ?? (() => emailChangeToken(deps.tokenPrefix)))();
       await query("INSERT INTO email_changes (account_id, new_email, token_hash, expires_at) VALUES ($1, $2, $3, $4)", [id, address, deps.tokenHash(token), addHours(now, EMAIL_CHANGE_TTL_HOURS)]);
       const url = `${deps.baseUrl.replace(/\/$/, "")}/${profile.locale}/confirm-email?token=${encodeURIComponent(token)}`;
-      await deps.mail({ to: address, ...emailChangeMail(deps.product, profile.locale, url) });
+      await deps.mail({ to: address, locale: profile.locale, ...emailChangeMail(deps.product, profile.locale, url) });
     },
 
     async confirmEmailChange(token, now) {
