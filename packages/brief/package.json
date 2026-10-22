@@ -1,6 +1,6 @@
 {
   "name": "@krizaka/brief",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "A Krizaka product's weekly brief: a few figured recommendations, each with one action. The contract (integer money, named figures, evidence, assumptions), guards that veto with a reason, a deterministic ranking that keeps the top three, and the week in the shop's time zone. Pure: no framework, no database, no wall clock.",
   "keywords": [
     "krizaka",
