@@ -180,11 +180,11 @@ export const ENV_VENDOR_PREFIXES = Object.freeze([
   "TWILIO", "SUPABASE", "MAPBOX",
 ]);
 
-/** Names the platforms set themselves (GitHub Actions, Vercel, EAS): read, never chosen. */
+/** Names the platforms set themselves (GitHub Actions, EAS): read, never chosen. */
 export const ENV_PLATFORM_NAMES = Object.freeze([
   "GITHUB_ACTIONS", "GITHUB_TOKEN", "GITHUB_SHA", "GITHUB_REF", "GITHUB_REF_NAME", "GITHUB_REPOSITORY", "GITHUB_RUN_ID",
   "GITHUB_RUN_NUMBER", "GITHUB_WORKSPACE", "GITHUB_OUTPUT", "GITHUB_STEP_SUMMARY", "GITHUB_EVENT_NAME", "GITHUB_SERVER_URL",
-  "VERCEL", "VERCEL_ENV", "VERCEL_URL", "VERCEL_GIT_COMMIT_SHA", "EAS_BUILD", "EAS_BUILD_PLATFORM", "EAS_BUILD_PROFILE",
+  "EAS_BUILD", "EAS_BUILD_PLATFORM", "EAS_BUILD_PROFILE",
   "EXPO_TOKEN",
 ]);
 

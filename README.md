@@ -119,11 +119,11 @@ The rule — on in `krizakaBase` and `krizakaNext` — refuses a name read throu
 
 - a **product**: the organisation's name, the repository's own (the first word of its package.json name,
   `acme-monorepo` → `ACME_`), or one you name — a deployment already says which product it is;
-- a **vendor** (`BUNNY_`, `MAILGUN_`, `RESEND_`, `STRIPE_`, `GOOGLE_`, `EXPO_`, `REDIS_`, `VERCEL_`…): the vendor is a
+- a **vendor** (`BUNNY_`, `MAILGUN_`, `RESEND_`, `STRIPE_`, `GOOGLE_`, `EXPO_`, `REDIS_`…): the vendor is a
   value (`MEDIA_STORAGE_PROVIDER=bunny`, `MAIL_PROVIDER=mailgun`) and its settings sit under the context
   (`MEDIA_STORAGE_API_KEY`, `MAIL_API_KEY`).
 
-The platforms' own names (`GITHUB_TOKEN`, `VERCEL_URL`, `EAS_BUILD`, …) pass. Tune it with
+The platforms' own names (`GITHUB_TOKEN`, `EAS_BUILD`, …) pass. Tune it with
 `envNames({ products, vendors, allow })` from `@krizaka/config/eslint/env-names`; `envNamePrefixProblem(name)` gives
 the same verdict to a script (a `.env.example` or deployment spec check).
 

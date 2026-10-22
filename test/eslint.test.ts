@@ -238,7 +238,7 @@ describe("krizaka/env-name — environment variables named by bounded context (k
       `export const b = process.env.NEXT_PUBLIC_APP_URL;`,
       `export const c = process.env.EXPO_PUBLIC_APP_URL;`,
       `export const d = process.env.NODE_ENV + process.env.PORT + process.env.CI;`,
-      `export const e = process.env.GITHUB_TOKEN ?? process.env.VERCEL_URL;`,
+      `export const e = process.env.GITHUB_TOKEN ?? process.env.EAS_BUILD;`,
       `export const f = process.env[name];`,
     ].join("\n");
     expect((await lint(envNames(), code, "lib/env.ts")).filter((m) => m.ruleId === "krizaka/env-name")).toEqual([]);
