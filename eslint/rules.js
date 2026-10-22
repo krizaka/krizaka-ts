@@ -100,6 +100,27 @@ export const noDirectTanstackImport = {
   },
 };
 
+/** Oussama, 2026-10-22: krizaka.com is the only way back between the sites; no site carries the family switcher. */
+/** @type {RuleModule} */
+export const noFamilySwitcher = {
+  meta: {
+    type: "problem",
+    docs: { description: "Forbid the family switcher (NavBar.Family): krizaka.com is the only link back between the Krizaka sites." },
+    schema: [],
+    messages: {
+      family:
+        "No family switcher (NavBar.Family) on any site: krizaka.com is the only way back. The footer carries one quiet « A Krizaka project » link to https://www.krizaka.com (SiteFooter).",
+    },
+  },
+  create(context) {
+    return {
+      "JSXMemberExpression[object.name='NavBar'][property.name='Family']": (/** @type {Node} */ node) => context.report({ node, messageId: "family" }),
+      "JSXIdentifier[name='NavBarFamily']": (/** @type {Node} */ node) => context.report({ node, messageId: "family" }),
+      "ImportSpecifier[imported.name='NavBarFamily']": (/** @type {Node} */ node) => context.report({ node, messageId: "family" }),
+    };
+  },
+};
+
 /** S2, S3: a table is `@krizaka/ui/data-table`, a form is `@krizaka/ui/form` — except a form of a single field. */
 /** @type {RuleModule} */
 export const noLocalTableOrForm = {

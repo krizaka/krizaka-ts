@@ -205,8 +205,8 @@ describe("krizakaStack — the three stack rules (S1–S3, S11)", () => {
     ]);
   });
 
-  it("names exactly three rules", () => {
-    expect(STACK_RULES).toHaveLength(3);
+  it("names exactly the stack rules (three, plus the family switcher ban)", () => {
+    expect(STACK_RULES).toHaveLength(4);
     expect(Object.keys(krizakaStack()[0]!.rules!)).toEqual([...STACK_RULES]);
   });
 });
@@ -302,5 +302,19 @@ describe("krizakaUiWarnings — no-light-variant and no-raw-palette, named, as w
   it("can be raised to errors", async () => {
     const messages = await lint(krizakaUiWarnings({ severity: "error" }), `export const A = () => <div className="light:x bg-zinc-900" />;`);
     expect(messages.map((m) => m.severity)).toEqual([2, 2]);
+  });
+});
+
+describe("no-family-switcher (krizakaStack)", () => {
+  it("refuses NavBar.Family, <NavBarFamily /> and its import, as an error whatever the stack severity", async () => {
+    const code = `import { NavBar, NavBarFamily } from "@krizaka/ui/nav-bar";\nexport const A = () => <NavBar.Root label="x"><NavBar.Family current="ui" /><NavBarFamily current="ui" /></NavBar.Root>;`;
+    const messages = await lint(krizakaStack({ severity: "warn" }), code);
+    const family = messages.filter((m) => m.ruleId === "krizaka/no-family-switcher");
+    expect(family).toHaveLength(3);
+    expect(family.every((m) => m.severity === 2)).toBe(true);
+  });
+  it("leaves the rest of the bar alone", async () => {
+    const code = `import { NavBar } from "@krizaka/ui/nav-bar";\nexport const A = () => <NavBar.Root label="x"><NavBar.Brand>K</NavBar.Brand></NavBar.Root>;`;
+    expect((await lint(krizakaStack(), code)).filter((m) => m.ruleId === "krizaka/no-family-switcher")).toEqual([]);
   });
 });

@@ -8,6 +8,7 @@ export const STACK_RULES = Object.freeze([
   "krizaka/no-fetch-in-client-effect",
   "krizaka/no-direct-tanstack-import",
   "krizaka/no-local-table-or-form",
+  "krizaka/no-family-switcher",
 ]);
 
 /**
@@ -32,6 +33,8 @@ export function krizakaStack({
         "krizaka/no-fetch-in-client-effect": severity,
         "krizaka/no-direct-tanstack-import": severity,
         "krizaka/no-local-table-or-form": [severity, { maxFormFields }],
+        // Never a warning: the family switcher is gone from every site (krizaka.com is the only way back).
+        "krizaka/no-family-switcher": "error",
       },
     },
   ];
