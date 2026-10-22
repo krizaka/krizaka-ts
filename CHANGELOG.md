@@ -1,5 +1,11 @@
 # @krizaka/config
 
+## 0.4.2
+
+### Patch Changes
+
+- [#467](https://github.com/krizaka/krizaka-ui/pull/467) [`af54020`](https://github.com/krizaka/krizaka-ui/commit/af540209449168c5ff64e12b609909e94b23ba0a) Thanks [@krizaka-agents](https://github.com/apps/krizaka-agents)! - Vercel is retired: its platform variable names are no longer allowed by the env-name rule (a `VERCEL_` variable is refused like any vendor name).
+
 ## 0.4.1
 
 ### Patch Changes
