@@ -32,6 +32,8 @@ export interface OrganizeSchema {
   owner?: { table?: string; localeColumn?: string };
   collections?: string;
   tags?: string;
+  /** The collections' tag join table, when a product already has one under another name. Default `<collections>_tags`. */
+  collectionTags?: string;
   /** What a new owner's default collection is called, by language. */
   defaultName?: { fr: string; en: string };
   kinds: Record<string, KindDecl>;
@@ -51,6 +53,7 @@ export function resolved(schema: OrganizeSchema) {
     localeColumn: ident(schema.owner?.localeColumn ?? DEFAULTS.localeColumn),
     collections: ident(schema.collections ?? DEFAULTS.collections),
     tags: ident(schema.tags ?? DEFAULTS.tags),
+    collectionTags: ident(schema.collectionTags ?? `${schema.collections ?? DEFAULTS.collections}_tags`),
     defaultName: schema.defaultName ?? { fr: "Mes éléments", en: "My items" },
     kinds,
   };
@@ -82,7 +85,7 @@ CREATE TABLE ${r.tags} (
   color    text NOT NULL CHECK (color IN ('blue', 'green', 'amber', 'red', 'violet', 'gray'))
 );
 CREATE UNIQUE INDEX ${r.tags}_owner_name ON ${r.tags}(owner_id, lower(name));
-CREATE TABLE ${c}_tags (collection_id uuid NOT NULL REFERENCES ${c}(id) ON DELETE CASCADE, tag_id uuid NOT NULL REFERENCES ${r.tags}(id) ON DELETE CASCADE, PRIMARY KEY (collection_id, tag_id));
+CREATE TABLE ${r.collectionTags} (collection_id uuid NOT NULL REFERENCES ${c}(id) ON DELETE CASCADE, tag_id uuid NOT NULL REFERENCES ${r.tags}(id) ON DELETE CASCADE, PRIMARY KEY (collection_id, tag_id));
 `);
   for (const k of Object.values(r.kinds)) {
     parts.push(`
