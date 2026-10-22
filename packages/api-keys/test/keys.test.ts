@@ -22,7 +22,9 @@ describe("creating a key", () => {
     const { key, record } = await keys.create("owner-1", { name: "Mon ERP", scopes: ["checks:write"], expiresInDays: 90 }, { maxActive: 5 });
     expect(key).toMatch(/^yzk_[0-9a-f]{12}_[A-Za-z0-9_-]{32}$/);
     expect(record).toMatchObject({ ownerId: "owner-1", name: "Mon ERP", scopes: ["checks:write"], lastUsedAt: null, revokedAt: null });
-    const secret = key.split("_")[2]!;
+    // The secret is base64url (it may hold « _ »): it is everything after `yzk_<12 hex>_`.
+    const secret = key.slice("yzk_".length + 12 + 1);
+    expect(secret).toHaveLength(32);
     expect(JSON.stringify(await store.list("owner-1"))).not.toContain(secret);
     expect(record.secretHash).toMatch(/^[0-9a-f]{64}$/);
     expect(JSON.stringify(keys.publicView(record))).not.toMatch(/secretHash|hash/i);
