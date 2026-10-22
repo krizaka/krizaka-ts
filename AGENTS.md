@@ -5,6 +5,8 @@ npm under `@krizaka/` (Apache-2.0). ADR: krizaka/.github `docs/adr/ADR-006-kriza
 
 - **A package is generic**: no import from a product, no environment variable, no vendor SDK, no ambient clock (`Clock` injected),
   no database client (a `Query` function is passed in). Rules are data. Ports for everything else.
+- **Names are functional**: a file says what it does (`accounts.ts`, `persistence.ts`, `db.ts`), never the technology behind it
+  (`postgres.ts`, `pg-store.ts`, `mailgun.ts`); `scripts/check-file-names.mjs` (in `pnpm lint`) refuses it.
 - **Tests first**, every package with unit tests and, where it stores, an integration test against PostgreSQL (CI's service;
   locally `ORGANIZE_DB_IT=1 DATABASE_URL=… pnpm test`). A store ships a contract kit every adapter runs.
 - **Releases**: Changesets (`pnpm changeset`), the Release workflow opens « chore: version packages » and publishes with `NPM_TOKEN`.

@@ -6,7 +6,7 @@
   "packageManager": "pnpm@10.34.6",
   "scripts": {
     "build": "turbo run build",
-    "lint": "turbo run lint && ast-grep test --skip-snapshot-tests && node scripts/sg-ratchet.mjs",
+    "lint": "turbo run lint && ast-grep test --skip-snapshot-tests && node scripts/sg-ratchet.mjs && node scripts/check-file-names.mjs",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test && vitest run",
     "check": "pnpm run lint && pnpm run typecheck && pnpm run test",
