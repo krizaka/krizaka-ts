@@ -12,3 +12,7 @@ await accounts.sessions(id, new Date(), currentSessionId);
 ```
 
 The product keeps what is its own: its session cookie and token hashing (`tokenHash`), its password hashing, its mailer, its rate limits and its HTTP answers (`AccountError` carries a status and a stable code). Time is passed in (`now`); nothing here reads the clock.
+
+## Roles per scope
+
+A role model is data: `defineRoles({ roles, permissions, manages })` says which roles exist, what each may do and who may hand which role to whom. `createRoles` keeps memberships (one person, several scopes, a role in each) and invitations (an e-mail invited with a role, a link used once, only its hash kept, never demoting), refuses to remove or demote the last owner, and answers `authorize(account, scope, "invoices")` with the role or a stable refusal (`NOT_A_MEMBER` 404, `FORBIDDEN` 403). `rolesMigration(roles, { scopeTable })` makes the tables.
