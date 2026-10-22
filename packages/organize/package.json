@@ -1,6 +1,6 @@
 {
   "name": "@krizaka/organize",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "The « organize » block of every Krizaka product: a name, an avatar, a description, tags, collections and an undeletable default collection for any entity — rules, a store over PostgreSQL, and a conformance kit. No ORM, no framework: you pass a query function.",
   "keywords": [
     "krizaka",

@@ -1,5 +1,11 @@
 # @krizaka/organize
 
+## 0.3.0
+
+### Minor Changes
+
+- e82e92e: `legacyAvatarKey`: a product's older image keys are read and deleted as a fallback, never written.
+
 ## 0.2.0
 
 ### Minor Changes
