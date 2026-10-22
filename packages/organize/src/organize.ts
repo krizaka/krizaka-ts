@@ -30,6 +30,9 @@ export interface OrganizeDeps {
   images?: { processor: AvatarProcessor; store: ObjectStore };
 }
 
+/** Where an uploaded avatar lives in the product's object store (a signed link to it is the product's to make). */
+export const storedAvatarKey = (kind: string, owner: string, id: string, version: number) => `${kind}/${owner}/${id}/${version}`;
+
 /** A unique violation becomes the stable 409. */
 async function unique<T>(run: () => Promise<T>): Promise<T> {
   try {
@@ -77,7 +80,7 @@ export function createOrganize(deps: OrganizeDeps) {
     return { id: row.id, name: row.name, description: row.description, avatar: row.avatar, collectionId: row.collection_id ?? null };
   };
 
-  const avatarKey = (kind: string, owner: string, id: string, version: number) => `${kind}/${owner}/${id}/${version}`;
+  const avatarKey = storedAvatarKey;
   const forget = (kind: string, owner: string, id: string, before: Avatar | null) => (deps.images && before?.kind === AVATAR_KIND.image ? deps.images.store.delete(avatarKey(kind, owner, id, before.version)).catch(() => undefined) : Promise.resolve());
 
   /** The avatar, the description and the name of any declared kind (and of a collection). */
@@ -211,7 +214,7 @@ export function createOrganize(deps: OrganizeDeps) {
     /** The tags of an entity (or a collection) become exactly these; only the owner's own tags count. */
     async assign(owner: string, kind: string, entityId: string, tagIds: readonly string[]): Promise<void> {
       await owns(kind, owner, entityId);
-      const join = kind === COLLECTION ? { table: `${r.collections}_tags`, column: "collection_id" } : { table: r.kinds[kind]!.tagTable, column: r.kinds[kind]!.tagColumn };
+      const join = kind === COLLECTION ? { table: r.collectionTags, column: "collection_id" } : { table: r.kinds[kind]!.tagTable, column: r.kinds[kind]!.tagColumn };
       const ids = [...new Set(tagIds)];
       if (ids.some((t) => !isId(t))) throw new OrganizeError(ORGANIZE_CODE.badRequest, "Not a tag");
       if (ids.length) {
@@ -223,7 +226,7 @@ export function createOrganize(deps: OrganizeDeps) {
     },
     /** The tags of several entities of a kind, by entity id. */
     async of(owner: string, kind: string, entityIds: readonly string[]): Promise<Map<string, Tag[]>> {
-      const join = kind === COLLECTION ? { table: `${r.collections}_tags`, column: "collection_id" } : { table: r.kinds[kind]!.tagTable, column: r.kinds[kind]!.tagColumn };
+      const join = kind === COLLECTION ? { table: r.collectionTags, column: "collection_id" } : { table: r.kinds[kind]!.tagTable, column: r.kinds[kind]!.tagColumn };
       const out = new Map<string, Tag[]>();
       if (entityIds.length === 0) return out;
       const rows = await query<{ entity: string; id: string; name: string; color: TagColor }>(`SELECT j.${ident(join.column)} AS entity, t.id, t.name, t.color FROM ${ident(join.table)} j JOIN ${r.tags} t ON t.id = j.tag_id WHERE t.owner_id = $1 AND j.${ident(join.column)} = ANY($2::uuid[]) ORDER BY lower(t.name)`, [owner, [...entityIds]]);
