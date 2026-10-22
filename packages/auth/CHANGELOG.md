@@ -1,5 +1,11 @@
 # @krizaka/auth
 
+## 0.3.0
+
+### Minor Changes
+
+- 246083a: Roles per scope as data: the role model, memberships, invitations by e-mail, `authorize`, the last owner protected, and `rolesMigration`.
+
 ## 0.2.0
 
 ### Minor Changes
