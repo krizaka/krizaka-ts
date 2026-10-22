@@ -1,5 +1,15 @@
 # @krizaka/config
 
+## 0.5.0
+
+### Minor Changes
+
+- [#486](https://github.com/krizaka/krizaka-ui/pull/486) [`0b1d80d`](https://github.com/krizaka/krizaka-ui/commit/0b1d80dfe9fc742e902ce64916efda27f52e9505) Thanks [@krizaka-agents](https://github.com/apps/krizaka-agents)! - No more family switcher: krizaka.com is the only way back between the Krizaka sites (Oussama, 2026-10-22).
+  
+  - `NavBar.Family` is deprecated (removed in the next minor once no site uses it).
+  - `SiteFooter` lists the family on the hub only: `family` now defaults to `current === "krizaka"`, so every other site's footer holds its own columns, the legal links and one quiet « A Krizaka project » line linking to www.krizaka.com. New `products` prop filters the hub's Products column (krizaka.com's focus products), replacing CSS that hid links by URL.
+  - `@krizaka/config`: the `krizaka/no-family-switcher` rule (an error in `krizakaStack()`) refuses `NavBar.Family` so it does not come back.
+
 ## 0.4.2
 
 ### Patch Changes
