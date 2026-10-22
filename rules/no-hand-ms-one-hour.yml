@@ -1,0 +1,21 @@
+id: no-hand-ms-one-hour
+language: Tsx
+severity: error
+message: "Hand-written time arithmetic (`60 * 60 * 1000`). Use date-fns `hoursToMilliseconds(1)`, or read the duration from the settings."
+note: "Codemod: `npm run sg:fix`. Behaviour is identical."
+rule:
+  pattern: 60 * 60 * 1000
+fix: hoursToMilliseconds(1)
+ignores:
+  - "**/node_modules/**"
+  - "**/.next/**"
+  - "**/dist/**"
+  - "**/*.test.ts"
+  - "**/__tests__/**"
+  - "**/tests/**"
+  - "**/*.test.tsx"
+  - "**/*.spec.ts"
+  - "**/*.spec.tsx"
+  - "e2e/**"
+  - "scripts/**"
+  - "**/scripts/**"

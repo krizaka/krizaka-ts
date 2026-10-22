@@ -1,0 +1,31 @@
+id: no-enum-string-compare
+language: Tsx
+severity: error
+message: "An enum-typed field compared to a string literal. Compare to the centralised constant (`AuctionStatus.Open`), never a magic string."
+note: "Heuristic: a field named status/kind/role/reason/state/direction compared with ===/!== to a string literal."
+rule:
+  kind: binary_expression
+  all:
+    - has:
+        field: operator
+        regex: '^[!=]==$'
+    - has:
+        field: left
+        kind: member_expression
+        has:
+          field: property
+          regex: '^(status|kind|role|reason|state|direction)$'
+    - has:
+        field: right
+        kind: string
+files:
+  - "packages/*/src/**/*.ts"
+  - "packages/*/src/**/*.tsx"
+  - "apps/*/lib/**/*.ts"
+  - "apps/*/lib/**/*.tsx"
+ignores:
+  - "**/node_modules/**"
+  - "**/*.test.ts"
+  - "**/__tests__/**"
+  - "**/tests/**"
+  - "**/*.test.tsx"

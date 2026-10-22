@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  # The pipeline is the org's (krizaka/.github docs/standards/ci-and-deploy.md): the changes gate, the pnpm cache, parallel legs, the
+  # timeouts and the gate that always reports live there. This file says only what is Krizaka TS's.
+  ci:
+    uses: krizaka/.github/.github/workflows/node-ci.yml@1d506b702a30ad519ca2561b51bcb981fe680e8e # v1.5.2
+    permissions:
+      contents: read
+    with:
+      duplication: true      # jscpd + dup-ratchet.json: duplicated lines may only go down
+      package-manager: pnpm
+      parallel: true
+      typecheck-script: typecheck
+      postgres-image: postgres:16
+      postgres-name: organize_db
+      # Test values only — no real secret anywhere.
+      env: |
+        DATABASE_URL=postgresql://organize_db:ci-only-password@localhost:5432/organize_db
+        ORGANIZE_DB_IT=1

@@ -1,0 +1,32 @@
+{
+  "name": "krizaka-ts",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Krizaka TS: TypeScript backend building blocks for every Krizaka product, like Krizaka Java. Packages are published on npm under @krizaka/.",
+  "packageManager": "pnpm@10.34.6",
+  "scripts": {
+    "build": "turbo run build",
+    "lint": "turbo run lint && ast-grep test --skip-snapshot-tests && node scripts/sg-ratchet.mjs",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test && vitest run",
+    "check": "pnpm run lint && pnpm run typecheck && pnpm run test",
+    "prepare": "git config core.hooksPath .githooks 2>/dev/null || true",
+    "lint:sg": "node scripts/sg-ratchet.mjs",
+    "lint:sg:test": "ast-grep test --skip-snapshot-tests",
+    "sg:ratchet:update": "node scripts/sg-ratchet.mjs --update",
+    "changeset": "changeset",
+    "release": "pnpm turbo run build && changeset publish",
+    "sg:fix": "node scripts/sg-fix.mjs"
+  },
+  "devDependencies": {
+    "@ast-grep/cli": "0.51.0",
+    "@changesets/cli": "^2.29.7",
+    "turbo": "^2.11.7",
+    "vitest": "^4.1.11"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "license": "Apache-2.0",
+  "author": "Krizaka"
+}

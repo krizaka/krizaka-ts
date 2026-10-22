@@ -1,0 +1,29 @@
+id: no-hand-ms-minutes
+language: Tsx
+severity: error
+message: "Hand-written time arithmetic (`n * 60 * 1000`). Use date-fns `minutesToMilliseconds(n)`, or read the duration from the settings."
+note: "Codemod: `npm run sg:fix`. Behaviour is identical."
+rule:
+  pattern: $N * 60 * 1000
+  not:
+    any:
+      - pattern: $M * 60 * 60 * 1000
+      - pattern: $M * 24 * 60 * 60 * 1000
+constraints:
+  N:
+    not:
+      regex: '^60$'
+fix: minutesToMilliseconds($N)
+ignores:
+  - "**/node_modules/**"
+  - "**/.next/**"
+  - "**/dist/**"
+  - "**/*.test.ts"
+  - "**/__tests__/**"
+  - "**/tests/**"
+  - "**/*.test.tsx"
+  - "**/*.spec.ts"
+  - "**/*.spec.tsx"
+  - "e2e/**"
+  - "scripts/**"
+  - "**/scripts/**"
