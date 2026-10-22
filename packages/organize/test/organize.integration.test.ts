@@ -156,6 +156,26 @@ describe.runIf(enabled)("organize on PostgreSQL", () => {
     await expect(noImages.collections.uploadAvatar(o, c, jpeg(), RULES)).rejects.toMatchObject({ code: "AVATAR_STORAGE_OFF", status: 503 });
   });
 
+  it("reads both key formats (the product's old keys and the package's), writes only the package's, and deletes both", async () => {
+    const o = await owner();
+    const legacy = (kind: string, ow: string, id: string, version: number) => `${ow}/${id}/${version}.jpg`;
+    const org = createOrganize({ query, schema: SCHEMA, images: { processor, store }, legacyAvatarKey: legacy });
+    const c = (await org.collections.create(o, { name: "Old" })).id;
+    // an avatar stored by the product before the package: only the old key exists
+    await store.put(`${o}/${c}/3.jpg`, new Uint8Array([1]), { contentType: "image/jpeg" });
+    await query("UPDATE collections SET avatar = $2 WHERE id = $1", [c, JSON.stringify({ kind: "image", version: 3 })]);
+    expect((await org.collections.readAvatar(o, c))?.bytes).toEqual(new Uint8Array([1]));
+    // a new upload writes the package's key only and reads it back
+    expect(await org.collections.uploadAvatar(o, c, jpeg(), RULES)).toEqual({ kind: "image", version: 4 });
+    expect(keysOf(c).some((k) => k.endsWith(".jpg"))).toBe(false);
+    expect(keysOf(c)).toEqual([`collection/${o}/${c}/4`]);
+    expect(await org.collections.readAvatar(o, c)).not.toBeNull();
+    // removing deletes the old key too
+    await store.put(`${o}/${c}/4.jpg`, new Uint8Array([2]), { contentType: "image/jpeg" });
+    await org.collections.removeAvatar(o, c);
+    expect(keysOf(c)).toEqual([]);
+  });
+
   it("takes a product's extra columns on a collection, and a kind that has no owner column but says how it is the owner's", async () => {
     const o = await owner();
     const org = organize();
