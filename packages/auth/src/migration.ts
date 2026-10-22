@@ -21,3 +21,43 @@ ${options.backfillVerified ? "UPDATE accounts SET email_verified_at = created_at
 );
 `;
 }
+
+const IDENT = /^[a-z_][a-z0-9_]{0,62}$/;
+const ident = (name: string) => {
+  if (!IDENT.test(name)) throw new Error(`not a safe SQL identifier: ${name}`);
+  return name;
+};
+
+/**
+ * Memberships (who has which role in which scope) and invitations (an e-mail address invited with a role, by a link used once), from the
+ * product's role model. `scopeTable` is the table of the scope (shops, workspaces): when given, a membership and an invitation point at it.
+ * Idempotent.
+ */
+export function rolesMigration(roles: readonly string[], options: { ownerTable?: string; scopeTable?: string } = {}): string {
+  const owner = ident(options.ownerTable ?? "accounts");
+  const scope = options.scopeTable ? ` REFERENCES ${ident(options.scopeTable)}(id) ON DELETE CASCADE` : "";
+  const list = roles.map((r) => `'${ident(r)}'`).join(", ");
+  return `
+CREATE TABLE IF NOT EXISTS memberships (
+  scope_id   uuid NOT NULL${scope},
+  account_id uuid NOT NULL REFERENCES ${owner}(id) ON DELETE CASCADE,
+  role       text NOT NULL CHECK (role IN (${list})),
+  invited_by uuid REFERENCES ${owner}(id) ON DELETE SET NULL,
+  created_at timestamptz NOT NULL,
+  PRIMARY KEY (scope_id, account_id)
+);
+CREATE INDEX IF NOT EXISTS memberships_account ON memberships(account_id);
+CREATE TABLE IF NOT EXISTS invitations (
+  id         uuid PRIMARY KEY,
+  scope_id   uuid NOT NULL${scope},
+  email      text NOT NULL CHECK (email = lower(email)),
+  role       text NOT NULL CHECK (role IN (${list})),
+  token_hash text NOT NULL UNIQUE,
+  invited_by uuid REFERENCES ${owner}(id) ON DELETE SET NULL,
+  created_at timestamptz NOT NULL,
+  expires_at timestamptz NOT NULL,
+  used_at    timestamptz
+);
+CREATE INDEX IF NOT EXISTS invitations_scope ON invitations(scope_id) WHERE used_at IS NULL;
+`;
+}
