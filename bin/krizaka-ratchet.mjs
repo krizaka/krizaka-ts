@@ -27,6 +27,7 @@ const LABELS = {
   directTanstackImport: "direct @tanstack/* imports",
   localTableOrForm: "hand-written tables / forms",
   retiredImport: "imports of retired deps",
+  routeStateSelection: "selections in local state (not the URL)",
 };
 
 let args;

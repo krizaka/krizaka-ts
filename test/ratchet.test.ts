@@ -10,7 +10,7 @@ const FIXTURE = fileURLToPath(new URL("./fixtures/repo", import.meta.url));
 const BIN = fileURLToPath(new URL("../bin/krizaka-ratchet.mjs", import.meta.url));
 const UI = { palette: 6, light: 3, arbitraryVar: 2, classNameTemplate: 2 };
 // lib/use-data.ts (fetch in a client effect ×2, @tanstack ×2) · features/forms.tsx (a table, a form of two fields)
-const STACK = { fetchInClientEffect: 2, directTanstackImport: 2, localTableOrForm: 2, retiredImport: 0 };
+const STACK = { fetchInClientEffect: 2, directTanstackImport: 2, localTableOrForm: 2, retiredImport: 0, routeStateSelection: 0 };
 const TOTAL = { ...UI, ...STACK };
 const STACK_GLOBS = ["app", "components", "src", "lib", "hooks", "features"].map((d) => `${d}/**/*.{js,jsx,mjs,ts,tsx,mts}`);
 
@@ -213,3 +213,12 @@ describe("krizaka-ratchet CLI", () => {
     expect(ratchetFile().counters).toEqual({ ...STACK, palette: 4, light: 2, arbitraryVar: 2, classNameTemplate: 1 });
   });
 });
+
+describe("the routeStateSelection counter", () => {
+  it("counts local selections in pages only, never one with a routeKey or an @ephemeral reason", async () => {
+    const { countStackSource } = await import("../ratchet/ratchet.js");
+    const local = `<Tabs.Root value={t} onValueChange={setT}>\n<Chip.Group type="single" defaultValue="a">\n<Tabs.Root routeKey="tab">\n// @ephemeral: a popover\n<ChoiceGrid value={v} />`;
+    expect(countStackSource(local).routeStateSelection).toBe(2);
+  });
+});
+

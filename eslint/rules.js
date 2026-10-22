@@ -3,7 +3,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { countFormFields, EFFECT_NAMES_SOURCE, FETCH_NAMES_SOURCE, LIGHT_VARIANT_SOURCE, paletteSource, TANSTACK_SCOPE } from "../patterns.js";
+import { countFormFields, EFFECT_NAMES_SOURCE, FETCH_NAMES_SOURCE, isLocalSelection, LIGHT_VARIANT_SOURCE, paletteSource, TANSTACK_SCOPE } from "../patterns.js";
 
 /** @typedef {import("eslint").Rule.RuleModule} RuleModule */
 /** @typedef {import("estree").Node} Node */
@@ -96,6 +96,30 @@ export const noDirectTanstackImport = {
       ImportExpression: (node) => check(node.source),
       "CallExpression[callee.name='require']": (/** @type {import("estree").CallExpression} */ node) =>
         check(/** @type {Node} */ (node.arguments[0])),
+    };
+  },
+};
+
+/** Oussama, 2026-10-22: « changer les tabs doit changer les routes » — a selection of a page lives in the URL. */
+/** @type {RuleModule} */
+export const routeStateSelection = {
+  meta: {
+    type: "problem",
+    docs: { description: "A Tabs / segmented / toggle / chip-group selection in a page keeps its state in the URL (routeKey), not in local state." },
+    schema: [],
+    messages: {
+      local:
+        "This selection is local state: changing it does not change the URL. Bind it to the route with `routeKey=\"…\"` (and `routeValues`, see `useRouteState` in @krizaka/ui/router), or justify it with `// @ephemeral: <reason>` on this line or the one above.",
+    },
+  },
+  create(context) {
+    const source = context.sourceCode;
+    return {
+      JSXOpeningElement: (/** @type {Node} */ node) => {
+        const lines = source.lines;
+        const line = /** @type {import("estree").SourceLocation} */ (node.loc).start.line;
+        if (isLocalSelection(source.getText(node), lines[line - 2] ?? "")) context.report({ node, messageId: "local" });
+      },
     };
   },
 };

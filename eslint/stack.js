@@ -9,6 +9,7 @@ export const STACK_RULES = Object.freeze([
   "krizaka/no-direct-tanstack-import",
   "krizaka/no-local-table-or-form",
   "krizaka/no-family-switcher",
+  "krizaka/route-state-selection",
 ]);
 
 /**
@@ -35,6 +36,8 @@ export function krizakaStack({
         "krizaka/no-local-table-or-form": [severity, { maxFormFields }],
         // Never a warning: the family switcher is gone from every site (krizaka.com is the only way back).
         "krizaka/no-family-switcher": "error",
+        // A selection of a view (tabs, segmented, toggles, chip groups) lives in the URL, not in local state.
+        "krizaka/route-state-selection": severity,
       },
     },
   ];

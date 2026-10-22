@@ -151,6 +151,7 @@ npx krizaka-ratchet --json      # in CI: the same check, machine-readable
 | `directTanstackImport` | `from` / `import` / `import(` / `require(` of `"@tanstack/…"` |
 | `localTableOrForm` | `<table`, and `<form` … `</form>` holding more fields than `maxFormFields` (default 1) |
 | `retiredImport` | an import of a dependency listed in `retire` (e.g. `["framer-motion"]`): the way out of a dependency |
+| `routeStateSelection` | a Tabs / chip group / choice grid / segmented switch (incl. `RadioGroup.Root variant="segmented"`) / toggle group of a view driven by local state (`value`, `defaultValue`, `onValueChange`) without `routeKey`, and without `// @ephemeral: <reason>`: the URL is the state |
 
 The UI counters scan `app/**/*.tsx`, `components/**/*.tsx` and `src/**/*.tsx` by default (`node_modules`, `dist`,
 `.next` never), or the globs given on the command line; the stack counters scan every source file (`js`, `jsx`, `mjs`,

@@ -14,8 +14,10 @@ import {
   EFFECT_CALL_SOURCE,
   FETCH_CALL_SOURCE,
   importSource,
+  isLocalSelection,
   LIGHT_VARIANT_SOURCE,
   paletteSource,
+  selectionTags,
   TABLE_OR_FORM_SOURCE,
   TANSTACK_SCOPE,
   USE_CLIENT_SOURCE,
@@ -30,7 +32,7 @@ export const DEFAULT_STACK_GLOBS = Object.freeze(
 const IGNORE = ["**/node_modules/**", "**/dist/**", "**/.next/**", "**/storybook-static/**", "**/coverage/**"];
 
 /** @typedef {"palette" | "light" | "arbitraryVar" | "classNameTemplate"} UiCounterName */
-/** @typedef {"fetchInClientEffect" | "directTanstackImport" | "localTableOrForm" | "retiredImport"} StackCounterName */
+/** @typedef {"fetchInClientEffect" | "directTanstackImport" | "localTableOrForm" | "retiredImport" | "routeStateSelection"} StackCounterName */
 /** @typedef {UiCounterName | StackCounterName} CounterName */
 /** @typedef {Record<CounterName, number>} Counters */
 /**
@@ -51,6 +53,7 @@ export const STACK_COUNTERS = /** @type {const} */ ([
   "directTanstackImport",
   "localTableOrForm",
   "retiredImport",
+  "routeStateSelection",
 ]);
 /** Every counter, in report order. */
 export const COUNTERS = /** @type {const} */ ([...UI_COUNTERS, ...STACK_COUNTERS]);
@@ -111,6 +114,7 @@ export function countStackSource(source, { retire = [], maxFormFields = 1 } = {}
     directTanstackImport: source.match(new RegExp(importSource([TANSTACK_SCOPE]), "g"))?.length ?? 0,
     localTableOrForm,
     retiredImport: source.match(new RegExp(importSource(retire), "g"))?.length ?? 0,
+    routeStateSelection: selectionTags(source).filter(({ tag, before }) => isLocalSelection(tag, before)).length,
   };
 }
 

@@ -115,3 +115,57 @@ export function balancedArguments(source, open) {
   }
   return source.slice(open + 1);
 }
+
+// ── Selections live in the URL (Oussama, 2026-10-22: « changer les tabs doit changer les routes ») ──────────────────────
+// Read by the ESLint rule krizaka/route-state-selection and by the ratchet.
+
+/** The selection components whose choice belongs in the URL: tabs, a segmented switch, toggle groups, chip groups, choice tiles. */
+export const SELECTION_COMPONENTS = Object.freeze(["Tabs.Root", "TabsRoot", "Chip.Group", "ChipGroup", "ChoiceGrid", "SegmentedControl", "ToggleGroup", "ToggleGroup.Root", "RadioGroup.Root"]);
+
+/** The props that make a selection local: its own value, its starting value, its change handler. */
+export const LOCAL_SELECTION_PROPS = Object.freeze(["value", "defaultValue", "onValueChange"]);
+
+/** The prop that binds it to the URL. */
+export const ROUTE_KEY_PROP = "routeKey";
+
+/** The justification that keeps a local selection: `// @ephemeral: a hover card's tab` on the line or the line above. */
+export const EPHEMERAL_SOURCE = String.raw`@ephemeral:\s*\S`;
+
+
+/** The opening tags (`<Tabs.Root … >`) of the selection components in a source text, each with the line above it. */
+export function selectionTags(/** @type {string} */ source) {
+  /** @type {{ tag: string, before: string }[]} */
+  const found = [];
+  const names = SELECTION_COMPONENTS.map((n) => n.replace(".", "\\.")).join("|");
+  for (const open of source.matchAll(new RegExp(`<(?:${names})(?![\\w.])`, "g"))) {
+    let depth = 0;
+    let end = open.index;
+    for (; end < source.length; end += 1) {
+      const c = source[end];
+      if (c === "{") depth += 1;
+      else if (c === "}") depth -= 1;
+      else if (c === ">" && depth === 0) break;
+    }
+    const lineStart = source.lastIndexOf("\n", open.index - 1);
+    const before = lineStart < 0 ? "" : source.slice(source.lastIndexOf("\n", lineStart - 1) + 1, lineStart);
+    found.push({ tag: source.slice(open.index, end + 1), before });
+  }
+  return found;
+}
+
+/**
+ * Is this opening tag a selection driven by local state? `tag` is its source (`<Tabs.Root value={x} onValueChange={set}>`),
+ * `before` the text of the line above it.
+ * @param {string} tag
+ * @param {string} [before]
+ */
+export function isLocalSelection(tag, before = "") {
+  const name = /^<([A-Za-z][\w.]*)/.exec(tag)?.[1];
+  if (!name || !SELECTION_COMPONENTS.includes(name)) return false;
+  // A radio group is a form field unless it is drawn as a segmented switch (`variant="segmented"`): that one is a view's selection.
+  if (name === "RadioGroup.Root" && !/\bvariant\s*=\s*["']segmented["']/.test(tag)) return false;
+  const hasProp = (/** @type {string} */ prop) => new RegExp(`\\b${prop}\\s*(=|\\{|\\s|/?>)`).test(tag);
+  if (hasProp(ROUTE_KEY_PROP)) return false;
+  if (new RegExp(EPHEMERAL_SOURCE).test(tag) || new RegExp(EPHEMERAL_SOURCE).test(before)) return false;
+  return LOCAL_SELECTION_PROPS.some((prop) => new RegExp(`\\b${prop}\\s*=`).test(tag));
+}
