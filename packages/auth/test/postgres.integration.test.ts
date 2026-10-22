@@ -98,6 +98,7 @@ describe.runIf(enabled)("the account service on PostgreSQL", () => {
     await service().requestEmailChange(id, { newEmail: next.toUpperCase(), password: PASSWORD }, NOW);
     expect(mails).toHaveLength(1);
     expect(mails[0]!.to).toBe(next);
+    expect(mails[0]!.locale).toBe("fr");
     expect(mails[0]!.text).toContain("/fr/confirm-email?token=ae1.");
     expect((await service().profile(id)).pendingEmail).toBe(next);
     expect(await service().confirmEmailChange(last(), NOW)).toBe("CHANGED");
