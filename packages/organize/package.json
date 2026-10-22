@@ -2,10 +2,21 @@
   "name": "@krizaka/organize",
   "version": "0.0.0",
   "description": "The « organize » block of every Krizaka product: a name, an avatar, a description, tags, collections and an undeletable default collection for any entity — rules, a store over PostgreSQL, and a conformance kit. No ORM, no framework: you pass a query function.",
-  "keywords": ["krizaka", "organize", "collections", "tags", "avatar", "multi-tenant"],
+  "keywords": [
+    "krizaka",
+    "organize",
+    "collections",
+    "tags",
+    "avatar",
+    "multi-tenant"
+  ],
   "homepage": "https://github.com/krizaka/krizaka-ts/tree/main/packages/organize",
   "bugs": "https://github.com/krizaka/krizaka-ts/issues",
-  "repository": { "type": "git", "url": "git+https://github.com/krizaka/krizaka-ts.git", "directory": "packages/organize" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/krizaka/krizaka-ts.git",
+    "directory": "packages/organize"
+  },
   "license": "Apache-2.0",
   "author": "Krizaka (https://www.krizaka.com)",
   "type": "module",
@@ -13,10 +24,17 @@
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
-    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
     "./package.json": "./package.json"
   },
-  "files": ["dist", "README.md", "LICENSE"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "sideEffects": false,
   "scripts": {
     "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsup",
@@ -26,11 +44,15 @@
     "check": "pnpm run lint && pnpm run test && pnpm run build",
     "prepublishOnly": "pnpm run build"
   },
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "devDependencies": {
     "@krizaka/config": "^0.7.0",
     "@types/node": "^22.10.0",
+    "@types/pg": "^8.23.1",
     "eslint": "^9.39.0",
+    "pg": "^8.23.1",
     "tsup": "^8.5.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.11"
