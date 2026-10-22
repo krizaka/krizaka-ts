@@ -74,7 +74,12 @@ describe.runIf(enabled)("the settings service on PostgreSQL", () => {
     client = new pg.Client({ connectionString: process.env.DATABASE_URL });
     await client.connect();
     await client.query(`CREATE SCHEMA ${schemaName}; SET search_path TO ${schemaName}`);
-    query = async (sql, params) => (await client.query(sql, params as unknown[])).rows as never;
+    let queue: Promise<unknown> = Promise.resolve(); // one client: statements run one after another
+    query = (sql, params) => {
+      const run = queue.then(async () => (await client.query(sql, params as unknown[])).rows);
+      queue = run.catch(() => undefined);
+      return run as never;
+    };
     await client.query(settingsMigration());
     await client.query(settingsMigration()); // twice: safe
   });
