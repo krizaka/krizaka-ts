@@ -6,7 +6,7 @@ import { AvatarImageError, type AvatarProcessor, createOrganize, type ObjectStor
 /** « organize » against a real PostgreSQL (CI's service; locally ORGANIZE_DB_IT=1 DATABASE_URL=…), in a schema of its own per run. */
 const enabled = process.env.ORGANIZE_DB_IT === "1" && !!process.env.DATABASE_URL;
 
-const SCHEMA: OrganizeSchema = { defaultName: { fr: "Mes boutiques", en: "My shops" }, kinds: { shop: { table: "shops" }, note: { table: "notes", inCollection: false } } };
+const SCHEMA: OrganizeSchema = { defaultName: { fr: "Mes boutiques", en: "My shops" }, kinds: { shop: { table: "shops" }, note: { table: "notes", inCollection: false }, room: { table: "rooms", inCollection: false, owns: "EXISTS (SELECT 1 FROM shops s WHERE s.id = e.shop_id AND s.owner_id = $1)" } } };
 const schemaName = `org_${Math.random().toString(36).slice(2, 10)}`;
 
 class MemoryStore implements ObjectStore {
@@ -47,6 +47,7 @@ describe.runIf(enabled)("organize on PostgreSQL", () => {
     await client.query("CREATE TABLE accounts (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), email text UNIQUE NOT NULL, locale text NOT NULL DEFAULT 'en')");
     await client.query("CREATE TABLE shops (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), owner_id uuid NOT NULL REFERENCES accounts(id) ON DELETE CASCADE, name text NOT NULL)");
     await client.query("CREATE TABLE notes (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), owner_id uuid NOT NULL REFERENCES accounts(id) ON DELETE CASCADE, name text NOT NULL)");
+    await client.query("CREATE TABLE rooms (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), shop_id uuid NOT NULL REFERENCES shops(id) ON DELETE CASCADE, name text NOT NULL)");
     // a shop that exists before the migration: it must end up in its owner's default collection
     const early = (await query<{ id: string }>("INSERT INTO accounts (email, locale) VALUES ('early@test', 'fr') RETURNING id"))[0]!.id;
     await query("INSERT INTO shops (owner_id, name) VALUES ($1, 'Avant')", [early]);
@@ -153,6 +154,21 @@ describe.runIf(enabled)("organize on PostgreSQL", () => {
     expect(keysOf(c)).toEqual([]);
     const noImages = createOrganize({ query, schema: SCHEMA });
     await expect(noImages.collections.uploadAvatar(o, c, jpeg(), RULES)).rejects.toMatchObject({ code: "AVATAR_STORAGE_OFF", status: 503 });
+  });
+
+  it("takes a product's extra columns on a collection, and a kind that has no owner column but says how it is the owner's", async () => {
+    const o = await owner();
+    const org = organize();
+    await client.query("ALTER TABLE collections ADD COLUMN IF NOT EXISTS position int");
+    const c = await org.collections.create(o, { name: "Rangée", extra: { position: 3 } });
+    expect((await query<{ position: number }>("SELECT position FROM collections WHERE id = $1", [c.id]))[0]!.position).toBe(3);
+    await expect(org.collections.create(o, { name: "Mauvais", extra: { "position; DROP TABLE x": 1 } })).rejects.toThrow(/safe SQL identifier/);
+    const s = await shop(o);
+    const room = (await query<{ id: string }>("INSERT INTO rooms (shop_id, name) VALUES ($1, 'Salle') RETURNING id", [s]))[0]!.id;
+    const t = await org.tags.create(o, { name: "Calme", color: "blue" });
+    await org.tags.assign(o, "room", room, [t.id]);
+    expect((await org.tags.of(o, "room", [room])).get(room)?.[0]?.name).toBe("Calme");
+    await expect(org.tags.assign(await owner(), "room", room, [])).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 
   it("tags: per owner, named colours, unique by name, assigned to a kind or a collection, read back; a stranger's tag is refused", async () => {
