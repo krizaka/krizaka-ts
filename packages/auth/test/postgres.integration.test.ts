@@ -111,6 +111,7 @@ describe.runIf(enabled)("the account service on PostgreSQL", () => {
     await service().requestEmailChange(a.id, { newEmail: `e-${Math.random().toString(36).slice(2)}@test.example`, password: PASSWORD }, NOW);
     expect(await service().confirmEmailChange(last(), new Date("2026-10-24T12:00:01Z"))).toBe("INVALID");
     expect(await service().confirmEmailChange("garbage", NOW)).toBe("INVALID");
+    for (const bad of ["not-an-email", "a@b", "@x.y", "a b@c.d", "a@@c.d", "a@c."]) await expect(service().requestEmailChange(a.id, { newEmail: bad, password: PASSWORD }, NOW)).rejects.toMatchObject({ status: 400 });
     mails.length = 0;
     await expect(service().requestEmailChange(a.id, { newEmail: b.email, password: PASSWORD }, NOW)).resolves.toBeUndefined();
     expect(mails).toHaveLength(0);

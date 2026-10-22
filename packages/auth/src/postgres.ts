@@ -45,6 +45,16 @@ export function emailChangeMail(product: string, locale: "en" | "fr", url: strin
     : { subject: `Confirm your new address — ${product}`, text: `Hello,\n\nTo use this address with your ${product} account, confirm it by opening this link (valid ${EMAIL_CHANGE_TTL_HOURS} h):\n${url}\n\nIf you did not ask for this, ignore this message: nothing changes.\n` };
 }
 
+/** One « @ », something on each side, a dot inside the domain, no space — checked without a backtracking pattern. */
+const looksLikeEmail = (address: string): boolean => {
+  if (address.length > 320 || /\s/.test(address)) return false;
+  const at = address.indexOf("@");
+  if (at < 1 || at !== address.lastIndexOf("@")) return false;
+  const domain = address.slice(at + 1);
+  const dot = domain.lastIndexOf(".");
+  return dot > 0 && dot < domain.length - 1;
+};
+
 const cleanName = (raw: string): string => {
   const name = raw.replace(/\s+/g, " ").trim();
   if (name.length > NAME_MAX) throw new AccountError(400, "BAD_REQUEST", `A name is at most ${NAME_MAX} characters`);
@@ -101,7 +111,7 @@ export function postgresAccounts(deps: AccountDeps): AccountService {
     async requestEmailChange(id, input, now) {
       await confirmPassword(id, input.password);
       const address = input.newEmail.trim().toLowerCase();
-      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(address) || address.length > 320) throw new AccountError(400, "BAD_REQUEST", "Not an e-mail address");
+      if (!looksLikeEmail(address)) throw new AccountError(400, "BAD_REQUEST", "Not an e-mail address");
       const [taken] = await query("SELECT 1 FROM accounts WHERE email = $1", [address]);
       if (taken) return; // the same answer, no mail: the address is not disclosed
       const profile = await profileOf(id);
