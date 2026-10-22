@@ -1,0 +1,26 @@
+#!/bin/sh
+# The local check before every push (krizaka org rule: never push to see what CI says). `git push --no-verify` is for a push that
+# changes nothing the check covers (a README typo), never for a red check: read why it is red.
+#
+# It first makes the working copy match the lockfile: a stale install, or a TypeScript incremental cache (*.tsbuildinfo) written
+# against other dependencies, makes typecheck fail on a clean main (dozens of "implicitly has an 'any' type" errors) while CI is green.
+set -e
+
+lock=pnpm-lock.yaml
+stamp=node_modules/.krizaka-pre-push
+sum=$(shasum "$lock" | cut -d' ' -f1)
+if [ ! -d node_modules ] || [ "$(cat "$stamp" 2>/dev/null)" != "$sum" ]; then
+  echo "pre-push: no install, or the lockfile changed: pnpm install --frozen-lockfile"
+  pnpm install --frozen-lockfile --prefer-offline
+  find . -name '*.tsbuildinfo' -not -path '*/node_modules/*' -delete
+  echo "$sum" > "$stamp"
+fi
+
+echo "pre-push: pnpm run check (lint · typecheck · tests)"
+if ! pnpm run check; then
+  echo ""
+  echo "pre-push: the check failed. If it is red on a main that CI shows green, the usual cause is a stale cache:"
+  echo "  find . -name '*.tsbuildinfo' -not -path '*/node_modules/*' -delete && pnpm install --frozen-lockfile"
+  echo "then push again. Do not use --no-verify to get past a red check."
+  exit 1
+fi

@@ -1,0 +1,52 @@
+# .github/workflows/release.yml (krizaka-ts): changesets opens « chore: version packages »; its merge publishes to npm.
+name: Release
+on: { push: { branches: [main] }, workflow_dispatch: {} }
+permissions: { contents: read }   # write scopes live on the job (OpenSSF Scorecard, Token-Permissions)
+concurrency: { group: release, cancel-in-progress: false }
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions: { contents: write, pull-requests: write, id-token: write }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with: { fetch-depth: 0 }
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with: { node-version: 22, cache: pnpm, registry-url: https://registry.npmjs.org }
+      - run: npm install -g npm@11      # trusted publishing (OIDC) needs npm >= 11.5.1; Node 22 ships npm 10
+      - run: pnpm install --frozen-lockfile
+      # The last gate before a publish: only when this push can publish — the merge of « chore: version packages » changes a
+      # package.json — or on demand. Every other push to main was re-running the whole check CI had just run (CI-COST); the
+      # step fails open (a git error runs the check).
+      - id: gate
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || ! git diff --quiet HEAD~1 HEAD -- 'packages/*/package.json'; then echo "check=true" >> "$GITHUB_OUTPUT"; else echo "No package.json changed: nothing to publish, check skipped"; fi
+      - if: steps.gate.outputs.check == 'true'
+        run: pnpm turbo run check --filter='./packages/*'   # the published packages (the catalogue is checked by CI)
+      # changesets/action v2 = Changesets CLI v3 (v1 reads the v3 pre-release folder `.changeset/pre/` as a v1 changeset
+      # and fails). Inputs are kebab-case; the token goes through `github-token`.
+      # « chore: version packages » opened with GITHUB_TOKEN starts no workflow (GitHub's rule), so CI never ran on it and it
+      # needed a manual empty commit. A GitHub App installation token does start CI. Configure once: repository variable
+      # RELEASE_APP_ID and secret RELEASE_APP_PRIVATE_KEY (an App with contents + pull-requests write on this repository).
+      # Until they exist the step is skipped and GITHUB_TOKEN is used, as before.
+      - id: app
+        if: ${{ vars.RELEASE_APP_ID != '' }}
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          app-id: ${{ vars.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+      - id: changesets
+        uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2
+        with:
+          version-script: pnpm changeset version
+          publish-script: pnpm changeset publish   # → npm publish --provenance ; tags @krizaka/ui@2.0.0, @krizaka/tokens@1.0.0…
+          pr-title: "chore: version packages"
+          github-token: ${{ steps.app.outputs.token || secrets.GITHUB_TOKEN }}
+        env:
+          NPM_CONFIG_PROVENANCE: "true"
+          # npm answered E404 to the OIDC (trusted publishing) PUT: the packages have no trusted publisher yet. An automation
+          # token (repository secret NPM_TOKEN) authenticates the publish; provenance still comes from id-token.
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

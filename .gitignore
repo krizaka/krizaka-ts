@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build and test output
+.next/
+out/
+dist/
+coverage/
+.turbo/
+*.tsbuildinfo
+apps/web/next-env.d.ts
+
+# Environment files: never committed (secrets live in the maintainer's ~/Documents/krizaka/*.env and in DO as SECRET)
+.env
+.env.local
+.env.*.local
+
+# Misc
+.DS_Store
+*.pem
+*.log
+
+# PR captures go to Bunny Storage (krizaka-com scripts/pr-assets.mjs), never into the repository
+docs/screenshots/
+.github/pr-assets/
+
+*.traineddata

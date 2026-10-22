@@ -1,0 +1,36 @@
+id: no-unjustified-numeric-export
+language: Tsx
+severity: error
+message: "A numeric `export const` in feature code is a business parameter: read it from the settings (versioned rule set in the DB). If it is a technical fact, justify it with `// @fixed: <reason>` just above."
+rule:
+  kind: export_statement
+  has:
+    kind: lexical_declaration
+    has:
+      kind: variable_declarator
+      has:
+        field: value
+        any:
+          - kind: number
+          - pattern: $F($$$)
+            has:
+              field: function
+              regex: '^(hours|minutes|seconds)ToMilliseconds$'
+          - kind: binary_expression
+            regex: '^[0-9_ *+/().-]+$'
+  not:
+    follows:
+      kind: comment
+      regex: '@fixed:'
+      stopBy: neighbor
+files:
+  - "packages/*/src/**/*.ts"
+  - "packages/*/src/**/*.tsx"
+  - "apps/*/lib/**/*.ts"
+  - "apps/*/lib/**/*.tsx"
+ignores:
+  - "**/node_modules/**"
+  - "**/*.test.ts"
+  - "**/__tests__/**"
+  - "**/tests/**"
+  - "**/*.test.tsx"
