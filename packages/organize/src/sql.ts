@@ -23,6 +23,8 @@ export interface KindDecl {
   tagColumn?: string;
   /** `false` for a kind that is only tagged (it is not a member of a collection). Default `true`. */
   inCollection?: boolean;
+  /** How to tell that an entity is the owner's when the table has no owner column: a SQL condition on the entity `e` with the owner as `$1`. Default `e.<ownerColumn> = $1`. */
+  owns?: string;
 }
 
 export interface OrganizeSchema {
@@ -41,7 +43,7 @@ export function resolved(schema: OrganizeSchema) {
   const kinds = Object.fromEntries(
     Object.entries(schema.kinds).map(([kind, k]) => [
       kind,
-      { table: ident(k.table), ownerColumn: ident(k.ownerColumn ?? "owner_id"), tagTable: ident(k.tagTable ?? `${k.table}_tags`), tagColumn: ident(k.tagColumn ?? "entity_id"), inCollection: k.inCollection ?? true },
+      { table: ident(k.table), ownerColumn: ident(k.ownerColumn ?? "owner_id"), tagTable: ident(k.tagTable ?? `${k.table}_tags`), tagColumn: ident(k.tagColumn ?? "entity_id"), inCollection: k.inCollection ?? true, owns: k.owns ?? `e.${ident(k.ownerColumn ?? "owner_id")} = $1` },
     ]),
   );
   return {

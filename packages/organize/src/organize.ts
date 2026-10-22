@@ -57,13 +57,21 @@ export function createOrganize(deps: OrganizeDeps) {
   const COLLECTION = "collection";
   const tableOf = (kind: string) => (kind === COLLECTION ? { table: r.collections, ownerColumn: "owner_id" } : (r.kinds[kind] ?? (() => { throw new OrganizeError(ORGANIZE_CODE.badRequest, `unknown kind ${kind}`); })()));
 
-  const owned = async (kind: string, owner: string, id: string): Promise<Profile> => {
-    const t = tableOf(kind);
+  /** That the entity is the owner's (not found otherwise) — it needs no name or avatar column, so a kind that is only tagged can use it. */
+  const owns = async (kind: string, owner: string, id: string): Promise<void> => {
     if (!isId(id)) throw new OrganizeError(ORGANIZE_CODE.notFound);
+    const t = kind === COLLECTION ? { table: r.collections, owns: "e.owner_id = $1" } : (tableOf(kind) as { table: string; owns: string });
+    const rows = await query(`SELECT 1 FROM ${t.table} e WHERE e.id = $2 AND ${t.owns}`, [owner, id]);
+    if (rows.length === 0) throw new OrganizeError(ORGANIZE_CODE.notFound);
+  };
+
+  const owned = async (kind: string, owner: string, id: string): Promise<Profile> => {
+    await owns(kind, owner, id);
+    const t = tableOf(kind);
     const hasCollection = kind === COLLECTION ? false : (r.kinds[kind]?.inCollection ?? false);
     const [row] = await query<{ id: string; name: string; description: string | null; avatar: Avatar | null; collection_id?: string | null }>(
-      `SELECT id, name, description, avatar${hasCollection ? ", collection_id" : ""} FROM ${t.table} WHERE ${t.ownerColumn} = $1 AND id = $2`,
-      [owner, id],
+      `SELECT id, name, description, avatar${hasCollection ? ", collection_id" : ""} FROM ${t.table} WHERE id = $1`,
+      [id],
     );
     if (!row) throw new OrganizeError(ORGANIZE_CODE.notFound);
     return { id: row.id, name: row.name, description: row.description, avatar: row.avatar, collectionId: row.collection_id ?? null };
@@ -153,10 +161,13 @@ export function createOrganize(deps: OrganizeDeps) {
       const rows = await query<{ id: string; name: string; description: string | null; avatar: Avatar | null; is_default: boolean }>(`SELECT id, name, description, avatar, is_default FROM ${r.collections} WHERE owner_id = $1 ORDER BY is_default DESC, lower(name)`, [owner]);
       return rows.map((c) => ({ id: c.id, name: c.name, description: c.description, avatar: c.avatar, isDefault: c.is_default }));
     },
-    async create(owner: string, input: { name: string; description?: string | null }): Promise<Collection> {
+    /** `extra` carries the columns a product adds to its collections (a parent, a position…): identifiers are validated, values are parameters. */
+    async create(owner: string, input: { name: string; description?: string | null; extra?: Record<string, unknown> }): Promise<Collection> {
       const description = cleanDescription(input.description);
       if (!description) throw new OrganizeError(ORGANIZE_CODE.badRequest, "A description is at most 500 characters");
-      const [row] = await unique(() => query<{ id: string }>(`INSERT INTO ${r.collections} (owner_id, name, description) VALUES ($1, $2, $3) RETURNING id`, [owner, name(input.name), description.value]));
+      const extra = Object.entries(input.extra ?? {});
+      const columns = ['owner_id', 'name', 'description', ...extra.map(([k]) => ident(k))];
+      const [row] = await unique(() => query<{ id: string }>(`INSERT INTO ${r.collections} (${columns.join(', ')}) VALUES (${columns.map((_, i) => `$${i + 1}`).join(', ')}) RETURNING id`, [owner, name(input.name), description.value, ...extra.map(([, v]) => v)]));
       const made = await collections.list(owner);
       return made.find((c) => c.id === row!.id)!;
     },
@@ -199,7 +210,7 @@ export function createOrganize(deps: OrganizeDeps) {
     },
     /** The tags of an entity (or a collection) become exactly these; only the owner's own tags count. */
     async assign(owner: string, kind: string, entityId: string, tagIds: readonly string[]): Promise<void> {
-      await owned(kind, owner, entityId);
+      await owns(kind, owner, entityId);
       const join = kind === COLLECTION ? { table: `${r.collections}_tags`, column: "collection_id" } : { table: r.kinds[kind]!.tagTable, column: r.kinds[kind]!.tagColumn };
       const ids = [...new Set(tagIds)];
       if (ids.some((t) => !isId(t))) throw new OrganizeError(ORGANIZE_CODE.badRequest, "Not a tag");
