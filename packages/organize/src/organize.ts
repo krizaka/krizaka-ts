@@ -28,6 +28,8 @@ export interface OrganizeDeps {
   schema: OrganizeSchema;
   /** For uploaded avatars: the image maker and where the image is kept. Without them only avatars of the set are possible. */
   images?: { processor: AvatarProcessor; store: ObjectStore };
+  /** Where a product kept its images before the package: read (and deleted) as a fallback, never written. */
+  legacyAvatarKey?: (kind: string, owner: string, id: string, version: number) => string;
 }
 
 /** Where an uploaded avatar lives in the product's object store (a signed link to it is the product's to make). */
@@ -81,7 +83,11 @@ export function createOrganize(deps: OrganizeDeps) {
   };
 
   const avatarKey = storedAvatarKey;
-  const forget = (kind: string, owner: string, id: string, before: Avatar | null) => (deps.images && before?.kind === AVATAR_KIND.image ? deps.images.store.delete(avatarKey(kind, owner, id, before.version)).catch(() => undefined) : Promise.resolve());
+  const keysOf = (kind: string, owner: string, id: string, version: number) => [avatarKey(kind, owner, id, version), ...(deps.legacyAvatarKey ? [deps.legacyAvatarKey(kind, owner, id, version)] : [])];
+  const forget = async (kind: string, owner: string, id: string, before: Avatar | null) => {
+    if (!deps.images || before?.kind !== AVATAR_KIND.image) return;
+    for (const key of keysOf(kind, owner, id, before.version)) await deps.images.store.delete(key).catch(() => undefined);
+  };
 
   /** The avatar, the description and the name of any declared kind (and of a collection). */
   function profile(kind: string) {
@@ -134,7 +140,11 @@ export function createOrganize(deps: OrganizeDeps) {
       async readAvatar(owner: string, id: string) {
         const avatar = (await owned(kind, owner, id)).avatar;
         if (!deps.images || avatar?.kind !== AVATAR_KIND.image) return null;
-        return deps.images.store.get(avatarKey(kind, owner, id, avatar.version));
+        for (const key of keysOf(kind, owner, id, avatar.version)) {
+          const found = await deps.images.store.get(key);
+          if (found) return found;
+        }
+        return null;
       },
       async removeAvatar(owner: string, id: string) {
         const before = (await owned(kind, owner, id)).avatar;
