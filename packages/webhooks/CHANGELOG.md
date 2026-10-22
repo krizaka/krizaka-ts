@@ -1,5 +1,11 @@
 # @krizaka/webhooks
 
+## 0.2.0
+
+### Minor Changes
+
+- 2dc4032: Signing and verification are `@krizaka/payments`' own (one implementation of the scheme, no copy).
+
 ## 0.1.0
 
 ### Minor Changes
