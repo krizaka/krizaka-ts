@@ -1,0 +1,142 @@
+import { createHash } from "node:crypto";
+
+import { ident } from "./identifiers";
+import { DB_CODE, DbError, type Query } from "./port";
+
+/** What a module's migration receives: its Postgres schema, and the product tables it declared, by role. */
+export interface SchemaContext {
+  schema: string;
+  tables: Readonly<Record<string, string>>;
+}
+
+/** One frozen version of a module's schema. Its SQL never changes once released; a change is a new version. */
+export interface ModuleMigration {
+  version: number;
+  name: string;
+  sql: (context: SchemaContext) => string;
+}
+
+/** A module's schema: its name, the product tables it references (by role: `owner`, `scope`…), the modules it needs first. */
+export interface ModuleSchema {
+  module: string;
+  tables: readonly string[];
+  requires: readonly string[];
+  migrations: readonly ModuleMigration[];
+}
+
+/** What the product declares for a module: the real names of the tables it references, and optionally another schema name. */
+export interface ModuleContext {
+  tables: Readonly<Record<string, string>>;
+  schema?: string;
+}
+
+/** A module, as the product composes it: the schema and the product's declaration. */
+export interface ComposedModule {
+  schema: ModuleSchema;
+  context: ModuleContext;
+}
+
+/** Where the module versions a database has are recorded: one row per (module, version), written by the embedded SQL. */
+export const MARKER_TABLE = "public.krizaka_module_versions";
+
+/**
+ * Declares a module's schema. Versions are 1, 2, 3… in order; the module's name is a SQL identifier (it is also its default schema).
+ * @param input the module's name, the product tables it references by role, the modules it requires, its migrations
+ * @returns the checked schema
+ * @throws DbError `DB_UNSAFE_IDENTIFIER` or `DB_BAD_VERSIONS`
+ */
+export function defineModule(input: { module: string; tables?: readonly string[]; requires?: readonly string[]; migrations: readonly ModuleMigration[] }): ModuleSchema {
+  ident(input.module);
+  if (input.migrations.some((m, i) => m.version !== i + 1)) throw new DbError(DB_CODE.badVersions, [`${input.module}: versions must be 1, 2, 3… in order`]);
+  return { module: input.module, tables: input.tables ?? [], requires: input.requires ?? [], migrations: input.migrations };
+}
+
+/** The context a migration sees: only the tables the module declared (present and safe), the schema named. Reading another throws. */
+function resolve(schema: ModuleSchema, context: ModuleContext): SchemaContext {
+  const missing = schema.tables.filter((role) => !(role in context.tables));
+  if (missing.length > 0) throw new DbError(DB_CODE.missingTable, missing.map((role) => `${schema.module} needs the table « ${role} »`));
+  const declared: Record<string, string> = Object.fromEntries(schema.tables.map((role) => [role, ident(context.tables[role]!)]));
+  const tables = new Proxy(declared, {
+    get(target, role) {
+      if (typeof role === "string" && !Object.hasOwn(target, role)) throw new DbError(DB_CODE.undeclaredTable, [`${schema.module} did not declare the table « ${role} »`]);
+      return Reflect.get(target, role);
+    },
+  });
+  return { schema: ident(context.schema ?? schema.module), tables };
+}
+
+function migrationOf(schema: ModuleSchema, version: number): ModuleMigration {
+  const migration = schema.migrations[version - 1];
+  if (!migration) throw new DbError(DB_CODE.unknownVersion, [`${schema.module} v${version}`]);
+  return migration;
+}
+
+/**
+ * The checksum of one version for one product's declaration: what the frozen-version guard compares.
+ * @returns a SHA-256, hex
+ */
+export function checksumOf(schema: ModuleSchema, version: number, context: ModuleContext): string {
+  return createHash("sha256").update(migrationOf(schema, version).sql(resolve(schema, context))).digest("hex");
+}
+
+const markerTableSql = `CREATE TABLE IF NOT EXISTS ${MARKER_TABLE} (\n  module     text NOT NULL,\n  version    integer NOT NULL,\n  checksum   text NOT NULL,\n  applied_at timestamptz NOT NULL DEFAULT now(),\n  PRIMARY KEY (module, version)\n);`;
+
+function markerSql(schema: ModuleSchema, versions: readonly number[], context: ModuleContext): string {
+  const rows = versions.map((v) => `('${schema.module}', ${v}, '${checksumOf(schema, v, context)}')`).join(",\n  ");
+  return `INSERT INTO ${MARKER_TABLE} (module, version, checksum) VALUES\n  ${rows}\nON CONFLICT (module, version) DO NOTHING;`;
+}
+
+/**
+ * The SQL a product commits into its own migration sequence for one version of a module (ADR-001 §3): the marker table if
+ * missing, the module's schema, the version's SQL, then its marker.
+ * @param schema the module's schema
+ * @param version the version to emit
+ * @param context the product's declaration (table names, optional schema name)
+ * @returns the migration text
+ * @throws DbError `DB_UNKNOWN_VERSION`, `DB_MISSING_TABLE`, `DB_UNSAFE_IDENTIFIER`
+ */
+export function emitMigration(schema: ModuleSchema, version: number, context: ModuleContext): string {
+  const resolved = resolve(schema, context);
+  const migration = migrationOf(schema, version);
+  const header = `-- @krizaka/db: ${schema.module} v${version} (${migration.name}). Generated by emitMigration; never edit by hand.`;
+  return [header, markerTableSql, `CREATE SCHEMA IF NOT EXISTS ${resolved.schema};`, migration.sql(resolved).trim(), markerSql(schema, [version], context), ""].join("\n");
+}
+
+/**
+ * The SQL that adopts tables a product already has, up to `version`: the markers alone, no DDL. A table is adopted, never rebuilt.
+ * @returns the migration text
+ */
+export function adoptMigration(schema: ModuleSchema, version: number, context: ModuleContext): string {
+  migrationOf(schema, version);
+  const versions = Array.from({ length: version }, (_, i) => i + 1);
+  return [`-- @krizaka/db: adopt ${schema.module} v1–v${version} (existing tables, markers only). Generated by adoptMigration.`, markerTableSql, markerSql(schema, versions, context), ""].join("\n");
+}
+
+/** Each module version as « module vN », with the checksum the code expects. */
+function expected(modules: readonly ComposedModule[]): { label: string; module: string; version: number; checksum: string }[] {
+  return modules.flatMap(({ schema, context }) => schema.migrations.map((m) => ({ label: `${schema.module} v${m.version}`, module: schema.module, version: m.version, checksum: checksumOf(schema, m.version, context) })));
+}
+
+/**
+ * Compares what the code expects with what was found, by « module vN ».
+ * @throws DbError `DB_FROZEN_VERSION_CHANGED` first, then `DB_MISSING_MODULES`
+ */
+export function compareVersions(modules: readonly ComposedModule[], found: ReadonlyMap<string, string>): void {
+  const wanted = expected(modules);
+  const changed = wanted.filter((w) => found.has(w.label) && found.get(w.label) !== w.checksum).map((w) => w.label);
+  if (changed.length > 0) throw new DbError(DB_CODE.frozenChanged, changed);
+  const missing = wanted.filter((w) => !found.has(w.label)).map((w) => w.label);
+  if (missing.length > 0) throw new DbError(DB_CODE.missingModules, missing);
+}
+
+/**
+ * The boot check: refuses to serve on a database that lacks a module version the code needs, or whose recorded version differs.
+ * @param query the product's query
+ * @param modules the modules the product composes
+ * @throws DbError `DB_FROZEN_VERSION_CHANGED` or `DB_MISSING_MODULES`, listing every « module vN »
+ */
+export async function assertModules(query: Query, modules: readonly ComposedModule[]): Promise<void> {
+  const [table] = await query<{ present: string | null }>(`SELECT to_regclass('${MARKER_TABLE}') AS present`);
+  const rows = table?.present ? await query<{ module: string; version: number; checksum: string }>(`SELECT module, version, checksum FROM ${MARKER_TABLE}`) : [];
+  compareVersions(modules, new Map(rows.map((r) => [`${r.module} v${r.version}`, r.checksum])));
+}

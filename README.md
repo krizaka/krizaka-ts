@@ -5,6 +5,7 @@ copies. Published on npm under `@krizaka/` (Apache-2.0).
 
 | Package | What it is | npm |
 | --- | --- | --- |
+| [`@krizaka/db`](packages/db#readme) | The database foundation: shared types, transactions, module schemas embedded in the product's migrations, a test database | [![npm](https://img.shields.io/npm/v/@krizaka/db?label=&color=3e76a8&logo=npm)](https://www.npmjs.com/package/@krizaka/db) |
 | [`@krizaka/auth`](packages/auth#readme) | Accounts and roles: profile, language, theme, avatar, e-mail change by link, password, sessions, export, deletion; roles and invitations as data | [![npm](https://img.shields.io/npm/v/@krizaka/auth?label=&color=3e76a8&logo=npm)](https://www.npmjs.com/package/@krizaka/auth) |
 | [`@krizaka/settings`](packages/settings#readme) | Configuration as data: a typed registry resolved user > workspace > global > default, every change audited | [![npm](https://img.shields.io/npm/v/@krizaka/settings?label=&color=3e76a8&logo=npm)](https://www.npmjs.com/package/@krizaka/settings) |
 | [`@krizaka/api-keys`](packages/api-keys#readme) | API keys: created, rotated, revoked and authenticated behind a store port | [![npm](https://img.shields.io/npm/v/@krizaka/api-keys?label=&color=3e76a8&logo=npm)](https://www.npmjs.com/package/@krizaka/api-keys) |

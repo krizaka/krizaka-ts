@@ -1,0 +1,64 @@
+{
+  "name": "@krizaka/db",
+  "version": "0.0.0",
+  "description": "The database foundation of every Krizaka module: shared Query, Connection and Clock types, transactions, versioned and frozen module schemas embedded in the product's own migration sequence, a runner for products without one, and a test database helper. No database client: the product passes its own connection.",
+  "keywords": [
+    "krizaka",
+    "database",
+    "migrations",
+    "postgresql",
+    "transactions",
+    "modules"
+  ],
+  "homepage": "https://github.com/krizaka/krizaka-ts/tree/main/packages/db",
+  "bugs": "https://github.com/krizaka/krizaka-ts/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/krizaka/krizaka-ts.git",
+    "directory": "packages/db"
+  },
+  "license": "Apache-2.0",
+  "author": "Krizaka (https://www.krizaka.com)",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing.d.ts",
+      "import": "./dist/testing.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsup",
+    "lint": "eslint . --max-warnings 0 && tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "check": "pnpm run lint && pnpm run test && pnpm run build",
+    "prepublishOnly": "pnpm run build"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "@krizaka/config": "^0.7.0",
+    "@types/node": "^22.10.0",
+    "@types/pg": "^8.23.1",
+    "eslint": "^9.39.0",
+    "pg": "^8.23.1",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.11"
+  }
+}
