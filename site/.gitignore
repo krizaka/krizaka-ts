@@ -1,0 +1,12 @@
+node_modules/
+.next/
+out/
+.source/
+.cache/
+next-env.d.ts
+lib/generated/
+*.tsbuildinfo
+# generated from ../packages at build (scripts/gen-packages.mjs): never edited by hand
+content/docs/*
+!content/docs/start.mdx
+!content/docs/start.fr.mdx

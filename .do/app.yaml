@@ -1,0 +1,26 @@
+# ts.krizaka.com — the documentation of Krizaka TS: a static site (no service, worker, job, database or function).
+# It is built from this repository's site/ (which reads ../packages) and redeployed on every push to main. Project: krizaka.
+name: krizaka-ts-site
+region: tor
+static_sites:
+  - name: site
+    github:
+      repo: krizaka/krizaka-ts
+      branch: main
+      deploy_on_push: true
+    source_dir: site
+    build_command: npm ci && npm run build
+    output_dir: out
+    environment_slug: node-js
+    error_document: 404.html
+domains:
+  - domain: ts.krizaka.com
+    type: PRIMARY
+
+ingress:
+  rules:
+    - match:
+        path:
+          prefix: /
+      component:
+        name: site

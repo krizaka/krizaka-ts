@@ -1,0 +1,192 @@
+{
+  "site": {
+    "name": "Krizaka TS",
+    "tagline": "Les briques backend TypeScript de chaque produit Krizaka.",
+    "description": "Krizaka TS — des briques backend TypeScript publiées sur npm sous @krizaka : comptes, réglages, clés d’API, webhooks, organisation et bilan hebdomadaire. Documentation générée depuis les paquets.",
+    "project": "Un projet open source de Krizaka",
+    "home": "Krizaka TS"
+  },
+  "bar": {
+    "aria": "Navigation principale",
+    "packages": "Paquets",
+    "githubAria": "Krizaka TS sur GitHub",
+    "theme": "Thème",
+    "toLight": "Passer au thème clair",
+    "toDark": "Passer au thème sombre",
+    "language": "Langue",
+    "switchLanguage": "Switch to English",
+    "languageShort": "EN",
+    "search": "Rechercher",
+    "searchAria": "Rechercher dans la documentation",
+    "menu": "Menu",
+    "skip": "Aller au contenu",
+    "start": "Démarrer",
+    "preferences": "Préférences",
+    "home": "Krizaka TS"
+  },
+  "footer": {
+    "aria": "Pied de page",
+    "license": "Apache-2.0",
+    "npm": "npm",
+    "source": "Code source"
+  },
+  "notFound": {
+    "title": "Page introuvable",
+    "body": "Cette page n’existe pas dans la documentation de Krizaka TS.",
+    "back": "Retour à la documentation"
+  },
+  "chrome": {
+    "search": "Rechercher dans la doc",
+    "searchNoResults": "Aucun résultat",
+    "onThisPage": "Sur cette page",
+    "noHeadings": "Aucun titre",
+    "nextPage": "Suivant",
+    "previousPage": "Précédent",
+    "copy": "Copier",
+    "copied": "Copié",
+    "openSidebar": "Ouvrir le menu latéral",
+    "closeSidebar": "Fermer le menu latéral",
+    "collapseSidebar": "Replier le menu latéral",
+    "openSearch": "Ouvrir la recherche",
+    "closeSearch": "Fermer la recherche",
+    "lastUpdated": "Mis à jour le"
+  },
+  "packages": {
+    "auth": {
+      "hook": "Comptes et rôles : profil, changement de courriel par lien, mot de passe, sessions, rôles en données."
+    },
+    "settings": {
+      "hook": "La configuration comme donnée : un registre typé, utilisateur avant espace avant global, chaque changement audité."
+    },
+    "api-keys": {
+      "hook": "Des clés d’API créées, renouvelées, révoquées et authentifiées ; montrées une fois, seul un hash est gardé."
+    },
+    "webhooks": {
+      "hook": "Des webhooks signés et idempotents, dans les deux sens : livrés avec reprises, vérifiés et appliqués une fois."
+    },
+    "organize": {
+      "hook": "Un nom, un avatar, des étiquettes et des collections pour toute entité, avec un kit de conformité."
+    },
+    "brief": {
+      "hook": "Le bilan de la semaine : quelques recommandations chiffrées, chacune avec une action."
+    }
+  },
+  "docs": {
+    "packages": "Paquets",
+    "install": {
+      "title": "Installer",
+      "subpaths": "Aussi publié en sous-chemins : {paths}."
+    },
+    "readmeNote": "Le README ci-dessous est celui du paquet sur npm, en anglais.",
+    "exports": {
+      "title": "Exports",
+      "lead": "Les {count} noms que le paquet exporte, lus dans ses types.",
+      "name": "Nom",
+      "kind": "Nature",
+      "summary": "Ce que c’est"
+    },
+    "kinds": {
+      "function": "fonction",
+      "class": "classe",
+      "const": "constante",
+      "type": "type",
+      "enum": "énumération"
+    },
+    "facts": {
+      "title": "Paquet",
+      "version": "Version sur npm",
+      "unpublished": "Pas encore sur npm",
+      "license": "Licence",
+      "node": "Node.js",
+      "dependencies": "Dépendances",
+      "peers": "Dépendances à fournir",
+      "none": "aucune",
+      "source": "Code source"
+    },
+    "changelog": {
+      "title": "Journal des versions"
+    }
+  },
+  "home": {
+    "metaTitle": "Krizaka TS — les briques backend TypeScript",
+    "metaDescription": "Comptes, réglages, clés d’API, webhooks, organisation et bilan hebdomadaire : des briques TypeScript écrites une fois, testées sur un vrai PostgreSQL, publiées sur npm sous @krizaka.",
+    "hero": {
+      "eyebrow": "Krizaka TS · open source",
+      "title": "Les briques backend TypeScript derrière chaque produit Krizaka",
+      "lead": "Comptes, réglages, clés d’API, webhooks — écrits une fois, testés sur un vrai PostgreSQL, publiés sur npm. Un produit installe un paquet et n’écrit que ce qui lui est propre.",
+      "start": "Commencer",
+      "packages": "Voir les paquets"
+    },
+    "proofs": {
+      "packages": "paquets sur npm",
+      "exports": "noms exportés",
+      "license": "licence",
+      "node": "exécution"
+    },
+    "pillars": {
+      "eyebrow": "Pourquoi",
+      "title": "Une seule implémentation, aucune copie",
+      "lead": "Ce que chaque produit réécrivait vit au même endroit, avec un seul auteur et une seule version.",
+      "ports": {
+        "title": "Des ports, pas des frameworks",
+        "text": "Ni framework, ni SDK de fournisseur, ni variable d’environnement, ni horloge cachée : un paquet demande un stockage, un courriel, une horloge — vous les passez."
+      },
+      "proven": {
+        "title": "Testé pour de vrai",
+        "text": "Quand un paquet stocke, son test d’intégration tourne sur PostgreSQL, et un stockage livre un kit de contrat que chaque adaptateur exécute."
+      },
+      "released": {
+        "title": "Versionné, publié, lisible",
+        "text": "Chaque paquet a sa version et son journal (Changesets) sur npm ; ce site est généré à partir des mêmes fichiers, à chaque changement."
+      }
+    },
+    "packages": {
+      "eyebrow": "Paquets",
+      "title": "{count} paquets, une portée npm",
+      "lead": "Chaque page a la commande d’installation, le README, chaque nom exporté et le journal des versions.",
+      "published": "{version} sur npm",
+      "unpublished": "Pas encore sur npm",
+      "details": "Lire le paquet",
+      "hookLabel": "Ce que c’est"
+    },
+    "go": {
+      "eyebrow": "Aller plus loin",
+      "title": "Code source, registre, le reste de la famille",
+      "source": {
+        "title": "Code source sur GitHub",
+        "text": "Apache-2.0. Issues et pull requests bienvenues."
+      },
+      "npm": {
+        "title": "npm",
+        "text": "Les paquets sous @krizaka, publiés depuis la CI."
+      },
+      "java": {
+        "title": "Krizaka Java",
+        "text": "Les mêmes briques pour Spring Boot, sur Maven Central."
+      },
+      "ui": {
+        "title": "Krizaka UI",
+        "text": "Composants, jetons, icônes et graphiques — web et React Native."
+      }
+    },
+    "closing": {
+      "title": "Installez un paquet",
+      "body": "D’un projet vide à un compte, un registre de réglages ou des webhooks signés — un paquet à la fois.",
+      "packages": "Parcourir les paquets",
+      "source": "Code source sur GitHub"
+    }
+  },
+  "start": {
+    "packagesTable": {
+      "package": "Paquet",
+      "what": "Ce que c’est",
+      "version": "Sur npm"
+    }
+  },
+  "install": {
+    "label": "Gestionnaire de paquets",
+    "file": "Terminal",
+    "copy": "Copier",
+    "copied": "Copié"
+  }
+}

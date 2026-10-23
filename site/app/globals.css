@@ -1,0 +1,135 @@
+@import "tailwindcss";
+/* The Krizaka preset: @krizaka/tokens (every --kz-* colour, radius, shadow, font of both themes — dark on :root, light on
+   html.light) mapped to the Tailwind theme. The site dogfoods it, like every Krizaka app. */
+@import "@krizaka/tailwind";
+/* The classes the @krizaka/ui primitives use, read from the built package. */
+@import "@krizaka/ui/tailwind.css";
+/* Fumadocs (docs layout, table of contents, search, code blocks): its colours are mapped to --kz-* below. */
+@import "fumadocs-ui/css/neutral.css";
+@import "fumadocs-ui/css/preset.css";
+
+/* The Krizaka typography: the files of @krizaka/fonts, loaded by next/font/local (app/fonts.ts), in the token roles. */
+:root {
+  --kz-font-sans: var(--font-kz-text), "Atkinson Hyperlegible Next", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --kz-font-display: var(--font-kz-display), "Young Serif", Georgia, serif;
+  --kz-font-mono: var(--font-kz-mono), "Courier Prime", "Courier New", ui-monospace, Menlo, monospace;
+  --font-display: var(--kz-font-display);
+  --font-mono: var(--kz-font-mono);
+  /* One frame for the bar, the documentation and the footer. */
+  --kz-page-max-docs: 88rem;
+  --kz-docs-top: 76px;
+}
+
+/* Fumadocs reads its own colour variables: they follow the Krizaka tokens, so the docs switch theme with the site. */
+:root,
+.dark,
+html.light {
+  --color-fd-background: var(--kz-surface-0);
+  --color-fd-foreground: var(--kz-text-primary);
+  --color-fd-muted: var(--kz-surface-2);
+  --color-fd-muted-foreground: var(--kz-text-secondary);
+  --color-fd-popover: var(--kz-surface-1);
+  --color-fd-popover-foreground: var(--kz-text-primary);
+  --color-fd-card: var(--kz-surface-1);
+  --color-fd-card-foreground: var(--kz-text-primary);
+  --color-fd-border: var(--kz-border-default);
+  --color-fd-primary: var(--kz-accent);
+  --color-fd-primary-foreground: var(--kz-on-accent);
+  --color-fd-secondary: var(--kz-surface-2);
+  --color-fd-secondary-foreground: var(--kz-text-primary);
+  --color-fd-accent: var(--kz-accent-soft);
+  --color-fd-accent-foreground: var(--kz-text-primary);
+  --color-fd-ring: var(--kz-ring);
+  --color-fd-overlay: var(--kz-overlay);
+}
+/* The active page of the sidebar and the table of contents is accent TEXT: the text role (AA on the tinted row). */
+html.light #nd-sidebar,
+html.light #nd-toc { --color-fd-primary: var(--kz-accent-text); }
+#nd-page .text-fd-primary { color: var(--kz-accent-text); }
+
+@layer base {
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 96px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+body {
+  background: var(--kz-surface-0);
+  color: var(--kz-text-primary);
+  font-family: var(--kz-font-sans);
+  letter-spacing: -0.011em;
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+::selection { background: hsla(217, 92%, 60%, 0.25); }
+html.light ::selection { background: hsla(217, 92%, 50%, 0.18); }
+:focus-visible { outline: 2px solid var(--kz-accent); outline-offset: 2px; border-radius: var(--kz-radius-sm, 6px); }
+:focus:not(:focus-visible) { outline: none; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
+
+/* ─── The bar (@krizaka/ui NavBar): as wide as the documentation under it ─── */
+.kz-site-bar-wrap { padding-inline: var(--kz-page-gutter, clamp(16px, 3.2vw, 32px)); }
+.kz-site-bar, .kz-site-bar[data-compact] { max-width: var(--kz-page-max-docs); }
+.kz-skip { position: fixed; left: 12px; top: -64px; z-index: 100; padding: 8px 14px; border-radius: 2px; background: var(--kz-accent); color: var(--kz-on-accent); font-weight: 600; }
+.kz-skip:focus { top: 12px; }
+
+/* ─── The documentation in the frame ─── */
+.kz-docs { padding-top: var(--kz-docs-top); font-family: var(--kz-font-sans); letter-spacing: normal; --fd-layout-width: var(--kz-page-max-docs); --fd-banner-height: var(--kz-docs-top); }
+@media (min-width: 768px) { .kz-docs { padding-inline: var(--kz-page-gutter, clamp(16px, 3.2vw, 32px)); } }
+.kz-docs #nd-sidebar:not([data-collapsed="true"]) { background: transparent; }
+.kz-docs [data-layout-main] { justify-items: start; }
+
+/* ─── Code the pages hold: a table that never breaks the page at phone width ─── */
+
+/* ─── 404 ─── */
+.kz-404 { min-height: 100dvh; display: grid; place-content: center; gap: 1rem; padding: 2rem; text-align: center; }
+.kz-404 h1 { font-family: var(--kz-font-display); font-size: clamp(2rem, 6vw, 3rem); }
+.kz-404 a { color: var(--kz-accent-text); font-weight: 600; }
+
+.kz-table-scroll { overflow-x: auto; border: 1px solid var(--kz-border-subtle); border-radius: var(--kz-radius-md); }
+.kz-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+.kz-table th,
+.kz-table td {
+  text-align: start;
+  vertical-align: top;
+  padding: 0.625rem 0.75rem;
+  border-bottom: 1px solid var(--kz-border-subtle);
+  line-height: 1.5;
+}
+.kz-table thead th {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--kz-text-secondary);
+  background: var(--kz-surface-1);
+}
+.kz-table tbody tr:last-child > * { border-bottom: 0; }
+.kz-table tbody th { font-weight: 500; white-space: nowrap; }
+.kz-table td { color: var(--kz-text-secondary); }
+.kz-table code {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  padding: 0.0625rem 0.375rem;
+  border-radius: 6px;
+  background: var(--kz-surface-2);
+  color: var(--kz-text-primary);
+}
+.kz-table code.kz-type { color: var(--kz-accent-text); background: var(--kz-accent-soft); white-space: pre-wrap; overflow-wrap: anywhere; }
+.kz-table td:has(> .kz-type) { min-width: 7.5rem; }
+/* ─── The home (landing template of @krizaka/ui) ─── */
+/* The bar is as wide as the page it floats over: the home is the page frame (72rem), the documentation the wider one. */
+html:has(.jh-home) .kz-site-bar, html:has(.jh-home) .kz-site-bar[data-compact] { max-width: var(--kz-page-max, 72rem); }
+.jh-home { --kz-hero-top: var(--kz-docs-top); min-width: 0; }
+.jh-home > div > * { min-width: 0; }
+.jh-mono { font-family: var(--kz-font-mono); font-size: 0.82em; letter-spacing: -0.02em; }
+
+/* The hero's install command: the tabs fill the window. */
+.jh-gen { display: grid; gap: 14px; padding: clamp(14px, 2vw, 18px); min-width: 0; }
+.jh-gen pre { font-size: clamp(11.5px, 1.5vw, 13px); }

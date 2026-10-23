@@ -12,8 +12,8 @@ copies. Published on npm under `@krizaka/` (Apache-2.0).
 | [`@krizaka/organize`](packages/organize#readme) | A name, an avatar, tags and collections for any entity, with a conformance kit | [![npm](https://img.shields.io/npm/v/@krizaka/organize?label=&color=3e76a8&logo=npm)](https://www.npmjs.com/package/@krizaka/organize) |
 | [`@krizaka/brief`](packages/brief#readme) | The weekly brief: figured recommendations, each with one action; guards, ranking, the week in the shop's time zone | [![npm](https://img.shields.io/npm/v/@krizaka/brief?label=&color=3e76a8&logo=npm)](https://www.npmjs.com/package/@krizaka/brief) |
 
-**Documentation**: each package's README (linked above) is its documentation — install, API, examples; the products using it are
-Akinaza and Yomizaka. A site (ts.krizaka.com, like java.krizaka.com) is tracked in [#28](https://github.com/krizaka/krizaka-ts/issues/28).
+**Documentation**: [ts.krizaka.com](https://ts.krizaka.com) is the docs home — one page per package, generated from each package's README, its exports and its changelog, with the version npm lists (nothing typed by hand). A package's README stays its source: install, API, examples; the products using it are
+Akinaza and Yomizaka. The site, [ts.krizaka.com](https://ts.krizaka.com) (like java.krizaka.com), is generated from these files by `site/` at every change.
 
 Decision: [ADR-006](https://github.com/krizaka/.github/blob/main/docs/adr/ADR-006-krizaka-ts-organize.md). Contract for contributors and agents: [AGENTS.md](AGENTS.md).
 
