@@ -25,7 +25,7 @@ describe("recording", () => {
   it("records quietly: a failure is reported, never thrown", async () => {
     const errors: unknown[] = [];
     const broken = { ...memoryAuditStore(), insert: async () => { throw new Error("database down"); } };
-    const audit = createAudit({ storeFor: () => broken, clock: clock("2026-10-23T10:00:00Z"), onError: (e) => errors.push(e) });
+    const audit = createAudit({ storeFor: () => broken, clock: clock("2026-10-23T10:00:00Z"), onError: (e) => { errors.push(e); } });
     await expect(audit.recordQuietly(async () => [], { actorId: null, actorLabel: "system", action: "jobs.ran" })).resolves.toBeUndefined();
     expect(errors).toHaveLength(1);
   });

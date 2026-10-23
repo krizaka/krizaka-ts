@@ -1,4 +1,4 @@
-import type { Query } from "@krizaka/db";
+import { ident, type Query } from "@krizaka/db";
 
 import type { AuditEntry, AuditFilters, AuditStore } from "./port";
 import { pageSize } from "./rules";
@@ -37,9 +37,10 @@ function where(filters: AuditFilters): { sql: string; params: unknown[] } {
  * @param query the product's SQL runner
  * @param schema the Postgres schema, when the product renamed it (default `audit`)
  * @returns a store that passes `auditStoreContract`
+ * @throws DbError `DB_UNSAFE_IDENTIFIER` for a schema that is not an identifier
  */
 export function dbAuditStore(query: Query, schema = "audit"): AuditStore {
-  const table = `${schema}.entry`;
+  const table = `${ident(schema)}.entry`;
   const rows = async (sql: string, params?: unknown[]) => (await query<Row>(sql, params)).map(toEntry);
   return {
     async insert(e) {

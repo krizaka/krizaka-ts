@@ -46,6 +46,8 @@ export function toInsert(input: AuditEntryInput, at: Date, allowedActions?: read
 export const pageSize = (limit: number | undefined): number => Math.min(limit ?? PAGE.default, PAGE.max);
 
 const CURSOR = /^[1-9][0-9]{0,18}$/;
+/** PostgreSQL's largest `bigint`: an entry id, and so a cursor, is never above it. */
+const BIGINT_MAX = 9_223_372_036_854_775_807n;
 
 /**
  * Checks filters that may come from a request: a page size that is a positive integer, a cursor that is an entry id.
@@ -53,7 +55,7 @@ const CURSOR = /^[1-9][0-9]{0,18}$/;
  */
 export function checkFilters(filters: AuditFilters): void {
   if (filters.limit !== undefined && !(Number.isInteger(filters.limit) && filters.limit > 0)) throw new AuditError(AUDIT_CODE.badFilter, `limit ${String(filters.limit)}`);
-  if (filters.before !== undefined && !CURSOR.test(filters.before)) throw new AuditError(AUDIT_CODE.badFilter, `before ${filters.before}`);
+  if (filters.before !== undefined && !(CURSOR.test(filters.before) && BigInt(filters.before) <= BIGINT_MAX)) throw new AuditError(AUDIT_CODE.badFilter, `before ${filters.before}`);
 }
 
 /**

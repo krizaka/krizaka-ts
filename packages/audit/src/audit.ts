@@ -14,7 +14,7 @@ export interface AuditDeps {
   /** The product's fixed list of actions, when it keeps one (refused otherwise). */
   allowedActions?: readonly string[];
   /** Where a quiet write's failure goes (the product's logger). */
-  onError?: (error: unknown, entry: AuditEntryInput) => void;
+  onError?: (error: unknown, entry: AuditEntryInput) => void | Promise<void>;
 }
 
 /** The trail as a product uses it. Every function takes the `Query` it writes through: pass `tx` to join a unit of work. */
@@ -32,6 +32,15 @@ export interface Audit {
   purge(query: Query, options: { retentionDays: number }): Promise<number>;
 }
 
+/** Hands a quiet write's failure to the sink; a sink that throws or rejects is swallowed too: `recordQuietly` never throws. */
+async function report(onError: AuditDeps["onError"], error: unknown, entry: AuditEntryInput): Promise<void> {
+  try {
+    await onError?.(error, entry);
+  } catch {
+    // The sink is the product's logger; a failing logger must not fail the request it was only meant to observe.
+  }
+}
+
 /**
  * The audit trail of a product.
  * @param deps the clock, the store, the product's action list and error sink
@@ -47,7 +56,7 @@ export function createAudit(deps: AuditDeps): Audit {
       try {
         await record(query, entry);
       } catch (error) {
-        deps.onError?.(error, entry);
+        await report(deps.onError, error, entry);
       }
     },
     async list(query, filters) {

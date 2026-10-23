@@ -72,6 +72,38 @@ export function auditStoreContract(name: string, make: () => AuditStore | Promis
     expect((await store.forActor(gone)).filter((e) => e.action.startsWith(p))).toEqual([]);
   });
 
+  it(`${name}: ids never repeat after a purge, so a cursor never skips an entry`, async () => {
+    const store = await make();
+    const p = tag();
+    await store.insert(entry(p, { action: `${p}.old`, at: new Date("2020-01-01T00:00:00Z") }));
+    await store.insert(entry(p, { action: `${p}.kept`, at: new Date("2026-10-01T00:00:00Z") }));
+    await store.purgeBefore(new Date("2021-01-01T00:00:00Z"));
+    await store.insert(entry(p, { action: `${p}.after`, at: new Date("2026-10-02T00:00:00Z") }));
+    const all = await store.list({ actionPrefix: p });
+    expect(new Set(all.map((e) => e.id)).size).toBe(all.length);
+    const first = await store.list({ actionPrefix: p, limit: 1 });
+    const rest = await store.list({ actionPrefix: p, before: first[0]!.id });
+    expect([...first, ...rest].map((e) => e.action)).toEqual([`${p}.after`, `${p}.kept`]);
+  });
+
+  it(`${name}: the trail cannot be changed by mutating what was given or what was read`, async () => {
+    const store = await make();
+    const p = tag();
+    const input = entry(p, { detail: { nested: { n: 1 } } });
+    await store.insert(input);
+    input.at.setUTCFullYear(1999);
+    (input.detail.nested as { n: number }).n = 99;
+    const [read] = await store.list({ actionPrefix: p });
+    read!.at.setUTCFullYear(1999);
+    (read!.detail.nested as { n: number }).n = 42;
+    read!.actorLabel = "forged";
+    const [again] = await store.list({ actionPrefix: p });
+    expect(again).toMatchObject({ actorLabel: "system", detail: { nested: { n: 1 } } });
+    expect(again!.at.toISOString()).toBe("2026-10-23T10:00:00.000Z");
+    const [exported] = await store.forActor("00000000-0000-4000-8000-000000000000");
+    expect(exported).toBeUndefined();
+  });
+
   it(`${name}: purges only what is older than the given time, and counts it`, async () => {
     const store = await make();
     const p = tag();

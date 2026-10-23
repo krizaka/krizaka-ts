@@ -19,11 +19,17 @@ export function matches(entry: AuditEntry, filters: AuditFilters): boolean {
  */
 export function memoryAuditStore(): AuditStore {
   const rows: AuditEntry[] = [];
+  let lastId = 0n; // like the table's sequence: never reused, even after a purge
+  /** An independent copy: nothing given or read can change the stored trail. */
+  const copy = (e: AuditEntry): AuditEntry => structuredClone(e);
   const newestFirst = () => [...rows].sort((a, b) => Number(BigInt(b.id) - BigInt(a.id)));
   return {
-    async insert(entry) { rows.push({ ...entry, id: String(rows.length + 1) }); },
-    async list(filters) { return newestFirst().filter((e) => matches(e, filters)).slice(0, pageSize(filters.limit)); },
-    async forActor(actorId) { return newestFirst().filter((e) => e.actorId === actorId); },
+    async insert(entry) {
+      lastId += 1n;
+      rows.push(copy({ ...entry, id: String(lastId) }));
+    },
+    async list(filters) { return newestFirst().filter((e) => matches(e, filters)).slice(0, pageSize(filters.limit)).map(copy); },
+    async forActor(actorId) { return newestFirst().filter((e) => e.actorId === actorId).map(copy); },
     async redactActor(actorId) {
       const mine = rows.filter((e) => e.actorId === actorId);
       for (const e of mine) Object.assign(e, { actorId: null, actorLabel: "erased", ip: null });
