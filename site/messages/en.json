@@ -64,6 +64,12 @@
     "webhooks": {
       "hook": "Signed, idempotent webhooks, both ways: delivered with retries, verified and applied once."
     },
+    "follows": {
+      "hook": "Idempotent subscriptions to typed targets, with notification preferences, mute, pagination and counts."
+    },
+    "reviews": {
+      "hook": "Editable verified reviews, moderation states, owner replies and Bayesian scores."
+    },
     "organize": {
       "hook": "A name, an avatar, tags and collections for any entity, with a conformance kit."
     },
