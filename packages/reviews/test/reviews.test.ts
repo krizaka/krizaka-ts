@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { memoryReviewStore } from "../src/memory";
+import { REVIEW_STATE } from "../src/port";
 import { createReviews } from "../src/reviews";
 
 describe("reviews", () => {
@@ -11,6 +12,8 @@ describe("reviews", () => {
     const first = await reviews.submit(input);
     const edited = await reviews.submit({ ...input, rating: 4, text: "Updated" });
     expect(edited).toMatchObject({ id: first.id, rating: 4, text: "Updated", state: "pending", createdAt: first.createdAt });
+    expect(await reviews.list(input.target)).toEqual([]);
+    expect(await reviews.list(input.target, { states: [REVIEW_STATE.pending] })).toEqual([edited]);
     await expect(reviews.submit({ ...input, rating: 2.5 })).rejects.toThrow(RangeError);
     await expect(reviews.submit({ ...input, rating: 6 })).rejects.toThrow(RangeError);
     await expect(reviews.submit({ ...input, text: "x".repeat(1001) })).rejects.toThrow(RangeError);
@@ -40,5 +43,20 @@ describe("reviews", () => {
     await expect(reviews.score(target, { mean: 0, weight: 2 })).rejects.toThrow(RangeError);
     const review = await reviews.submit({ subjectId: "a", target, rating: 5, verified: true });
     await expect(reviews.reply(review.id, " ")).rejects.toThrow(RangeError);
+  });
+
+  it("computes scores from large aggregated distributions", async () => {
+    const store = {
+      ...memoryReviewStore(),
+      async scoreDistribution() {
+        return { 1: 0, 2: 0, 3: 0, 4: 0, 5: 1_000_000 };
+      },
+    };
+    const reviews = createReviews({ store, clock: { now: () => new Date() }, rules: { initialState: "published" } });
+    expect(await reviews.score({ targetType: "shop", targetId: "busy-shop" }, { mean: 4, weight: 10 })).toEqual({
+      average: 5 - 10 / 1_000_010,
+      distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 1_000_000 },
+      n: 1_000_000,
+    });
   });
 });

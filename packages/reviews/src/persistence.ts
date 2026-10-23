@@ -53,8 +53,8 @@ export function pgReviewStore(run: Query): ReviewStore {
       const [row] = await query<Row>(`SELECT ${COLUMNS} FROM reviews WHERE subject_id = $1 AND target_type = $2 AND target_id = $3`, [subjectId, target.targetType, target.targetId]);
       return row ? toRecord(row) : null;
     },
-    async list(target, page: Required<ReviewPage>) {
-      return (await query<Row>(`SELECT ${COLUMNS} FROM reviews WHERE target_type = $1 AND target_id = $2 ORDER BY created_at DESC, id LIMIT $3 OFFSET $4`, [target.targetType, target.targetId, page.limit, page.offset])).map(toRecord);
+    async list(target, page: Required<ReviewPage>, states) {
+      return (await query<Row>(`SELECT ${COLUMNS} FROM reviews WHERE target_type = $1 AND target_id = $2 AND state = ANY($3::text[]) ORDER BY created_at DESC, id LIMIT $4 OFFSET $5`, [target.targetType, target.targetId, states, page.limit, page.offset])).map(toRecord);
     },
     async setState(id, state: ReviewState, updatedAt) {
       await query("UPDATE reviews SET state = $2, updated_at = $3 WHERE id = $1", [id, state, updatedAt]);
@@ -62,9 +62,14 @@ export function pgReviewStore(run: Query): ReviewStore {
     async setReply(id, reply, repliedAt) {
       await query("UPDATE reviews SET owner_reply = $2, owner_replied_at = $3 WHERE id = $1", [id, reply, repliedAt]);
     },
-    async scoreRatings(target) {
-      const rows = await query<{ rating: number }>("SELECT rating FROM reviews WHERE target_type = $1 AND target_id = $2 AND state = 'published' AND verified = true", [target.targetType, target.targetId]);
-      return rows.map((row) => row.rating as Rating);
+    async scoreDistribution(target) {
+      const rows = await query<{ rating: number; count: number | string }>(
+        "SELECT rating, count(*) AS count FROM reviews WHERE target_type = $1 AND target_id = $2 AND state = 'published' AND verified = true GROUP BY rating",
+        [target.targetType, target.targetId],
+      );
+      const distribution: Record<Rating, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+      for (const row of rows) distribution[row.rating as Rating] = Number(row.count);
+      return distribution;
     },
   };
 }

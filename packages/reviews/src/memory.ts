@@ -30,8 +30,8 @@ export function memoryReviewStore(): ReviewStore {
       const record = bySubjectTarget(subjectId, target);
       return record ? copy(record) : null;
     },
-    async list(target, page: Required<ReviewPage>) {
-      return [...rows.values()].filter((r) => matches(r, target)).sort(byCreated).slice(page.offset, page.offset + page.limit).map(copy);
+    async list(target, page: Required<ReviewPage>, states) {
+      return [...rows.values()].filter((r) => matches(r, target) && states.includes(r.state)).sort(byCreated).slice(page.offset, page.offset + page.limit).map(copy);
     },
     async setState(id, state: ReviewState, updatedAt) {
       const record = rows.get(id);
@@ -41,8 +41,12 @@ export function memoryReviewStore(): ReviewStore {
       const record = rows.get(id);
       if (record) Object.assign(record, { ownerReply: reply, ownerRepliedAt: new Date(repliedAt) });
     },
-    async scoreRatings(target) {
-      return [...rows.values()].filter((r) => matches(r, target) && r.state === REVIEW_STATE.published && r.verified).map((r) => r.rating as Rating);
+    async scoreDistribution(target) {
+      const distribution: Record<Rating, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+      for (const record of rows.values()) {
+        if (matches(record, target) && record.state === REVIEW_STATE.published && record.verified) distribution[record.rating] += 1;
+      }
+      return distribution;
     },
   };
 }

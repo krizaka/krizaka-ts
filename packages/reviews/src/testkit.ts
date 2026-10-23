@@ -32,8 +32,11 @@ export function reviewStoreContract(name: string, make: () => ReviewStore | Prom
     const a = await store.upsert(record(await subject(2)));
     await store.setState(a.id, "pending", new Date("2026-10-23T12:00:00Z"));
     await store.setReply(a.id, "Thank you", new Date("2026-10-23T12:00:00Z"));
+    const published = await store.upsert(record(await subject(6)));
     expect(await store.get(a.id)).toMatchObject({ state: "pending", ownerReply: "Thank you" });
-    expect(await store.list(target, { offset: 0, limit: 20 })).toHaveLength(1);
+    expect(await store.list(target, { offset: 0, limit: 20 }, ["published"])).toEqual([published]);
+    expect(await store.list(target, { offset: 0, limit: 20 }, ["pending"])).toHaveLength(1);
+    expect(await store.list(target, { offset: 0, limit: 20 }, ["published", "pending"])).toHaveLength(2);
   });
 
   it(`${name}: returns only published verified ratings for scores`, async () => {
@@ -41,6 +44,6 @@ export function reviewStoreContract(name: string, make: () => ReviewStore | Prom
     await store.upsert(record(await subject(3), { rating: 2 as Rating }));
     await store.upsert(record(await subject(4), { verified: false }));
     await store.upsert(record(await subject(5), { state: "pending" }));
-    expect(await store.scoreRatings(target)).toEqual([2]);
+    expect(await store.scoreDistribution(target)).toEqual({ 1: 0, 2: 1, 3: 0, 4: 0, 5: 0 });
   });
 }

@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 
-import { type Clock, type Rating, REVIEW_STATE, type ReviewPage, type ReviewRecord, type ReviewState, type ReviewStore, type ReviewTarget } from "./port";
+import { type Clock, type Rating, REVIEW_STATE, type ReviewListOptions, type ReviewPage, type ReviewRecord, type ReviewState, type ReviewStore, type ReviewTarget } from "./port";
 
 const STATES: readonly ReviewState[] = Object.values(REVIEW_STATE);
 const DEFAULT_PAGE = { offset: 0, limit: 20 };
@@ -46,8 +46,8 @@ export function createReviews(deps: { store: ReviewStore; clock: Clock; rules: {
       return store.get(id);
     },
 
-    async list(target: ReviewTarget, page?: ReviewPage): Promise<ReviewRecord[]> {
-      return store.list(target, pageOf(page));
+    async list(target: ReviewTarget, options: ReviewListOptions = {}): Promise<ReviewRecord[]> {
+      return store.list(target, pageOf(options), options.states ?? [REVIEW_STATE.published]);
     },
 
     async setState(id: string, state: ReviewState): Promise<void> {
@@ -67,11 +67,10 @@ export function createReviews(deps: { store: ReviewStore; clock: Clock; rules: {
       if (!Number.isFinite(prior.mean) || prior.mean < 1 || prior.mean > 5 || !Number.isFinite(prior.weight) || prior.weight <= 0) {
         throw new RangeError("invalid review score prior");
       }
-      const ratings = await store.scoreRatings(target);
-      const distribution: Record<Rating, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-      for (const rating of ratings) distribution[rating] += 1;
-      const n = ratings.length;
-      return { average: (prior.weight * prior.mean + ratings.reduce((sum, rating) => sum + rating, 0)) / (prior.weight + n), distribution, n };
+      const distribution = await store.scoreDistribution(target);
+      const n = Object.values(distribution).reduce((sum, count) => sum + count, 0);
+      const total = (Object.entries(distribution) as [string, number][]).reduce((sum, [rating, count]) => sum + Number(rating) * count, 0);
+      return { average: (prior.weight * prior.mean + total) / (prior.weight + n), distribution, n };
     },
   };
 }

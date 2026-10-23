@@ -13,4 +13,4 @@ await reviews.reply(review.id, "Thank you for your feedback");
 const score = await reviews.score({ targetType: "shop", targetId: shopId }, { mean: 4, weight: 10 });
 ```
 
-`score` returns the Bayesian average, the 1–5 rating distribution and the number of included reviews. The product supplies `verified`; the package never infers it. Every adapter can run `reviewStoreContract` from `@krizaka/reviews/testkit`.
+`list` returns published reviews by default; owner and admin views can pass `{ states: ["pending", "hidden_by_owner"] }`. `score` returns the Bayesian average, the 1–5 rating distribution and the number of included reviews. The product supplies `verified`; the package never infers it. Every adapter can run `reviewStoreContract` from `@krizaka/reviews/testkit`.

@@ -17,6 +17,10 @@ export interface ReviewPage {
   limit?: number;
 }
 
+export interface ReviewListOptions extends ReviewPage {
+  states?: readonly ReviewState[];
+}
+
 export interface ReviewRecord extends ReviewTarget {
   id: string;
   subjectId: string;
@@ -34,10 +38,10 @@ export interface ReviewStore {
   upsert(record: ReviewRecord): Promise<ReviewRecord>;
   get(id: string): Promise<ReviewRecord | null>;
   getBySubjectTarget(subjectId: string, target: ReviewTarget): Promise<ReviewRecord | null>;
-  list(target: ReviewTarget, page: Required<ReviewPage>): Promise<ReviewRecord[]>;
+  list(target: ReviewTarget, page: Required<ReviewPage>, states: readonly ReviewState[]): Promise<ReviewRecord[]>;
   setState(id: string, state: ReviewState, updatedAt: Date): Promise<void>;
   setReply(id: string, reply: string, repliedAt: Date): Promise<void>;
-  scoreRatings(target: ReviewTarget): Promise<Rating[]>;
+  scoreDistribution(target: ReviewTarget): Promise<Record<Rating, number>>;
 }
 
 export interface Clock {
