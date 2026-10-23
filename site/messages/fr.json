@@ -72,6 +72,9 @@
     },
     "db": {
       "hook": "La fondation base de données : types partagés, transactions, schémas de modules intégrés aux migrations du produit, base de test."
+    },
+    "audit": {
+      "hook": "Qui a fait quoi : une trace en ajout seul dans son propre schéma, dans la transaction ou à côté, filtrée, exportée et caviardée (Loi 25)."
     }
   },
   "docs": {
