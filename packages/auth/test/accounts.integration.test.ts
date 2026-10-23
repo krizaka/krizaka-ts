@@ -46,14 +46,41 @@ describe.runIf(enabled)("the account service on PostgreSQL", () => {
   let query: Query;
   const mails: Mail[] = [];
   const issued: string[] = [];
+  /** A real transaction on its own connection (the product's pool does this), in the test's schema. */
+  const transaction = async <T,>(work: (q: Query) => Promise<T>): Promise<T> => {
+    const c = new pg.Client({ connectionString: process.env.DATABASE_URL });
+    await c.connect();
+    try {
+      await c.query(`SET search_path TO ${schemaName}; BEGIN`);
+      const result = await work(async (sql, params) => (await c.query(sql, params as unknown[])).rows as never);
+      await c.query("COMMIT");
+      return result;
+    } catch (error) {
+      await c.query("ROLLBACK").catch(() => undefined);
+      throw error;
+    } finally {
+      await c.end();
+    }
+  };
+  let hashFails = 0;
   const service = () =>
     postgresAccounts({
       query: (sql, params) => query(sql, params),
+      transaction,
       mail: async (m) => void mails.push(m),
       baseUrl: "https://www.akinaza.com",
       product: "Akinaza",
       tokenPrefix: "ae",
-      passwords,
+      passwords: {
+        hash: async (p: string) => {
+          if (hashFails > 0) {
+            hashFails -= 1;
+            throw new Error("hashing failed");
+          }
+          return passwords.hash(p);
+        },
+        verify: passwords.verify,
+      },
       tokenHash: hash,
       token: () => {
         const t = `ae1.${crypto.randomBytes(32).toString("base64url")}`;
@@ -152,6 +179,23 @@ describe.runIf(enabled)("the account service on PostgreSQL", () => {
     expect(await query("SELECT 1 FROM sessions WHERE account_id = $1", [id])).toHaveLength(0);
     await expect(service().confirmPassword(id, "another-long-password")).resolves.toBeUndefined();
     expect(await service().resetPassword(last(), "yet-another-long-password", NOW)).toBe("INVALID");
+  });
+
+  it("two reset requests at once leave one valid link; a failure while resetting leaves the link usable and the sessions in place", async () => {
+    const { id, email } = await account();
+    await session(id, "kept");
+    mails.length = 0;
+    await Promise.all([service().requestPasswordReset(email, NOW), service().requestPasswordReset(email, NOW)]);
+    expect(mails).toHaveLength(2);
+    const tokens = issued.slice(-2);
+    expect((await query<{ n: string }>("SELECT count(*)::text AS n FROM password_resets WHERE account_id = $1 AND used_at IS NULL", [id]))[0]!.n).toBe("1");
+    hashFails = 1;
+    await expect(Promise.all(tokens.map((t) => service().resetPassword(t, "another-long-password", NOW)))).rejects.toThrow("hashing failed");
+    expect(await query("SELECT 1 FROM sessions WHERE account_id = $1", [id])).toHaveLength(1);
+    expect((await query<{ n: string }>("SELECT count(*)::text AS n FROM password_resets WHERE account_id = $1 AND used_at IS NULL", [id]))[0]!.n).toBe("1");
+    const outcomes = await Promise.all(tokens.map((t) => service().resetPassword(t, "another-long-password", NOW)));
+    expect(outcomes.filter((o) => o === "CHANGED")).toHaveLength(1);
+    expect(await query("SELECT 1 FROM sessions WHERE account_id = $1", [id])).toHaveLength(0);
   });
 
   it("changes the password after checking the current one, and signs the other sessions out", async () => {

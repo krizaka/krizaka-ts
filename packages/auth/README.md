@@ -6,7 +6,7 @@ The account of a Krizaka product, behind a port: a display name, language, theme
 import { accountsMigration, postgresAccounts } from "@krizaka/auth";
 
 await db.query(accountsMigration({ backfillVerified: true })); // once, in your migrations (idempotent)
-const accounts = postgresAccounts({ query, mail, baseUrl: "https://www.akinaza.com", product: "Akinaza", tokenPrefix: "ae", passwords: { hash, verify }, tokenHash });
+const accounts = postgresAccounts({ query, transaction, mail, baseUrl: "https://www.akinaza.com", product: "Akinaza", tokenPrefix: "ae", passwords: { hash, verify }, tokenHash }); // `transaction`: the work on one connection (BEGIN … COMMIT); the password reset needs it under concurrent requests
 await accounts.updateProfile(id, { name: "Éric", theme: "dark" });
 await accounts.sessions(id, new Date(), currentSessionId);
 await accounts.requestPasswordReset(email, new Date()); // mails `<baseUrl>/<locale>/reset-password?token=…`

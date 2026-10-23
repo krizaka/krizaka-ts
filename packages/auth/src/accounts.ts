@@ -17,6 +17,13 @@ export interface Mail {
 
 export interface AccountDeps {
   query: Query;
+  /**
+   * Runs `work` in one transaction on one connection (BEGIN … COMMIT, rolled back when `work` throws) — the product's pool
+   * knows how. The password reset runs under it: the account row is locked, the links retired and issued, the token claimed,
+   * the password set and the sessions ended as one. Without it, the statements run one by one on `query` (one process, no
+   * concurrent requests): give it in production.
+   */
+  transaction?: <T>(work: (query: Query) => Promise<T>) => Promise<T>;
   mail: (mail: Mail) => Promise<void>;
   /** `https://www.akinaza.com`: the e-mail change link is `<baseUrl>/<locale>/confirm-email?token=…`, the reset link `<baseUrl>/<locale>/reset-password?token=…`. */
   baseUrl: string;
@@ -88,6 +95,7 @@ interface ProfileRow {
 /** The adapter over the product's own PostgreSQL (`accounts`, `sessions`, `email_changes`, `password_resets`; see `accountsMigration`). */
 export function postgresAccounts(deps: AccountDeps): AccountService {
   const { query } = deps;
+  const transaction = deps.transaction ?? (<T>(work: (q: Query) => Promise<T>) => work(query));
   const wrong = () => new AccountError(403, "WRONG_PASSWORD", "The password is not right");
 
   async function profileOf(id: string): Promise<AccountProfile> {
@@ -160,24 +168,32 @@ export function postgresAccounts(deps: AccountDeps): AccountService {
     async requestPasswordReset(email, now) {
       const address = email.trim().toLowerCase();
       if (!looksLikeEmail(address)) return; // the same answer: nothing is disclosed
-      const [row] = await query<{ id: string; locale: "en" | "fr" }>("SELECT id, locale FROM accounts WHERE email = $1 AND password_hash IS NOT NULL", [address]);
-      if (!row) return;
-      await query("UPDATE password_resets SET used_at = $2 WHERE account_id = $1 AND used_at IS NULL", [row.id, now]);
-      const token = (deps.token ?? (() => linkToken(deps.tokenPrefix)))();
-      await query("INSERT INTO password_resets (account_id, token_hash, expires_at) VALUES ($1, $2, $3)", [row.id, deps.tokenHash(token), addMinutes(now, PASSWORD_RESET_TTL_MINUTES)]);
-      const url = `${deps.baseUrl.replace(/\/$/, "")}/${row.locale}/reset-password?token=${encodeURIComponent(token)}`;
-      await deps.mail({ to: address, locale: row.locale, ...passwordResetMail(deps.product, row.locale, url) });
+      // One transaction, the account row locked: two requests at once leave one valid link — the later one. The mail goes after the commit.
+      const issued = await transaction(async (q) => {
+        const [row] = await q<{ id: string; locale: "en" | "fr" }>("SELECT id, locale FROM accounts WHERE email = $1 AND password_hash IS NOT NULL FOR UPDATE", [address]);
+        if (!row) return null;
+        await q("UPDATE password_resets SET used_at = $2 WHERE account_id = $1 AND used_at IS NULL", [row.id, now]);
+        const token = (deps.token ?? (() => linkToken(deps.tokenPrefix)))();
+        await q("INSERT INTO password_resets (account_id, token_hash, expires_at) VALUES ($1, $2, $3)", [row.id, deps.tokenHash(token), addMinutes(now, PASSWORD_RESET_TTL_MINUTES)]);
+        return { token, locale: row.locale };
+      });
+      if (!issued) return;
+      const url = `${deps.baseUrl.replace(/\/$/, "")}/${issued.locale}/reset-password?token=${encodeURIComponent(issued.token)}`;
+      await deps.mail({ to: address, locale: issued.locale, ...passwordResetMail(deps.product, issued.locale, url) });
     },
 
     async resetPassword(token, next, now) {
       if (next.length < PASSWORD_MIN) throw new AccountError(400, "PASSWORD_TOO_SHORT", `At least ${PASSWORD_MIN} characters`);
       if (next.length > PASSWORD_MAX) throw new AccountError(400, "PASSWORD_TOO_LONG", `At most ${PASSWORD_MAX} characters`);
       if (!isLinkToken(deps.tokenPrefix, token)) return "INVALID";
-      const [row] = await query<{ account_id: string }>("UPDATE password_resets SET used_at = $2 WHERE token_hash = $1 AND used_at IS NULL AND expires_at > $2 RETURNING account_id", [deps.tokenHash(token), now]);
-      if (!row) return "INVALID";
-      await query("UPDATE accounts SET password_hash = $2 WHERE id = $1", [row.account_id, await deps.passwords.hash(next)]);
-      await query("DELETE FROM sessions WHERE account_id = $1", [row.account_id]);
-      return "CHANGED";
+      // One transaction: the link is claimed, the password set and every session ended as one — a failure leaves the link usable.
+      return transaction(async (q) => {
+        const [row] = await q<{ account_id: string }>("UPDATE password_resets SET used_at = $2 WHERE token_hash = $1 AND used_at IS NULL AND expires_at > $2 RETURNING account_id", [deps.tokenHash(token), now]);
+        if (!row) return "INVALID" as const;
+        await q("UPDATE accounts SET password_hash = $2 WHERE id = $1", [row.account_id, await deps.passwords.hash(next)]);
+        await q("DELETE FROM sessions WHERE account_id = $1", [row.account_id]);
+        return "CHANGED" as const;
+      });
     },
 
     async sessions(id, now, currentSessionId) {
