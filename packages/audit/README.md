@@ -54,5 +54,6 @@ const next = await audit.list(query, { actionPrefix: "admin.", limit: 50, before
 
   Put as little personal data in `detail` as the action needs.
 - **Retention:** register `auditSettings` in your `@krizaka/settings` registry (`audit.retentionDays`: default 1095, 30–3650 days). Your job then calls `audit.purge(tx, { retentionDays })`.
+- **Input from a request is checked the same way for every store:** a page size must be a positive integer (capped at 200), a cursor must be an entry id, an IP must be an address, and a retention must be within the setting's bounds (30–3650 days), so a bad value never purges the whole trail. Each refusal is an `AuditError` with a stable code (`AUDIT_BAD_FILTER`, `AUDIT_BAD_IP`, `AUDIT_BAD_RETENTION`…).
 - **A fixed list of actions:** `createAudit({ allowedActions: [...] })` refuses anything else (`AUDIT_UNKNOWN_ACTION`).
 - **Another store** runs the contract kit: `auditStoreContract` from `@krizaka/audit/testkit`. `memoryAuditStore()` is the reference.

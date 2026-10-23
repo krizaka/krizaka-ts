@@ -3,7 +3,7 @@ import { subDays } from "date-fns";
 
 import { dbAuditStore } from "./persistence";
 import type { AuditEntry, AuditEntryInput, AuditFilters, AuditStore, Clock, Query } from "./port";
-import { toInsert } from "./rules";
+import { checkFilters, checkRetention, toInsert } from "./rules";
 
 export interface AuditDeps {
   clock: Clock;
@@ -50,9 +50,15 @@ export function createAudit(deps: AuditDeps): Audit {
         deps.onError?.(error, entry);
       }
     },
-    list: (query, filters) => storeFor(query).list(filters),
+    async list(query, filters) {
+      checkFilters(filters);
+      return storeFor(query).list(filters);
+    },
     exportFor: (query, actorId) => storeFor(query).forActor(actorId),
     redactActor: (query, actorId) => storeFor(query).redactActor(actorId),
-    purge: (query, { retentionDays }) => storeFor(query).purgeBefore(subDays(deps.clock.now(), retentionDays)),
+    async purge(query, { retentionDays }) {
+      checkRetention(retentionDays);
+      return storeFor(query).purgeBefore(subDays(deps.clock.now(), retentionDays));
+    },
   };
 }
