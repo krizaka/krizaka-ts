@@ -24,7 +24,7 @@ const readIf = (...p) => (existsSync(join(...p)) ? read(...p) : null);
 
 /** The version npm lists as `latest`; `null` when the package was never published. Throws when the registry cannot be reached. */
 async function npmVersion(name) {
-  const res = await fetch(`https://registry.npmjs.org/${name.replace("/", "%2F")}/latest`, { headers: { "user-agent": "krizaka-ts-site-build" }, signal: AbortSignal.timeout(10_000) });
+  const res = await fetch(`https://registry.npmjs.org/${name.replaceAll("/", "%2F")}/latest`, { headers: { "user-agent": "krizaka-ts-site-build" }, signal: AbortSignal.timeout(10_000) });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`npm answered ${res.status} for ${name}`);
   return (await res.json()).version;

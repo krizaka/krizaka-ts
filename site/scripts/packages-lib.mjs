@@ -118,7 +118,7 @@ export function changelogBody(changelog) {
 /** The install command, in a page: the `InstallTabs` component (app/components/mdx.tsx), which draws @krizaka/ui's CodeTabs with a copy button. */
 export const installTabs = (name) => `<InstallTabs name="${name}" />`;
 
-const cell = (text) => text.replace(/\|/g, "\\|").replace(/[{}]/g, (c) => `\\${c}`).replace(/</g, "&lt;");
+const cell = (text) => text.replace(/\\/g, "\\\\").replace(/\|/g, "\\|").replace(/[{}]/g, (c) => `\\${c}`).replace(/</g, "&lt;");
 
 function exportsTable(items, t) {
   const rows = items.map((e) => `| \`${e.name}\` | ${t.kinds[e.kind]} | ${cell(e.summary)} |`);
