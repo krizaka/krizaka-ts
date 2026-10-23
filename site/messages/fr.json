@@ -64,6 +64,12 @@
     "webhooks": {
       "hook": "Des webhooks signés et idempotents, dans les deux sens : livrés avec reprises, vérifiés et appliqués une fois."
     },
+    "follows": {
+      "hook": "Des abonnements idempotents à toute cible typée, avec préférences de notification, sourdine, pagination et décompte."
+    },
+    "reviews": {
+      "hook": "Des avis vérifiés modifiables, états de modération, réponses du propriétaire et scores bayésiens."
+    },
     "organize": {
       "hook": "Un nom, un avatar, des étiquettes et des collections pour toute entité, avec un kit de conformité."
     },
