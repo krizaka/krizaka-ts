@@ -72,6 +72,9 @@
     },
     "db": {
       "hook": "The database foundation: shared types, transactions, module schemas embedded in the product’s own migrations, a test database."
+    },
+    "audit": {
+      "hook": "Who did what: an append-only trail in its own schema, inside the transaction or beside it, filtered, exported and redacted (Loi 25)."
     }
   },
   "docs": {
