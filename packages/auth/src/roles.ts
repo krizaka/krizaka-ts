@@ -1,11 +1,12 @@
 import crypto from "node:crypto";
 
+import type { Query } from "@krizaka/db";
 import { addHours } from "date-fns";
 
 /**
  * Roles per scope (a shop, a workspace), as DATA: a model says which roles exist, which permissions each holds and who may hand which
  * role to whom. The code asks `can(role, "invoices:write")`, never `if (role === "owner")`. One person may belong to several scopes, with
- * a role in each. Membership and invitations live in the product's PostgreSQL (see `rolesMigration`).
+ * a role in each. Membership and invitations live in the product's PostgreSQL (see `rolesSchema`).
  */
 export interface RoleModel<Role extends string = string, Permission extends string = string> {
   roles: readonly Role[];
@@ -39,9 +40,7 @@ export class RolesError extends Error {
   }
 }
 
-export interface RolesQuery {
-  <T = Record<string, unknown>>(sql: string, params?: unknown[]): Promise<T[]>;
-}
+export type RolesQuery = Query;
 
 export interface RolesDeps<Role extends string, Permission extends string> {
   query: RolesQuery;

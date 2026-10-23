@@ -1,11 +1,11 @@
 import crypto from "node:crypto";
 
+import type { Query } from "@krizaka/db";
 import { addHours } from "date-fns";
 
 import { AccountError, type AccountProfile, type AccountService, type ProfilePatch, type SessionSummary, type Theme } from "./port";
 
-/** A SQL executor: the rows of a statement and its parameters (the product's pool). */
-export type Query = <T = Record<string, unknown>>(sql: string, params?: unknown[]) => Promise<T[]>;
+export type { Query };
 
 export interface Mail {
   to: string;
@@ -74,8 +74,8 @@ interface ProfileRow {
   pending: string | null;
 }
 
-/** The adapter over the product's own PostgreSQL (`accounts`, `sessions`, `email_changes`; see `accountsMigration`). */
-export function postgresAccounts(deps: AccountDeps): AccountService {
+/** The adapter over the product's own PostgreSQL (`accounts`, `sessions`, `email_changes`; see `accountsSchema`). */
+export function dbAccounts(deps: AccountDeps): AccountService {
   const { query } = deps;
   const wrong = () => new AccountError(403, "WRONG_PASSWORD", "The password is not right");
 
@@ -167,3 +167,6 @@ export function postgresAccounts(deps: AccountDeps): AccountService {
     },
   };
 }
+
+/** @deprecated use `dbAccounts`; the same function, kept for one minor. */
+export const postgresAccounts = dbAccounts;

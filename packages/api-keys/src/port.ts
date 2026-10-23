@@ -60,9 +60,7 @@ export interface ApiKeyStore {
   update(id: string, patch: Partial<Pick<ApiKeyRecord, "lastUsedAt" | "revokedAt" | "supersededAt">>): Promise<void>;
 }
 
-export interface Clock {
-  now(): Date;
-}
+export type { Clock } from "@krizaka/db";
 
 export const API_KEY_CODE = {
   missing: "API_KEY_MISSING",
