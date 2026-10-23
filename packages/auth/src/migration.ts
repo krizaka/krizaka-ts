@@ -1,7 +1,7 @@
 /**
  * What the account adapter needs from a product's database, safe to run on a database that already has `accounts` and `sessions`:
  * a display name, a theme, an avatar seed, the verified-address flag, and the table of e-mail changes (a link mailed to the NEW
- * address). `accounts` needs `id`, `email`, `locale`, `password_hash`; `sessions` needs `account_id`, `created_at`, `expires_at`, `ip`, `user_agent`.
+ * address) and the table of password resets (a link mailed to the account's address). `accounts` needs `id`, `email`, `locale`, `password_hash`; `sessions` needs `account_id`, `created_at`, `expires_at`, `ip`, `user_agent`.
  * `backfillVerified`: for accounts that exist already, treat the address as verified (invitation-only products).
  */
 export function accountsMigration(options: { backfillVerified?: boolean } = {}): string {
@@ -14,6 +14,14 @@ ${options.backfillVerified ? "UPDATE accounts SET email_verified_at = created_at
   id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   account_id uuid NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
   new_email  text NOT NULL CHECK (new_email = lower(new_email)),
+  token_hash text NOT NULL UNIQUE,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  expires_at timestamptz NOT NULL,
+  used_at    timestamptz
+);
+CREATE TABLE IF NOT EXISTS password_resets (
+  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id uuid NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
   token_hash text NOT NULL UNIQUE,
   created_at timestamptz NOT NULL DEFAULT now(),
   expires_at timestamptz NOT NULL,

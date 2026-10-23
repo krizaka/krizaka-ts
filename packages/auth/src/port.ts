@@ -1,6 +1,6 @@
 /**
  * The account PORT (ADR-0008 of Yomizaka, now shared). A product's account — name, language, theme, avatar, e-mail change with
- * verification, password, sessions, export, deletion — behind one interface. Every product keeps its OWN accounts: no central
+ * verification, password (changed when signed in, or reset by a mailed link), sessions, export, deletion — behind one interface. Every product keeps its OWN accounts: no central
  * service, no runtime dependency between products.
  */
 export type Theme = "light" | "dark" | "system";
@@ -45,6 +45,10 @@ export interface AccountService {
   confirmEmailChange(token: string, now: Date): Promise<"CHANGED" | "INVALID">;
   /** Changes the password (the current one is checked) and signs every other session out; `keepSessionId` stays. */
   changePassword(accountId: string, input: { current: string; next: string }, keepSessionId?: string): Promise<void>;
+  /** Asks for a reset link, mailed (in the person's language) when an account with a password has this address; answers the same either way (no enumeration). */
+  requestPasswordReset(email: string, now: Date): Promise<void>;
+  /** Sets a new password from the mailed link — single use, expires — and signs every session out. The new password is checked before the link is used up. */
+  resetPassword(token: string, next: string, now: Date): Promise<"CHANGED" | "INVALID">;
   /** Checks the password. Throws `AccountError(403, "WRONG_PASSWORD")`. */
   confirmPassword(accountId: string, password: string): Promise<void>;
   /** The person's live sign-ins, newest first; `currentSessionId` is flagged. */
