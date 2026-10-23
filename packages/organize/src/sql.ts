@@ -62,7 +62,8 @@ export type Resolved = ReturnType<typeof resolved>;
 
 const quote = (text: string) => `'${text.replace(/'/g, "''")}'`;
 
-export function organizeMigration(schema: OrganizeSchema): string {
+/** The SQL of version 1 of the « organize » module for a product's declaration (see `organizeModuleSchema`). */
+export function organizeSql(schema: OrganizeSchema): string {
   const r = resolved(schema);
   const c = r.collections;
   const parts: string[] = [];
@@ -139,4 +140,12 @@ CREATE TRIGGER ${k.table}_default_collection BEFORE INSERT OR UPDATE OF collecti
     parts.push(`UPDATE ${k.table} e SET collection_id = x.id FROM ${c} x WHERE e.collection_id IS NULL AND x.owner_id = e.${k.ownerColumn} AND x.is_default;`);
   }
   return parts.join("\n");
+}
+
+/**
+ * The migration of « organize » for a product that applies it by hand.
+ * @deprecated use `organizeModuleSchema` with `emitMigration` or `adoptMigration` from `@krizaka/db`; the SQL is the same.
+ */
+export function organizeMigration(schema: OrganizeSchema): string {
+  return organizeSql(schema);
 }

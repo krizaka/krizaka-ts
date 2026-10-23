@@ -1,8 +1,9 @@
+import type { Query } from "@krizaka/db";
+
 import { type KeyOf, type Registry, SCOPE, type Scope, type SettingsDefinition, type ValueOf } from "./registry";
 import { type Layers, type Resolved, resolveValue } from "./resolve";
 
-/** A SQL executor: the rows of a statement and its parameters (the product's pool). */
-export type Query = <T = Record<string, unknown>>(sql: string, params?: unknown[]) => Promise<T[]>;
+export type { Query };
 
 export interface ScopeRef {
   scope: Scope;
@@ -69,8 +70,8 @@ export interface PostgresSettingsDeps<R extends Registry> {
 
 const cacheKey = (s: ScopeRef) => `${s.scope}:${s.id}`;
 
-/** The adapter over the product's PostgreSQL (`app_settings`, `settings_audit`; see `settingsMigration`). */
-export function postgresSettings<R extends Registry>(settings: SettingsDefinition<R>, deps: PostgresSettingsDeps<R>): SettingsService<R> {
+/** The adapter over the product's PostgreSQL (`app_settings`, `settings_audit`; see `settingsSchema`). */
+export function dbSettings<R extends Registry>(settings: SettingsDefinition<R>, deps: PostgresSettingsDeps<R>): SettingsService<R> {
   const { query } = deps;
   const cacheMs = deps.cacheMs ?? 5000;
   const clock = deps.clock ?? (() => 0);
@@ -148,3 +149,6 @@ export function postgresSettings<R extends Registry>(settings: SettingsDefinitio
     },
   };
 }
+
+/** @deprecated use `dbSettings`; the same function, kept for one minor. */
+export const postgresSettings = dbSettings;

@@ -47,6 +47,9 @@
   "engines": {
     "node": ">=22"
   },
+  "dependencies": {
+    "@krizaka/db": "workspace:^"
+  },
   "devDependencies": {
     "@krizaka/config": "^0.7.0",
     "@types/node": "^22.10.0",

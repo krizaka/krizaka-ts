@@ -2,8 +2,9 @@
  * The ports of « organize »: nothing here knows a database client, an image library, a storage vendor or the wall clock.
  */
 
-/** Runs one SQL statement with its parameters and returns the rows. The product passes its own (pg, a pool, a transaction). */
-export type Query = <T = Record<string, unknown>>(sql: string, params?: unknown[]) => Promise<T[]>;
+import type { Query } from "@krizaka/db";
+
+export type { Query };
 
 /** What an uploaded avatar is kept in: the same shape as a document store (put, get, delete), so a product passes the one it has. */
 export interface ObjectStore {

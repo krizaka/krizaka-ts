@@ -1,7 +1,8 @@
+import type { Query } from "@krizaka/db";
+
 import type { ApiKeyRecord, ApiKeyStore } from "./port";
 
-/** The SQL runner this adapter needs: the app passes its own (no import from the app here). */
-export type Query = (sql: string, params?: unknown[]) => Promise<unknown[]>;
+export type { Query };
 
 interface Row {
   id: string;
@@ -22,9 +23,9 @@ const toRecord = (r: Row): ApiKeyRecord => ({ id: r.id, ownerId: r.owner_id, nam
 const COLUMNS = "id, owner_id, name, public_id, secret_hash, scopes, expires_at, created_at, last_used_at, revoked_at, rotated_from_id, superseded_at";
 const COLUMN_OF = { lastUsedAt: "last_used_at", revokedAt: "revoked_at", supersededAt: "superseded_at" } as const;
 
-/** PostgreSQL adapter (table `api_keys`, migration 0021). */
-export function pgApiKeyStore(run: Query): ApiKeyStore {
-  const query = <T = unknown>(sql: string, params?: unknown[]) => run(sql, params) as Promise<T[]>;
+/** PostgreSQL adapter over the product's `Query` (table `api_keys`, see `apiKeysSchema`). */
+export function dbApiKeyStore(run: Query): ApiKeyStore {
+  const query = <T = unknown>(sql: string, params?: unknown[]) => run<T>(sql, params);
   return {
     async insert(r) {
       await query(`INSERT INTO api_keys (${COLUMNS}) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`, [r.id, r.ownerId, r.name, r.publicId, r.secretHash, r.scopes, r.expiresAt, r.createdAt, r.lastUsedAt, r.revokedAt, r.rotatedFromId, r.supersededAt]);
@@ -45,3 +46,6 @@ export function pgApiKeyStore(run: Query): ApiKeyStore {
     },
   };
 }
+
+/** @deprecated use `dbApiKeyStore`; the same function, kept for one minor. */
+export const pgApiKeyStore = dbApiKeyStore;
