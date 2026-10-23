@@ -1,0 +1,40 @@
+---
+title: Get started
+description: The TypeScript backend building blocks of every Krizaka product — what they are, what they ask of you, how to install one.
+---
+
+Krizaka TS is the TypeScript counterpart of [Krizaka Java](https://java.krizaka.com): the cross-cutting backend code every
+product needs — accounts, settings, API keys, webhooks, organization, the weekly brief — written once, with one author and
+one release. Each package is published on npm under `@krizaka/` (Apache-2.0), as an ES module with its types, for Node.js 22
+and later.
+
+## Pick a package
+
+<PackageTable />
+
+Each page has the install command, the package's README, every name it exports and its changelog.
+
+## What a package asks of you
+
+A package is generic. It imports nothing from a product, reads no environment variable, uses no vendor SDK, no ambient
+clock and no database client. What it needs comes in as a parameter, and what it decides is data:
+
+- **Ports** for everything else: a store, a mailer, a way to hash a password. The package brings the rules; you bring the adapter.
+- **The clock is passed in** (a `Clock`, or `now`), so a test can say what time it is.
+- **A database is a function**: where a package stores in PostgreSQL, you pass it a `query` function — no ORM, no client of ours.
+- **Rules are data**: scopes, roles, settings, limits are declared by the product, not coded in the package.
+- **Refusals have stable codes**, so a product can map them to its own HTTP answers.
+
+Where a package stores, its integration test runs on a real PostgreSQL, and a store ships a contract kit every adapter runs
+(`@krizaka/api-keys/testkit`, for one).
+
+## Install
+
+<InstallTabs name="@krizaka/auth" />
+
+Replace the name with the package you want. Versions on these pages are read from npm when the site is built.
+
+## Where it comes from
+
+This site is generated from [the repository](https://github.com/krizaka/krizaka-ts) at every change: the README, the exports
+and the changelog of a package are its own files, never copied by hand. A fact that a page lacks is added to the package.

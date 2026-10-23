@@ -1,0 +1,40 @@
+---
+title: Démarrer
+description: Les briques backend TypeScript de chaque produit Krizaka — ce qu'elles sont, ce qu'elles vous demandent, comment en installer une.
+---
+
+Krizaka TS est le pendant TypeScript de [Krizaka Java](https://java.krizaka.com) : le code backend transversal dont chaque
+produit a besoin — comptes, réglages, clés d'API, webhooks, organisation, bilan hebdomadaire — écrit une fois, avec un seul
+auteur et une seule version. Chaque paquet est publié sur npm sous `@krizaka/` (Apache-2.0), en module ES avec ses types,
+pour Node.js 22 et plus.
+
+## Choisir un paquet
+
+<PackageTable />
+
+Chaque page a la commande d'installation, le README du paquet, tous les noms qu'il exporte et son journal des versions.
+
+## Ce qu'un paquet vous demande
+
+Un paquet est générique. Il n'importe rien d'un produit, ne lit aucune variable d'environnement, n'utilise ni SDK de
+fournisseur, ni horloge cachée, ni client de base de données. Ce dont il a besoin arrive en paramètre, et ce qu'il décide est une donnée :
+
+- **Des ports** pour tout le reste : un stockage, un envoi de courriel, une façon de hacher un mot de passe. Le paquet apporte les règles ; vous apportez l'adaptateur.
+- **L'horloge est passée en paramètre** (une `Clock`, ou `now`), pour qu'un test dise quelle heure il est.
+- **Une base de données est une fonction** : quand un paquet stocke dans PostgreSQL, vous lui passez une fonction `query` — pas d'ORM, pas de client à nous.
+- **Les règles sont des données** : portées, rôles, réglages, limites sont déclarés par le produit, pas codés dans le paquet.
+- **Les refus ont des codes stables**, pour qu'un produit les traduise dans ses propres réponses HTTP.
+
+Quand un paquet stocke, son test d'intégration tourne sur un vrai PostgreSQL, et un stockage livre un kit de contrat que
+chaque adaptateur exécute (`@krizaka/api-keys/testkit`, par exemple).
+
+## Installer
+
+<InstallTabs name="@krizaka/auth" />
+
+Remplacez le nom par le paquet voulu. Les versions de ces pages sont lues sur npm à la construction du site.
+
+## D'où ça vient
+
+Ce site est généré depuis [le dépôt](https://github.com/krizaka/krizaka-ts) à chaque changement : le README, les exports et
+le journal des versions d'un paquet sont ses propres fichiers, jamais recopiés à la main. Un fait qui manque à une page est ajouté au paquet.

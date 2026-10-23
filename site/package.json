@@ -1,0 +1,46 @@
+{
+  "name": "krizaka-ts-site",
+  "version": "0.0.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "description": "ts.krizaka.com \u2014 the documentation of Krizaka TS, a static site built from the packages it documents.",
+  "scripts": {
+    "gen": "node scripts/gen-packages.mjs && fumadocs-mdx",
+    "dev": "npm run gen && next dev",
+    "build": "npm run gen && next build && node scripts/postbuild.mjs",
+    "lint": "npm run gen && tsc --noEmit && krizaka-i18n check messages && node scripts/check-content.mjs",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "@krizaka/fonts": "^0.3.0",
+    "@krizaka/i18n": "^0.2.0",
+    "@krizaka/icons": "^0.7.0",
+    "@krizaka/tailwind": "^3.49.0",
+    "@krizaka/tokens": "^3.49.0",
+    "@krizaka/ui": "^3.49.0",
+    "@types/mdx": "^2.0.14",
+    "fumadocs-core": "^16.17.1",
+    "fumadocs-mdx": "^15.4.7",
+    "fumadocs-ui": "^16.17.1",
+    "next": "^16.3.8",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@krizaka/config": "^0.4.0",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  },
+  "overrides": {
+    "@krizaka/ui": "$@krizaka/ui",
+    "@krizaka/tokens": "$@krizaka/tokens",
+    "@krizaka/tailwind": "$@krizaka/tailwind"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
