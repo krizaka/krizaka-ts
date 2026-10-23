@@ -1,6 +1,6 @@
 {
   "name": "@krizaka/db",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "The database foundation of every Krizaka module: shared Query, Connection and Clock types, transactions, versioned and frozen module schemas embedded in the product's own migration sequence, a runner for products without one, and a test database helper. No database client: the product passes its own connection.",
   "keywords": [
     "krizaka",
