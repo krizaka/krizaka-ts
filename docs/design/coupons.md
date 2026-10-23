@@ -57,12 +57,14 @@ CREATE SCHEMA IF NOT EXISTS coupons;
 
 CREATE TABLE coupons.partner (
   id            uuid PRIMARY KEY,
-  display_name  text NOT NULL CHECK (char_length(display_name) BETWEEN 1 AND 80),
+  display_name  text CHECK (display_name IS NULL OR char_length(display_name) BETWEEN 1 AND 80),
   contact_email text CHECK (contact_email IS NULL OR contact_email = lower(contact_email)),
   status        text NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'archived')),
   created_at    timestamptz NOT NULL,
   created_by    uuid REFERENCES <owner>(id) ON DELETE SET NULL,
-  erased_at     timestamptz              -- Loi 25: name and e-mail blanked, aggregates kept
+  erased_at     timestamptz,             -- Loi 25: name and e-mail set to NULL, aggregates kept
+  CHECK (erased_at IS NOT NULL OR display_name IS NOT NULL),                        -- a live partner has a name
+  CHECK (erased_at IS NULL OR (display_name IS NULL AND contact_email IS NULL))     -- an erased one has nothing identifying
 );
 
 CREATE TABLE coupons.coupon (
@@ -81,7 +83,7 @@ CREATE TABLE coupons.coupon (
   plans             text[] NOT NULL DEFAULT '{}',                                      -- plan kinds of the product; empty = all
   -- discount terms (immutable after the first redemption)
   percent_off_bp    integer CHECK (percent_off_bp BETWEEN 1 AND 9999),                 -- basis points; 100 % is never a discount
-  amount_off_minor  integer CHECK (amount_off_minor > 0),
+  amount_off_minor  integer CHECK (amount_off_minor > 0),                             -- never the whole price: §2, « No free discount »
   currency          text CHECK (currency ~ '^[a-z]{3}$'),
   duration          text CHECK (duration IN ('once', 'repeating', 'forever')),
   duration_months   integer CHECK (duration_months BETWEEN 1 AND 36),
@@ -100,23 +102,27 @@ CREATE TABLE coupons.coupon (
   CHECK ((purpose = 'partner') = (partner_id IS NOT NULL)),
   CHECK (kind <> 'discount' OR (credits IS NULL AND num_nonnulls(percent_off_bp, amount_off_minor) = 1
          AND (amount_off_minor IS NULL OR currency IS NOT NULL) AND duration IS NOT NULL
-         AND ((duration = 'repeating') = (duration_months IS NOT NULL)))),
+         AND ((duration = 'repeating') = (duration_months IS NOT NULL))
+         AND (amount_off_minor IS NULL OR duration <> 'forever'))),                    -- a fixed amount never runs forever
   CHECK (kind <> 'credit' OR (credits IS NOT NULL AND on_exhausted IS NOT NULL
+         AND credits_valid_days IS NOT NULL                                            -- every grant expires
          AND num_nulls(percent_off_bp, amount_off_minor, duration) = 3))
 );
 
 CREATE TABLE coupons.redemption (
   id               uuid PRIMARY KEY,
   coupon_id        uuid NOT NULL REFERENCES coupons.coupon(id) ON DELETE RESTRICT,
-  account_id       uuid NOT NULL REFERENCES <owner>(id) ON DELETE CASCADE,
+  account_id       uuid REFERENCES <owner>(id) ON DELETE SET NULL,                   -- a deleted account leaves the row: uses and revenue stay
   partner_id       uuid REFERENCES coupons.partner(id) ON DELETE SET NULL,           -- copied at redemption: attribution never moves
-  status           text NOT NULL CHECK (status IN ('reserved', 'confirmed', 'released', 'refunded', 'revoked')),
+  status           text NOT NULL CHECK (status IN ('reserved', 'confirmed', 'released', 'revoked')),
   idempotency_key  text NOT NULL UNIQUE,                                              -- apply() twice = the same row
   reserved_until   timestamptz,                                                       -- discount: the reservation's end
   checkout_ref     text UNIQUE,                                                       -- the provider's session
   payment_ref      text UNIQUE,                                                       -- the provider's payment: confirmed once
   amount_paid_minor     integer,
   amount_discount_minor integer,
+  amount_refunded_minor integer NOT NULL DEFAULT 0 CHECK (amount_refunded_minor >= 0),  -- cumulative, partial or full
+  use_restored     boolean NOT NULL DEFAULT false,                                    -- a full refund gave the use back (setting)
   currency         text,
   credit_grant_id  uuid,                                                              -- @krizaka/credits' grant
   over_limit       boolean NOT NULL DEFAULT false,                                    -- a late payment honoured past a limit
@@ -124,23 +130,30 @@ CREATE TABLE coupons.redemption (
   confirmed_at     timestamptz,
   ended_at         timestamptz
 );
-CREATE INDEX redemption_live ON coupons.redemption (coupon_id, account_id) WHERE status IN ('reserved', 'confirmed');
+CREATE INDEX redemption_uses ON coupons.redemption (coupon_id, account_id) WHERE status <> 'released' AND NOT use_restored;
 ```
 
 - **Status:**
   - `active`, `paused` and `archived` are stored.
   - **Expired** and **exhausted** are computed (`now ≥ ends_at`; live redemptions ≥ `max_redemptions`). They need no cron, and the admin list shows them as such.
   - « Not started » (`now < starts_at`) is computed too.
-- **Live redemptions** are `confirmed`, plus `reserved` while `reserved_until > now`. Overall limits and per-account limits count both.
+- **The counting rule:** a redemption **consumes a use** when it is `confirmed` or `revoked` and not `use_restored`, or when it is `reserved` and `reserved_until > now`. A `released` redemption never counts. A refund does not change the status (§4.3), so a refunded use still counts unless the setting restored it. The overall and per-account limits both apply this one rule.
+- **A deleted account** sets `account_id` to NULL. The redemption keeps counting toward the overall limit and stays in the partner's revenue.
+- **No free discount.**
+  - `percent_off_bp` stops at 99.99 % and `coupons.maxPercentOff` bounds it further.
+  - A fixed amount is never `forever`.
+  - At `apply`, the discount must leave something to pay: `amount_off_minor ≤ price × coupons.maxPercentOff`, else `COUPON_TOO_LARGE`.
+  - When a plan's price changes, the product calls `coupons.admin.checkPrices(prices)`. It pauses every live amount coupon that would now exceed that bound, and audits it.
+  - Free usage is always a capped credit coupon.
 - **Audit:** every create, update, pause, resume, archive, revoke and partner change writes `@krizaka/audit` (who, when, before and after), in the same transaction.
 
 ## 3. Partners: the minimum
 
 - **The record:** display name, optional contact e-mail, status. The admin creates partners and gives them coupons (`purpose = 'partner'`).
-- **The partner view** (admin only), per period, from confirmed redemptions:
+- **The partner view** (admin only), per period, from the redemptions that consume a use (§2's rule):
   - the count of redemptions;
   - the discount given;
-  - the revenue (`amount_paid_minor`);
+  - the revenue (`amount_paid_minor − amount_refunded_minor`; a 100 $ purchase with a 10 $ refund counts 90 $);
   - the credits granted;
   - per coupon. Never the customers' identities.
 - **Commission:** out of scope. The hook is `evt.coupon.redeemed.v1`, which carries `partnerId`, `amountPaidMinor`, `amountDiscountMinor`, `currency` and `credits`. A later `commissions` module consumes it from the outbox; nothing here computes money owed.
@@ -160,19 +173,28 @@ CREATE INDEX redemption_live ON coupons.redemption (coupon_id, account_id) WHERE
    - It is rate-limited per account and per IP, before any lookup (settings).
    - The context is the account, the plan, the amount, the currency, whether the account has paid before (from `payments`), and `now`.
    - It answers the effect (« −20 % for 3 months ») or a typed refusal.
-3. On « Pay », in one transaction:
-   - `coupons.apply(tx, { code, accountId, plan, amount, currency, idempotencyKey })` locks the coupon row, re-checks everything, and inserts a `reserved` redemption with `reserved_until = now + coupons.reservationMinutes`. It returns the `DiscountTerms`.
-   - `payments.checkout({ …, discount: terms, metadata: { redemption_id } })`:
-     - the Stripe adapter finds or creates the Stripe coupon for `(coupon.id, terms_version)`;
-     - it sends `discounts: [{ coupon }]`;
-     - it sets the session's `expires_at` no later than `reserved_until`.
-   - `coupons.attachCheckout(tx, redemptionId, checkoutRef)`.
-4. The webhook `payment_paid` / `subscription_started` arrives with `checkoutRef`, `paymentRef` and the amounts. In **one transaction**, `payments` records the event id and calls `coupons.redeem(tx, { checkoutRef, paymentRef, amountPaid, amountDiscount, currency })`.
-   - `reserved` becomes `confirmed`.
+3. On « Pay », in **three steps**. No network call ever happens inside a transaction or under the coupon's row lock.
+   1. **Reserve (a short transaction).** `coupons.apply(tx, { code, accountId, plan, amount, currency, idempotencyKey })` locks the coupon row, re-checks everything, inserts a `reserved` redemption with `reserved_until = now + coupons.reservationMinutes`, and commits. The lock is held only for that insert. It returns the redemption id and the `DiscountTerms`.
+   2. **Create the session (outside any transaction).** `payments.checkout({ …, discount: terms, idempotencyKey: redemptionId, metadata: { redemption_id }, expiresAt })`:
+      - the Stripe adapter finds or creates the Stripe coupon for `(coupon.id, terms_version)` and sends `discounts: [{ coupon }]`;
+      - the Stripe idempotency key is the redemption id, so a retry returns the same session;
+      - if the call fails, the product calls `coupons.release(tx, redemptionId)` at once.
+   3. **Attach (a second short transaction).** `coupons.attachCheckout(tx, redemptionId, checkoutRef, sessionExpiresAt)` stores the session and sets `reserved_until = max(reserved_until, sessionExpiresAt + 5 min)`, so the reservation outlives the session.
+   - **If step 3 never happens** (a crash, a failed commit), nothing is lost:
+     - the webhook finds the redemption by `metadata.redemption_id`, not only by `checkoutRef`;
+     - an unpaid session expires on its own and its `checkout_expired` releases the use;
+     - the sweeper releases reservations past `reserved_until`.
+   - **A webhook that arrives before step 3** is handled the same way, through `metadata.redemption_id`.
+   - **The deadline protocol.** Stripe accepts a session `expires_at` from 30 minutes to 24 hours after creation. So:
+     - `coupons.reservationMinutes` is bounded 40–1440;
+     - the adapter asks for `expiresAt = reservedAt + reservationMinutes − 5 min`;
+     - if that is less than 31 minutes from the moment of the call (the reservation is too old), it refuses, and the product releases and re-applies.
+4. The webhook `payment_paid` / `subscription_started` arrives with `checkoutRef`, `paymentRef`, `metadata.redemption_id` and the amounts. In **one transaction**, `payments` records the event id and calls `coupons.redeem(tx, { redemptionId, checkoutRef, paymentRef, amountPaid, amountDiscount, currency })`.
+   - The guarded transition is `UPDATE … SET status = 'confirmed' WHERE id = $1 AND status IN ('reserved', 'released')`. A `released` row confirmed this way gets `over_limit = true`.
    - A replay finds the event already recorded and does nothing.
    - A second event for the same payment hits `payment_ref UNIQUE` and does nothing.
 5. On `checkout_expired`, or the sweeper (`reserved_until < now`), `reserved` becomes `released` and the use is free again.
-6. **A payment that arrives after the release, or past a limit, is confirmed anyway, with `over_limit = true`.** The customer was charged the discounted price, so we honour it, audit it, and show it in the admin.
+6. **A payment that arrives after the release, or past a limit, is confirmed anyway, with `over_limit = true`** (the `released → confirmed` transition of step 4). The customer was charged the discounted price, so we honour it, audit it, and show it in the admin.
 
 ### 4.2 A credit coupon
 
@@ -187,8 +209,9 @@ CREATE INDEX redemption_live ON coupons.redemption (coupon_id, account_id) WHERE
 
 ### 4.3 Refunds and revocation
 
-- **A refund** (`payment_refunded`, full or partial): the redemption becomes `refunded`, with the refunded amount audited.
-  - With `coupons.refundRestoresUse` (default **off**), the use is given back; otherwise it still counts. A refund cannot be used to reset a single-use code.
+- **A refund** (`payment_refunded`, full or partial) adds to `amount_refunded_minor`, is audited, and **does not change the status**.
+  - The use keeps counting. Only a **full** refund with `coupons.refundRestoresUse` on (default **off**) sets `use_restored = true` and gives the use back.
+  - A partial refund never restores a use, so a refund cannot reset a single-use code.
   - The tax is Stripe's to adjust on its refund.
 - **Revoking a credit redemption** (admin): it becomes `revoked`, and `credits.expire(tx, grantId)` writes an EXPIRY for what remains. Credits already spent are never clawed back.
 
@@ -237,6 +260,7 @@ interface DiscountTerms { couponId: string; termsVersion: number; percentOffBp?:
 | `COUPON_NOT_FOR_PLAN` | the plan is not in `plans` |
 | `COUPON_MINIMUM` | the amount is under `minimum_minor` |
 | `COUPON_CURRENCY` | the amount coupon's currency is not the checkout's |
+| `COUPON_TOO_LARGE` | the discount would leave less than the allowed share of the price to pay (§2, « No free discount ») |
 | `COUPON_KIND` | a credit code at checkout, or a discount code where credits are redeemed |
 | `COUPON_PROVIDER` | the product's provider cannot apply discounts (CCBill, Segpay) |
 | `COUPON_RATE_LIMITED` | too many attempts (with `Retry-After`) |
@@ -256,7 +280,7 @@ interface DiscountTerms { couponId: string; termsVersion: number; percentOffBp?:
 | Key | Kind | Default | Bounds | What it does |
 |---|---|---|---|---|
 | `coupons.enabled` | flag | false | — | shows the field and accepts codes |
-| `coupons.reservationMinutes` | integer | 30 | 5–1440 min | how long a checkout holds a use |
+| `coupons.reservationMinutes` | integer | 60 | 40–1440 min | how long a checkout holds a use; bounded by Stripe's session window, 30 min to 24 h (§4.1) |
 | `coupons.attemptsPerAccountPerHour` | integer | 10 | 1–100 | validation rate limit |
 | `coupons.attemptsPerIpPerHour` | integer | 30 | 1–500 | validation rate limit |
 | `coupons.minCodeLength` | integer | 8 | 4–40 | shortest code the admin may type |
@@ -321,12 +345,12 @@ The words live in each product's `messages/{en,fr}.json` under `coupons.*`, and 
 | #46 asks for | Test |
 |---|---|
 | validity windows | `starts_at` and `ends_at` boundaries with an injected clock: one second before, at, and after |
-| redemption limits, overall and per account | live redemptions count reserved-not-expired plus confirmed; released and expired ones do not |
+| redemption limits, overall and per account | §2's counting rule: reserved-not-expired, confirmed and revoked count; released do not; a partial refund still counts; a full refund counts unless `refundRestoresUse` restored it; a deleted account's redemption still counts overall |
 | concurrent redemption of the last use | two transactions `apply` the last use on PostgreSQL: one wins and the other gets `COUPON_EXHAUSTED`. Run 50 times. |
 | the credit cap and its exhaustion | per day and per month in the configured time zone; `stop` and `fallback_paid`; expiry |
 | an idempotent webhook | the same event twice changes nothing; two events with one `payment_ref` confirm once; a handler that throws leaves the event unrecorded, so a retry succeeds |
 | tax on the discounted amount | the Stripe adapter sends `discounts` together with `automatic_tax` (the request body asserted, with a fake fetch). The `manual` provider's totals are computed on the discounted base (known numbers: 100,00 $ −20 % → base 80,00, GST 4,00, QST 7,98). |
-| also | late payment past a limit → `over_limit`; refund with and without `refundRestoresUse`; terms locked after the first use; code normalisation (case, spaces); rate limit before lookup |
+| also | late payment after release → `released → confirmed`, `over_limit`; a crash between session and attach → the webhook finds the row by `redemption_id`; a fixed amount ≥ the bound → `COUPON_TOO_LARGE`, and a price drop pauses the coupon; partner erasure → no identifying column left; partner revenue net of refunds; refund with and without `refundRestoresUse`; terms locked after the first use; code normalisation (case, spaces); rate limit before lookup |
 
 Every store test runs on the memory store and on PostgreSQL (CI's service, `@krizaka/db/testing`). The provider is a fake. No test touches the network.
 

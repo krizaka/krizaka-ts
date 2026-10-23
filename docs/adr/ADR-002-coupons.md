@@ -41,12 +41,13 @@ What exists, read in the products on 2026-10-23 (details and file:line in the de
    - Every grant carries:
      - the credits granted (required);
      - an optional cap per day and per month;
-     - an expiry;
+     - an expiry (required: `credits_valid_days`);
      - what happens when it runs out: `stop` (refuse with a typed code), or `fallback_paid` (the product shows its paid plan).
    - No provider is involved, so a credit coupon works with every provider, including Orochia's gateways.
 4. **Redemptions are reserved, confirmed and released, in transactions.**
-   - **Reserve at checkout.** `apply` locks the coupon row (`SELECT … FOR UPDATE`). It counts the live redemptions (reserved and not yet expired, plus confirmed), overall and for the account, and inserts a `reserved` redemption with an expiry. `apply` is idempotent by its key.
-   - **Confirm on the payment webhook.** `redeem` runs **in the same transaction** as the payment event's idempotency record (cut #6 of ADR-001 makes `@krizaka/payments` do this). It moves the redemption from `reserved` to `confirmed` once (`UPDATE … WHERE status = 'reserved'`). A unique payment reference means it can never be confirmed twice.
+   - **Reserve at checkout.** `apply` locks the coupon row (`SELECT … FOR UPDATE`) in a short transaction. It counts the uses (the design's §2 rule), overall and for the account, inserts a `reserved` redemption with an expiry, and commits. `apply` is idempotent by its key.
+   - **No network call happens under the lock or inside a transaction.** The provider's session is created afterwards with the redemption id as its idempotency key, and attached in a second short transaction. The webhook finds the redemption by `metadata.redemption_id` even if the attach never ran (design §4.1).
+   - **Confirm on the payment webhook.** `redeem` runs **in the same transaction** as the payment event's idempotency record (cut #6 of ADR-001 makes `@krizaka/payments` do this). Its guarded transition is `UPDATE … WHERE status IN ('reserved', 'released')`: `released` is allowed so that a late payment can still be confirmed. A unique payment reference means it can never be confirmed twice.
    - **Release.** `checkout.session.expired`, or the sweeper, releases unpaid reservations.
    - **A late payment is honoured.** When the provider has already charged the discounted price, the redemption is confirmed even if its reservation expired or the coupon ran out meanwhile. It is flagged `over_limit` and audited, because the customer paid in good faith.
 5. **Partners are a small record.**
@@ -73,7 +74,7 @@ What exists, read in the products on 2026-10-23 (details and file:line in the de
 | Per-account limits, new customers only | Partial: `first_time_transaction` and per-customer codes only; no « N per account » | **Yes**, in SQL under a row lock | Partial for discounts |
 | Concurrency (two people, the last use) | Stripe's `max_redemptions`, counted at payment: oversell between session and payment | **Reservation under lock**; late payments honoured and flagged | Stripe's again for discounts |
 | Abuse (brute-forcing codes) | Stripe's field on its page, with no rate limit of ours | **Our rate limits** (`@krizaka/rate-limit`, settings) before any lookup | Split |
-| Refunds | Stripe's | Stripe refunds the amount paid; the redemption becomes `refunded`; whether a use is given back is a setting | Split |
+| Refunds | Stripe's | Stripe refunds the amount paid; the redemption keeps its status and records the refunded amount (cumulative); only a full refund with the setting on gives the use back | Split |
 | Partner attribution, Loi 25 | Partner data in Stripe metadata, outside our register | **In our database**, admin-only, exportable and erasable | Split |
 | Testable without network | No (Stripe test mode is the network) | **Yes**: memory store, a fake provider, PostgreSQL on CI | Partly |
 
