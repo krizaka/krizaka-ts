@@ -4,8 +4,8 @@ export const dynamic = "force-static";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Krizaka TS",
-    short_name: "Krizaka TS",
+    name: "Krizaka TypeScript",
+    short_name: "Krizaka TypeScript",
     start_url: "/",
     display: "standalone",
     background_color: "#0d0d0f",

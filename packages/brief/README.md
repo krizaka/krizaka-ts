@@ -25,4 +25,4 @@ const brief = composeBrief({
   scheduler asks; a missed Monday still sends later in the week.
 - No framework, no database, no environment, no wall clock.
 
-Apache-2.0 · [Krizaka TS](https://github.com/krizaka/krizaka-ts)
+Apache-2.0 · [Krizaka TypeScript](https://github.com/krizaka/krizaka-ts)

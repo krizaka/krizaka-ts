@@ -29,7 +29,7 @@ export function FamilyFooterView({
         </>
       }
     >
-      <FamilyFooter.Column title="Krizaka TS">
+      <FamilyFooter.Column title="Krizaka TypeScript">
         {links.map((l) => (
           <FamilyFooter.Link key={l.href} href={l.href}>
             {l.label}

@@ -1,6 +1,6 @@
 /**
  * The API-KEY ports (ADR-0011). Generic on purpose — no import from this app (no env, no database client, no clock of its own),
- * so the folder moves as it is into `@krizaka/api-keys` (Krizaka TS, krizaka/.github#183) and Akinaza uses the same code.
+ * so the folder moves as it is into `@krizaka/api-keys` (Krizaka TypeScript, krizaka/.github#183) and Akinaza uses the same code.
  * A key is `<prefix>_<publicId>_<secret>`: the publicId finds the record, only a SHA-256 of the secret is stored, and the whole
  * key is shown once, when it is created or rotated. What a product decides — its scopes, its limits per plan, its rate limits, its
  * audit trail — is data or an adapter around this module, never inside it.

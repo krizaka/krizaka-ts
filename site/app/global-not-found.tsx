@@ -6,7 +6,7 @@ import { displayFace, monoFace, textFace } from "./fonts";
 import "./globals.css";
 
 /* The 404 of both languages (the two root layouts bypass layout.tsx): the message in each, and the way back. */
-export const metadata: Metadata = { title: "404 — Krizaka TS", robots: { index: false } };
+export const metadata: Metadata = { title: "404 — Krizaka TypeScript", robots: { index: false } };
 
 export default function GlobalNotFound() {
   const en = getDictionary("en").notFound;
