@@ -69,6 +69,9 @@
     },
     "brief": {
       "hook": "The weekly brief: a few figured recommendations, each with one action."
+    },
+    "db": {
+      "hook": "The database foundation: shared types, transactions, module schemas embedded in the product’s own migrations, a test database."
     }
   },
   "docs": {
