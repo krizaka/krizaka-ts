@@ -61,6 +61,9 @@ export const AUDIT_CODE = {
   badAction: "AUDIT_BAD_ACTION",
   unknownAction: "AUDIT_UNKNOWN_ACTION",
   badLabel: "AUDIT_BAD_LABEL",
+  badIp: "AUDIT_BAD_IP",
+  badFilter: "AUDIT_BAD_FILTER",
+  badRetention: "AUDIT_BAD_RETENTION",
 } as const;
 export type AuditCode = (typeof AUDIT_CODE)[keyof typeof AUDIT_CODE];
 

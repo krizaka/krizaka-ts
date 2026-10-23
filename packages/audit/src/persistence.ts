@@ -1,7 +1,7 @@
 import type { Query } from "@krizaka/db";
 
 import type { AuditEntry, AuditFilters, AuditStore } from "./port";
-import { PAGE } from "./rules";
+import { pageSize } from "./rules";
 
 interface Row {
   id: string;
@@ -47,7 +47,7 @@ export function dbAuditStore(query: Query, schema = "audit"): AuditStore {
     },
     async list(filters) {
       const { sql, params } = where(filters);
-      return rows(`SELECT ${COLUMNS} FROM ${table} ${sql} ORDER BY id DESC LIMIT ${Math.min(filters.limit ?? PAGE.default, PAGE.max)}`, params);
+      return rows(`SELECT ${COLUMNS} FROM ${table} ${sql} ORDER BY id DESC LIMIT $${params.length + 1}`, [...params, pageSize(filters.limit)]);
     },
     forActor: (actorId) => rows(`SELECT ${COLUMNS} FROM ${table} WHERE actor_id = $1 ORDER BY id DESC`, [actorId]),
     async redactActor(actorId) {

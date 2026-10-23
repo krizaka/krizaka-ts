@@ -1,5 +1,5 @@
 import type { AuditEntry, AuditFilters, AuditStore } from "./port";
-import { PAGE } from "./rules";
+import { pageSize } from "./rules";
 
 /** Whether an entry passes the admin's filters (the same semantics as the database store). */
 export function matches(entry: AuditEntry, filters: AuditFilters): boolean {
@@ -22,7 +22,7 @@ export function memoryAuditStore(): AuditStore {
   const newestFirst = () => [...rows].sort((a, b) => Number(BigInt(b.id) - BigInt(a.id)));
   return {
     async insert(entry) { rows.push({ ...entry, id: String(rows.length + 1) }); },
-    async list(filters) { return newestFirst().filter((e) => matches(e, filters)).slice(0, Math.min(filters.limit ?? PAGE.default, PAGE.max)); },
+    async list(filters) { return newestFirst().filter((e) => matches(e, filters)).slice(0, pageSize(filters.limit)); },
     async forActor(actorId) { return newestFirst().filter((e) => e.actorId === actorId); },
     async redactActor(actorId) {
       const mine = rows.filter((e) => e.actorId === actorId);
