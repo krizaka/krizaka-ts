@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "license": "Apache-2.0",
-  "description": "ts.krizaka.com \u2014 the documentation of Krizaka TS, a static site built from the packages it documents.",
+  "description": "ts.krizaka.com \u2014 the documentation of Krizaka TypeScript, a static site built from the packages it documents.",
   "scripts": {
     "gen": "node scripts/gen-packages.mjs && fumadocs-mdx",
     "dev": "npm run gen && next dev",

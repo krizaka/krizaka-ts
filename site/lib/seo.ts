@@ -79,7 +79,7 @@ export function homeMetadata(locale: Locale): Metadata {
   return pageMetadata(locale, "/", h.metaTitle, h.metaDescription);
 }
 
-/** The home's JSON-LD: the WebPage in its language, the WebSite and the source code it documents (Krizaka TS), all published by the Krizaka Organization. */
+/** The home's JSON-LD: the WebPage in its language, the WebSite and the source code it documents (Krizaka TypeScript), all published by the Krizaka Organization. */
 export function homeJsonLd(locale: Locale) {
   const h = getDictionary(locale).home;
   return [
@@ -99,7 +99,7 @@ export function homeJsonLd(locale: Locale) {
   ];
 }
 
-/** The home: the WebSite and the source code it documents (Krizaka TS), both published by the Krizaka Organization.
+/** The home: the WebSite and the source code it documents (Krizaka TypeScript), both published by the Krizaka Organization.
     No SearchAction: the search is a dialog (⌘K) over a static index, there is no search URL to declare. */
 function runtime(): string {
   const node = [...new Set(packages().map((p) => p.node).filter(Boolean))];

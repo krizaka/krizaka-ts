@@ -1,15 +1,15 @@
 {
   "site": {
-    "name": "Krizaka TS",
+    "name": "Krizaka TypeScript",
     "tagline": "Les briques backend TypeScript de chaque produit Krizaka.",
-    "description": "Krizaka TS — des briques backend TypeScript publiées sur npm sous @krizaka : comptes, réglages, clés d’API, webhooks, organisation et bilan hebdomadaire. Documentation générée depuis les paquets.",
+    "description": "Krizaka TypeScript — des briques backend TypeScript publiées sur npm sous @krizaka : comptes, réglages, clés d’API, webhooks, organisation et bilan hebdomadaire. Documentation générée depuis les paquets.",
     "project": "Un projet open source de Krizaka",
-    "home": "Krizaka TS"
+    "home": "Krizaka TypeScript"
   },
   "bar": {
     "aria": "Navigation principale",
     "packages": "Paquets",
-    "githubAria": "Krizaka TS sur GitHub",
+    "githubAria": "Krizaka TypeScript sur GitHub",
     "theme": "Thème",
     "toLight": "Passer au thème clair",
     "toDark": "Passer au thème sombre",
@@ -22,7 +22,7 @@
     "skip": "Aller au contenu",
     "start": "Démarrer",
     "preferences": "Préférences",
-    "home": "Krizaka TS"
+    "home": "Krizaka TypeScript"
   },
   "footer": {
     "aria": "Pied de page",
@@ -32,7 +32,7 @@
   },
   "notFound": {
     "title": "Page introuvable",
-    "body": "Cette page n’existe pas dans la documentation de Krizaka TS.",
+    "body": "Cette page n’existe pas dans la documentation de Krizaka TypeScript.",
     "back": "Retour à la documentation"
   },
   "chrome": {
@@ -114,10 +114,10 @@
     }
   },
   "home": {
-    "metaTitle": "Krizaka TS — les briques backend TypeScript",
+    "metaTitle": "Krizaka TypeScript — les briques backend TypeScript",
     "metaDescription": "Comptes, réglages, clés d’API, webhooks, organisation et bilan hebdomadaire : des briques TypeScript écrites une fois, testées sur un vrai PostgreSQL, publiées sur npm sous @krizaka.",
     "hero": {
-      "eyebrow": "Krizaka TS · open source",
+      "eyebrow": "Krizaka TypeScript · open source",
       "title": "Les briques backend TypeScript derrière chaque produit Krizaka",
       "lead": "Comptes, réglages, clés d’API, webhooks — écrits une fois, testés sur un vrai PostgreSQL, publiés sur npm. Un produit installe un paquet et n’écrit que ce qui lui est propre.",
       "start": "Commencer",

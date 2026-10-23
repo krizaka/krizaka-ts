@@ -32,7 +32,7 @@ const pages = ["start", ...packages.map((p) => p.id)].map((slug) => {
   return { slug, title, description, url: `${SITE}/${slug}/`, text: plain(body) };
 });
 
-const head = `# Krizaka TS\n\n> The TypeScript backend building blocks of every Krizaka product — accounts, settings, API keys, webhooks, organization and the weekly brief, published on npm under @krizaka (Apache-2.0). A Krizaka open-source project (https://www.krizaka.com). French pages are under ${SITE}/fr/.\n`;
+const head = `# Krizaka TypeScript\n\n> The TypeScript backend building blocks of every Krizaka product — accounts, settings, API keys, webhooks, organization and the weekly brief, published on npm under @krizaka (Apache-2.0). A Krizaka open-source project (https://www.krizaka.com). French pages are under ${SITE}/fr/.\n`;
 /* The way back to the family: the company, the sibling open-source projects, the products, the source. */
 const family = `## The Krizaka family\n\n- [Krizaka](https://www.krizaka.com): the company, open-source software studio in Montréal\n- [Krizaka UI](https://ui.krizaka.com): the design system (React and React Native)\n- [Krizaka Java](https://java.krizaka.com): the Spring Boot building blocks\n- [Orazaka](https://dev.orazaka.com): sovereign, on-premise AI orchestration\n- [Orochia](https://dev.orochia.com): open-source video platform\n- [Source](https://github.com/krizaka/krizaka-ts): this repository, Apache-2.0\n\nSitemap: ${SITE}/sitemap.xml\n`;
 mkdirSync(out, { recursive: true });
