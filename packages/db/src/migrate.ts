@@ -1,3 +1,4 @@
+import { rethrowAfter } from "./cleanup";
 import { ident } from "./identifiers";
 import type { Connect, Connection } from "./port";
 
@@ -27,8 +28,7 @@ async function applyOne(connection: Connection, history: string, migration: Prod
     await connection.query(`INSERT INTO ${history} (version) VALUES ($1)`, [migration.version]);
     await connection.query("COMMIT");
   } catch (error) {
-    await connection.query("ROLLBACK");
-    throw error;
+    await rethrowAfter(error, () => connection.query("ROLLBACK"));
   }
 }
 
@@ -39,7 +39,8 @@ async function applyOne(connection: Connection, history: string, migration: Prod
  * @param migrations the product's whole sequence, in order
  * @param options the lock key and the history table
  * @returns the versions applied by this call
- * @throws the failing migration's error, after its rollback (the ones before it stay applied)
+ * @throws the failing migration's error, after its rollback (the ones before it stay applied); an `AggregateError` if the
+ *   rollback fails too
  */
 export async function migrate(connect: Connect, migrations: readonly ProductMigration[], options: MigrateOptions): Promise<string[]> {
   const history = ident(options.historyTable ?? "schema_migrations");

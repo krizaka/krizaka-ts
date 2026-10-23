@@ -44,7 +44,7 @@ process.stdout.write(emitMigration(auditSchema, 1, context));
 
 Commit what it prints. Never generate it at runtime: the database changes only through your reviewed sequence.
 
-- **Upgrading a module** is a package bump. Your drift test then names the version to add:
+- **Upgrading a module** is a package bump. Your drift test then names the version to add. It compares the SQL text itself with what `emitMigration` writes today (whitespace and drizzle's `--> statement-breakpoint` aside), not only the marker, so an edited or deleted statement fails too. It also checks that a module comes after the modules it requires, within a file as across files:
 
   ```ts
   import { assertEmbedded } from "@krizaka/db/testing";

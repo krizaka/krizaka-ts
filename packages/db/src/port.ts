@@ -24,6 +24,7 @@ export interface Clock {
 export const DB_CODE = {
   unsafeIdentifier: "DB_UNSAFE_IDENTIFIER",
   missingTable: "DB_MISSING_TABLE",
+  undeclaredTable: "DB_UNDECLARED_TABLE",
   badVersions: "DB_BAD_VERSIONS",
   unknownVersion: "DB_UNKNOWN_VERSION",
   missingModules: "DB_MISSING_MODULES",

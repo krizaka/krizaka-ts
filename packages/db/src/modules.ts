@@ -51,11 +51,17 @@ export function defineModule(input: { module: string; tables?: readonly string[]
   return { module: input.module, tables: input.tables ?? [], requires: input.requires ?? [], migrations: input.migrations };
 }
 
-/** The context a migration sees: every declared table present and safe, the schema named. */
+/** The context a migration sees: only the tables the module declared (present and safe), the schema named. Reading another throws. */
 function resolve(schema: ModuleSchema, context: ModuleContext): SchemaContext {
   const missing = schema.tables.filter((role) => !(role in context.tables));
   if (missing.length > 0) throw new DbError(DB_CODE.missingTable, missing.map((role) => `${schema.module} needs the table « ${role} »`));
-  const tables = Object.fromEntries(Object.entries(context.tables).map(([role, name]) => [role, ident(name)]));
+  const declared: Record<string, string> = Object.fromEntries(schema.tables.map((role) => [role, ident(context.tables[role]!)]));
+  const tables = new Proxy(declared, {
+    get(target, role) {
+      if (typeof role === "string" && !Object.hasOwn(target, role)) throw new DbError(DB_CODE.undeclaredTable, [`${schema.module} did not declare the table « ${role} »`]);
+      return Reflect.get(target, role);
+    },
+  });
   return { schema: ident(context.schema ?? schema.module), tables };
 }
 

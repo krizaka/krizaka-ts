@@ -1,8 +1,9 @@
 import { randomBytes } from "node:crypto";
 
+import { rethrowAfter } from "./cleanup";
 import { ident } from "./identifiers";
 import { migrate, type ProductMigration } from "./migrate";
-import { compareVersions,type ComposedModule } from "./modules";
+import { adoptMigration, type ComposedModule, emitMigration } from "./modules";
 import { type Connect, type Connection, DB_CODE, DbError, type Query } from "./port";
 import { queryOf, transaction } from "./transaction";
 
@@ -17,7 +18,7 @@ export interface TestDatabaseOptions {
   connect: (database?: string) => Promise<Connection>;
   /** Builds the schema of the new database: the product's whole sequence, embedded module versions included. */
   migrate: (connect: Connect) => Promise<void>;
-  /** A short name for the run (`ak`, `yzk`): the database is `<prefix>_it_<random>`. */
+  /** A short name for the run (`ak`, `yzk`), at most 47 characters: the database is `<prefix>_it_<12 hex>`, within PostgreSQL's 63. */
   prefix: string;
 }
 
@@ -33,48 +34,67 @@ async function run(connection: Connection, sql: string): Promise<void> {
  * Creates a fresh database on the server the tests point at (CI's service, or a local one), migrates it, and hands back a
  * way to drop it. No driver and no container here: both are the caller's.
  * @returns the database's name and its `drop`
- * @throws the migration's error, after dropping the database
+ * @throws the migration's error, after dropping the database (an `AggregateError`, the migration's first, if the drop fails too);
+ *   `DB_UNSAFE_IDENTIFIER` for a prefix that is not an identifier or is longer than 47 characters, before any SQL
  */
 export async function createTestDatabase(options: TestDatabaseOptions): Promise<TestDatabase> {
-  const name = `${ident(options.prefix)}_it_${randomBytes(6).toString("hex")}`;
+  // A longer name would be truncated by PostgreSQL to 63 bytes, cutting the random suffix: runs would collide.
+  if (options.prefix.length > 47) throw new DbError(DB_CODE.unsafeIdentifier, [`${options.prefix}: a test database prefix has at most 47 characters`]);
+  const name = ident(`${ident(options.prefix)}_it_${randomBytes(6).toString("hex")}`);
   await run(await options.connect(), `CREATE DATABASE ${name}`);
   const drop = async () => run(await options.connect(), `DROP DATABASE IF EXISTS ${name} WITH (FORCE)`);
   try {
     await options.migrate(() => options.connect(name));
   } catch (error) {
-    await drop();
-    throw error;
+    await rethrowAfter(error, drop);
   }
   return { name, drop };
 }
 
 const MARKER = /\('([a-z_][a-z0-9_]*)', (\d+), '([0-9a-f]{64})'\)/g;
 
-/** Where each « module vN » marker first appears in the sequence, with its checksum. */
-function markersIn(files: readonly string[]): Map<string, { checksum: string; at: number }> {
-  const found = new Map<string, { checksum: string; at: number }>();
-  files.forEach((text, at) => {
-    for (const [, module, version, checksum] of text.matchAll(MARKER)) {
-      const label = `${module} v${version}`;
-      if (!found.has(label)) found.set(label, { checksum: checksum!, at });
-    }
-  });
-  return found;
+/** The text as the drift test compares it: whitespace collapsed, drizzle's statement breakpoints ignored. */
+const normalize = (text: string) => text.replace(/-->\s*statement-breakpoint/g, " ").replace(/\s+/g, " ").trim();
+
+/** Where version `version` of a module is in the sequence: its emitted block, or an adoption block that covers it. -1 when absent. */
+function positionOf(text: string, module: ComposedModule, version: number): number {
+  const emitted = text.indexOf(normalize(emitMigration(module.schema, version, module.context)));
+  if (emitted >= 0) return emitted;
+  for (let upTo = version; upTo <= module.schema.migrations.length; upTo++) {
+    const adopted = text.indexOf(normalize(adoptMigration(module.schema, upTo, module.context)));
+    if (adopted >= 0) return adopted;
+  }
+  return -1;
 }
 
+/** Each « module vN » that has a marker somewhere (a marker without its exact block means edited or deleted SQL). */
+const markedVersions = (text: string) => new Set([...text.matchAll(MARKER)].map(([, module, version]) => `${module} v${version}`));
+
 /**
- * The product's drift test: every version of every composed module is embedded in the product's sequence, with the SQL the
- * package has today, and a module's first version comes after the first version of each module it requires.
+ * The product's drift test. Every version of every composed module is in the product's sequence **as `emitMigration` (or
+ * `adoptMigration`) writes it today**: the same SQL text, whitespace aside, not only its marker. A module's first version comes
+ * after the first version of each module it requires, counted across files and within one file.
  * @param files the product's migration files, in order (their text)
  * @param modules the modules the product composes
- * @throws DbError `DB_FROZEN_VERSION_CHANGED`, `DB_MISSING_MODULES` or `DB_MODULE_ORDER`
+ * @throws DbError `DB_FROZEN_VERSION_CHANGED` (a marker whose SQL differs), `DB_MISSING_MODULES` or `DB_MODULE_ORDER`
  */
 export function assertEmbedded(files: readonly string[], modules: readonly ComposedModule[]): void {
-  const found = markersIn(files);
-  compareVersions(modules, new Map([...found].map(([label, m]) => [label, m.checksum])));
-  const late = modules.flatMap(({ schema }) =>
-    schema.requires.filter((required) => (found.get(`${required} v1`)?.at ?? Infinity) > found.get(`${schema.module} v1`)!.at).map((required) => `${schema.module} before ${required}`),
-  );
+  const text = normalize(files.join("\n"));
+  const marked = markedVersions(text);
+  const first = new Map<string, number>();
+  const changed: string[] = [];
+  const missing: string[] = [];
+  for (const module of modules) {
+    for (const { version } of module.schema.migrations) {
+      const label = `${module.schema.module} v${version}`;
+      const at = positionOf(text, module, version);
+      if (at < 0) (marked.has(label) ? changed : missing).push(label);
+      else if (version === 1) first.set(module.schema.module, at);
+    }
+  }
+  if (changed.length > 0) throw new DbError(DB_CODE.frozenChanged, changed);
+  if (missing.length > 0) throw new DbError(DB_CODE.missingModules, missing);
+  const late = modules.flatMap(({ schema }) => schema.requires.filter((required) => (first.get(required) ?? Infinity) > first.get(schema.module)!).map((required) => `${schema.module} before ${required}`));
   if (late.length > 0) throw new DbError(DB_CODE.order, late);
 }
 

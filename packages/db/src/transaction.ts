@@ -1,3 +1,4 @@
+import { rethrowAfter } from "./cleanup";
 import type { Connect, Connection, Query } from "./port";
 
 /**
@@ -15,7 +16,7 @@ export function queryOf(connection: Connection): Query {
  * @param connect opens a connection (the product's pool)
  * @param work the use case, writing only through the `Query` it receives
  * @returns what the work returns
- * @throws whatever the work throws, after the rollback
+ * @throws whatever the work throws, after the rollback; an `AggregateError` (the work's error first) if the rollback fails too
  */
 export async function transaction<T>(connect: Connect, work: (query: Query) => Promise<T>): Promise<T> {
   const connection = await connect();
@@ -26,8 +27,7 @@ export async function transaction<T>(connect: Connect, work: (query: Query) => P
       await connection.query("COMMIT");
       return result;
     } catch (error) {
-      await connection.query("ROLLBACK");
-      throw error;
+      return await rethrowAfter(error, () => connection.query("ROLLBACK"));
     }
   } finally {
     await connection.release();
