@@ -1,13 +1,15 @@
 import crypto from "node:crypto";
 
+import { addHours, addMinutes } from "date-fns";
 import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { accountsMigration, emailChangeMail, isEmailChangeToken, type Mail, postgresAccounts, type Query } from "../src";
+import { accountsMigration, emailChangeMail, isEmailChangeToken, type Mail, passwordResetMail, postgresAccounts, type Query } from "../src";
 
 /** The account adapter against a real PostgreSQL (CI's service; locally ORGANIZE_DB_IT=1 DATABASE_URL=…), in a schema of its own. */
 const enabled = process.env.ORGANIZE_DB_IT === "1" && !!process.env.DATABASE_URL;
-const NOW = new Date("2026-10-22T12:00:00Z");
+/** The tests' « now » is the real one: the profile reads a pending change against the database's clock. */
+const NOW = new Date();
 const PASSWORD = "correct-horse-battery";
 const hash = (token: string) => crypto.createHash("sha256").update(`t:${token}`).digest("hex");
 const passwords = { hash: async (p: string) => `h:${p}`, verify: async (p: string, stored: string) => stored === `h:${p}` };
@@ -27,6 +29,14 @@ describe("the e-mail change mail and token", () => {
   it("the migration is idempotent SQL and backfills only when asked", () => {
     expect(accountsMigration()).not.toMatch(/UPDATE accounts/);
     expect(accountsMigration({ backfillVerified: true })).toMatch(/UPDATE accounts SET email_verified_at = created_at/);
+    expect(accountsMigration()).toMatch(/CREATE TABLE IF NOT EXISTS password_resets/);
+  });
+  it("the password reset mail is in the person's language, names the product, carries the link, its validity and that it is used once", () => {
+    const fr = passwordResetMail("Yomizaka", "fr", "https://www.yomizaka.com/fr/reset-password?token=x");
+    expect(fr.subject).toBe("Réinitialisez votre mot de passe — Yomizaka");
+    expect(fr.text).toContain("https://www.yomizaka.com/fr/reset-password?token=x");
+    expect(fr.text).toContain("30 min");
+    expect(passwordResetMail("Yomizaka", "en", "https://u").subject).toBe("Reset your password — Yomizaka");
   });
 });
 
@@ -36,14 +46,41 @@ describe.runIf(enabled)("the account service on PostgreSQL", () => {
   let query: Query;
   const mails: Mail[] = [];
   const issued: string[] = [];
+  /** A real transaction on its own connection (the product's pool does this), in the test's schema. */
+  const transaction = async <T,>(work: (q: Query) => Promise<T>): Promise<T> => {
+    const c = new pg.Client({ connectionString: process.env.DATABASE_URL });
+    await c.connect();
+    try {
+      await c.query(`SET search_path TO ${schemaName}; BEGIN`);
+      const result = await work(async (sql, params) => (await c.query(sql, params as unknown[])).rows as never);
+      await c.query("COMMIT");
+      return result;
+    } catch (error) {
+      await c.query("ROLLBACK").catch(() => undefined);
+      throw error;
+    } finally {
+      await c.end();
+    }
+  };
+  let hashFails = 0;
   const service = () =>
     postgresAccounts({
       query: (sql, params) => query(sql, params),
+      transaction,
       mail: async (m) => void mails.push(m),
       baseUrl: "https://www.akinaza.com",
       product: "Akinaza",
       tokenPrefix: "ae",
-      passwords,
+      passwords: {
+        hash: async (p: string) => {
+          if (hashFails > 0) {
+            hashFails -= 1;
+            throw new Error("hashing failed");
+          }
+          return passwords.hash(p);
+        },
+        verify: passwords.verify,
+      },
       tokenHash: hash,
       token: () => {
         const t = `ae1.${crypto.randomBytes(32).toString("base64url")}`;
@@ -110,12 +147,55 @@ describe.runIf(enabled)("the account service on PostgreSQL", () => {
     const a = await account();
     const b = await account();
     await service().requestEmailChange(a.id, { newEmail: `e-${Math.random().toString(36).slice(2)}@test.example`, password: PASSWORD }, NOW);
-    expect(await service().confirmEmailChange(last(), new Date("2026-10-24T12:00:01Z"))).toBe("INVALID");
+    expect(await service().confirmEmailChange(last(), addHours(NOW, 48))).toBe("INVALID");
     expect(await service().confirmEmailChange("garbage", NOW)).toBe("INVALID");
     for (const bad of ["not-an-email", "a@b", "@x.y", "a b@c.d", "a@@c.d", "a@c."]) await expect(service().requestEmailChange(a.id, { newEmail: bad, password: PASSWORD }, NOW)).rejects.toMatchObject({ status: 400 });
     mails.length = 0;
     await expect(service().requestEmailChange(a.id, { newEmail: b.email, password: PASSWORD }, NOW)).resolves.toBeUndefined();
     expect(mails).toHaveLength(0);
+  });
+
+  it("resets the password by a mailed link: the same answer for an unknown address, the link once and in time, every session signed out", async () => {
+    const { id, email } = await account();
+    await session(id, "one");
+    await session(id, "two");
+    mails.length = 0;
+    await expect(service().requestPasswordReset("nobody@test.example", NOW)).resolves.toBeUndefined();
+    await expect(service().requestPasswordReset("not an address", NOW)).resolves.toBeUndefined();
+    expect(mails).toHaveLength(0);
+    await service().requestPasswordReset(email.toUpperCase(), NOW);
+    expect(mails).toHaveLength(1);
+    expect(mails[0]!.to).toBe(email);
+    expect(mails[0]!.locale).toBe("fr");
+    expect(mails[0]!.text).toContain(`/fr/reset-password?token=${encodeURIComponent(last())}`);
+    // A password that breaks the rules does not use the link up.
+    await expect(service().resetPassword(last(), "short", NOW)).rejects.toMatchObject({ status: 400, code: "PASSWORD_TOO_SHORT" });
+    expect(await service().resetPassword("garbage", "another-long-password", NOW)).toBe("INVALID");
+    expect(await service().resetPassword(last(), "another-long-password", addMinutes(NOW, 31))).toBe("INVALID");
+    const first = last();
+    await service().requestPasswordReset(email, NOW);
+    expect(await service().resetPassword(first, "another-long-password", NOW)).toBe("INVALID"); // a new request retires the earlier link
+    expect(await service().resetPassword(last(), "another-long-password", addMinutes(NOW, 29))).toBe("CHANGED");
+    expect(await query("SELECT 1 FROM sessions WHERE account_id = $1", [id])).toHaveLength(0);
+    await expect(service().confirmPassword(id, "another-long-password")).resolves.toBeUndefined();
+    expect(await service().resetPassword(last(), "yet-another-long-password", NOW)).toBe("INVALID");
+  });
+
+  it("two reset requests at once leave one valid link; a failure while resetting leaves the link usable and the sessions in place", async () => {
+    const { id, email } = await account();
+    await session(id, "kept");
+    mails.length = 0;
+    await Promise.all([service().requestPasswordReset(email, NOW), service().requestPasswordReset(email, NOW)]);
+    expect(mails).toHaveLength(2);
+    const tokens = issued.slice(-2);
+    expect((await query<{ n: string }>("SELECT count(*)::text AS n FROM password_resets WHERE account_id = $1 AND used_at IS NULL", [id]))[0]!.n).toBe("1");
+    hashFails = 1;
+    await expect(Promise.all(tokens.map((t) => service().resetPassword(t, "another-long-password", NOW)))).rejects.toThrow("hashing failed");
+    expect(await query("SELECT 1 FROM sessions WHERE account_id = $1", [id])).toHaveLength(1);
+    expect((await query<{ n: string }>("SELECT count(*)::text AS n FROM password_resets WHERE account_id = $1 AND used_at IS NULL", [id]))[0]!.n).toBe("1");
+    const outcomes = await Promise.all(tokens.map((t) => service().resetPassword(t, "another-long-password", NOW)));
+    expect(outcomes.filter((o) => o === "CHANGED")).toHaveLength(1);
+    expect(await query("SELECT 1 FROM sessions WHERE account_id = $1", [id])).toHaveLength(0);
   });
 
   it("changes the password after checking the current one, and signs the other sessions out", async () => {

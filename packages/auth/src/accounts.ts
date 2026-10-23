@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 
-import { addHours } from "date-fns";
+import { addHours, addMinutes } from "date-fns";
 
 import { AccountError, type AccountProfile, type AccountService, type ProfilePatch, type SessionSummary, type Theme } from "./port";
 
@@ -17,8 +17,15 @@ export interface Mail {
 
 export interface AccountDeps {
   query: Query;
+  /**
+   * Runs `work` in one transaction on one connection (BEGIN … COMMIT, rolled back when `work` throws) — the product's pool
+   * knows how. The password reset runs under it: the account row is locked, the links retired and issued, the token claimed,
+   * the password set and the sessions ended as one. Without it, the statements run one by one on `query` (one process, no
+   * concurrent requests): give it in production.
+   */
+  transaction?: <T>(work: (query: Query) => Promise<T>) => Promise<T>;
   mail: (mail: Mail) => Promise<void>;
-  /** `https://www.akinaza.com`: the e-mail change link is `<baseUrl>/<locale>/confirm-email?token=…`. */
+  /** `https://www.akinaza.com`: the e-mail change link is `<baseUrl>/<locale>/confirm-email?token=…`, the reset link `<baseUrl>/<locale>/reset-password?token=…`. */
   baseUrl: string;
   /** The product's name, in the words of the mail (« Akinaza »). */
   product: string;
@@ -33,13 +40,24 @@ export interface AccountDeps {
 
 // @fixed: the lifetime of an e-mail change link, a security parameter
 export const EMAIL_CHANGE_TTL_HOURS = 24;
+// @fixed: the lifetime of a password reset link, a security parameter
+export const PASSWORD_RESET_TTL_MINUTES = 30;
 const NAME_MAX = 80;
 const PASSWORD_MIN = 12;
 const PASSWORD_MAX = 256;
 const THEMES: readonly Theme[] = ["light", "dark", "system"];
 
-export const emailChangeToken = (prefix: string) => `${prefix}1.${crypto.randomBytes(32).toString("base64url")}`;
-export const isEmailChangeToken = (prefix: string, value: string | undefined | null): value is string => !!value && new RegExp(`^${prefix}1\\.[A-Za-z0-9_-]{43}$`).test(value);
+/** One format for every mailed link (an e-mail change, a password reset): the product's prefix, a version, 256 random bits. */
+export const linkToken = (prefix: string) => `${prefix}1.${crypto.randomBytes(32).toString("base64url")}`;
+export const isLinkToken = (prefix: string, value: string | undefined | null): value is string => !!value && new RegExp(`^${prefix}1\\.[A-Za-z0-9_-]{43}$`).test(value);
+export const emailChangeToken = linkToken;
+export const isEmailChangeToken = isLinkToken;
+
+export function passwordResetMail(product: string, locale: "en" | "fr", url: string) {
+  return locale === "fr"
+    ? { subject: `Réinitialisez votre mot de passe — ${product}`, text: `Bonjour,\n\nPour choisir un nouveau mot de passe pour votre compte ${product}, ouvrez ce lien (valide ${PASSWORD_RESET_TTL_MINUTES} min, une seule fois) :\n${url}\n\nSi vous n'avez rien demandé, ignorez ce message : votre mot de passe ne change pas.\n` }
+    : { subject: `Reset your password — ${product}`, text: `Hello,\n\nTo choose a new password for your ${product} account, open this link (valid ${PASSWORD_RESET_TTL_MINUTES} min, once):\n${url}\n\nIf you did not ask for this, ignore this message: your password does not change.\n` };
+}
 
 export function emailChangeMail(product: string, locale: "en" | "fr", url: string) {
   return locale === "fr"
@@ -74,9 +92,10 @@ interface ProfileRow {
   pending: string | null;
 }
 
-/** The adapter over the product's own PostgreSQL (`accounts`, `sessions`, `email_changes`; see `accountsMigration`). */
+/** The adapter over the product's own PostgreSQL (`accounts`, `sessions`, `email_changes`, `password_resets`; see `accountsMigration`). */
 export function postgresAccounts(deps: AccountDeps): AccountService {
   const { query } = deps;
+  const transaction = deps.transaction ?? (<T>(work: (q: Query) => Promise<T>) => work(query));
   const wrong = () => new AccountError(403, "WRONG_PASSWORD", "The password is not right");
 
   async function profileOf(id: string): Promise<AccountProfile> {
@@ -145,6 +164,37 @@ export function postgresAccounts(deps: AccountDeps): AccountService {
     },
 
     confirmPassword,
+
+    async requestPasswordReset(email, now) {
+      const address = email.trim().toLowerCase();
+      if (!looksLikeEmail(address)) return; // the same answer: nothing is disclosed
+      // One transaction, the account row locked: two requests at once leave one valid link — the later one. The mail goes after the commit.
+      const issued = await transaction(async (q) => {
+        const [row] = await q<{ id: string; locale: "en" | "fr" }>("SELECT id, locale FROM accounts WHERE email = $1 AND password_hash IS NOT NULL FOR UPDATE", [address]);
+        if (!row) return null;
+        await q("UPDATE password_resets SET used_at = $2 WHERE account_id = $1 AND used_at IS NULL", [row.id, now]);
+        const token = (deps.token ?? (() => linkToken(deps.tokenPrefix)))();
+        await q("INSERT INTO password_resets (account_id, token_hash, expires_at) VALUES ($1, $2, $3)", [row.id, deps.tokenHash(token), addMinutes(now, PASSWORD_RESET_TTL_MINUTES)]);
+        return { token, locale: row.locale };
+      });
+      if (!issued) return;
+      const url = `${deps.baseUrl.replace(/\/$/, "")}/${issued.locale}/reset-password?token=${encodeURIComponent(issued.token)}`;
+      await deps.mail({ to: address, locale: issued.locale, ...passwordResetMail(deps.product, issued.locale, url) });
+    },
+
+    async resetPassword(token, next, now) {
+      if (next.length < PASSWORD_MIN) throw new AccountError(400, "PASSWORD_TOO_SHORT", `At least ${PASSWORD_MIN} characters`);
+      if (next.length > PASSWORD_MAX) throw new AccountError(400, "PASSWORD_TOO_LONG", `At most ${PASSWORD_MAX} characters`);
+      if (!isLinkToken(deps.tokenPrefix, token)) return "INVALID";
+      // One transaction: the link is claimed, the password set and every session ended as one — a failure leaves the link usable.
+      return transaction(async (q) => {
+        const [row] = await q<{ account_id: string }>("UPDATE password_resets SET used_at = $2 WHERE token_hash = $1 AND used_at IS NULL AND expires_at > $2 RETURNING account_id", [deps.tokenHash(token), now]);
+        if (!row) return "INVALID" as const;
+        await q("UPDATE accounts SET password_hash = $2 WHERE id = $1", [row.account_id, await deps.passwords.hash(next)]);
+        await q("DELETE FROM sessions WHERE account_id = $1", [row.account_id]);
+        return "CHANGED" as const;
+      });
+    },
 
     async sessions(id, now, currentSessionId) {
       const rows = await query<{ id: string; created_at: Date; expires_at: Date; ip: string | null; user_agent: string | null }>("SELECT id, created_at, expires_at, ip, user_agent FROM sessions WHERE account_id = $1 AND expires_at > $2 ORDER BY created_at DESC", [id, now]);
