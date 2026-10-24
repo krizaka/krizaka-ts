@@ -34,14 +34,32 @@ export interface AccountDeps {
   passwords: { hash: (password: string) => Promise<string>; verify: (password: string, stored: string) => Promise<boolean> };
   /** How a token is kept: the product's own keyed hash, the one its sessions use. */
   tokenHash: (token: string) => string;
+  /**
+   * How long a password reset link lives, in minutes: a whole number from 5 to 1440 (`PASSWORD_RESET_MIN_MINUTES`–`PASSWORD_RESET_MAX_MINUTES`),
+   * default `PASSWORD_RESET_TTL_MINUTES` (30). The product reads it from its settings; the expiry and the mailed text both use it.
+   * Out of range, `postgresAccounts` throws.
+   */
+  passwordResetTtlMinutes?: number;
   /** Test seam: the token to issue. */
   token?: () => string;
 }
 
 // @fixed: the lifetime of an e-mail change link, a security parameter
 export const EMAIL_CHANGE_TTL_HOURS = 24;
-// @fixed: the lifetime of a password reset link, a security parameter
+/** The default lifetime of a password reset link, in minutes (`AccountDeps.passwordResetTtlMinutes` changes it). */
+// @fixed: the default lifetime of a password reset link, a security parameter
 export const PASSWORD_RESET_TTL_MINUTES = 30;
+// @fixed: the shortest lifetime a product may set: a person must have time to open the mail
+export const PASSWORD_RESET_MIN_MINUTES = 5;
+// @fixed: the longest lifetime a product may set: a day
+export const PASSWORD_RESET_MAX_MINUTES = 1440;
+
+const checkResetTtl = (minutes: number): number => {
+  if (!Number.isInteger(minutes) || minutes < PASSWORD_RESET_MIN_MINUTES || minutes > PASSWORD_RESET_MAX_MINUTES) {
+    throw new RangeError(`passwordResetTtlMinutes must be a whole number from ${PASSWORD_RESET_MIN_MINUTES} to ${PASSWORD_RESET_MAX_MINUTES}, got ${minutes}`);
+  }
+  return minutes;
+};
 const NAME_MAX = 80;
 const PASSWORD_MIN = 12;
 const PASSWORD_MAX = 256;
@@ -53,10 +71,11 @@ export const isLinkToken = (prefix: string, value: string | undefined | null): v
 export const emailChangeToken = linkToken;
 export const isEmailChangeToken = isLinkToken;
 
-export function passwordResetMail(product: string, locale: "en" | "fr", url: string) {
+export function passwordResetMail(product: string, locale: "en" | "fr", url: string, ttlMinutes: number = PASSWORD_RESET_TTL_MINUTES) {
+  checkResetTtl(ttlMinutes);
   return locale === "fr"
-    ? { subject: `Réinitialisez votre mot de passe — ${product}`, text: `Bonjour,\n\nPour choisir un nouveau mot de passe pour votre compte ${product}, ouvrez ce lien (valide ${PASSWORD_RESET_TTL_MINUTES} min, une seule fois) :\n${url}\n\nSi vous n'avez rien demandé, ignorez ce message : votre mot de passe ne change pas.\n` }
-    : { subject: `Reset your password — ${product}`, text: `Hello,\n\nTo choose a new password for your ${product} account, open this link (valid ${PASSWORD_RESET_TTL_MINUTES} min, once):\n${url}\n\nIf you did not ask for this, ignore this message: your password does not change.\n` };
+    ? { subject: `Réinitialisez votre mot de passe — ${product}`, text: `Bonjour,\n\nPour choisir un nouveau mot de passe pour votre compte ${product}, ouvrez ce lien (valide ${ttlMinutes} min, une seule fois) :\n${url}\n\nSi vous n'avez rien demandé, ignorez ce message : votre mot de passe ne change pas.\n` }
+    : { subject: `Reset your password — ${product}`, text: `Hello,\n\nTo choose a new password for your ${product} account, open this link (valid ${ttlMinutes} min, once):\n${url}\n\nIf you did not ask for this, ignore this message: your password does not change.\n` };
 }
 
 export function emailChangeMail(product: string, locale: "en" | "fr", url: string) {
@@ -95,6 +114,7 @@ interface ProfileRow {
 /** The adapter over the product's own PostgreSQL (`accounts`, `sessions`, `email_changes`, `password_resets`; see `accountsMigration`). */
 export function postgresAccounts(deps: AccountDeps): AccountService {
   const { query } = deps;
+  const resetTtlMinutes = checkResetTtl(deps.passwordResetTtlMinutes ?? PASSWORD_RESET_TTL_MINUTES);
   const transaction = deps.transaction ?? (<T>(work: (q: Query) => Promise<T>) => work(query));
   const wrong = () => new AccountError(403, "WRONG_PASSWORD", "The password is not right");
 
@@ -174,12 +194,12 @@ export function postgresAccounts(deps: AccountDeps): AccountService {
         if (!row) return null;
         await q("UPDATE password_resets SET used_at = $2 WHERE account_id = $1 AND used_at IS NULL", [row.id, now]);
         const token = (deps.token ?? (() => linkToken(deps.tokenPrefix)))();
-        await q("INSERT INTO password_resets (account_id, token_hash, expires_at) VALUES ($1, $2, $3)", [row.id, deps.tokenHash(token), addMinutes(now, PASSWORD_RESET_TTL_MINUTES)]);
+        await q("INSERT INTO password_resets (account_id, token_hash, expires_at) VALUES ($1, $2, $3)", [row.id, deps.tokenHash(token), addMinutes(now, resetTtlMinutes)]);
         return { token, locale: row.locale };
       });
       if (!issued) return;
       const url = `${deps.baseUrl.replace(/\/$/, "")}/${issued.locale}/reset-password?token=${encodeURIComponent(issued.token)}`;
-      await deps.mail({ to: address, locale: issued.locale, ...passwordResetMail(deps.product, issued.locale, url) });
+      await deps.mail({ to: address, locale: issued.locale, ...passwordResetMail(deps.product, issued.locale, url, resetTtlMinutes) });
     },
 
     async resetPassword(token, next, now) {
