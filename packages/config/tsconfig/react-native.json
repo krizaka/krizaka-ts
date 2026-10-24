@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "display": "Krizaka — React Native (Expo)",
+  "extends": "./base.json",
+  "compilerOptions": {
+    "lib": ["DOM", "ESNext"],
+    "jsx": "react-native",
+    "allowJs": true,
+    "noEmit": true,
+    "customConditions": ["react-native"]
+  }
+}

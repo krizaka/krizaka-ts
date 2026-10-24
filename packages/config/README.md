@@ -1,0 +1,187 @@
+# @krizaka/config
+
+**The shared configuration of every Krizaka JavaScript repository.** ESLint flat configs (base, Next.js, the four UI
+rules, the three stack rules, no locale ternary), the dependency-cruiser boundary, tsconfig bases, Prettier,
+EditorConfig — and `krizaka-ratchet`, the counter that keeps the UI and stack debts from coming back.
+
+[![npm](https://img.shields.io/npm/v/@krizaka/config?color=3b82f6&label=npm)](https://www.npmjs.com/package/@krizaka/config)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](https://github.com/krizaka/krizaka-ts/blob/main/LICENSE)
+
+## Adopt it in three lines
+
+```bash
+npm install -D @krizaka/config eslint typescript     # + eslint-config-next for a Next.js app, prettier if you format
+```
+
+```js
+// eslint.config.mjs — a Next.js app (a library: `krizakaBase` from "@krizaka/config/eslint")
+import { krizakaNext } from "@krizaka/config/eslint/next";
+import { krizakaUi } from "@krizaka/config/eslint/krizaka-ui";
+import { noLocaleTernary } from "@krizaka/config/eslint/no-locale-ternary";
+import { krizakaStack } from "@krizaka/config/eslint/stack";
+
+export default [...krizakaNext, ...krizakaUi(), ...krizakaStack(), ...noLocaleTernary()];
+```
+
+```js
+// .dependency-cruiser.cjs — the TanStack boundary, plus the app's own rules
+module.exports = { extends: "@krizaka/config/dependency-cruiser", forbidden: [] };
+```
+
+```jsonc
+// tsconfig.json — base · react-library · next · react-native
+{ "extends": "@krizaka/config/tsconfig/next.json", "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"] }
+```
+
+Prettier: `export { default } from "@krizaka/config/prettier";` in `prettier.config.js` (120 columns, double quotes,
+trailing commas). EditorConfig: `cp node_modules/@krizaka/config/.editorconfig .`.
+
+`eslint` ^9 and `typescript` ^5 are peer dependencies; `eslint-config-next` (Next.js apps) and `prettier` are optional
+peers. The plugins (`typescript-eslint`, `eslint-plugin-react-hooks`, `eslint-plugin-simple-import-sort`) come with
+the package.
+
+## What is inside
+
+| Export | What it gives |
+| :-- | :-- |
+| `@krizaka/config/eslint` | `krizakaBase`: `@eslint/js` + `typescript-eslint` recommended, React hooks, import ordering (a warning, autofixable), ignores of generated output, `_`-prefixed unused arguments allowed. |
+| `@krizaka/config/eslint/next` | `krizakaNext`: `eslint-config-next` (core web vitals + TypeScript, which already carry typescript-eslint, React hooks and import) + the same basics. |
+| `@krizaka/config/eslint/krizaka-ui` | `krizakaUi(options?)`: the four UI rules below. Also `krizakaUiRules` and `krizakaUiRestrictedSyntax(options?)`. |
+| `@krizaka/config/eslint/no-locale-ternary` | `noLocaleTernary(options?)`: `krizaka/no-locale-ternary` — no `locale === "fr" ? … : …` outside routing code. |
+| `@krizaka/config/eslint/ui-warnings` | `krizakaUiWarnings(options?)`: the same two debts as named plugin rules, as warnings — `krizaka/no-light-variant` (no `light:`: tokens do the theming) and `krizaka/no-raw-palette` (no `bg-zinc-900`, `text-violet-400`: a role; `allow` families). `krizaka-ratchet` counts them (`light`, `palette`), so a product adopts them now and brings the counts to 0. |
+| `@krizaka/config/eslint/stack` | `krizakaStack(options?)`: the three stack rules below (warnings). Also `STACK_RULES`. |
+| `@krizaka/config/eslint/plugin` | `krizakaPlugin`: the `krizaka` plugin carrying every rule, for a hand-written config. |
+| `@krizaka/config/dependency-cruiser` | The shared dependency-cruiser config: `krizaka-no-direct-tanstack` (no `@tanstack/*` from an app). |
+| `@krizaka/config/tsconfig/*.json` | `base` (strict, ES2022, bundler resolution), `react-library` (+ DOM, `react-jsx`), `next` (+ the Next plugin, `noEmit`, `incremental`), `react-native` (`jsx: react-native`, `customConditions`; with Expo: `"extends": ["expo/tsconfig.base", "@krizaka/config/tsconfig/react-native.json"]`). |
+| `@krizaka/config/prettier` · `.editorconfig` | The formatting. |
+| `krizaka-ratchet` (bin) | The debt counter, see below. |
+
+### The four UI rules
+
+On every string literal inside a `className` (in `cn(…)`, a ternary…), with no plugin — `no-restricted-syntax`
+selectors:
+
+1. **No raw palette colour** — `bg-zinc-900`, `text-violet-400/80`: use a role of
+   [`@krizaka/tailwind`](../tailwind) (`bg-surface-1`, `text-fg-secondary`, `border-border-default`, `text-accent`,
+   `text-danger`).
+2. **No `light:`** — a theme is a set of tokens; a dark island takes `.theme-dark` on its ancestor.
+3. **No arbitrary `[var(--…)]` utility** — the variable has a utility in `@krizaka/tailwind`.
+4. **No template literal in `className`** — `cn(…)` merges the classes and lets the override win.
+
+```js
+krizakaUi({
+  allow: ["emerald"],             // palette families tolerated for documented, isolated cases
+  files: ["**/*.{jsx,tsx}"],      // default
+  ignores: ["app/og/**"],         // e.g. generated OG images
+  severity: "error",              // "warn" while the ratchet brings the debt down
+});
+```
+
+Flat config replaces a rule's options instead of concatenating them: a repository that already sets
+`no-restricted-syntax` merges both lists with `krizakaUiRestrictedSyntax()`. `no-locale-ternary` is a plugin rule for
+that reason — it composes with anything.
+
+### The three stack rules
+
+From [ADR-001](https://github.com/krizaka/krizaka-ui/blob/main/docs/adr/ADR-001-tanstack-under-krizaka-facades.md) — the TanStack engines run headless, behind
+`@krizaka/*` facades; a product never imports them. Warnings: `krizaka-ratchet` counts the same patterns, so an app
+adopts them before it is clean and brings each count to 0 by the end of its adoption.
+
+1. **`krizaka/no-fetch-in-client-effect`** — a `fetch` / `krizakaFetch` inside a `useEffect` (or `useLayoutEffect`)
+   of a `"use client"` file: render the first screen in a Server Component, read the rest with `@krizaka/query`.
+2. **`krizaka/no-direct-tanstack-import`** — an import of `@tanstack/*` (static, dynamic, `require`, re-export): use
+   the facade (`@krizaka/query`, `@krizaka/ui/data-table`, `@krizaka/ui/form`, `@krizaka/ui/virtual`, `@krizaka/pacer`).
+3. **`krizaka/no-local-table-or-form`** — a `<table>`, or a `<form>` of more than one field (native fields and the field
+   primitives of `@krizaka/ui`; a hidden or submit `<input>` is not a field): use `DataTable` and `createKrizakaForm`.
+   A search box or a one-field newsletter stays a plain form.
+
+```js
+krizakaStack({
+  files: ["**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"], // default
+  ignores: ["packages/**"],                        // e.g. the facades of a monorepo
+  severity: "warn",                                // default; "error" once the app's counts are at 0
+  maxFormFields: 1,                                // default
+});
+```
+
+The dependency-cruiser config forbids `@tanstack/*` from an app's own files, resolved or not (a package installed
+only as a dependency of a facade is caught too), and allows it from `node_modules/@krizaka/*`.
+
+`noLocaleTernary({ files, routing })`: `routing` lists the files allowed to compare locales (default: `proxy.ts`,
+`middleware.ts`, `i18n.ts`, `seo.ts`, `app/[locale]/layout.tsx`, `I18nProvider.tsx`).
+
+### Environment variable names (`krizaka/env-name`)
+
+Environment variables are named by bounded context (krizaka/.github#46): `<CONTEXT>_<THING>` with CONTEXT one of
+`APP_` `DATABASE_` `AUTH_` `MEDIA_` `MAIL_` `PUSH_` `PAYMENTS_` `REALTIME_` `ABUSE_` `OBSERVABILITY_` `AI_` `OPERATOR_`.
+The rule — on in `krizakaBase` and `krizakaNext` — refuses a name read through `process.env.X`, `process.env["X"]` or
+`import.meta.env.X` that starts (after `NEXT_PUBLIC_`, `EXPO_PUBLIC_` or `VITE_`) with:
+
+- a **product**: the organisation's name, the repository's own (the first word of its package.json name,
+  `acme-monorepo` → `ACME_`), or one you name — a deployment already says which product it is;
+- a **vendor** (`BUNNY_`, `MAILGUN_`, `RESEND_`, `STRIPE_`, `GOOGLE_`, `EXPO_`, `REDIS_`…): the vendor is a
+  value (`MEDIA_STORAGE_PROVIDER=bunny`, `MAIL_PROVIDER=mailgun`) and its settings sit under the context
+  (`MEDIA_STORAGE_API_KEY`, `MAIL_API_KEY`).
+
+The platforms' own names (`GITHUB_TOKEN`, `EAS_BUILD`, …) pass. Tune it with
+`envNames({ products, vendors, allow })` from `@krizaka/config/eslint/env-names`; `envNamePrefixProblem(name)` gives
+the same verdict to a script (a `.env.example` or deployment spec check).
+
+## The ratchet
+
+A repository with debt cannot turn the rules on in one pull request. The ratchet lets it adopt them now: it counts
+the four UI debts and the four stack debts, records the counts in `lint-ratchet.json` at the root, and **fails when a
+count goes up**. Every migration pull request lowers them; when a count reaches zero, the matching rule becomes a
+strict `error`.
+
+```bash
+npx krizaka-ratchet --init      # once: creates lint-ratchet.json with today's counts — commit it
+npx krizaka-ratchet             # locally: compares (exit 1 when a count went up)
+npx krizaka-ratchet --update    # after a migration: lowers the recorded counts (never raises them), records new counters — commit it
+npx krizaka-ratchet --json      # in CI: the same check, machine-readable
+```
+
+| Counter | Pattern (same regex as the ESLint rule) |
+| :-- | :-- |
+| `palette` | `\b(bg\|text\|border\|from\|via\|to\|ring\|shadow\|fill\|stroke)-(zinc\|slate\|…\|indigo)-[0-9]` |
+| `light` | `\blight:` |
+| `arbitraryVar` | `\[var\(--` |
+| `classNameTemplate` | `` className=\{\s*` `` |
+| `fetchInClientEffect` | in a file opening with `"use client"`: `fetch(` / `krizakaFetch(` between the parentheses of a `useEffect(` / `useLayoutEffect(` |
+| `directTanstackImport` | `from` / `import` / `import(` / `require(` of `"@tanstack/…"` |
+| `localTableOrForm` | `<table`, and `<form` … `</form>` holding more fields than `maxFormFields` (default 1) |
+| `retiredImport` | an import of a dependency listed in `retire` (e.g. `["framer-motion"]`): the way out of a dependency |
+| `routeStateSelection` | a Tabs / chip group / choice grid / segmented switch (incl. `RadioGroup.Root variant="segmented"`) / toggle group of a view driven by local state (`value`, `defaultValue`, `onValueChange`) without `routeKey`, and without `// @ephemeral: <reason>`: the URL is the state |
+
+The UI counters scan `app/**/*.tsx`, `components/**/*.tsx` and `src/**/*.tsx` by default (`node_modules`, `dist`,
+`.next` never), or the globs given on the command line; the stack counters scan every source file (`js`, `jsx`, `mjs`,
+`ts`, `tsx`, `mts`) of `app`, `components`, `src`, `lib`, `hooks` and `features` (`stackGlobs`). `--init` stores both
+in the file so that every later run counts the same set. A file written before the stack counters still checks; the
+next `--update` records them at their current value.
+The counts apply the regex to the whole source text — a class held in a constant or a `cn()` argument counts too —
+so the ratchet is never looser than the rule. Exit codes: `0` ok, `1` a count went up, `2` usage or file error.
+
+```jsonc
+// lint-ratchet.json
+{
+  "globs": ["app/**/*.tsx", "components/**/*.tsx", "src/**/*.tsx"],
+  "stackGlobs": ["app/**/*.{js,jsx,mjs,ts,tsx,mts}", "…"],
+  "allow": [],                                   // optional: same families as krizakaUi({ allow })
+  "retire": ["framer-motion"],                   // optional: dependencies on their way out
+  "maxFormFields": 1,                            // optional: same option as krizakaStack({ maxFormFields })
+  "counters": {
+    "palette": 2400, "light": 1151, "arbitraryVar": 0, "classNameTemplate": 128,
+    "fetchInClientEffect": 41, "directTanstackImport": 3, "localTableOrForm": 38, "retiredImport": 4
+  }
+}
+```
+
+The CI step, after the install:
+
+```yaml
+- run: npx krizaka-ratchet --json
+```
+
+## License
+
+[Apache-2.0](https://github.com/krizaka/krizaka-ts/blob/main/LICENSE)

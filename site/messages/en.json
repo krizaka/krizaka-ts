@@ -75,6 +75,9 @@
     },
     "audit": {
       "hook": "Who did what: an append-only trail in its own schema, inside the transaction or beside it, filtered, exported and redacted (Loi 25)."
+    },
+    "config": {
+      "hook": "The quality kit of every TypeScript repository: ESLint configs, the dependency-cruiser preset, tsconfig bases, Prettier and the debt ratchet."
     }
   },
   "docs": {
