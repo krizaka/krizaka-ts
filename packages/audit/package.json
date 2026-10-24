@@ -51,7 +51,7 @@
     "node": ">=22"
   },
   "devDependencies": {
-    "@krizaka/config": "^0.7.0",
+    "@krizaka/config": "^0.8.0",
     "@types/node": "^22.10.0",
     "@types/pg": "^8.23.1",
     "eslint": "^9.39.0",
