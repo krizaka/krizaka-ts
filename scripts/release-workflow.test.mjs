@@ -22,6 +22,10 @@ describe("release.yml", () => {
 
 describe("release.yml version step", () => {
   it("updates the lockfile with the version bump, so the next frozen install passes", () => {
-    expect(release).toMatch(/version-script:\s*pnpm changeset version\s*&&\s*pnpm install --lockfile-only/);
+    // the action runs version-script without a shell: one npm script, never `&&` in the workflow
+    expect(release).toMatch(/version-script:\s*pnpm run version-packages\b/);
+    expect(release).not.toMatch(/version-script:[^\n]*&&/);
+    const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+    expect(pkg.scripts["version-packages"]).toBe("changeset version && pnpm install --lockfile-only");
   });
 });

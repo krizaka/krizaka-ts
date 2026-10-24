@@ -44,8 +44,9 @@ jobs:
         uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2
         with:
           # The version bump changes workspace dependants (`@krizaka/config` ^0.7.0 to ^0.8.0): the lockfile follows in the same
-          # PR, or the next frozen install fails (run 40070679529).
-          version-script: pnpm changeset version && pnpm install --lockfile-only
+          # PR, or the next frozen install fails (run 40070679529). The script lives in package.json (run 40072186334).
+          # One npm script: the action runs version-script without a shell, so an "and then" here would be passed as an argument.
+          version-script: pnpm run version-packages
           publish-script: pnpm changeset publish   # → npm publish --provenance ; tags @krizaka/ui@2.0.0, @krizaka/tokens@1.0.0…
           pr-title: "chore: version packages"
           github-token: ${{ steps.app.outputs.token || secrets.GITHUB_TOKEN }}
