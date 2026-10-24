@@ -48,7 +48,7 @@
   },
   "dependencies": {},
   "devDependencies": {
-    "@krizaka/config": "^0.8.0",
+    "@krizaka/config": "workspace:^",
     "@types/node": "^22.10.0",
     "@types/pg": "^8.23.1",
     "eslint": "^9.39.0",

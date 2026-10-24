@@ -19,3 +19,9 @@ describe("release.yml", () => {
     expect(release).toMatch(/pnpm run build\s*&&\s*pnpm run check/);
   });
 });
+
+describe("release.yml version step", () => {
+  it("updates the lockfile with the version bump, so the next frozen install passes", () => {
+    expect(release).toMatch(/version-script:\s*pnpm changeset version\s*&&\s*pnpm install --lockfile-only/);
+  });
+});
