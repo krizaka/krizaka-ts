@@ -30,6 +30,7 @@
     },
     "check": {
       "dependsOn": [
+        "^build",
         "^check"
       ]
     }
