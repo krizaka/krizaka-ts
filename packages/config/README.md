@@ -24,7 +24,7 @@ export default [...krizakaNext, ...krizakaUi(), ...krizakaStack(), ...noLocaleTe
 ```
 
 ```js
-// .dependency-cruiser.cjs — the TanStack boundary, plus the app's own rules
+// .dependency-cruiser.cjs — « Krizaka first », cycles, unresolvable imports, dev dependencies, plus the app's own rules
 module.exports = { extends: "@krizaka/config/dependency-cruiser", forbidden: [] };
 ```
 
@@ -51,7 +51,9 @@ the package.
 | `@krizaka/config/eslint/ui-warnings` | `krizakaUiWarnings(options?)`: the same two debts as named plugin rules, as warnings — `krizaka/no-light-variant` (no `light:`: tokens do the theming) and `krizaka/no-raw-palette` (no `bg-zinc-900`, `text-violet-400`: a role; `allow` families). `krizaka-ratchet` counts them (`light`, `palette`), so a product adopts them now and brings the counts to 0. |
 | `@krizaka/config/eslint/stack` | `krizakaStack(options?)`: the three stack rules below (warnings). Also `STACK_RULES`. |
 | `@krizaka/config/eslint/plugin` | `krizakaPlugin`: the `krizaka` plugin carrying every rule, for a hand-written config. |
-| `@krizaka/config/dependency-cruiser` | The shared dependency-cruiser config: `krizaka-no-direct-tanstack` (no `@tanstack/*` from an app). |
+| `@krizaka/config/dependency-cruiser` | The shared dependency-cruiser config, generated from the covered-domains map: one `krizaka-first-<domain>` rule per domain (dates, i18n, query, icons, ui), `no-circular`, `not-to-unresolvable`, `not-to-dev-dep`. `.withOptions({ exemptFrom })` for a monorepo whose own packages are the facades. |
+| `@krizaka/config/covered-domains` · `/covered-domains.json` | The covered-domains map (one data file) and its helpers: the message, the patterns, the Markdown table of « Use Krizaka first ». |
+| `krizaka-known-violations` (bin) · `@krizaka/config/known-violations` | The known violations of dependency-cruiser, which only shrink, see below. |
 | `@krizaka/config/tsconfig/*.json` | `base` (strict, ES2022, bundler resolution), `react-library` (+ DOM, `react-jsx`), `next` (+ the Next plugin, `noEmit`, `incremental`), `react-native` (`jsx: react-native`, `customConditions`; with Expo: `"extends": ["expo/tsconfig.base", "@krizaka/config/tsconfig/react-native.json"]`). |
 | `@krizaka/config/prettier` · `.editorconfig` | The formatting. |
 | `krizaka-ratchet` (bin) | The debt counter, see below. |
@@ -81,7 +83,7 @@ Flat config replaces a rule's options instead of concatenating them: a repositor
 `no-restricted-syntax` merges both lists with `krizakaUiRestrictedSyntax()`. `no-locale-ternary` is a plugin rule for
 that reason — it composes with anything.
 
-### The three stack rules
+### The stack rules
 
 From [ADR-001](https://github.com/krizaka/krizaka-ui/blob/main/docs/adr/ADR-001-tanstack-under-krizaka-facades.md) — the TanStack engines run headless, behind
 `@krizaka/*` facades; a product never imports them. Warnings: `krizaka-ratchet` counts the same patterns, so an app
@@ -89,9 +91,7 @@ adopts them before it is clean and brings each count to 0 by the end of its adop
 
 1. **`krizaka/no-fetch-in-client-effect`** — a `fetch` / `krizakaFetch` inside a `useEffect` (or `useLayoutEffect`)
    of a `"use client"` file: render the first screen in a Server Component, read the rest with `@krizaka/query`.
-2. **`krizaka/no-direct-tanstack-import`** — an import of `@tanstack/*` (static, dynamic, `require`, re-export): use
-   the facade (`@krizaka/query`, `@krizaka/ui/data-table`, `@krizaka/ui/form`, `@krizaka/ui/virtual`, `@krizaka/pacer`).
-3. **`krizaka/no-local-table-or-form`** — a `<table>`, or a `<form>` of more than one field (native fields and the field
+2. **`krizaka/no-local-table-or-form`** — a `<table>`, or a `<form>` of more than one field (native fields and the field
    primitives of `@krizaka/ui`; a hidden or submit `<input>` is not a field): use `DataTable` and `createKrizakaForm`.
    A search box or a one-field newsletter stays a plain form.
 
@@ -104,8 +104,55 @@ krizakaStack({
 });
 ```
 
-The dependency-cruiser config forbids `@tanstack/*` from an app's own files, resolved or not (a package installed
-only as a dependency of a facade is caught too), and allows it from `node_modules/@krizaka/*`.
+### « Krizaka first » — the refused imports (dependency-cruiser)
+
+Part of the stack ADR and of krizaka-ui#609, in **one tool**: dependency-cruiser carries every refused import (an import
+is an edge: it catches re-exports and dynamic imports, and the same file holds the layers); ESLint keeps the framework
+rules above. The ESLint rule `krizaka/no-direct-tanstack-import` is retired: `@tanstack/*` is `krizaka-first-query`.
+
+The **covered-domains map** is `covered-domains.json`, the single source. Each domain names its Krizaka home and what is
+refused in an app; the preset generates `krizaka-first-<domain>` from it, and the page « Use Krizaka first » of
+ui.krizaka.com is laid out from it (`coveredDomainsMarkdown()`).
+
+| Domain | Krizaka home | Refused in an app | Rule |
+| :-- | :-- | :-- | :-- |
+| Dates, times, local days | `@krizaka/intl` (formatting, `localDay`), `@krizaka/time` (arithmetic; a facade created on the first real need, krizaka-ts#76) | `date-fns*`, `@date-fns/*`, `dayjs`, `luxon`, `moment`, `moment-timezone` | `krizaka-first-dates` |
+| Words, languages | `@krizaka/i18n` | `i18next*`, `react-i18next`, `next-intl`, `next-i18next`, `react-intl`, `@formatjs/*`, `@lingui/*`, `i18n-js`, `typesafe-i18n` | `krizaka-first-i18n` |
+| Data fetching, cache, tables, forms, virtual lists | `@krizaka/query`, `@krizaka/ui`, `@krizaka/pacer` | `@tanstack/*` | `krizaka-first-query` |
+| Icons | `@krizaka/icons` | `lucide-react`, `react-icons`, `@heroicons/*` | `krizaka-first-icons` |
+| Interface primitives | `@krizaka/ui` | `@radix-ui/*`, `radix-ui` | `krizaka-first-ui` |
+
+An entry is a package (`dayjs`, and its subpaths), a prefix (`date-fns*`) or a scope (`@tanstack/*`). It matches the
+resolved file and the module as written when it cannot be resolved (a package the app does not declare), never a local
+folder of the same name. **A Krizaka package is exempt: it is the facade.** In an app that is the packages in
+`node_modules`; in a monorepo that holds its own Krizaka packages, say where they live:
+
+```js
+// .dependency-cruiser.cjs of a monorepo (krizaka-ui, krizaka-ts)
+module.exports = require("@krizaka/config/dependency-cruiser").withOptions({ exemptFrom: ["(^|/)packages/"] });
+```
+
+Every message names the home and ends « Missing function? add it to the package first. » — a missing function is added
+to the Krizaka package, never worked around with the library. Run it with `depcruise --output-type err-long <folders>`
+to read the message (`err` prints the rule name only). Beside the domains, the preset owes every repository
+`no-circular`, `not-to-unresolvable` (declare the dependency, or fix the path; set `options.tsConfig` for path aliases)
+and `not-to-dev-dep` (tests, stories, scripts and tool configs may import devDependencies). Run `depcruise` from the
+workspace that owns the `package.json`.
+
+#### Known violations (they only shrink)
+
+An app that adopts the rules late records what it already breaks, and the debt only goes down:
+
+```bash
+krizaka-known-violations init src app         # once, in the adoption pull request: writes .dependency-cruiser-known-violations.json
+depcruise src app --config .dependency-cruiser.cjs --ignore-known .dependency-cruiser-known-violations.json   # lint: new violations fail
+krizaka-known-violations check src app        # lint: also fails on a recorded violation that is fixed ("lock the gain")
+krizaka-known-violations update src app       # removes the fixed ones; NEVER adds one, and fails while a new one exists
+```
+
+The file is the format of `depcruise-baseline`, so `--ignore-known` reads it. `init` refuses to overwrite it; there is
+no command that records a new violation. It replaces the `directTanstackImport` counter of `krizaka-ratchet`, which
+stays only for repositories that have not moved yet.
 
 `noLocaleTernary({ files, routing })`: `routing` lists the files allowed to compare locales (default: `proxy.ts`,
 `middleware.ts`, `i18n.ts`, `seo.ts`, `app/[locale]/layout.tsx`, `I18nProvider.tsx`).

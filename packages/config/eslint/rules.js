@@ -3,7 +3,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { countFormFields, EFFECT_NAMES_SOURCE, FETCH_NAMES_SOURCE, isLocalSelection, LIGHT_VARIANT_SOURCE, paletteSource, TANSTACK_SCOPE } from "../patterns.js";
+import { countFormFields, EFFECT_NAMES_SOURCE, FETCH_NAMES_SOURCE, isLocalSelection, LIGHT_VARIANT_SOURCE, paletteSource } from "../patterns.js";
 
 /** @typedef {import("eslint").Rule.RuleModule} RuleModule */
 /** @typedef {import("estree").Node} Node */
@@ -66,36 +66,6 @@ export const noFetchInClientEffect = {
     return {
       [`CallExpression${callee(EFFECT_NAMES_SOURCE)} CallExpression${callee(FETCH_NAMES_SOURCE)}`]: (/** @type {Node} */ node) =>
         context.report({ node, messageId: "fetchInEffect" }),
-    };
-  },
-};
-
-/** S11: `@tanstack/*` is imported by the `@krizaka/*` packages only — the version is the contract. */
-/** @type {RuleModule} */
-export const noDirectTanstackImport = {
-  meta: {
-    type: "problem",
-    docs: { description: "Forbid importing @tanstack/* outside the @krizaka/* packages." },
-    schema: [],
-    messages: {
-      tanstack:
-        "{{source}} is imported through its @krizaka facade (@krizaka/query, @krizaka/ui/data-table, @krizaka/ui/form, @krizaka/ui/virtual, @krizaka/pacer…), never directly.",
-    },
-  },
-  create(context) {
-    /** @param {Node | null | undefined} source */
-    const check = (source) => {
-      if (source?.type === "Literal" && typeof source.value === "string" && source.value.startsWith(TANSTACK_SCOPE)) {
-        context.report({ node: source, messageId: "tanstack", data: { source: source.value } });
-      }
-    };
-    return {
-      ImportDeclaration: (node) => check(node.source),
-      ExportNamedDeclaration: (node) => check(node.source),
-      ExportAllDeclaration: (node) => check(node.source),
-      ImportExpression: (node) => check(node.source),
-      "CallExpression[callee.name='require']": (/** @type {import("estree").CallExpression} */ node) =>
-        check(/** @type {Node} */ (node.arguments[0])),
     };
   },
 };
