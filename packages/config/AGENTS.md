@@ -9,7 +9,8 @@
   EditorConfig, and the `krizaka-ratchet` debt counter.
 - The **non-negotiable UI rules** of the refactor (study §2.12), the **stack rules** of
   [ADR-001](https://github.com/krizaka/krizaka-ui/blob/main/docs/adr/ADR-001-tanstack-under-krizaka-facades.md) (no fetch in a client effect, no direct
-  `@tanstack/*` import, no hand-written table or form) with the dependency-cruiser boundary, and the rule against
+  `@tanstack/*` import, no hand-written table or form), the « Krizaka first » covered-domains map with the dependency-cruiser
+  preset generated from it (`covered-domains.json` is the single source: a domain is added there, never in a tool), and the rule against
   locale ternaries. No product word:
   a product's specifics are options (`allow`, `files`, `routing`), never a branch in this package.
 
@@ -19,6 +20,8 @@
   the ratchet (`ratchet/ratchet.js`) both read it — a pattern never diverges between the two.
 - **One plugin object**: every `krizaka/*` rule lives in `eslint/plugin.js`; configs register that object, so they
   compose (flat config refuses two objects under one plugin name).
+- The refused imports live in **one tool**, dependency-cruiser (`krizaka-first-<domain>`); ESLint keeps the framework rules. The known
+  violations (`krizaka-known-violations`) only shrink: `update` never adds a line.
 - `dependency-cruiser.cjs` is CommonJS (dependency-cruiser `require`s its configs) and holds only what every app shares;
   an app `extends` it and adds its own rules.
 - Plain ESM JavaScript, no build: what is in the folder is what ships. Types are JSDoc, checked by `tsc --checkJs`.

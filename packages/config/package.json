@@ -1,7 +1,7 @@
 {
   "name": "@krizaka/config",
   "version": "0.7.0",
-  "description": "The shared configuration of every Krizaka JavaScript repository: ESLint flat configs (base, Next.js, the four UI rules, the three stack rules, no locale ternary), the dependency-cruiser boundary, tsconfig bases, Prettier, EditorConfig, and the krizaka-ratchet debt counter.",
+  "description": "The shared configuration of every Krizaka JavaScript repository: ESLint flat configs (base, Next.js, the four UI rules, the stack rules, no locale ternary), the « Krizaka first » covered-domains map and the dependency-cruiser preset generated from it (refused imports, cycles, unresolvable imports, dev dependencies), tsconfig bases, Prettier, EditorConfig, and the krizaka-ratchet and krizaka-known-violations debt counters.",
   "keywords": [
     "krizaka",
     "eslint-config",
@@ -10,7 +10,8 @@
     "ratchet",
     "design-system",
     "dependency-cruiser",
-    "tanstack"
+    "tanstack",
+    "krizaka-first"
   ],
   "homepage": "https://ts.krizaka.com/config",
   "bugs": "https://github.com/krizaka/krizaka-ts/issues",
@@ -32,6 +33,9 @@
     "./eslint/env-names": "./eslint/env-names.js",
     "./eslint/plugin": "./eslint/plugin.js",
     "./dependency-cruiser": "./dependency-cruiser.cjs",
+    "./covered-domains": "./covered-domains.cjs",
+    "./covered-domains.json": "./covered-domains.json",
+    "./known-violations": "./ratchet/known-violations.js",
     "./patterns": "./patterns.js",
     "./ratchet": "./ratchet/ratchet.js",
     "./prettier": "./prettier.config.js",
@@ -43,7 +47,8 @@
     "./package.json": "./package.json"
   },
   "bin": {
-    "krizaka-ratchet": "./bin/krizaka-ratchet.mjs"
+    "krizaka-ratchet": "./bin/krizaka-ratchet.mjs",
+    "krizaka-known-violations": "./bin/krizaka-known-violations.mjs"
   },
   "files": [
     "bin",
@@ -52,6 +57,8 @@
     "tsconfig",
     "patterns.js",
     "dependency-cruiser.cjs",
+    "covered-domains.cjs",
+    "covered-domains.json",
     "prettier.config.js",
     ".editorconfig",
     "README.md",
@@ -68,6 +75,7 @@
   },
   "dependencies": {
     "@eslint/js": "^9.39.0 || ^10.0.0",
+    "dependency-cruiser": "^18.6.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-simple-import-sort": "^14.0.0",
     "globals": "^17.13.0",
@@ -92,7 +100,6 @@
     "@size-limit/file": "^14.2.0",
     "@types/estree": "^1.0.8",
     "@types/node": "^22.15.0",
-    "dependency-cruiser": "^18.6.0",
     "eslint": "^9.39.0",
     "eslint-config-next": "^16.4.0",
     "next": "^16.4.1",

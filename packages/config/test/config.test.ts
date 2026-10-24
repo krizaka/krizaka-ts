@@ -50,6 +50,8 @@ describe("package surface", () => {
         "./eslint/stack",
         "./eslint/plugin",
         "./dependency-cruiser",
+        "./covered-domains",
+        "./known-violations",
         "./prettier",
         "./tsconfig/base.json",
         "./tsconfig/react-library.json",
@@ -57,7 +59,10 @@ describe("package surface", () => {
         "./tsconfig/react-native.json",
       ]),
     );
-    expect(pkg.bin).toEqual({ "krizaka-ratchet": "./bin/krizaka-ratchet.mjs" });
+    expect(pkg.bin).toEqual({
+      "krizaka-ratchet": "./bin/krizaka-ratchet.mjs",
+      "krizaka-known-violations": "./bin/krizaka-known-violations.mjs",
+    });
     expect(pkg.peerDependencies).toMatchObject({ eslint: "^9 || ^10", typescript: "^5" });
   });
 
@@ -73,6 +78,19 @@ describe("package surface", () => {
     expect(shipped.length).toBeGreaterThan(10);
     for (const file of shipped) {
       expect(readFileSync(new URL(`../${file}`, import.meta.url), "utf8")).not.toMatch(/orochia|orazaka/i);
+    }
+  });
+});
+
+describe("README", () => {
+  it("lists every domain of the covered-domains map, its rule and every refused entry (the table is the map's)", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { coveredDomains, ruleName } = await import("../covered-domains.cjs");
+    const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
+    for (const domain of coveredDomains) {
+      expect(readme, domain.id).toContain(`\`${ruleName(domain)}\``);
+      expect(readme, domain.id).toContain(`\`${domain.home}\``);
+      for (const entry of domain.refused) expect(readme, `${domain.id}: ${entry}`).toContain(`\`${entry}\``);
     }
   });
 });

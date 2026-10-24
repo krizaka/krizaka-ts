@@ -1,0 +1,40 @@
+{
+  "$comment": "The covered-domains map of « Krizaka first » (krizaka-ui#609, #612; krizaka/.github docs/quality-controls.md §5.1). THE single source: the dependency-cruiser preset generates one `krizaka-first-<id>` rule per domain from it, and the page « Use Krizaka first » of ui.krizaka.com is laid out from it. `refused`: a package name (`dayjs`, also its subpaths), a prefix (`date-fns*`) or a scope (`@tanstack/*`). A Krizaka package (`@krizaka/*`, in node_modules) is the facade and is never checked. Add a domain here, never in a tool's config.",
+  "domains": [
+    {
+      "id": "dates",
+      "title": "Dates, times and local days",
+      "home": "@krizaka/intl",
+      "use": "`@krizaka/intl` (formatting, the local day with `localDay`) or `@krizaka/time` (date arithmetic, a facade created on the first real need: krizaka-ts#76)",
+      "refused": ["date-fns*", "@date-fns/*", "dayjs", "luxon", "moment", "moment-timezone"]
+    },
+    {
+      "id": "i18n",
+      "title": "Words, languages and messages",
+      "home": "@krizaka/i18n",
+      "use": "`@krizaka/i18n`",
+      "refused": ["i18next*", "react-i18next", "next-intl", "next-i18next", "react-intl", "@formatjs/*", "@lingui/*", "i18n-js", "typesafe-i18n"]
+    },
+    {
+      "id": "query",
+      "title": "Data fetching, cache, tables, forms and virtual lists",
+      "home": "@krizaka/query",
+      "use": "`@krizaka/query` for server state, and `@krizaka/ui` (`data-table`, `form`, `virtual`) or `@krizaka/pacer` for the other TanStack engines",
+      "refused": ["@tanstack/*"]
+    },
+    {
+      "id": "icons",
+      "title": "Icons",
+      "home": "@krizaka/icons",
+      "use": "`@krizaka/icons`",
+      "refused": ["lucide-react", "react-icons", "@heroicons/*"]
+    },
+    {
+      "id": "ui",
+      "title": "Interface primitives",
+      "home": "@krizaka/ui",
+      "use": "`@krizaka/ui`",
+      "refused": ["@radix-ui/*", "radix-ui"]
+    }
+  ]
+}

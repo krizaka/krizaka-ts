@@ -10,6 +10,7 @@ import { krizakaBase } from "../eslint/index.js";
 import { krizakaUi, krizakaUiRestrictedSyntax, krizakaUiRules } from "../eslint/krizaka-ui.js";
 import { krizakaNext } from "../eslint/next.js";
 import { LOCALE_TERNARY_SELECTORS, noLocaleTernary } from "../eslint/no-locale-ternary.js";
+import { krizakaPlugin } from "../eslint/plugin.js";
 import { krizakaStack, STACK_RULES } from "../eslint/stack.js";
 import { krizakaUiWarnings, UI_WARNING_RULES } from "../eslint/ui-warnings.js";
 
@@ -162,18 +163,11 @@ describe("krizakaStack — the three stack rules (S1–S3, S11)", () => {
     expect(await lint(krizakaStack(), server, "hooks/use-x.ts")).toEqual([]);
   });
 
-  it("no-direct-tanstack-import: every import form, never a facade", async () => {
-    const code = [
-      `import { useQuery } from "@tanstack/react-query";`,
-      `export { flexRender } from "@tanstack/react-table";`,
-      `export * from "@tanstack/table-core";`,
-      `export const lazy = () => import("@tanstack/react-virtual");`,
-      `import { createQueryClient } from "@krizaka/query";`,
-      `export const used = [useQuery, createQueryClient];`,
-    ].join("\n");
-    const messages = await lint(krizakaStack(), code, "lib/data.ts");
-    expect(ids(messages)).toEqual(Array(4).fill("krizaka/no-direct-tanstack-import"));
-    expect(messages[0]!.message).toMatch(/@tanstack\/react-query is imported through its @krizaka facade/);
+  it("no-direct-tanstack-import is retired: the import is refused by dependency-cruiser (krizaka-first-query), in one tool only", async () => {
+    const code = `import { useQuery } from "@tanstack/react-query";\nexport const q = useQuery;`;
+    expect(Object.keys(krizakaPlugin.rules!)).not.toContain("no-direct-tanstack-import");
+    expect(STACK_RULES).not.toContain("krizaka/no-direct-tanstack-import");
+    expect(await lint(krizakaStack(), code, "lib/data.ts")).toEqual([]);
   });
 
   it("no-local-table-or-form: a table, a form of several fields — not a single-field form", async () => {
@@ -194,19 +188,19 @@ describe("krizakaStack — the three stack rules (S1–S3, S11)", () => {
   });
 
   it("takes files, ignores and severity; composes with noLocaleTernary (one plugin object)", async () => {
-    const code = `import { useQuery } from "@tanstack/react-query";\nexport const q = useQuery;`;
-    expect(await lint(krizakaStack({ ignores: ["packages/**"] }), code, "packages/query/src/index.ts")).toEqual([]);
-    expect(await lint(krizakaStack({ files: ["apps/**/*.ts"] }), code, "lib/x.ts")).toEqual([]);
-    expect((await lint(krizakaStack({ severity: "error" }), code, "lib/x.ts"))[0]!.severity).toBe(2);
-    const both = `${code}\nexport const t = (locale: string) => (locale === "fr" ? "Oui" : "Yes");`;
+    const code = `export function A({ u }: { u: string }) { useEffect(() => { void fetch(u); }, [u]); }`;
+    expect(await lint(krizakaStack({ ignores: ["packages/**"] }), client(code), "packages/query/src/index.ts")).toEqual([]);
+    expect(await lint(krizakaStack({ files: ["apps/**/*.ts"] }), client(code), "lib/x.ts")).toEqual([]);
+    expect((await lint(krizakaStack({ severity: "error" }), client(code), "lib/x.ts"))[0]!.severity).toBe(2);
+    const both = `${client(code)}\nexport const t = (locale: string) => (locale === "fr" ? "Oui" : "Yes");`;
     expect(ids(await lint([...krizakaStack(), ...noLocaleTernary()], both, "lib/x.ts")).sort()).toEqual([
-      "krizaka/no-direct-tanstack-import",
+      "krizaka/no-fetch-in-client-effect",
       "krizaka/no-locale-ternary",
     ]);
   });
 
-  it("names exactly the stack rules (three, the family switcher ban, the route state)", () => {
-    expect(STACK_RULES).toHaveLength(5);
+  it("names exactly the stack rules (fetch, table and form, the family switcher ban, the route state)", () => {
+    expect(STACK_RULES).toHaveLength(4);
     expect(krizakaStack().flatMap((config) => Object.keys(config.rules!))).toEqual([...STACK_RULES]);
   });
 });
