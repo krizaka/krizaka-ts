@@ -5,7 +5,7 @@ rules, the three stack rules, no locale ternary), the dependency-cruiser boundar
 EditorConfig — and `krizaka-ratchet`, the counter that keeps the UI and stack debts from coming back.
 
 [![npm](https://img.shields.io/npm/v/@krizaka/config?color=3b82f6&label=npm)](https://www.npmjs.com/package/@krizaka/config)
-[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](../../LICENSE)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](https://github.com/krizaka/krizaka-ts/blob/main/LICENSE)
 
 ## Adopt it in three lines
 
@@ -83,7 +83,7 @@ that reason — it composes with anything.
 
 ### The three stack rules
 
-From [ADR-001](../../docs/adr/ADR-001-tanstack-under-krizaka-facades.md) — the TanStack engines run headless, behind
+From [ADR-001](https://github.com/krizaka/krizaka-ui/blob/main/docs/adr/ADR-001-tanstack-under-krizaka-facades.md) — the TanStack engines run headless, behind
 `@krizaka/*` facades; a product never imports them. Warnings: `krizaka-ratchet` counts the same patterns, so an app
 adopts them before it is clean and brings each count to 0 by the end of its adoption.
 
@@ -184,4 +184,4 @@ The CI step, after the install:
 
 ## License
 
-[Apache-2.0](../../LICENSE)
+[Apache-2.0](https://github.com/krizaka/krizaka-ts/blob/main/LICENSE)

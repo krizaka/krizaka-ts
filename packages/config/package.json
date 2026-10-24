@@ -12,11 +12,11 @@
     "dependency-cruiser",
     "tanstack"
   ],
-  "homepage": "https://ui.krizaka.com/packages/config",
-  "bugs": "https://github.com/krizaka/krizaka-ui/issues",
+  "homepage": "https://ts.krizaka.com/config",
+  "bugs": "https://github.com/krizaka/krizaka-ts/issues",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/krizaka/krizaka-ui.git",
+    "url": "git+https://github.com/krizaka/krizaka-ts.git",
     "directory": "packages/config"
   },
   "license": "Apache-2.0",
@@ -63,7 +63,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "size": "size-limit",
-    "publint": "publint"
+    "publint": "publint",
+    "check": "pnpm run lint && pnpm run test && pnpm run size && pnpm run publint"
   },
   "dependencies": {
     "@eslint/js": "^9.39.0 || ^10.0.0",

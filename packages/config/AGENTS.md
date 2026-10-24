@@ -1,6 +1,6 @@
 # @krizaka/config — Package Contract (agent-neutral)
 
-> Published on npm as **`@krizaka/config`**. Lives in `packages/config` of the krizaka-ui monorepo: the root
+> Published on npm as **`@krizaka/config`**. Lives in `packages/config` of the krizaka-ts monorepo (moved from krizaka-ui: the quality kit is not UI): the root
 > [`AGENTS.md`](../../AGENTS.md) applies first.
 
 ## 1. What belongs here
@@ -8,7 +8,7 @@
 - The **configuration shared by every Krizaka JavaScript repository**: ESLint flat configs, tsconfig bases, Prettier,
   EditorConfig, and the `krizaka-ratchet` debt counter.
 - The **non-negotiable UI rules** of the refactor (study §2.12), the **stack rules** of
-  [ADR-001](../../docs/adr/ADR-001-tanstack-under-krizaka-facades.md) (no fetch in a client effect, no direct
+  [ADR-001](https://github.com/krizaka/krizaka-ui/blob/main/docs/adr/ADR-001-tanstack-under-krizaka-facades.md) (no fetch in a client effect, no direct
   `@tanstack/*` import, no hand-written table or form) with the dependency-cruiser boundary, and the rule against
   locale ternaries. No product word:
   a product's specifics are options (`allow`, `files`, `routing`), never a branch in this package.
@@ -25,7 +25,7 @@
 - `eslint` ^9 and `typescript` ^5 are peer dependencies; `eslint-config-next` and `prettier` are optional peers.
   Plugins are dependencies.
 - The ratchet never raises a recorded count: `--update` only lowers, and still fails on an increase.
-- The monorepo lints itself with this package (root `eslint.config.mjs`); the packages' `tsconfig.json` extend its bases.
+- The package lints itself with its own configuration (`eslint.config.mjs`, relative imports); the other packages of krizaka-ts consume it from npm.
 
 ## 3. Quality gates
 

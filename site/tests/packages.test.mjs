@@ -90,3 +90,13 @@ test("the repository README is the catalogue: it gives the order, and a missing 
   assert.deepEqual(orderFromReadme(readme, ["b", "a"]), ["a", "b"]);
   assert.throws(() => orderFromReadme(readme, ["a", "b", "c"]), /does not list c/);
 });
+
+test("a plain-JavaScript package (no build, subpath exports only) has a page: its files are read as they are, a non-module exports nothing", () => {
+  assert.equal(sourceOfExport("./eslint/index.js"), "./eslint/index.js");
+  assert.equal(sourceOfExport("./dist/index.js"), "src/index.ts");
+  const dir = mkdtempSync(join(tmpdir(), "kz-js-"));
+  writeFileSync(join(dir, "stack.js"), "/** The stack rules. */\nexport function krizakaStack() { return []; }\n");
+  assert.deepEqual(exportsOf(join(dir, "stack.js")).map((e) => [e.name, e.kind]), [["krizakaStack", "function"]]);
+  assert.deepEqual(exportsOf(join(dir, "missing.json")), []);
+  assert.deepEqual(exportsOf(null), []);
+});
