@@ -35,6 +35,9 @@ export interface WorkspaceDecl {
   kinds: Record<string, WorkspaceKindDecl>;
 }
 
+/** A table of the layer's schema, both names checked. */
+const qualified = (schema: string, table: string) => `${schema}.${ident(table)}`;
+
 export function resolveWorkspace(decl: WorkspaceDecl) {
   const schema = ident(decl.schema ?? "organize");
   const kinds = Object.fromEntries(
@@ -49,8 +52,8 @@ export function resolveWorkspace(decl: WorkspaceDecl) {
           textColumns: (k.textColumns ?? []).map(ident),
           collectionColumn: k.collectionColumn === undefined ? null : ident(k.collectionColumn),
           stateSql: k.stateSql ?? null,
-          tagTable: `${schema}.${ident(`${kind}_tag`)}`,
-          statusTable: `${schema}.${ident(`${kind}_status`)}`,
+          tagTable: qualified(schema, `${kind}_tag`),
+          statusTable: qualified(schema, `${kind}_status`),
         },
       ] as const;
     }),

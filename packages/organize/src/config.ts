@@ -98,8 +98,7 @@ export function kindConfigProblems(input: unknown): string[] {
   }
   const status = input.status ?? null;
   const statusProblems = status === null ? [] : statusSetProblems(status);
-  out.push(...statusProblems.map((p) => `status: ${p}`));
-  out.push(...viewProblems(input.views, statusProblems.length === 0 ? (status as StatusSet | null) : null));
+  out.push(...statusProblems.map((p) => `status: ${p}`), ...viewProblems(input.views, statusProblems.length === 0 ? (status as StatusSet | null) : null));
   return out;
 }
 

@@ -38,7 +38,8 @@ type Params = URLSearchParams | Readonly<Record<string, string | readonly string
 const read = (params: Params, name: string): string[] => {
   if (params instanceof URLSearchParams) return params.getAll(name);
   const value = params[name];
-  return value === undefined ? [] : typeof value === "string" ? [value] : [...value];
+  if (value === undefined) return [];
+  return typeof value === "string" ? [value] : [...value];
 };
 const list = (params: Params, name: string) => [...new Set(read(params, name).flatMap((v) => v.split(",")).map((v) => v.trim()).filter(Boolean))];
 const cleanQuery = (raw: string) => raw.replace(/\s+/g, " ").trim();
@@ -81,7 +82,7 @@ export function viewSearch(filters: ViewFilters, view?: string | null): string {
   if (filters.from) out.set("from", filters.from);
   if (filters.to) out.set("to", filters.to);
   if (filters.q) out.set("q", filters.q);
-  return out.toString().replace(/%2C/g, ",");
+  return out.toString().replaceAll("%2C", ",");
 }
 
 /** The same path with a view: the URL is the state. */
@@ -92,7 +93,8 @@ export const viewHref = (path: string, filters: ViewFilters, view?: string | nul
 
 /** Whether two sets of filters select the same list (the « modified » mark of a view). */
 export const sameFilters = (a: ViewFilters, b: ViewFilters): boolean => viewSearch(normalised(a)) === viewSearch(normalised(b));
-const normalised = (f: ViewFilters): ViewFilters => ({ ...f, tags: f.tags ? [...f.tags].sort() : undefined, status: f.status ? [...f.status].sort() : undefined });
+const byText = (a: string, b: string) => a.localeCompare(b);
+const normalised = (f: ViewFilters): ViewFilters => ({ ...f, tags: f.tags ? [...f.tags].sort(byText) : undefined, status: f.status ? [...f.status].sort(byText) : undefined });
 
 
 function valuesProblem(value: unknown, name: string, ok: (v: unknown) => boolean): string[] {

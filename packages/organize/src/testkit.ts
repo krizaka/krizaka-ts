@@ -76,7 +76,8 @@ export function workspaceStoreContract(name: string, kind: string, make: () => P
     await f.store.link(kind, [{ entityId: x, tagId: t1.id }, { entityId: x, tagId: t2.id }, { entityId: y, tagId: t1.id }]);
     await f.store.link(kind, [{ entityId: x, tagId: t1.id }]);
     const worn = await f.store.tagsOf(kind, [x, y]);
-    expect(worn.get(x)?.sort()).toEqual([t1.id, t2.id].sort());
+    const byText = (a: string, b: string) => a.localeCompare(b);
+    expect(worn.get(x)?.sort(byText)).toEqual([t1.id, t2.id].sort(byText));
     expect(worn.get(y)).toEqual([t1.id]);
     await f.store.unlink(kind, [{ entityId: x, tagId: t2.id }]);
     await f.store.removeTag(scope, kind, t1.id);

@@ -149,8 +149,10 @@ export function filterSql(decl: WorkspaceDecl, kind: string, filters: ViewFilter
   if (filters.from && k.dateColumn) parts.push(`e.${k.dateColumn} >= ${add(filters.from)}::date`);
   if (filters.to && k.dateColumn) parts.push(`e.${k.dateColumn} < ${add(filters.to)}::date + 1`);
   if (filters.q && k.textColumns.length) {
-    const like = add(`%${filters.q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`);
-    parts.push(`(${k.textColumns.map((c) => `e.${c} ILIKE ${like}`).join(" OR ")})`);
+    const escaped = filters.q.replace(/[\\%_]/g, (c) => `\\${c}`);
+    const like = add(`%${escaped}%`);
+    const columns = k.textColumns.map((c) => `e.${c} ILIKE ${like}`);
+    parts.push(`(${columns.join(" OR ")})`);
   }
   return { sql: parts.map((p) => ` AND ${p}`).join(""), params };
 }

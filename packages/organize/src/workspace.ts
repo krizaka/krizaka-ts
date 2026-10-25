@@ -58,24 +58,71 @@ function ids(raw: readonly string[]): string[] {
 /** For reads: the well-formed ids, any number (a list's page); the scope check leaves out the others. */
 const readable = (raw: readonly string[]): string[] => [...new Set(raw)].filter(isId);
 
+async function configOf(store: WorkspaceStore, kind: string): Promise<KindConfig> {
+  const found = await store.config(kind);
+  if (!found) throw new OrganizeError(ORGANIZE_CODE.notFound, `No configuration for ${kind}`);
+  return found.config;
+}
+
+/** Every id is an entity of the scope, or nothing happens: an id of another scope says nothing about it (404). */
+async function owned(store: WorkspaceStore, scope: string, kind: string, raw: readonly string[], lock = false): Promise<string[]> {
+  const list = ids(raw);
+  const found = await store.inScope(scope, kind, list, { lock });
+  if (found.length !== list.length) throw new OrganizeError(ORGANIZE_CODE.notFound);
+  return list;
+}
+
+async function scopeTags(store: WorkspaceStore, scope: string, kind: string, tagIds: readonly string[]): Promise<string[]> {
+  const wanted = [...new Set(tagIds)];
+  if (wanted.some((t) => !isId(t))) throw new OrganizeError(ORGANIZE_CODE.notFound, "Unknown tag");
+  const mine = new Set((await store.tags(scope, kind)).map((t) => t.id));
+  if (!wanted.every((t) => mine.has(t))) throw new OrganizeError(ORGANIZE_CODE.notFound, "Unknown tag");
+  return wanted;
+}
+
+async function authored(store: WorkspaceStore, scope: string, actor: Actor, id: string): Promise<SavedView> {
+  const found = isId(id) ? await store.view(scope, id) : null;
+  if (!found || (!found.shared && found.authorId !== actor.id)) throw new OrganizeError(ORGANIZE_CODE.notFound);
+  if (found.authorId !== actor.id) throw new OrganizeError(ORGANIZE_CODE.forbidden, "Only its author changes a view");
+  return found;
+}
+
+/**
+ * Which entities make a move and which are skipped, with why: the state the user saw (`expect`), then the set's rules. One entity
+ * is refused instead of skipped. Pure: the service stores, audits and emits what it returns.
+ */
+function planMoves(set: StatusSet, entities: readonly { id: string; from: string }[], move: { to: string; role: string; expect?: string; reason?: string | null }) {
+  const single = entities.length === 1;
+  const out = { moved: [] as { id: string; from: string }[], skipped: [] as { id: string; code: string }[] };
+  const skip = (id: string, error: OrganizeError) => {
+    if (single) throw error;
+    out.skipped.push({ id, code: error.code });
+  };
+  for (const { id, from } of entities) {
+    const problem = move.expect !== undefined && from !== move.expect ? new OrganizeError(ORGANIZE_CODE.stale) : moveProblem(set, from, move);
+    if (problem) skip(id, problem);
+    else out.moved.push({ id, from });
+  }
+  return out;
+}
+
+/** Why one entity cannot make a move (`ALREADY` when it is there), or null. A bad reason is the caller's mistake: it is thrown. */
+function moveProblem(set: StatusSet, from: string, move: { to: string; role: string; reason?: string | null }): OrganizeError | null {
+  try {
+    checkMove(set, { from, to: move.to, role: move.role, reason: move.reason });
+    return null;
+  } catch (error) {
+    if (!(error instanceof OrganizeError) || error.code === ORGANIZE_CODE.badRequest) throw error;
+    return from === move.to ? new OrganizeError(ORGANIZE_CODE.already) : error;
+  }
+}
+
 export function createWorkspace(deps: WorkspaceDeps) {
   const newId = deps.newId ?? (() => crypto.randomUUID());
   const audit = (tx: Query, actor: Actor, action: string, target: { type: string; id: string }, detail: Record<string, unknown>) =>
     deps.audit?.record(tx, { actorId: actor.id, actorLabel: actor.label, action, target, detail }) ?? Promise.resolve();
   const run = <T>(work: (tx: Query, store: WorkspaceStore) => Promise<T>) => deps.transaction((tx) => work(tx, deps.storeFor(tx)));
 
-  async function configOf(store: WorkspaceStore, kind: string): Promise<KindConfig> {
-    const found = await store.config(kind);
-    if (!found) throw new OrganizeError(ORGANIZE_CODE.notFound, `No configuration for ${kind}`);
-    return found.config;
-  }
-  /** Every id is an entity of the scope, or nothing happens: an id of another scope says nothing about it (404). */
-  async function owned(store: WorkspaceStore, scope: string, kind: string, raw: readonly string[], lock = false): Promise<string[]> {
-    const list = ids(raw);
-    const found = await store.inScope(scope, kind, list, { lock });
-    if (found.length !== list.length) throw new OrganizeError(ORGANIZE_CODE.notFound);
-    return list;
-  }
   const writer = (config: KindConfig, actor: Actor) => {
     if (!config.tags.writers.includes(actor.role)) throw new OrganizeError(ORGANIZE_CODE.forbidden);
   };
@@ -122,13 +169,6 @@ export function createWorkspace(deps: WorkspaceDeps) {
     await store.link(kind, plans.flatMap((p) => p.added.map((tagId) => ({ entityId: p.id, tagId }))));
     for (const p of plans.filter((x) => x.added.length + x.removed.length > 0)) await audit(tx, actor, "organize.tags_changed", { type: kind, id: p.id }, { added: p.added, removed: p.removed });
     return plans.filter((x) => x.added.length + x.removed.length > 0).length;
-  }
-  async function scopeTags(store: WorkspaceStore, scope: string, kind: string, tagIds: readonly string[]): Promise<string[]> {
-    const wanted = [...new Set(tagIds)];
-    if (wanted.some((t) => !isId(t))) throw new OrganizeError(ORGANIZE_CODE.notFound, "Unknown tag");
-    const mine = new Set((await store.tags(scope, kind)).map((t) => t.id));
-    if (!wanted.every((t) => mine.has(t))) throw new OrganizeError(ORGANIZE_CODE.notFound, "Unknown tag");
-    return wanted;
   }
 
   const tags = {
@@ -215,42 +255,19 @@ export function createWorkspace(deps: WorkspaceDeps) {
         if (!target) throw bad("Not a state of the set");
         const entities = await owned(store, scope, kind, input.ids, true);
         const stored = await store.states(kind, entities);
-        const single = entities.length === 1;
-        const out: MoveResult = { moved: [], skipped: [] };
-        for (const id of entities) {
-          const from = stored.get(id)?.state ?? set.initial;
-          if (input.expect !== undefined && from !== input.expect) {
-            if (single) throw new OrganizeError(ORGANIZE_CODE.stale);
-            out.skipped.push({ id, code: ORGANIZE_CODE.stale });
-            continue;
-          }
-          try {
-            checkMove(set, { from, to: input.to, role: actor.role, reason: input.reason });
-          } catch (error) {
-            if (!(error instanceof OrganizeError) || error.code === ORGANIZE_CODE.badRequest) throw error;
-            const code = from === input.to ? ORGANIZE_CODE.already : error.code;
-            if (single) throw code === error.code ? error : new OrganizeError(code);
-            out.skipped.push({ id, code });
-            continue;
-          }
-          out.moved.push({ scope, kind, entityId: id, from, to: input.to, final: target.final === true, reason: input.reason ?? null, at: deps.clock.now() });
-        }
-        for (const m of out.moved) {
+        const out = planMoves(set, entities.map((id) => ({ id, from: stored.get(id)?.state ?? set.initial })), { ...input, role: actor.role });
+        const at = deps.clock.now();
+        const moved = out.moved.map((m) => ({ scope, kind, entityId: m.id, from: m.from, to: input.to, final: target.final === true, reason: input.reason ?? null, at }));
+        for (const m of moved) {
           await store.setState(kind, m.entityId, m.to, m.at, actor.id);
           await audit(tx, actor, "organize.status_changed", { type: kind, id: m.entityId }, { set: set.key, from: m.from, to: m.to, final: m.final, ...(m.reason ? { reason: m.reason } : {}) });
           await deps.events?.append(tx, { id: newId(), type: STATUS_CHANGED_EVENT, scope, payload: { ...m, at: m.at.toISOString() } });
         }
-        if (out.moved.length > 0) await deps.onMoved?.(tx, out.moved);
-        return out;
+        if (moved.length > 0) await deps.onMoved?.(tx, moved);
+        return { moved, skipped: out.skipped };
       }),
   };
 
-  async function authored(store: WorkspaceStore, scope: string, actor: Actor, id: string): Promise<SavedView> {
-    const found = isId(id) ? await store.view(scope, id) : null;
-    if (!found || (!found.shared && found.authorId !== actor.id)) throw new OrganizeError(ORGANIZE_CODE.notFound);
-    if (found.authorId !== actor.id) throw new OrganizeError(ORGANIZE_CODE.forbidden, "Only its author changes a view");
-    return found;
-  }
   const member = (actor: Actor): string => {
     if (!actor.id) throw new OrganizeError(ORGANIZE_CODE.forbidden, "A view belongs to a person");
     return actor.id;

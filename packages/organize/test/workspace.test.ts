@@ -114,7 +114,7 @@ describe("tags", () => {
     await expect(ws.tags.apply(scope, STAFF, "file", { ids: [y], add: [a.id] })).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(ws.tags.apply(scope, OWNER, "file", { ids: ["../x"], add: [a.id] })).rejects.toMatchObject({ code: "NOT_FOUND" });
     await expect(ws.tags.apply(scope, OWNER, "file", { ids: Array.from({ length: 201 }, () => crypto.randomUUID()), add: [a.id] })).rejects.toMatchObject({ code: "TOO_MANY" });
-    expect(audit.length).toBe(before);
+    expect(audit).toHaveLength(before);
     expect((await ws.tags.of(scope, "file", [y])).get(y)?.map((t) => t.name)).toEqual(["A", "B"]);
   });
 
@@ -188,7 +188,7 @@ describe("status moves", () => {
     const before = audit.length;
     await expect(ws.status.move(scope, OWNER, "invoice", { ids: [id], to: "paid" })).rejects.toMatchObject({ code: "STATUS_DERIVED" });
     await expect(ws.status.of(scope, "invoice", [id])).rejects.toMatchObject({ code: "STATUS_DERIVED" });
-    expect(audit.length).toBe(before);
+    expect(audit).toHaveLength(before);
   });
 
   it("a kind without a set, or without a configuration, says so", async () => {

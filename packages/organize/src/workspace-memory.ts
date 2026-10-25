@@ -95,7 +95,7 @@ export function memoryWorkspaceStore(entities: Map<string, Map<string, string>> 
     },
     async statesInUse(kind, wanted) {
       const held = new Set([...states.entries()].filter(([k]) => k.startsWith(`${kind}:`)).map(([, v]) => v.state));
-      return [...new Set(wanted)].filter((s) => held.has(s)).sort();
+      return [...new Set(wanted)].filter((s) => held.has(s)).sort((a, b) => a.localeCompare(b));
     },
     async views(scope, kind, userId) {
       return views

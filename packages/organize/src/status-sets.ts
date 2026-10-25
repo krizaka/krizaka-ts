@@ -122,16 +122,20 @@ export function statusSetProblems(input: unknown): string[] {
   );
   const states = new Map(Array.isArray(input.states) ? input.states.filter(isRecord).map((s) => [String(s.key), s] as const) : []);
   if (Array.isArray(input.states) && (input.states.length < 2 || input.states.length > STATES_MAX)) out.push(`states: 2 to ${STATES_MAX}`);
-  if (input.mode === STATUS_MODE.derived) {
-    if (input.initial !== undefined) out.push("a derived set has no initial state");
-    if (!Array.isArray(input.transitions) || input.transitions.length > 0) out.push("a derived set has no transitions: nobody moves it");
-  } else {
-    const initial = states.get(String(input.initial));
-    if (!initial) out.push("initial: a state of the set");
-    else if (initial.final === true) out.push("initial: never a final state");
-    out.push(...transitionProblems(input, states));
-  }
-  return out;
+  return [...out, ...(input.mode === STATUS_MODE.derived ? derivedProblems(input) : editableProblems(input, states))];
+}
+
+function derivedProblems(set: Record<string, unknown>): string[] {
+  return [
+    ...(set.initial === undefined ? [] : ["a derived set has no initial state"]),
+    ...(Array.isArray(set.transitions) && set.transitions.length === 0 ? [] : ["a derived set has no transitions: nobody moves it"]),
+  ];
+}
+
+function editableProblems(set: Record<string, unknown>, states: Map<string, Record<string, unknown>>): string[] {
+  const initial = states.get(String(set.initial));
+  const first = !initial ? ["initial: a state of the set"] : initial.final === true ? ["initial: never a final state"] : [];
+  return [...first, ...transitionProblems(set, states)];
 }
 
 /**
