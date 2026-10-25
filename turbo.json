@@ -32,6 +32,9 @@
       "dependsOn": [
         "^build",
         "^check"
+      ],
+      "outputs": [
+        "dist/**"
       ]
     }
   }

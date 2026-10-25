@@ -22,5 +22,7 @@ describe("turbo task graph", () => {
     // check rebuilt its dist (rm + tsup) while @krizaka/audit's tests, which depend only on its build, were reading it.
     expect(packagesThatRebuildInCheck()).toContain("@krizaka/db");
     expect(turbo.tasks.check.dependsOn).toContain("^check");
+    // A cached check of a dependency restores the dist it rebuilt (review of #75: a cache hit without dist broke audit).
+    expect(turbo.tasks.check.outputs).toContain("dist/**");
   });
 });
