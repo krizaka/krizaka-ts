@@ -30,7 +30,11 @@
     },
     "check": {
       "dependsOn": [
-        "^build"
+        "^build",
+        "^check"
+      ],
+      "outputs": [
+        "dist/**"
       ]
     }
   }
