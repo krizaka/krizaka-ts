@@ -12,6 +12,9 @@ export type TagColor = (typeof TAG_COLORS)[number];
 export const isTagColor = (value: unknown): value is TagColor => typeof value === "string" && (TAG_COLORS as readonly string[]).includes(value);
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+/** A plain object (what JSON gives for `{…}`), not an array, not null. */
+export const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
+
 export const isId = (value: unknown): value is string => typeof value === "string" && UUID.test(value);
 
 /** What an entity or a collection may be called: spaces collapsed, trimmed, 1 to NAME_MAX characters; null when it is not. */
