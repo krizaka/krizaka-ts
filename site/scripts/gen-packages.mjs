@@ -43,10 +43,11 @@ for (const dir of dirs) {
   const root = join(REPO, "packages", dir);
   const json = JSON.parse(read(root, "package.json"));
   const exportMap = json.exports ?? {};
-  const entry = join(root, sourceOfExport(exportMap["."] ?? json.main) ?? "src/index.ts");
+  const main = exportMap["."] ?? json.main;
+  const entry = main ? join(root, sourceOfExport(main) ?? "src/index.ts") : null; // no "." entry: subpaths only (@krizaka/config)
   const subpaths = Object.entries(exportMap)
     .filter(([path]) => path !== "." && path !== "./package.json")
-    .map(([path, target]) => ({ path, exports: exportsOf(join(root, sourceOfExport(target))) }));
+    .map(([path, target]) => ({ path, exports: exportsOf(join(root, sourceOfExport(target) ?? "")) }));
   let version;
   try {
     version = await npmVersion(json.name);

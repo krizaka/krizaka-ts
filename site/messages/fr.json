@@ -65,7 +65,7 @@
       "hook": "Des webhooks signés et idempotents, dans les deux sens : livrés avec reprises, vérifiés et appliqués une fois."
     },
     "organize": {
-      "hook": "Un nom, un avatar, des étiquettes et des collections pour toute entité, avec un kit de conformité."
+      "hook": "Un nom, un avatar, des étiquettes et des collections pour toute entité ; et l’espace de travail organisé : étiquettes à repère, statuts, vues enregistrées, actions groupées."
     },
     "brief": {
       "hook": "Le bilan de la semaine : quelques recommandations chiffrées, chacune avec une action."
@@ -75,6 +75,9 @@
     },
     "audit": {
       "hook": "Qui a fait quoi : une trace en ajout seul dans son propre schéma, dans la transaction ou à côté, filtrée, exportée et caviardée (Loi 25)."
+    },
+    "config": {
+      "hook": "Le kit qualité de chaque dépôt TypeScript : configs ESLint, preset dependency-cruiser, bases tsconfig, Prettier et le cliquet de dette."
     }
   },
   "docs": {

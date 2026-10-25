@@ -65,7 +65,7 @@
       "hook": "Signed, idempotent webhooks, both ways: delivered with retries, verified and applied once."
     },
     "organize": {
-      "hook": "A name, an avatar, tags and collections for any entity, with a conformance kit."
+      "hook": "A name, an avatar, tags and collections for any entity; and the workspace organised: tags with markers, status sets, saved views, bulk actions."
     },
     "brief": {
       "hook": "The weekly brief: a few figured recommendations, each with one action."
@@ -75,6 +75,9 @@
     },
     "audit": {
       "hook": "Who did what: an append-only trail in its own schema, inside the transaction or beside it, filtered, exported and redacted (Loi 25)."
+    },
+    "config": {
+      "hook": "The quality kit of every TypeScript repository: ESLint configs, the dependency-cruiser preset, tsconfig bases, Prettier and the debt ratchet."
     }
   },
   "docs": {

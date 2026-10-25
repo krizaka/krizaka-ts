@@ -1,14 +1,17 @@
 {
   "name": "@krizaka/organize",
-  "version": "0.3.0",
-  "description": "The « organize » block of every Krizaka product: a name, an avatar, a description, tags, collections and an undeletable default collection for any entity — rules, a store over PostgreSQL, and a conformance kit. No ORM, no framework: you pass a query function.",
+  "version": "0.4.0",
+  "description": "The « organize » block of every Krizaka product: a name, an avatar, a description, tags, collections and an undeletable default collection for any entity; and the workspace, organised — tags with colour markers, status sets as data, saved views and bulk actions, scoped to a workspace, audited. Rules, a store over PostgreSQL, a browser-safe contract and a conformance kit. No ORM, no framework: you pass a query function.",
   "keywords": [
     "krizaka",
     "organize",
     "collections",
     "tags",
     "avatar",
-    "multi-tenant"
+    "multi-tenant",
+    "status",
+    "saved-views",
+    "bulk-actions"
   ],
   "homepage": "https://github.com/krizaka/krizaka-ts/tree/main/packages/organize",
   "bugs": "https://github.com/krizaka/krizaka-ts/issues",
@@ -27,6 +30,14 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./contract": {
+      "types": "./dist/contract.d.ts",
+      "import": "./dist/contract.js"
+    },
+    "./testkit": {
+      "types": "./dist/testkit.d.ts",
+      "import": "./dist/testkit.js"
     },
     "./package.json": "./package.json"
   },
@@ -48,7 +59,7 @@
     "node": ">=22"
   },
   "devDependencies": {
-    "@krizaka/config": "^0.7.0",
+    "@krizaka/config": "workspace:^",
     "@types/node": "^22.10.0",
     "@types/pg": "^8.23.1",
     "eslint": "^9.39.0",
@@ -56,5 +67,13 @@
     "tsup": "^8.5.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.11"
+  },
+  "peerDependencies": {
+    "vitest": ">=4"
+  },
+  "peerDependenciesMeta": {
+    "vitest": {
+      "optional": true
+    }
   }
 }

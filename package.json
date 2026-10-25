@@ -16,7 +16,8 @@
     "sg:ratchet:update": "node scripts/sg-ratchet.mjs --update",
     "changeset": "changeset",
     "release": "pnpm turbo run build && changeset publish",
-    "sg:fix": "node scripts/sg-fix.mjs"
+    "sg:fix": "node scripts/sg-fix.mjs",
+    "version-packages": "changeset version && pnpm install --lockfile-only"
   },
   "devDependencies": {
     "@ast-grep/cli": "0.51.0",

@@ -10,6 +10,15 @@ export const ORGANIZE_CODE = {
   avatarUnreadable: "AVATAR_UNREADABLE",
   avatarStorageUnavailable: "AVATAR_STORAGE_UNAVAILABLE",
   avatarStorageOff: "AVATAR_STORAGE_OFF",
+  forbidden: "FORBIDDEN",
+  conflict: "CONFLICT",
+  stale: "STALE",
+  statusDerived: "STATUS_DERIVED",
+  moveNotAllowed: "MOVE_NOT_ALLOWED",
+  stateInUse: "STATE_IN_USE",
+  tagLimit: "TAG_LIMIT",
+  tooMany: "TOO_MANY",
+  already: "ALREADY",
 } as const;
 export type OrganizeCode = (typeof ORGANIZE_CODE)[keyof typeof ORGANIZE_CODE];
 
@@ -24,6 +33,15 @@ const STATUS: Record<OrganizeCode, number> = {
   AVATAR_UNREADABLE: 422,
   AVATAR_STORAGE_UNAVAILABLE: 502,
   AVATAR_STORAGE_OFF: 503,
+  FORBIDDEN: 403,
+  CONFLICT: 409,
+  STALE: 409,
+  STATUS_DERIVED: 409,
+  MOVE_NOT_ALLOWED: 409,
+  STATE_IN_USE: 409,
+  TAG_LIMIT: 409,
+  TOO_MANY: 400,
+  ALREADY: 409,
 };
 
 export class OrganizeError extends Error {

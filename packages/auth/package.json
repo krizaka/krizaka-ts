@@ -1,6 +1,6 @@
 {
   "name": "@krizaka/auth",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "The account of a Krizaka product \u2014 name, language, theme, avatar, e-mail change by link with the verified flag, password, sessions with sign-out of the others, data export, deletion \u2014 behind a port, with a PostgreSQL adapter and its migration. Each product keeps its own accounts; no framework, no wall clock, no mail vendor.",
   "keywords": [
     "krizaka",
@@ -50,7 +50,7 @@
     "date-fns": "^4.4.0"
   },
   "devDependencies": {
-    "@krizaka/config": "^0.7.0",
+    "@krizaka/config": "workspace:^",
     "@types/node": "^22.10.0",
     "@types/pg": "^8.23.1",
     "eslint": "^9.39.0",

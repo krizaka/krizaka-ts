@@ -76,7 +76,8 @@ export default function TopBar({ firstPackage }: { firstPackage: string }) {
             {theme === "dark" ? <SunIcon size={16} /> : <MoonIcon size={16} />}
           </Button>
 
-          <NavBar.Language label={b.language} current={locale} languages={languages} linkAs={Link} />
+          {/* Below md the language is in the mobile panel: the mark, the search and the toggle are all that fits at 360 px. */}
+          <NavBar.Language label={b.language} current={locale} languages={languages} linkAs={Link} className="hidden md:inline-flex" />
 
           <NavBar.Mobile openLabel={b.menu} closeLabel={b.menu} className="max-h-[calc(100dvh-6rem)] gap-1 overflow-y-auto overscroll-contain p-3">
             <NavBar.MobileLink asChild active={clean === "/start"}><Link href={start}>{b.start}</Link></NavBar.MobileLink>

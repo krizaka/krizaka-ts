@@ -2,6 +2,8 @@
    its page — README made safe for MDX, relative links made absolute, the exports read from the TypeScript program, the
    changelog, the page itself in each language. No I/O here, so tests/packages.test.mjs reads it directly. */
 
+import { existsSync } from "node:fs";
+
 import ts from "typescript";
 
 export const SITE_URL = "https://ts.krizaka.com";
@@ -59,7 +61,11 @@ const firstSentence = (text) => {
 
 /** The exported names of a module (`entry`), each with its kind and the first sentence of its documentation comment. */
 export function exportsOf(entry) {
+  // a file that is no TypeScript or JavaScript module (a JSON map, .editorconfig) or that a package without sources
+  // (plain JavaScript, no build: @krizaka/config) does not have, exports no names
+  if (!entry || !/\.(ts|mts|js|mjs|cjs)$/.test(entry) || !existsSync(entry)) return [];
   const program = ts.createProgram([entry], {
+    allowJs: true,
     noEmit: true,
     skipLibCheck: true,
     allowImportingTsExtensions: true,
@@ -96,7 +102,9 @@ export function exportsOf(entry) {
 /** The source file behind a package.json `exports` entry (`./dist/testkit.js` → `src/testkit.ts`). */
 export const sourceOfExport = (target) => {
   const file = typeof target === "string" ? target : (target.import ?? target.default ?? target.types);
-  return typeof file === "string" ? file.replace(/^\.\/dist\//, "src/").replace(/\.(d\.ts|js|mjs|cjs)$/, ".ts") : null;
+  if (typeof file !== "string") return null;
+  // a built package maps dist/ to src/; a plain-JavaScript one (no build) exports its files as they are
+  return file.startsWith("./dist/") ? file.replace(/^\.\/dist\//, "src/").replace(/\.(d\.ts|js|mjs|cjs)$/, ".ts") : file;
 };
 
 /* ─── The changelog (Changesets) ─── */

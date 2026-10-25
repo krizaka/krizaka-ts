@@ -51,7 +51,7 @@
     "@krizaka/payments": "^0.1.0"
   },
   "devDependencies": {
-    "@krizaka/config": "^0.7.0",
+    "@krizaka/config": "workspace:^",
     "@types/node": "^22.10.0",
     "@types/pg": "^8.23.1",
     "eslint": "^9.39.0",
