@@ -134,8 +134,9 @@ function derivedProblems(set: Record<string, unknown>): string[] {
 
 function editableProblems(set: Record<string, unknown>, states: Map<string, Record<string, unknown>>): string[] {
   const initial = states.get(String(set.initial));
-  const first = !initial ? ["initial: a state of the set"] : initial.final === true ? ["initial: never a final state"] : [];
-  return [...first, ...transitionProblems(set, states)];
+  const problems = transitionProblems(set, states);
+  if (!initial) return ["initial: a state of the set", ...problems];
+  return initial.final === true ? ["initial: never a final state", ...problems] : problems;
 }
 
 /**
