@@ -1,7 +1,7 @@
 import pg from "pg";
-import { afterAll, beforeAll, describe } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { dbIdentityLinks, identityLinksMigration } from "../src";
+import { dbIdentityLinks, identityLinksMigration, identityLinksSchema } from "../src";
 import { identityLinkStoreContract } from "../src/testkit";
 
 /** The links against a real PostgreSQL (CI's service; locally ORGANIZE_DB_IT=1 DATABASE_URL=…), in a schema of its own. */
@@ -28,4 +28,11 @@ describe.runIf(enabled)("identity links: PostgreSQL", () => {
     return accounts.get(n)!;
   };
   identityLinkStoreContract("pg", () => dbIdentityLinks(async (sql, params) => (await client.query(sql, params as unknown[])).rows), account);
+});
+
+describe("identity links: the table they need", () => {
+  it("is the one the PostgreSQL store reads and writes (a test that runs without a database)", () => {
+    expect(identityLinksMigration()).toBe(identityLinksSchema.migrations[0]!.sql({ schema: "public", tables: { accounts: "accounts" } }));
+    expect(identityLinksMigration()).toContain("CREATE TABLE IF NOT EXISTS external_identities");
+  });
 });
