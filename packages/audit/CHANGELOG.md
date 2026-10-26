@@ -1,5 +1,12 @@
 # @krizaka/audit
 
+## 0.1.1
+
+### Patch Changes
+
+- Updated dependencies [7165f38]
+  - @krizaka/settings@0.2.0
+
 ## 0.1.0
 
 ### Minor Changes
