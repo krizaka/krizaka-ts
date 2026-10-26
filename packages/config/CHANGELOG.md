@@ -1,5 +1,11 @@
 # @krizaka/config
 
+## 0.8.1
+
+### Patch Changes
+
+- 7a0026a: `not-to-dev-dep` no longer flags a package that is also a `peerDependency`: a library declares it for its consumer and keeps a devDependency to test with (krizaka-ts#57).
+
 ## 0.8.0
 
 ### Minor Changes
