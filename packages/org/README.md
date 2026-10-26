@@ -11,7 +11,7 @@ footerLine("fr"); // « Une entreprise de Technologies Krizaka · Fait à Montr�
 org.company.legalName; // « Technologies Krizaka Inc. »
 ```
 
-Without a build step, read it from the CDN: <https://krizaka-assets.b-cdn.net/org/v1/org.json> (an immutable copy sits beside it,
+Without a build step, read it from the CDN: [krizaka-assets.b-cdn.net/org/v1/org.json](https://krizaka-assets.b-cdn.net/org/v1/org.json) (an immutable copy sits beside it,
 `org.<hash>.json`). Also exported: `@krizaka/org/org.json`, `@krizaka/org/org.schema.json` and `@krizaka/org/apps/<product>.json`.
 
 - **Public facts only.** Never an address, a phone number, figures, a secret, an IP address or an internal host: the test
