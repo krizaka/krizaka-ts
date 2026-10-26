@@ -68,7 +68,7 @@ const list = (values: readonly string[]) => values.map((v) => `'${v}'`).join(", 
  * The SQL of the workspace layer for a product's declaration.
  * @throws Error for a name that is not a safe SQL identifier
  */
-export function workspaceMigration(decl: WorkspaceDecl): string {
+export function workspaceSql(decl: WorkspaceDecl): string {
   const r = resolveWorkspace(decl);
   const parts = [
     `
@@ -124,3 +124,9 @@ CREATE INDEX ${kind}_status_state ON ${k.statusTable} (state);`);
   }
   return `${parts.join("\n")}\n`;
 }
+
+/**
+ * The same SQL, for a product that runs it by hand.
+ * @deprecated Use `workspaceSchema(declaration)` with `emitMigration` or `adoptMigration` from `@krizaka/db`. Removed in the next major.
+ */
+export const workspaceMigration = workspaceSql;

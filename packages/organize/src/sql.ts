@@ -62,7 +62,11 @@ export type Resolved = ReturnType<typeof resolved>;
 
 const quote = (text: string) => `'${text.replace(/'/g, "''")}'`;
 
-export function organizeMigration(schema: OrganizeSchema): string {
+/**
+ * The SQL of version 1 of « organize » for a product's declaration (collections, tags, the default-collection invariants).
+ * @throws Error for a name that is not a safe SQL identifier
+ */
+export function organizeSql(schema: OrganizeSchema): string {
   const r = resolved(schema);
   const c = r.collections;
   const parts: string[] = [];
@@ -140,3 +144,9 @@ CREATE TRIGGER ${k.table}_default_collection BEFORE INSERT OR UPDATE OF collecti
   }
   return parts.join("\n");
 }
+
+/**
+ * The same SQL, for a product that runs it by hand.
+ * @deprecated Use `organizeSchema(declaration)` with `emitMigration` or `adoptMigration` from `@krizaka/db`: the SQL gets a version, a checksum and a marker. Removed in the next major.
+ */
+export const organizeMigration = organizeSql;

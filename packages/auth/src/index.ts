@@ -5,4 +5,5 @@ export { dbIdentityLinks, IdentityLinkError, identityLinksMigration, type Identi
 export { accountsMigration, rolesMigration } from "./migration";
 export * from "./port";
 export { can, createRoles, defineRoles, type Invitation, type Member, type RoleModel, type Roles, ROLES_CODE, type RolesCode, type RolesDeps, RolesError, type RolesQuery } from "./roles";
+export { accountsSchema, identityLinksSchema, rolesSchema } from "./schema";
 export { type Fetcher, parseExternalIdentity, type UsersFederationOptions,usersIdentityProvider } from "./users-federation";

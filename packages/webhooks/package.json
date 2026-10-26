@@ -47,8 +47,9 @@
     "node": ">=22"
   },
   "dependencies": {
-    "date-fns": "^4.4.0",
-    "@krizaka/payments": "^0.1.0"
+    "@krizaka/db": "workspace:^",
+    "@krizaka/payments": "^0.1.0",
+    "date-fns": "^4.4.0"
   },
   "devDependencies": {
     "@krizaka/config": "workspace:^",

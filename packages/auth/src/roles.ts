@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 
+import type { Query } from "@krizaka/db";
 import { addHours } from "date-fns";
 
 /**
@@ -39,9 +40,8 @@ export class RolesError extends Error {
   }
 }
 
-export interface RolesQuery {
-  <T = Record<string, unknown>>(sql: string, params?: unknown[]): Promise<T[]>;
-}
+/** The SQL executor the roles take: `@krizaka/db`'s `Query`. */
+export type RolesQuery = Query;
 
 export interface RolesDeps<Role extends string, Permission extends string> {
   query: RolesQuery;

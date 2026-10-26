@@ -3,15 +3,17 @@
 A product's configuration as **data**: a typed registry of settings (flags, integers, choices, subsets, bilingual texts), resolved **user → workspace → global → default**, changed by an administrator without a redeploy, **every change leaving an audit line** (who, what, when, before, after). A JSON-safe description of the registry is what an admin screen draws from.
 
 ```ts
-import { defineSettings, flag, integer, dbSettings, settingsMigration, GLOBAL, WORKSPACE_SCOPES } from "@krizaka/settings";
+import { emitMigration } from "@krizaka/db";
+import { defineSettings, flag, integer, dbSettings, settingsSchema, GLOBAL, WORKSPACE_SCOPES } from "@krizaka/settings";
 
 const settings = defineSettings({ "features.apiKeys": flag("features", true, WORKSPACE_SCOPES), "limits.maxFileMb": integer("limits", 10, { min: 1, max: 10, unit: "MB" }) } as const);
-await db.query(settingsMigration()); // once, in your migrations (idempotent)
+emitMigration(settingsSchema, 1, { tables: {} }); // commit the SQL once, in your migrations (idempotent)
 const service = dbSettings(settings, { query, workspaceOf, clock: () => performance.now() });
 await service.get("features.apiKeys", { userId });            // typed: boolean
 await service.set({ id: adminId, label: email }, GLOBAL, "features.apiKeys", false, now);
 ```
 
+**Schema.** The tables are a `@krizaka/db` module (`settings`), version 1 byte-identical to the SQL this package shipped before, so a product that has them adopts with no DDL change: `adoptMigration(settingsSchema, 1, context)` writes the marker only, `emitMigration(…)` writes the SQL for a database that lacks them. The old migration function stays, `@deprecated`, for one minor. The price versions are the module `settings_prices` (`pricesSchema`).
 What stays in the product: its registry (the keys, groups, defaults), the checks it makes at its own boundary (« the server refuses what is off »), who may be an administrator, the HTTP routes. The clock is passed in; nothing here reads it.
 
 ## Prices — the catalogue (ADR-009)

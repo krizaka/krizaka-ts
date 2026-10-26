@@ -3,9 +3,10 @@
 The account of a Krizaka product, behind a port: a display name, language, theme and avatar seed; the e-mail change by a link mailed to the **new** address (the verified flag is set by that very act); the password (checked before anything sensitive, other sessions signed out on change; reset by a link mailed to the account's address — the same answer whether or not the address has an account, the link used once within 30 minutes by default — `passwordResetTtlMinutes`, 5 to 1440, read by the product from its settings and said in the mail — every session signed out); the live sessions with sign-out of the others; the data export; the deletion. Each product keeps its **own** accounts — the package brings an adapter over the product's PostgreSQL and the migration it needs, nothing central.
 
 ```ts
-import { accountsMigration, dbAccounts } from "@krizaka/auth";
+import { emitMigration } from "@krizaka/db";
+import { accountsSchema, dbAccounts } from "@krizaka/auth";
 
-await db.query(accountsMigration({ backfillVerified: true })); // once, in your migrations (idempotent)
+emitMigration(accountsSchema({ backfillVerified: true }), 1, { tables: { accounts: "accounts" } }); // commit the SQL once, in your migrations (idempotent)
 const accounts = dbAccounts({ query, transaction, mail, baseUrl: "https://www.akinaza.com", product: "Akinaza", tokenPrefix: "ae", passwords: { hash, verify }, tokenHash, passwordResetTtlMinutes: 30 /* optional, 5–1440 */ }); // `transaction`: the work on one connection (BEGIN … COMMIT); the password reset needs it under concurrent requests
 await accounts.updateProfile(id, { name: "Éric", theme: "dark" });
 await accounts.sessions(id, new Date(), currentSessionId);
@@ -13,6 +14,7 @@ await accounts.requestPasswordReset(email, new Date()); // mails `<baseUrl>/<loc
 await accounts.resetPassword(token, newPassword, new Date()); // "CHANGED" | "INVALID"
 ```
 
+**Schema.** The tables are a `@krizaka/db` module (`auth`), version 1 byte-identical to the SQL this package shipped before, so a product that has them adopts with no DDL change: `adoptMigration(accountsSchema(), 1, context)` writes the marker only, `emitMigration(…)` writes the SQL for a database that lacks them. The old migration function stays, `@deprecated`, for one minor. The roles are the module `auth_roles` (`rolesSchema(roles, { scoped })`, tables `owner` and `scope`) and the federated links `auth_identity_links` (`identityLinksSchema`).
 A link mail carries `mail.link` (`kind`, `url`, `minutes` or `hours`) beside `subject` and `text`: a product that sends branded HTML (`@krizaka/email`: `passwordReset`, `emailChange`) renders it from the data.
 
 The product keeps what is its own: its session cookie and token hashing (`tokenHash`), its password hashing, its mailer, its rate limits and its HTTP answers (`AccountError` carries a status and a stable code). Time is passed in (`now`); nothing here reads the clock.
@@ -26,9 +28,9 @@ A role model is data: `defineRoles({ roles, permissions, manages })` says which 
 Each product keeps its own accounts; **krizaka-users** is the federation provider behind a port, so a product holds no OAuth app of its own. `IdentityProvider` has two calls: `start(provider, returnTo, { codeChallenge? })` gives the address to send the person to, `complete(code, { codeVerifier? })` exchanges the one-time code (single use) for a verified `ExternalIdentity` (`issuer`, `subject`, `email`, `emailVerified`). A return address stays on the product (a path); an unknown provider is refused.
 
 ```ts
-import { createFederatedSignIn, dbIdentityLinks, identityLinksMigration, usersIdentityProvider } from "@krizaka/auth";
+import { createFederatedSignIn, dbIdentityLinks, identityLinksSchema, usersIdentityProvider } from "@krizaka/auth";
 
-await db.query(identityLinksMigration()); // once, in your migrations (idempotent): (issuer, subject) → account
+emitMigration(identityLinksSchema, 1, { tables: { accounts: "accounts" } }); // once, in your migrations (idempotent): (issuer, subject) → account
 const federation = usersIdentityProvider({ baseUrl: "https://auth.dev.akinaza.com", appUrl: "https://dev.akinaza.com", fetch });
 const signIn = createFederatedSignIn({ links: dbIdentityLinks(query), accounts: { findByEmail, create }, clock });
 

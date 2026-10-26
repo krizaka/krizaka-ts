@@ -3,8 +3,11 @@
  * package. A product passes its own (`pg`, a pool, drizzle's client): `pg`'s `PoolClient` and `Client` satisfy `Connection`.
  */
 
-/** Runs one SQL statement with its parameters and returns the rows: a pool, or the client of an open transaction. */
-export type Query = <T = Record<string, unknown>>(sql: string, params?: readonly unknown[]) => Promise<T[]>;
+/**
+ * Runs one SQL statement with its parameters and returns the rows: a pool, or the client of an open transaction. The parameters are a
+ * mutable `unknown[]` on purpose: it is what `pg` and the products' own adapters declare, so an adapter typed that way is accepted as is.
+ */
+export type Query = <T = Record<string, unknown>>(sql: string, params?: unknown[]) => Promise<T[]>;
 
 /** One connection to the database. `release` gives it back to its pool, or closes it. */
 export interface Connection {
