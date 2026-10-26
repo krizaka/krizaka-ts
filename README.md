@@ -1,5 +1,7 @@
 # Krizaka TS
 
+[![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=krizaka_krizaka-ts&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=krizaka_krizaka-ts) [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=krizaka_krizaka-ts&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=krizaka_krizaka-ts) [![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=krizaka_krizaka-ts&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=krizaka_krizaka-ts) [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=krizaka_krizaka-ts&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=krizaka_krizaka-ts) [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=krizaka_krizaka-ts&metric=coverage)](https://sonarcloud.io/summary/new_code?id=krizaka_krizaka-ts)
+
 TypeScript backend building blocks for every Krizaka product, like [Krizaka Java](https://java.krizaka.com): one implementation, no
 copies. Published on npm under `@krizaka/` (Apache-2.0).
 
