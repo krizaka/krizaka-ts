@@ -379,6 +379,9 @@ importers:
       '@krizaka/db':
         specifier: workspace:^
         version: link:../db
+      '@krizaka/intl':
+        specifier: ^0.4.1
+        version: 0.4.1
       '@krizaka/settings':
         specifier: workspace:^
         version: link:../settings

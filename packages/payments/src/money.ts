@@ -1,3 +1,5 @@
+import { currencyDigits } from "@krizaka/intl/money";
+
 import { type Money, PAYMENTS_CODE, PaymentsError, type Price } from "./port";
 
 const CURRENCY = /^[a-z]{3}$/;
@@ -22,12 +24,9 @@ export function addMoney(a: Money, b: Money): Money {
   return money(a.amountMinor + b.amountMinor, a.currency);
 }
 
-/** The decimals of a currency's minor unit (2 for CAD, 0 for JPY), as the Unicode data says. */
-const exponentOf = (currency: string): number => new Intl.NumberFormat("en", { style: "currency", currency: currency.toUpperCase() }).resolvedOptions().maximumFractionDigits ?? 2;
-
 /** An amount in the visitor's language: « $39 » in English, « 39 $ » in French (Canadian conventions); decimals only when there are some. */
 export function formatMoney(value: Money, locale: "en" | "fr"): string {
-  const exponent = exponentOf(value.currency);
+  const exponent = currencyDigits(value.currency);
   const unit = 10 ** exponent;
   const whole = value.amountMinor % unit === 0;
   const digits = whole ? 0 : exponent;
