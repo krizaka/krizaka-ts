@@ -1,6 +1,6 @@
 # ADR-001: One modular architecture for every Krizaka product (business modules, their database, their cut)
 
-- **Status:** proposed (2026-10-23). It waits for the CTO's « validé » on krizaka/krizaka-ts#47.
+- **Status:** accepted (2026-10-26). The CTO scheduled its delivery as block B46 (plan 2026-10-26) and its first modules are built on it: `@krizaka/db` (#50), `@krizaka/audit`, the six packages on `db` (#51), then the auth basics, rate limit, outbox and privacy (B47). If the CTO wants a point changed, it changes in a new ADR that supersedes this one.
 - **Issue:** krizaka/krizaka-ts#47. It coordinates with #44 (storage, video), #46 (coupons), #34 (payments), #37/#38 (follows, reviews), #33 (orazaka-client) and #30 (functional names).
 - **Builds on:** krizaka/.github ADR-006 (Krizaka TS and `@krizaka/organize`, PR krizaka/.github#197).
 - **Evidence:** [`docs/design/module-map.md`](../design/module-map.md) holds the inventory with file:line, the module map and the cut.
