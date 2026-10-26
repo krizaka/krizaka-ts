@@ -27,6 +27,10 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./testkit": {
+      "types": "./dist/testkit.d.ts",
+      "import": "./dist/testkit.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -48,6 +52,14 @@
   },
   "dependencies": {
     "date-fns": "^4.4.0"
+  },
+  "peerDependencies": {
+    "vitest": ">=4"
+  },
+  "peerDependenciesMeta": {
+    "vitest": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@krizaka/config": "workspace:^",
