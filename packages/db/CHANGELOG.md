@@ -1,5 +1,11 @@
 # @krizaka/db
 
+## 0.2.0
+
+### Minor Changes
+
+- 273c554: `defineModule` takes a default Postgres `schema` (`public` for tables that existed before the module schemas, adopted and never moved), and `Query` takes a mutable `unknown[]` of parameters, so an adapter typed the way `pg` types it is accepted as is (#51).
+
 ## 0.1.0
 
 ### Minor Changes
