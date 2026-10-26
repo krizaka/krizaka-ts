@@ -38,6 +38,13 @@ describe("the password reset link's lifetime", () => {
     expect(mails[0]!.text).toContain("30 min");
   });
 
+  it("hands the link to the product as data (kind, url, minutes), beside the text", async () => {
+    const { deps, mails } = harness({ passwordResetTtlMinutes: 45 });
+    await dbAccounts(deps).requestPasswordReset("a@b.test", NOW);
+    expect(mails[0]!.link).toEqual({ kind: "passwordReset", url: expect.stringMatching(/^https:\/\/www\.example\.test\/fr\/reset-password\?token=ex1\./), minutes: 45 });
+    expect(mails[0]!.text).toContain(mails[0]!.link!.url);
+  });
+
   it("uses the configured value for the expiry and for the mail text, in French and in English", async () => {
     const { deps, inserts, mails } = harness({ passwordResetTtlMinutes: 90 });
     await dbAccounts(deps).requestPasswordReset("a@b.test", NOW);
