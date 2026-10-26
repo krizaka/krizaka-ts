@@ -79,6 +79,9 @@
     "db": {
       "hook": "The database foundation: shared types, transactions, module schemas embedded in the product’s own migrations, a test database."
     },
+    "privacy": {
+      "hook": "Loi 25: consents by purpose written once, export and erasure assembled from every module, retention set by the admin."
+    },
     "outbox": {
       "hook": "The transactional outbox: written with the work, delivered at least once by leased workers, retried, then dead-lettered."
     },

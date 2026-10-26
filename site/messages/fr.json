@@ -79,6 +79,9 @@
     "db": {
       "hook": "La fondation base de données : types partagés, transactions, schémas de modules intégrés aux migrations du produit, base de test."
     },
+    "privacy": {
+      "hook": "Loi 25 : des consentements par finalité écrits une fois, l’export et l’effacement assemblés depuis chaque module, une conservation réglée par l’admin."
+    },
     "outbox": {
       "hook": "La boîte d’envoi transactionnelle : écrite avec le travail, livrée au moins une fois par des workers à bail, rejouée, puis mise de côté."
     },
