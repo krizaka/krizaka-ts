@@ -70,6 +70,9 @@
     "brief": {
       "hook": "Le bilan de la semaine : quelques recommandations chiffrées, chacune avec une action."
     },
+    "org": {
+      "hook": "Les faits publics de Krizaka dans un seul JSON validé que lisent tous les pieds de page, sites et applications : identité légale, marques, produits en ligne, sites, ligne de pied de page."
+    },
     "db": {
       "hook": "La fondation base de données : types partagés, transactions, schémas de modules intégrés aux migrations du produit, base de test."
     },

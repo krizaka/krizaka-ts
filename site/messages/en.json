@@ -70,6 +70,9 @@
     "brief": {
       "hook": "The weekly brief: a few figured recommendations, each with one action."
     },
+    "org": {
+      "hook": "The public facts about Krizaka in one validated JSON that every footer, site and app reads: legal identity, marks, live products, sites, footer line."
+    },
     "db": {
       "hook": "The database foundation: shared types, transactions, module schemas embedded in the product’s own migrations, a test database."
     },

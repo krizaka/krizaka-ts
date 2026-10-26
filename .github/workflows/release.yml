@@ -55,3 +55,15 @@ jobs:
           # npm answered E404 to the OIDC (trusted publishing) PUT: the packages have no trusted publisher yet. An automation
           # token (repository secret NPM_TOKEN) authenticates the publish; provenance still comes from id-token.
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # @krizaka/org carries the facts every footer and app reads: each release of it publishes org/v1/org.json (and a hashed copy)
+      # to the CDN. Needs the organisation secrets MEDIA_STORAGE_API_KEY and MEDIA_STORAGE_ZONE (optionally MEDIA_STORAGE_ENDPOINT,
+      # MEDIA_CDN_HOSTNAME); without them the script warns and exits 0 — nothing is printed either way.
+      - if: steps.changesets.outputs.published == 'true' && contains(steps.changesets.outputs.publishedPackages, '"@krizaka/org"')
+        working-directory: packages/org
+        run: pnpm run build && pnpm run publish:cdn
+        env:
+          MEDIA_STORAGE_API_KEY: ${{ secrets.MEDIA_STORAGE_API_KEY }}
+          MEDIA_STORAGE_ZONE: ${{ secrets.MEDIA_STORAGE_ZONE }}
+          MEDIA_STORAGE_ENDPOINT: ${{ secrets.MEDIA_STORAGE_ENDPOINT }}
+          MEDIA_CDN_HOSTNAME: ${{ secrets.MEDIA_CDN_HOSTNAME }}
