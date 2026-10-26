@@ -85,6 +85,9 @@
     "outbox": {
       "hook": "The transactional outbox: written with the work, delivered at least once by leased workers, retried, then dead-lettered."
     },
+    "credits": {
+      "hook": "One credits ledger: grants that expire with daily and monthly caps, purchases, holds and refunds, exact under concurrency."
+    },
     "payments": {
       "hook": "Payments behind a port: checkout with discount terms, verified webhooks applied once, refunds and expiry, integer money."
     },

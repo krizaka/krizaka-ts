@@ -85,6 +85,9 @@
     "outbox": {
       "hook": "La boîte d’envoi transactionnelle : écrite avec le travail, livrée au moins une fois par des workers à bail, rejouée, puis mise de côté."
     },
+    "credits": {
+      "hook": "Un seul grand livre de crédits : octrois qui expirent avec plafonds par jour et par mois, achats, réservations et remboursements, exact en concurrence."
+    },
     "payments": {
       "hook": "Les paiements derrière un port : paiement avec rabais, webhooks vérifiés et appliqués une fois, remboursements et expiration, montants entiers."
     },

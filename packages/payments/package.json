@@ -73,6 +73,7 @@
   },
   "dependencies": {
     "@krizaka/db": "workspace:^",
+    "@krizaka/intl": "^0.4.1",
     "@krizaka/settings": "workspace:^",
     "@krizaka/time": "workspace:^"
   },
