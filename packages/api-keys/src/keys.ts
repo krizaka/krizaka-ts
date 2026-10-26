@@ -105,12 +105,21 @@ export function createApiKeys(deps: { store: ApiKeyStore; rules: ApiKeyRules; cl
       const hash = sha256(parts[2]!);
       if (!record || !same(record.secretHash, hash)) return { ok: false, code: API_KEY_CODE.invalid };
       const now = clock.now();
-      const refusal: ApiKeyCode | null = record.revokedAt ? API_KEY_CODE.revoked : record.supersededAt && record.supersededAt <= now ? API_KEY_CODE.superseded : record.expiresAt && record.expiresAt <= now ? API_KEY_CODE.expired : !record.scopes.includes(scope) ? API_KEY_CODE.scope : null;
+      const refusal = refusalOf(record, scope, now);
       if (refusal) return { ok: false, code: refusal };
       if (!record.lastUsedAt || differenceInMinutes(now, record.lastUsedAt) >= rules.lastUsedEveryMinutes) await store.update(record.id, { lastUsedAt: now });
       return { ok: true, key: record };
     },
   };
+}
+
+/** Why a key that exists and matches is still refused, in the order the codes are told. */
+function refusalOf(record: ApiKeyRecord, scope: string, now: Date): ApiKeyCode | null {
+  if (record.revokedAt) return API_KEY_CODE.revoked;
+  if (record.supersededAt && record.supersededAt <= now) return API_KEY_CODE.superseded;
+  if (record.expiresAt && record.expiresAt <= now) return API_KEY_CODE.expired;
+  if (!record.scopes.includes(scope)) return API_KEY_CODE.scope;
+  return null;
 }
 
 export type ApiKeys = ReturnType<typeof createApiKeys>;

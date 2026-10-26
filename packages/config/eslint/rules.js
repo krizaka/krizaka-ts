@@ -169,22 +169,31 @@ export function ownProductPrefix(cwd) {
   for (let dir = cwd; ; dir = dirname(dir)) {
     const file = join(dir, "package.json");
     if (existsSync(file)) {
-      try {
-        const name = String(JSON.parse(readFileSync(file, "utf8")).name ?? "");
-        // A product names its packages `<product>-<part>` (acme-monorepo, @org/acme-admin); a one-word package
-        // (@org/realtime, @org/ui) is a building block, not a product, and a context word is never one.
-        const words = name.replace(/^@[^/]+\//, "").split(/[-_.]/).filter(Boolean);
-        const word = words.length > 1 ? words[0].toUpperCase() : "";
-        found = /^[A-Z][A-Z0-9]+$/.test(word) && !ENV_CONTEXT_WORDS.includes(word) ? word : null;
-      } catch {
-        found = null;
-      }
+      found = productPrefixOf(file);
       break;
     }
     if (dirname(dir) === dir) break;
   }
   ownProductCache.set(cwd, found);
   return found;
+}
+
+/**
+ * The product word of one package.json (see `ownProductPrefix`); null when it cannot be read or is not a product.
+ * @param {string} file
+ * @returns {string | null}
+ */
+function productPrefixOf(file) {
+  try {
+    const name = String(JSON.parse(readFileSync(file, "utf8")).name ?? "");
+    // A product names its packages `<product>-<part>` (acme-monorepo, @org/acme-admin); a one-word package
+    // (@org/realtime, @org/ui) is a building block, not a product, and a context word is never one.
+    const words = name.replace(/^@[^/]+\//, "").split(/[-_.]/).filter(Boolean);
+    const word = words.length > 1 ? words[0].toUpperCase() : "";
+    return /^[A-Z][A-Z0-9]+$/.test(word) && !ENV_CONTEXT_WORDS.includes(word) ? word : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Vendors: a vendor is a value (`MEDIA_STORAGE_PROVIDER=bunny`, `MAIL_PROVIDER=mailgun`), never a name. */

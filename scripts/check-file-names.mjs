@@ -29,7 +29,7 @@ export function technologyNamedFiles(root) {
     }
   };
   walk(join(root, "packages"));
-  return found.sort();
+  return found.sort((a, b) => a.localeCompare(b));
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
