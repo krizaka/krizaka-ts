@@ -2,7 +2,7 @@
 // Same patterns as the ESLint rules (../patterns.js), applied to the source text: the counter sees every
 // occurrence (a class in a `cn()` argument or a constant too), so it can only be stricter than the rule.
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { relative, resolve } from "node:path";
+import { isAbsolute, relative, resolve } from "node:path";
 
 import { glob } from "tinyglobby";
 
@@ -201,6 +201,11 @@ export class RatchetError extends Error {}
  */
 export async function runRatchet({ root, mode = "check", globs, file = RATCHET_FILE }) {
   const path = resolve(root, file);
+  // the ratchet file is read and written: it stays a .json file inside the repository root (no `../`, no absolute path elsewhere)
+  const inside = relative(resolve(root), path);
+  if (!path.endsWith(".json") || inside === "" || inside.startsWith("..") || isAbsolute(inside)) {
+    throw new RatchetError(`${file}: the ratchet file must be a .json file inside ${root}.`);
+  }
   const exists = existsSync(path);
   if (mode === "init" && exists) throw new RatchetError(`${file} already exists: use --update to lower it.`);
   if (mode !== "init" && !exists) throw new RatchetError(`${file} not found in ${root}: run krizaka-ratchet --init first.`);

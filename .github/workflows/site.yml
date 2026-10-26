@@ -34,7 +34,7 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: site/package-lock.json
-      - run: npm ci
+      - run: npm ci --ignore-scripts
       - run: npm run gen
       - run: npm run lint
       - run: npm test
@@ -52,8 +52,8 @@ jobs:
           node scripts/check-seo-family.mjs --base http://localhost:3000 --host https://ts.krizaka.com --types WebSite,SoftwareSourceCode --limit 60
       - name: No horizontal overflow (360 to 1440 px, both languages, both themes)
         run: |
-          npm install --no-save --no-audit --no-fund playwright@1.56.1
-          npx playwright install --with-deps chromium
+          npm install --ignore-scripts --no-save --no-audit --no-fund playwright@1.56.1
+          node_modules/.bin/playwright install --with-deps chromium
           python3 -m http.server 3100 --directory out >/dev/null 2>&1 &
           sleep 2
           node scripts/check-overflow.mjs --base http://localhost:3100

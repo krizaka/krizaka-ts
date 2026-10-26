@@ -222,3 +222,15 @@ describe("the routeStateSelection counter", () => {
   });
 });
 
+
+describe("runRatchet file argument", () => {
+  it("refuses a ratchet file outside the root or that is not .json", async () => {
+    for (const file of ["../outside.json", "/etc/passwd", "lint-ratchet.txt", "."]) {
+      await expect(runRatchet({ root, mode: "init", file })).rejects.toThrow(/must be a \.json file inside/);
+    }
+  });
+  it("still accepts a nested .json file", async () => {
+    const result = await runRatchet({ root, mode: "init", file: "config/my-ratchet.json" }).catch((e: Error) => e);
+    expect(String(result)).not.toMatch(/must be a \.json file inside/);
+  });
+});
