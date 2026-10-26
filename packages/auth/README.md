@@ -13,6 +13,8 @@ await accounts.requestPasswordReset(email, new Date()); // mails `<baseUrl>/<loc
 await accounts.resetPassword(token, newPassword, new Date()); // "CHANGED" | "INVALID"
 ```
 
+A link mail carries `mail.link` (`kind`, `url`, `minutes` or `hours`) beside `subject` and `text`: a product that sends branded HTML (`@krizaka/email`: `passwordReset`, `emailChange`) renders it from the data.
+
 The product keeps what is its own: its session cookie and token hashing (`tokenHash`), its password hashing, its mailer, its rate limits and its HTTP answers (`AccountError` carries a status and a stable code). Time is passed in (`now`); nothing here reads the clock.
 
 ## Roles per scope

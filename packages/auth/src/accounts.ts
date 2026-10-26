@@ -13,6 +13,21 @@ export interface Mail {
   locale: "en" | "fr";
   subject: string;
   text: string;
+  /**
+   * The link this mail carries, as data: a product that sends branded HTML (`@krizaka/email`: `passwordReset`, `emailChange`)
+   * renders it from this instead of from `text`. Absent on a mail that is not a link.
+   */
+  link?: MailLink;
+}
+
+/** A mailed link: what it is for, where it goes, and how long it lives. */
+export interface MailLink {
+  kind: "passwordReset" | "emailChange";
+  url: string;
+  /** `passwordReset`: the lifetime in minutes. */
+  minutes?: number;
+  /** `emailChange`: the lifetime in hours. */
+  hours?: number;
 }
 
 export interface AccountDeps {
@@ -160,7 +175,7 @@ export function dbAccounts(deps: AccountDeps): AccountService {
       const token = (deps.token ?? (() => emailChangeToken(deps.tokenPrefix)))();
       await query("INSERT INTO email_changes (account_id, new_email, token_hash, expires_at) VALUES ($1, $2, $3, $4)", [id, address, deps.tokenHash(token), addHours(now, EMAIL_CHANGE_TTL_HOURS)]);
       const url = `${deps.baseUrl.replace(/\/$/, "")}/${profile.locale}/confirm-email?token=${encodeURIComponent(token)}`;
-      await deps.mail({ to: address, locale: profile.locale, ...emailChangeMail(deps.product, profile.locale, url) });
+      await deps.mail({ to: address, locale: profile.locale, ...emailChangeMail(deps.product, profile.locale, url), link: { kind: "emailChange", url, hours: EMAIL_CHANGE_TTL_HOURS } });
     },
 
     async confirmEmailChange(token, now) {
@@ -199,7 +214,7 @@ export function dbAccounts(deps: AccountDeps): AccountService {
       });
       if (!issued) return;
       const url = `${deps.baseUrl.replace(/\/$/, "")}/${issued.locale}/reset-password?token=${encodeURIComponent(issued.token)}`;
-      await deps.mail({ to: address, locale: issued.locale, ...passwordResetMail(deps.product, issued.locale, url, resetTtlMinutes) });
+      await deps.mail({ to: address, locale: issued.locale, ...passwordResetMail(deps.product, issued.locale, url, resetTtlMinutes), link: { kind: "passwordReset", url, minutes: resetTtlMinutes } });
     },
 
     async resetPassword(token, next, now) {
