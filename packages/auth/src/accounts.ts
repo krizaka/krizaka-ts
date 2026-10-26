@@ -37,7 +37,7 @@ export interface AccountDeps {
   /**
    * How long a password reset link lives, in minutes: a whole number from 5 to 1440 (`PASSWORD_RESET_MIN_MINUTES`–`PASSWORD_RESET_MAX_MINUTES`),
    * default `PASSWORD_RESET_TTL_MINUTES` (30). The product reads it from its settings; the expiry and the mailed text both use it.
-   * Out of range, `postgresAccounts` throws.
+   * Out of range, `dbAccounts` throws.
    */
   passwordResetTtlMinutes?: number;
   /** Test seam: the token to issue. */
@@ -112,7 +112,7 @@ interface ProfileRow {
 }
 
 /** The adapter over the product's own PostgreSQL (`accounts`, `sessions`, `email_changes`, `password_resets`; see `accountsMigration`). */
-export function postgresAccounts(deps: AccountDeps): AccountService {
+export function dbAccounts(deps: AccountDeps): AccountService {
   const { query } = deps;
   const resetTtlMinutes = checkResetTtl(deps.passwordResetTtlMinutes ?? PASSWORD_RESET_TTL_MINUTES);
   const transaction = deps.transaction ?? (<T>(work: (q: Query) => Promise<T>) => work(query));
@@ -237,3 +237,6 @@ export function postgresAccounts(deps: AccountDeps): AccountService {
     },
   };
 }
+
+/** @deprecated The old name of `dbAccounts` (a name says what a thing does, not the technology). Removed in the next major. */
+export const postgresAccounts = dbAccounts;

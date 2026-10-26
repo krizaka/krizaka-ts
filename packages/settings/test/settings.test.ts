@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { ALL_SCOPES, bilingual, choice, defineSettings, describeSettings, flag, GLOBAL, integer, postgresSettings, resolveValue, SCOPE, type ScopeRef, seedLegacySettings, SettingsError, settingsMigration, subset, WORKSPACE_SCOPES } from "../src";
+import { ALL_SCOPES, bilingual, choice, dbSettings, defineSettings, describeSettings, flag, GLOBAL, integer, resolveValue, SCOPE, type ScopeRef, seedLegacySettings, SettingsError, settingsMigration, subset, WORKSPACE_SCOPES } from "../src";
 import { databaseEnabled, testDatabase } from "./database";
 
 /** A registry of the kinds a product uses. */
@@ -63,7 +63,7 @@ const ADMIN = { id: null, label: "admin@test.example" };
 describe.runIf(databaseEnabled)("the settings service on PostgreSQL", () => {
   const query = testDatabase("set", settingsMigration());
   const workspaces = new Map<string, string>();
-  const service = () => postgresSettings(settings, { query: (s, p) => query(s, p), workspaceOf: async (u) => workspaces.get(u) ?? null, cacheMs: 0 });
+  const service = () => dbSettings(settings, { query: (s, p) => query(s, p), workspaceOf: async (u) => workspaces.get(u) ?? null, cacheMs: 0 });
   const user = (id: string): ScopeRef => ({ scope: "user", id });
   const workspace = (id: string): ScopeRef => ({ scope: "workspace", id });
 
@@ -105,11 +105,11 @@ describe.runIf(databaseEnabled)("the settings service on PostgreSQL", () => {
   });
 
   it("a change is visible at once on this instance even with a cache; a deployment default is used until an override exists", async () => {
-    const cached = postgresSettings(settings, { query: (s, p) => query(s, p), cacheMs: 60_000, clock: () => 1 });
+    const cached = dbSettings(settings, { query: (s, p) => query(s, p), cacheMs: 60_000, clock: () => 1 });
     expect(await cached.get("features.apiKeys")).toBe(true);
     await cached.set(ADMIN, GLOBAL, "features.apiKeys", false, NOW);
     expect(await cached.get("features.apiKeys")).toBe(false);
-    const legacy = postgresSettings(settings, { query: (s, p) => query(s, p), cacheMs: 0, defaults: { "signup.open": true } });
+    const legacy = dbSettings(settings, { query: (s, p) => query(s, p), cacheMs: 0, defaults: { "signup.open": true } });
     expect(await legacy.get("signup.open")).toBe(true);
     await legacy.set(ADMIN, GLOBAL, "signup.open", false, NOW);
     expect(await legacy.get("signup.open")).toBe(false);

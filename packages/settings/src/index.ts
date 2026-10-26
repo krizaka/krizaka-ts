@@ -6,4 +6,4 @@ export { pricesMigration, priceStore } from "./prices-persistence";
 export * from "./registry";
 export { type Layers, type Resolved, resolveValue } from "./resolve";
 export { seedLegacySettings } from "./seed";
-export { type Actor, type AuditEntry, type Context, GLOBAL, postgresSettings, type PostgresSettingsDeps, type Query, type ScopeRef, SettingsError, type SettingsService } from "./service";
+export { type Actor, type AuditEntry, type Context, dbSettings, type DbSettingsDeps, GLOBAL, postgresSettings, type PostgresSettingsDeps, type Query, type ScopeRef, SettingsError, type SettingsService } from "./service";

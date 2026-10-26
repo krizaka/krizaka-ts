@@ -55,7 +55,7 @@ export interface SettingsService<R extends Registry> {
   history(options?: { key?: string; limit?: number }): Promise<AuditEntry[]>;
 }
 
-export interface PostgresSettingsDeps<R extends Registry> {
+export interface DbSettingsDeps<R extends Registry> {
   query: Query;
   /** The workspace a user belongs to (null while the product has no workspaces). */
   workspaceOf?: (userId: string) => Promise<string | null>;
@@ -70,7 +70,7 @@ export interface PostgresSettingsDeps<R extends Registry> {
 const cacheKey = (s: ScopeRef) => `${s.scope}:${s.id}`;
 
 /** The adapter over the product's PostgreSQL (`app_settings`, `settings_audit`; see `settingsMigration`). */
-export function postgresSettings<R extends Registry>(settings: SettingsDefinition<R>, deps: PostgresSettingsDeps<R>): SettingsService<R> {
+export function dbSettings<R extends Registry>(settings: SettingsDefinition<R>, deps: DbSettingsDeps<R>): SettingsService<R> {
   const { query } = deps;
   const cacheMs = deps.cacheMs ?? 5000;
   const clock = deps.clock ?? (() => 0);
@@ -148,3 +148,8 @@ export function postgresSettings<R extends Registry>(settings: SettingsDefinitio
     },
   };
 }
+
+/** @deprecated The old name of `dbSettings` (a name says what a thing does, not the technology). Removed in the next major. */
+export const postgresSettings = dbSettings;
+/** @deprecated The old name of `DbSettingsDeps`. Removed in the next major. */
+export type PostgresSettingsDeps<R extends Registry> = DbSettingsDeps<R>;

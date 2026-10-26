@@ -4,7 +4,7 @@ import { addHours, addMinutes } from "date-fns";
 import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { accountsMigration, emailChangeMail, isEmailChangeToken, type Mail, passwordResetMail, postgresAccounts, type Query } from "../src";
+import { accountsMigration, dbAccounts, emailChangeMail, isEmailChangeToken, type Mail, passwordResetMail, type Query } from "../src";
 
 /** The account adapter against a real PostgreSQL (CI's service; locally ORGANIZE_DB_IT=1 DATABASE_URL=…), in a schema of its own. */
 const enabled = process.env.ORGANIZE_DB_IT === "1" && !!process.env.DATABASE_URL;
@@ -64,7 +64,7 @@ describe.runIf(enabled)("the account service on PostgreSQL", () => {
   };
   let hashFails = 0;
   const service = () =>
-    postgresAccounts({
+    dbAccounts({
       query: (sql, params) => query(sql, params),
       transaction,
       mail: async (m) => void mails.push(m),
