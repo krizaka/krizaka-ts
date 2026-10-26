@@ -26,5 +26,5 @@ test("every page names an Open Graph image, and the sitemap is dated by the buil
 
 test("llms.txt points back to the family", () => {
   const post = read("scripts/postbuild.mjs");
-  for (const url of ["https://www.krizaka.com", "https://ui.krizaka.com", "https://dev.orazaka.com", "https://dev.orochia.com", "https://java.krizaka.com"]) assert.ok(post.includes(url), url);
+  for (const url of ["https://www.krizaka.com", "https://ui.krizaka.com", "https://dev.orazaka.com", "https://dev.yomizaka.com", "https://dev.akinaza.com", "https://java.krizaka.com"]) assert.ok(post.includes(url), url);
 });
