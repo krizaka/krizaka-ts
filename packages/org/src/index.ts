@@ -1,10 +1,10 @@
 export { APP_SCHEMA_URL,apps } from "./apps";
 export { CDN, org, ORG_SCHEMA_URL, ORG_URL } from "./org";
 export { appSchema, orgSchema } from "./schema";
-export type { AppConfig, AppEnvironment, Localized, Org, OrgAvatar, OrgBanner, OrgMark, OrgProduct, OrgSite, ProductStatus } from "./types";
+export type { AppConfig, AppEnvironment, Localized, Org, OrgAvatar, OrgBanner, OrgMark, OrgProduct, OrgSite, ProductStatus } from "./org.types";
 
 import { org } from "./org";
-import type { Localized } from "./types";
+import type { Localized } from "./org.types";
 
 /** The text of a localized pair for a language (`fr` or `en`; anything else reads English). */
 export const localized = (text: Localized, locale: string): string => (locale === "fr" ? text.fr : text.en);

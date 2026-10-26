@@ -1,5 +1,5 @@
 import pkg from "../package.json" with { type: "json" };
-import type { Localized, Org, OrgAvatar, OrgMark } from "./types";
+import type { Localized, Org, OrgAvatar, OrgMark } from "./org.types";
 
 /** The pull zone that serves the brand files and this JSON. */
 export const CDN = "https://krizaka-assets.b-cdn.net";

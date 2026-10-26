@@ -1,5 +1,5 @@
 import { CDN } from "./org";
-import type { AppConfig } from "./types";
+import type { AppConfig } from "./org.types";
 
 export const APP_SCHEMA_URL = `${CDN}/org/v1/app.schema.json`;
 const UPDATED = "2026-10-26";
