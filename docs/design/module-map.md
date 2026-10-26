@@ -179,6 +179,17 @@ Each line below is ready to file. The CTO files them after « validé »; the pr
 | 14 | `feat(community)` (#37) | as #37, on `db` and `outbox` | as #37 | Akinaza |
 | 15 | krizaka-ui: `feat(admin): generic module screens from ./admin descriptors` | table, filters, detail, actions | coupons' screens built from them | Yomizaka |
 
+### 5.1 Delivery status (2026-10-26)
+
+| Cut | State |
+|---|---|
+| 1 `db` | published (`@krizaka/db`) |
+| 2 the six packages on `db` | block B46 (#51) |
+| 3 `audit` | published (`@krizaka/audit`) |
+| 5 `rate-limit`, 4 `outbox`, 9 `auth` basics, 11 `privacy` | block B47 (#54, #53, #57, #59) |
+| 6 `payments`, 7 `credits`, 8 `coupons` | block B48 |
+| 10 `mail`, 12 `storage`, 13 `notifications` | block B49 |
+
 ## 6. Where the coordinated issues fit
 
 | Issue | Where it fits |
