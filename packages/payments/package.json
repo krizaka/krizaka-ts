@@ -1,0 +1,94 @@
+{
+  "name": "@krizaka/payments",
+  "version": "0.2.2",
+  "description": "Payments for every Krizaka product, the processor behind a port: the Stripe adapter (Checkout with discount terms, expiry and idempotency, customer portal, price read by lookup key, verified webhook with paid, expired and refunded events), event application in the effect's transaction, announcement through the outbox, integer money, and a catalogue setup built from the price catalogue. No SDK: you pass fetch.",
+  "keywords": [
+    "krizaka",
+    "payments",
+    "stripe",
+    "checkout",
+    "subscription",
+    "webhook",
+    "idempotency",
+    "coupons",
+    "gst",
+    "qst"
+  ],
+  "homepage": "https://github.com/krizaka/krizaka-ts/tree/main/packages/payments",
+  "bugs": "https://github.com/krizaka/krizaka-ts/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/krizaka/krizaka-ts.git",
+    "directory": "packages/payments"
+  },
+  "license": "Apache-2.0",
+  "author": "Krizaka (https://www.krizaka.com)",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./settings": {
+      "types": "./dist/settings.d.ts",
+      "import": "./dist/settings.js"
+    },
+    "./testkit": {
+      "types": "./dist/testkit.d.ts",
+      "import": "./dist/testkit.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsup",
+    "lint": "eslint . --max-warnings 0 && tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "check": "pnpm run lint && pnpm run test && pnpm run build",
+    "prepublishOnly": "pnpm run build"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "@krizaka/config": "workspace:^",
+    "@types/node": "^22.10.0",
+    "@types/pg": "^8.23.1",
+    "eslint": "^9.39.0",
+    "pg": "^8.23.1",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.11",
+    "zod": "^4.6.7"
+  },
+  "dependencies": {
+    "@krizaka/db": "workspace:^",
+    "@krizaka/settings": "workspace:^",
+    "@krizaka/time": "workspace:^"
+  },
+  "peerDependencies": {
+    "vitest": ">=4",
+    "zod": ">=3.23"
+  },
+  "peerDependenciesMeta": {
+    "vitest": {
+      "optional": true
+    },
+    "zod": {
+      "optional": true
+    }
+  },
+  "bin": {
+    "krizaka-payments-setup": "./bin/payments-setup.mjs"
+  }
+}
