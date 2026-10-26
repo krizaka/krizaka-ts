@@ -56,7 +56,7 @@
       "hook": "Accounts and roles: profile, e-mail change by link, password, sessions, roles as data."
     },
     "settings": {
-      "hook": "Configuration as data: a typed registry, user over workspace over global, every change audited."
+      "hook": "Configuration as data: a typed registry, user over workspace over global, and the price catalogue in dated versions; every change audited."
     },
     "api-keys": {
       "hook": "API keys created, rotated, revoked and authenticated; shown once, only a hash kept."
