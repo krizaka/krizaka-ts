@@ -23,7 +23,7 @@ const COLUMNS = "id, owner_id, name, public_id, secret_hash, scopes, expires_at,
 const COLUMN_OF = { lastUsedAt: "last_used_at", revokedAt: "revoked_at", supersededAt: "superseded_at" } as const;
 
 /** PostgreSQL adapter (table `api_keys`, migration 0021). */
-export function pgApiKeyStore(run: Query): ApiKeyStore {
+export function dbApiKeyStore(run: Query): ApiKeyStore {
   const query = <T = unknown>(sql: string, params?: unknown[]) => run(sql, params) as Promise<T[]>;
   return {
     async insert(r) {
@@ -45,3 +45,6 @@ export function pgApiKeyStore(run: Query): ApiKeyStore {
     },
   };
 }
+
+/** @deprecated The old name of `dbApiKeyStore` (a name says what a thing does, not the technology). Removed in the next major. */
+export const pgApiKeyStore = dbApiKeyStore;

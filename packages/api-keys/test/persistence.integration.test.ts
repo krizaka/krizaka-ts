@@ -1,7 +1,7 @@
 import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { apiKeysMigration, pgApiKeyStore } from "../src";
+import { apiKeysMigration, dbApiKeyStore } from "../src";
 import { apiKeyStoreContract } from "../src/testkit";
 
 /** The PostgreSQL adapter against a real PostgreSQL (CI's service; locally ORGANIZE_DB_IT=1 DATABASE_URL=…), in a schema of its own: the same contract as the memory one. */
@@ -35,5 +35,5 @@ describe.runIf(enabled)("api key store: PostgreSQL", () => {
     if (!owners.has(n)) owners.set(n, (await client.query("INSERT INTO accounts (email) VALUES ($1) RETURNING id", [`k-${n}-${Math.random().toString(36).slice(2)}@test`])).rows[0].id);
     return owners.get(n)!;
   };
-  apiKeyStoreContract("pg", () => pgApiKeyStore(async (sql, params) => (await client.query(sql, params as unknown[])).rows), owner);
+  apiKeyStoreContract("pg", () => dbApiKeyStore(async (sql, params) => (await client.query(sql, params as unknown[])).rows), owner);
 });

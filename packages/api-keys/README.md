@@ -5,10 +5,10 @@ part is stored, the whole key is shown **once** (when it is created or rotated),
 keeps working for a grace period, a revoked one stops at once, and every refusal has a stable code.
 
 ```ts
-import { createApiKeys, pgApiKeyStore, apiKeysMigration } from "@krizaka/api-keys";
+import { createApiKeys, dbApiKeyStore, apiKeysMigration } from "@krizaka/api-keys";
 
 await db.query(apiKeysMigration("accounts")); // once, in your migrations
-const keys = createApiKeys({ store: pgApiKeyStore(query), clock: { now: () => new Date() }, rules: { prefix: "yzk", scopes: ["checks:write", "reports:read"], secretBytes: 24, maxExpiryDays: 365, rotationGraceHours: 24, lastUsedEveryMinutes: 5 } });
+const keys = createApiKeys({ store: dbApiKeyStore(query), clock: { now: () => new Date() }, rules: { prefix: "yzk", scopes: ["checks:write", "reports:read"], secretBytes: 24, maxExpiryDays: 365, rotationGraceHours: 24, lastUsedEveryMinutes: 5 } });
 
 const { key } = await keys.create(owner, { name: "Mon ERP", scopes: ["checks:write"], expiresInDays: 90 }, { maxActive: 5 });
 const auth = await keys.authenticate(request.headers.get("authorization"), "checks:write"); // { ok: true, key } | { ok: false, code }
@@ -16,3 +16,5 @@ const auth = await keys.authenticate(request.headers.get("authorization"), "chec
 
 What a product decides stays in the product: its scopes, how many keys a plan holds (`maxActive`), its rate limit, its audit trail, its HTTP answers.
 Any store runs the contract kit: `apiKeyStoreContract` from `@krizaka/api-keys/testkit`.
+
+> `pgApiKeyStore` was the first name of `dbApiKeyStore`; it stays as a `@deprecated` alias for one minor and leaves in the next major.

@@ -1,7 +1,7 @@
 import { differenceInMinutes } from "date-fns";
 import { describe, expect, it } from "vitest";
 
-import { type AccountDeps, type Mail, PASSWORD_RESET_TTL_MINUTES, passwordResetMail, postgresAccounts, type Query } from "../src";
+import { type AccountDeps, dbAccounts, type Mail, PASSWORD_RESET_TTL_MINUTES, passwordResetMail, type Query } from "../src";
 
 const NOW = new Date("2026-10-24T12:00:00.000Z");
 
@@ -32,7 +32,7 @@ const minutesBetween = (a: Date, b: Date) => differenceInMinutes(b, a);
 describe("the password reset link's lifetime", () => {
   it("is 30 minutes by default, in the expiry and in the mail", async () => {
     const { deps, inserts, mails } = harness();
-    await postgresAccounts(deps).requestPasswordReset("a@b.test", NOW);
+    await dbAccounts(deps).requestPasswordReset("a@b.test", NOW);
     expect(PASSWORD_RESET_TTL_MINUTES).toBe(30);
     expect(minutesBetween(NOW, inserts[0]![2] as Date)).toBe(30);
     expect(mails[0]!.text).toContain("30 min");
@@ -40,7 +40,7 @@ describe("the password reset link's lifetime", () => {
 
   it("uses the configured value for the expiry and for the mail text, in French and in English", async () => {
     const { deps, inserts, mails } = harness({ passwordResetTtlMinutes: 90 });
-    await postgresAccounts(deps).requestPasswordReset("a@b.test", NOW);
+    await dbAccounts(deps).requestPasswordReset("a@b.test", NOW);
     expect(minutesBetween(NOW, inserts[0]![2] as Date)).toBe(90);
     expect(mails[0]!.text).toContain("90 min");
     expect(mails[0]!.text).not.toContain("30 min");
@@ -50,12 +50,12 @@ describe("the password reset link's lifetime", () => {
   });
 
   it("accepts the bounds 5 and 1440 minutes", () => {
-    expect(() => postgresAccounts(harness({ passwordResetTtlMinutes: 5 }).deps)).not.toThrow();
-    expect(() => postgresAccounts(harness({ passwordResetTtlMinutes: 1440 }).deps)).not.toThrow();
+    expect(() => dbAccounts(harness({ passwordResetTtlMinutes: 5 }).deps)).not.toThrow();
+    expect(() => dbAccounts(harness({ passwordResetTtlMinutes: 1440 }).deps)).not.toThrow();
   });
 
   it.each([4, 1441, 0, -30, 30.5, Number.NaN, Number.POSITIVE_INFINITY])("refuses %s when the service is made", (value) => {
-    expect(() => postgresAccounts(harness({ passwordResetTtlMinutes: value }).deps)).toThrow(/passwordResetTtlMinutes/);
+    expect(() => dbAccounts(harness({ passwordResetTtlMinutes: value }).deps)).toThrow(/passwordResetTtlMinutes/);
   });
 
   it("the mail function refuses an out-of-range value too", () => {
