@@ -19,6 +19,39 @@ const alive = (s: GrantState, now: Date) => !s.closed && (s.grant.expiresAt === 
 const byExpiry = (a: GrantState, b: GrantState) =>
   (a.grant.expiresAt?.valueOf() ?? Infinity) - (b.grant.expiresAt?.valueOf() ?? Infinity) || a.grant.createdAt.valueOf() - b.grant.createdAt.valueOf() || a.grant.id.localeCompare(b.grant.id);
 
+/** What the granted pots can give, each within its caps, and the first cap that held one back. */
+function drawGranted(granted: readonly GrantState[], need: number): { draws: Draw[]; left: number; capped: CreditsCode | null } {
+  const draws: Draw[] = [];
+  let left = need;
+  let capped: CreditsCode | null = null;
+  for (const s of granted) {
+    if (left === 0) break;
+    const dayLeft = s.grant.capPerDay === null ? Infinity : Math.max(0, s.grant.capPerDay - s.usedToday);
+    const monthLeft = s.grant.capPerMonth === null ? Infinity : Math.max(0, s.grant.capPerMonth - s.usedThisMonth);
+    const take = Math.min(left, s.remaining, dayLeft, monthLeft);
+    if (take < Math.min(left, s.remaining)) capped ??= dayLeft <= monthLeft ? CREDITS_CODE.capDay : CREDITS_CODE.capMonth;
+    if (take > 0) {
+      draws.push({ grantId: s.grant.id, amount: take });
+      left -= take;
+    }
+  }
+  return { draws, left, capped };
+}
+
+/** What the purchased pots can give, the oldest first. */
+function drawPurchased(purchased: readonly GrantState[], need: number): { draws: Draw[]; left: number } {
+  const draws: Draw[] = [];
+  let left = need;
+  const oldestFirst = [...purchased].sort((a, b) => a.grant.createdAt.valueOf() - b.grant.createdAt.valueOf() || a.grant.id.localeCompare(b.grant.id));
+  for (const s of oldestFirst) {
+    if (left === 0) break;
+    const take = Math.min(left, s.remaining);
+    draws.push({ grantId: s.grant.id, amount: take });
+    left -= take;
+  }
+  return { draws, left };
+}
+
 /**
  * Plans where `need` credits come from, or says why they cannot. Pure: the same states give the same plan.
  *
@@ -33,33 +66,14 @@ const byExpiry = (a: GrantState, b: GrantState) =>
 export function planDraws(states: readonly GrantState[], need: number, now: Date): Plan {
   const live = states.filter((s) => alive(s, now));
   const granted = live.filter((s) => s.grant.bucket === BUCKET.granted && s.remaining > 0).sort(byExpiry);
-  const draws: Draw[] = [];
-  const taken = new Map<string, number>();
-  let left = need;
-  let capped: CreditsCode | null = null;
-  for (const s of granted) {
-    if (left === 0) break;
-    const dayLeft = s.grant.capPerDay === null ? Infinity : Math.max(0, s.grant.capPerDay - s.usedToday);
-    const monthLeft = s.grant.capPerMonth === null ? Infinity : Math.max(0, s.grant.capPerMonth - s.usedThisMonth);
-    const take = Math.min(left, s.remaining, dayLeft, monthLeft);
-    if (take < Math.min(left, s.remaining)) capped ??= dayLeft <= monthLeft ? CREDITS_CODE.capDay : CREDITS_CODE.capMonth;
-    if (take > 0) {
-      draws.push({ grantId: s.grant.id, amount: take });
-      taken.set(s.grant.id, take);
-      left -= take;
-    }
-  }
-  if (left === 0) return { ok: true, draws };
-  if (capped) return { ok: false, code: capped };
+  const first = drawGranted(granted, need);
+  if (first.left === 0) return { ok: true, draws: first.draws };
+  if (first.capped) return { ok: false, code: first.capped };
+  const taken = new Map(first.draws.map((d) => [d.grantId, d.amount]));
   const stopped = live.some((s) => s.grant.bucket === BUCKET.granted && s.grant.onExhausted === ON_EXHAUSTED.stop && s.remaining - (taken.get(s.grant.id) ?? 0) <= 0);
   if (stopped) return { ok: false, code: CREDITS_CODE.exhausted };
-  for (const s of live.filter((x) => x.grant.bucket === BUCKET.purchased && x.remaining > 0).sort((a, b) => a.grant.createdAt.valueOf() - b.grant.createdAt.valueOf() || a.grant.id.localeCompare(b.grant.id))) {
-    if (left === 0) break;
-    const take = Math.min(left, s.remaining);
-    draws.push({ grantId: s.grant.id, amount: take });
-    left -= take;
-  }
-  return left === 0 ? { ok: true, draws } : { ok: false, code: CREDITS_CODE.paywall };
+  const rest = drawPurchased(live.filter((s) => s.grant.bucket === BUCKET.purchased && s.remaining > 0), first.left);
+  return rest.left === 0 ? { ok: true, draws: [...first.draws, ...rest.draws] } : { ok: false, code: CREDITS_CODE.paywall };
 }
 
 /** Drops the first `skip` credits of a plan (the ones already held back by active holds), keeping the order. */
@@ -98,4 +112,38 @@ export function checkSettings(s: CreditsSettings): CreditsSettings {
     throw new CreditsError(CREDITS_CODE.badSettings, `holdTtlSeconds is ${HOLD_TTL_BOUNDS[0]} to ${HOLD_TTL_BOUNDS[1]}`);
   }
   return s;
+}
+
+// @fixed: the longest source a line of the ledger carries (its CHECK)
+const MAX_SOURCE = 200;
+
+/** The shape of what `grant` and `purchase` take, for the checks. */
+interface NewGrantInput {
+  accountId: string;
+  amount: number;
+  source: string;
+  idempotencyKey: string;
+  expiresAt?: Date;
+  capPerDay?: number | null;
+  capPerMonth?: number | null;
+  onExhausted?: string;
+}
+
+/** The checks of a granted pot's own terms: it lapses in the future, its caps are whole numbers, it says what happens when it runs out. */
+function checkGrantedTerms(input: NewGrantInput, now: Date): void {
+  if (!(input.expiresAt instanceof Date) || Number.isNaN(input.expiresAt.valueOf()) || input.expiresAt <= now) throw new CreditsError(CREDITS_CODE.badGrant, "A granted pot lapses in the future");
+  for (const cap of [input.capPerDay, input.capPerMonth]) if (cap !== undefined && cap !== null) checkAmount(cap, "a cap");
+  if (input.onExhausted !== ON_EXHAUSTED.stop && input.onExhausted !== ON_EXHAUSTED.fallbackPaid) throw new CreditsError(CREDITS_CODE.badGrant, "onExhausted is stop or fallback_paid");
+}
+
+/**
+ * Checks what `grant` or `purchase` was given, before any store call.
+ * @throws CreditsError `CREDITS_BAD_AMOUNT`, `CREDITS_BAD_KEY` or `CREDITS_BAD_GRANT`
+ */
+export function checkNewGrant(kind: "grant" | "purchase", input: NewGrantInput, now: Date): void {
+  checkAmount(input.amount, "a grant");
+  checkKey(input.idempotencyKey);
+  if (!input.accountId) throw new CreditsError(CREDITS_CODE.badGrant, "A grant has an account");
+  if (!input.source || input.source.length > MAX_SOURCE) throw new CreditsError(CREDITS_CODE.badGrant, `A source is 1 to ${MAX_SOURCE} characters`);
+  if (kind === "grant") checkGrantedTerms(input, now);
 }
