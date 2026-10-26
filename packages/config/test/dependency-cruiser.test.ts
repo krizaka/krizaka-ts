@@ -157,6 +157,14 @@ describe("@krizaka/config/dependency-cruiser", () => {
     expect(rules("not-to-dev-dep")).toEqual(["app/dev.js"]);
   });
 
+  it("lets production code import a peer dependency that is also a devDependency: the consumer installs it", () => {
+    pkg("left-pad", "exports.x = 1;\n");
+    write("package.json", JSON.stringify({ name: "fixture-lib", version: "1.0.0", peerDependencies: { "left-pad": ">=1" }, devDependencies: { "left-pad": "1.0.0" } }));
+    write("app/peer.js", `module.exports = require("left-pad");\n`);
+    expect(cruise("err").status).toBe(0);
+    expect(violationsOf()).toEqual([]);
+  });
+
   it("is quiet on a clean app", () => {
     write("app/a.js", `module.exports = require("./b");\n`);
     write("app/b.js", `module.exports = 1;\n`);

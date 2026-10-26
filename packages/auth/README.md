@@ -41,3 +41,36 @@ const result = await signIn.signIn(await federation.complete(code)); // { status
 An external identity attaches to an existing account **only when the address is verified on both sides** (by the provider and by the product); otherwise it is refused (`EMAIL_NOT_VERIFIED`, `ACCOUNT_EMAIL_UNVERIFIED`), and it is never a second user table. `create` is optional: leave it out and a person without an account is refused (`NO_ACCOUNT`). Adapters run the conformance kits of `@krizaka/auth/testkit` (`identityProviderContract`, `identityLinkStoreContract`).
 
 > `postgresAccounts` was the first name of `dbAccounts`; it stays as a `@deprecated` alias for one minor and leaves in the next major.
+
+## Sessions, passwords, addresses and the administration's locks
+
+What Yomizaka, Akinaza, Kachizaka and Yororis each copied (`password.ts`, `client-ip.ts`, `session.ts`, the admin gate of `access.ts`) is here once. Each piece is a function of its inputs: the product reads its environment and its framework, and passes values.
+
+```ts
+import { allowedIps, clientIp, createSessions, dbSessionStore, hashPassword, requireAdmin, sessionCookie, sessionTokenOf, verifyPassword } from "@krizaka/auth";
+
+const sessions = createSessions({
+  store: dbSessionStore(query, { columns: ["id", "email", "role", "locale"], toAccount: (row) => ({ id: String(row.id), email: String(row.email), role: row.role as "USER" | "ADMIN", locale: row.locale as "en" | "fr" }), active: { column: "status", equals: "ACTIVE" } }),
+  clock: { now: () => new Date() },
+  tokenPrefix: "ys",                       // tokens are `ys1.<43 characters>`
+  secret: () => env.AUTH_SESSION_SECRET,   // keys the stored hash (HMAC-SHA256)
+  sessionDays: () => settings.get("auth.sessionDays"), // the setting, read for each new session
+});
+
+const ip = clientIp(request.headers, { header: env.ABUSE_CLIENT_IP_HEADER, trustedProxyHops: env.ABUSE_TRUSTED_PROXY_HOPS });
+const { token, expires } = await sessions.create(account.id, { ip, userAgent: request.headers.get("user-agent") });
+cookies().set(sessionCookie(token, expires, { name: "yomizaka_session", secure: production }));
+
+const session = await sessions.resolve(sessionTokenOf(request.headers, { cookie: "yomizaka_session" })); // bearer of a native app, else the cookie
+const verdict = requireAdmin({ session, ip, allowedIps: allowedIps(env.AUTH_ALLOWED_IPS, { production }), surface: "api" }); // { ok: true } | { ok: false, status, code }
+```
+
+- **Passwords:** `hashPassword` and `verifyPassword` are scrypt (N=2^15, r=8, p=1), stored `scrypt$N$r$p$salt$hash`, the format of the copies: a hash a product stored verifies here (a test pins one). `passwordProblem` (12 to 256 characters) and `decoyHash` (verify against it when the address has no account: the same work, the same time). Hand them to `dbAccounts({ passwords: { hash: hashPassword, verify: verifyPassword } })`.
+- **Client address:** `clientIp(headers, { header, trustedProxyHops })` reads the header the edge sets, else the entry `trustedProxyHops` from the right of `X-Forwarded-For` (never the left: the client writes it), else `X-Real-IP`, else null.
+- **Sessions:** a `SessionStore` port with `dbSessionStore` (the product's `sessions` table, declared as parameters: the table names and the account columns are checked, and a suspended account signs nobody in at once), `memorySessionStore` for tests, and `sessionsSchema` for a product without the table. The token is shown once; only its HMAC is stored, with the same formula as the copies, so sessions already stored keep working. A session lasts `sessionDays` of 24 hours from the clock.
+- **The administration's locks:** `requireAdmin({ session, ip, allowedIps, surface })` decides on the three locks (a session, the ADMIN role, an address on the list) and answers the status and code: on the API 401 or 403 with `UNAUTHENTICATED`, `FORBIDDEN` or `IP_NOT_ALLOWED`; on a page 404 for every failed lock, because the administration does not announce itself. `allowedIps(list, { production })` makes an empty list « nobody » in production and « anybody » in development.
+- **`@krizaka/auth/contract`** (browser-safe, needs `zod`): `GET /api/me` answers **200** `{ signedIn, signupOpen, account? }` with `Cache-Control: private, no-store` and `Vary: Cookie` (krizaka-ui#551). Signed out is not an error. `meResponse({ signupOpen, account })` builds the answer and checks it against `meSchema`; the bar island of `@krizaka/ui` reads the same file.
+- **`@krizaka/auth/settings`** (needs `@krizaka/settings`): the registry fragment `authSettings`: `auth.sessionDays` (14, 1 to 90) and `auth.passwordResetMinutes` (30, 5 to 1440).
+- **Forgotten password:** `dbAccounts` already is the reset port: `requestPasswordReset(email, now)` (the same answer whether or not the address has an account, the link mailed in the person's language) and `resetPassword(token, next, now)` (the token is stored hashed, used once, expires after `auth.passwordResetMinutes`, and every session ends). Put the product's limiter in front of both routes (`@krizaka/rate-limit`).
+
+`sessionStoreContract` (from `@krizaka/auth/testkit`) is the contract every `SessionStore` adapter runs, memory and database alike.

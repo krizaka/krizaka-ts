@@ -136,7 +136,7 @@ Every message names the home and ends « Missing function? add it to the package
 to the Krizaka package, never worked around with the library. Run it with `depcruise --output-type err-long <folders>`
 to read the message (`err` prints the rule name only). Beside the domains, the preset owes every repository
 `no-circular`, `not-to-unresolvable` (declare the dependency, or fix the path; set `options.tsConfig` for path aliases)
-and `not-to-dev-dep` (tests, stories, scripts and tool configs may import devDependencies). Run `depcruise` from the
+and `not-to-dev-dep` (tests, stories, scripts and tool configs may import devDependencies; a package that is also a `peerDependency` is installed by the consumer, so production code may import it). Run `depcruise` from the
 workspace that owns the `package.json`.
 
 #### Known violations (they only shrink)
