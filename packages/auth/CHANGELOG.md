@@ -1,5 +1,12 @@
 # @krizaka/auth
 
+## 0.6.0
+
+### Minor Changes
+
+- c7478a9: Federated sign-in behind a port (#32): `IdentityProvider` (`start(provider, returnTo)`, `complete(code)` → a verified `ExternalIdentity`, PKCE for native apps), the adapter for krizaka-users (`usersIdentityProvider`) and an in-memory one, the link store (`dbIdentityLinks`, `identityLinksMigration`, never a second user table) and `createFederatedSignIn`, which attaches an identity to an existing account only when the address is verified on both sides. Conformance kits in `@krizaka/auth/testkit`.
+- 5c6d9a6: Functional names for the technology-named exports (#30): `dbAccounts`, `dbApiKeyStore`, `dbSettings` (and the type `DbSettingsDeps`). The old `postgresAccounts`, `pgApiKeyStore`, `postgresSettings` and `PostgresSettingsDeps` stay as `@deprecated` aliases for this minor and go in the next major: move to the new names now.
+
 ## 0.5.0
 
 ### Minor Changes
