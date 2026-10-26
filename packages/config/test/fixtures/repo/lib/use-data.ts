@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 export function useData(url: string, refetch: () => void) {
   const [data, setData] = useState<unknown>(null);
   useEffect(() => {
-    fetch(url).then((r) => r.json()).then(setData); // ")" in a comment
+    void fetch(url).then((r) => r.json()).then(setData); // ")" in a comment
     void krizakaFetch(`${url}?)`);
     refetch();
   }, [url, refetch]);

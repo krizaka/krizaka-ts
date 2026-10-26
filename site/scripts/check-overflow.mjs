@@ -41,12 +41,25 @@ function measure() {
   return out;
 }
 
+const flagOf = (args, name, fallback) => (args.includes(name) ? args[args.indexOf(name) + 1] : fallback);
+
+/** One page at one width and theme: the overflows the browser measures, and a screenshot of the home pages when asked. */
+async function checkPage(page, { base, path, width, theme, shots }) {
+  await page.goto(`${base}${path}`, { waitUntil: "networkidle" });
+  await page.evaluate(() => document.fonts.ready);
+  const issues = await page.evaluate(measure);
+  const isHome = path === "/" || path === "/fr/";
+  if (shots && isHome && (width === 390 || width === 1440)) {
+    await page.screenshot({ path: `${shots}/home${path === "/" ? "" : "-fr"}-${width}-${theme}.png`, fullPage: true });
+  }
+  return issues.map((issue) => `${path} @${width} ${theme}: ${issue}`);
+}
+
 async function main() {
   const args = process.argv.slice(2);
-  const flag = (name, fallback) => (args.includes(name) ? args[args.indexOf(name) + 1] : fallback);
-  const base = flag("--base", "http://localhost:3000").replace(/\/$/, "");
-  const shots = flag("--shots", null);
-  const { chromium } = createRequire(import.meta.url)(flag("--playwright", "playwright"));
+  const base = flagOf(args, "--base", "http://localhost:3000").replace(/\/$/, "");
+  const shots = flagOf(args, "--shots", null);
+  const { chromium } = createRequire(import.meta.url)(flagOf(args, "--playwright", "playwright"));
   if (shots) mkdirSync(shots, { recursive: true });
   const browser = await chromium.launch();
   const problems = [];
@@ -55,15 +68,7 @@ async function main() {
       const context = await browser.newContext({ viewport: { width, height: 900 }, reducedMotion: "reduce", colorScheme: theme });
       await context.addInitScript((t) => localStorage.setItem("kz-theme", t), theme);
       const page = await context.newPage();
-      for (const path of PAGES) {
-        await page.goto(`${base}${path}`, { waitUntil: "networkidle" });
-        await page.evaluate(() => document.fonts.ready);
-        const issues = await page.evaluate(measure);
-        for (const issue of issues) problems.push(`${path} @${width} ${theme}: ${issue}`);
-        if (shots && (path === "/" || path === "/fr/") && (width === 390 || width === 1440)) {
-          await page.screenshot({ path: `${shots}/home${path === "/" ? "" : "-fr"}-${width}-${theme}.png`, fullPage: true });
-        }
-      }
+      for (const path of PAGES) problems.push(...(await checkPage(page, { base, path, width, theme, shots })));
       await context.close();
     }
   }

@@ -17,46 +17,81 @@ export function repositoryPackages(repo = join(SITE, "..")) {
     .map((d) => d.name);
 }
 
-export function checkContent({ dir = join(SITE, "content", "docs"), ids = repositoryPackages(), messages = join(SITE, "messages") } = {}) {
+const INSTALL_TABS = /^<InstallTabs name="@krizaka\/[a-z0-9-]+" \/>$/m;
+
+/** Every package has its page in both languages (the start page too). */
+function missingPages(dir, slugs) {
   const errors = [];
-  const slugs = ["start", ...ids];
   for (const slug of slugs) {
     for (const file of [`${slug}.mdx`, `${slug}.fr.mdx`]) if (!existsSync(join(dir, file))) errors.push(`${file}: missing${slug === "start" ? "" : " (run `npm run gen`)"}`);
   }
+  return errors;
+}
+
+/** Each language's sidebar lists every package. */
+function unlistedPackages(dir, ids) {
+  const errors = [];
   for (const [name, locale] of [["meta.json", "en"], ["meta.fr.json", "fr"]]) {
     if (!existsSync(join(dir, name))) {
       errors.push(`${name}: missing (run \`npm run gen\`)`);
       continue;
     }
-    const listed = JSON.parse(read(dir, name)).pages.filter((p) => !p.startsWith("---"));
-    for (const id of ids) if (!listed.includes(id)) errors.push(`${name} (${locale}) does not list ${id}`);
+    const listed = new Set(JSON.parse(read(dir, name)).pages.filter((p) => !p.startsWith("---")));
+    for (const id of ids) if (!listed.has(id)) errors.push(`${name} (${locale}) does not list ${id}`);
   }
+  return errors;
+}
+
+/** The messages say one line per package, and only for the packages of the repository. */
+function packageMessages(messages, ids) {
+  const errors = [];
   for (const locale of ["en", "fr"]) {
     const dictionary = JSON.parse(read(messages, `${locale}.json`));
     for (const id of ids) if (!dictionary.packages?.[id]?.hook) errors.push(`messages/${locale}.json: packages.${id}.hook is missing — a package needs its one line`);
     for (const id of Object.keys(dictionary.packages ?? {})) if (!ids.includes(id)) errors.push(`messages/${locale}.json: packages.${id} is not a package of the repository`);
   }
-  const facts = (src) => ({
-    fences: [...src.matchAll(/^```(\w*)/gm)].map((m) => m[1]).join(","),
-    components: [...src.matchAll(/^<([A-Z]\w+)[^>]*>/gm)].map((m) => m[0]).join(","),
-    links: [...src.matchAll(/\]\((\/[^)#]*)/g)].map((m) => m[1]).sort().join(","),
-  });
-  for (const slug of slugs.filter((s) => existsSync(join(dir, `${s}.mdx`)) && existsSync(join(dir, `${s}.fr.mdx`)))) {
-    const a = read(dir, `${slug}.mdx`);
-    const b = read(dir, `${slug}.fr.mdx`);
-    for (const [src, file] of [[a, `${slug}.mdx`], [b, `${slug}.fr.mdx`]]) {
-      const head = src.match(/^---\n([\s\S]*?)\n---\n/)?.[1] ?? "";
-      for (const key of ["title", "description"]) if (!new RegExp(`^${key}:\\s*\\S`, "m").test(head)) errors.push(`${file}: no ${key} in the front matter`);
-      if (/```mermaid/.test(src)) errors.push(`${file}: Mermaid is not used on this site`);
-    }
-    if (slug === "start") {
-      const fa = facts(a), fb = facts(b);
-      for (const key of Object.keys(fa)) if (fa[key] !== fb[key]) errors.push(`start: the French page differs in its ${key} (${fa[key] || "none"} ≠ ${fb[key] || "none"})`);
-    } else {
-      if (!/^<InstallTabs name="@krizaka\/[a-z0-9-]+" \/>$/m.test(a) || !/^<InstallTabs name="@krizaka\/[a-z0-9-]+" \/>$/m.test(b)) errors.push(`${slug}: no install command (InstallTabs) in both languages`);
-    }
-  }
   return errors;
+}
+
+const facts = (src) => ({
+  fences: [...src.matchAll(/^```(\w*)/gm)].map((m) => m[1]).join(","),
+  components: [...src.matchAll(/^<([A-Z]\w+)[^>]*>/gm)].map((m) => m[0]).join(","),
+  links: [...src.matchAll(/\]\((\/[^)#]*)/g)].map((m) => m[1]).sort((x, y) => x.localeCompare(y)).join(","),
+});
+
+/** One page, in one language: a title and a description in its front matter, and no Mermaid. */
+function pageProblems(src, file) {
+  const errors = [];
+  const head = /^---\n([\s\S]*?)\n---\n/.exec(src)?.[1] ?? "";
+  for (const key of ["title", "description"]) if (!new RegExp(`^${key}:\\s*\\S`, "m").test(head)) errors.push(`${file}: no ${key} in the front matter`);
+  if (src.includes("```mermaid")) errors.push(`${file}: Mermaid is not used on this site`);
+  return errors;
+}
+
+/** A slug's two pages: each one well formed, and the start page the same in both languages, the others with their install command. */
+function pairProblems(dir, slug) {
+  const a = read(dir, `${slug}.mdx`);
+  const b = read(dir, `${slug}.fr.mdx`);
+  const errors = [...pageProblems(a, `${slug}.mdx`), ...pageProblems(b, `${slug}.fr.mdx`)];
+  if (slug !== "start") {
+    if (!INSTALL_TABS.test(a) || !INSTALL_TABS.test(b)) errors.push(`${slug}: no install command (InstallTabs) in both languages`);
+    return errors;
+  }
+  const fa = facts(a);
+  const fb = facts(b);
+  for (const key of Object.keys(fa)) if (fa[key] !== fb[key]) errors.push(`start: the French page differs in its ${key} (${fa[key] || "none"} ≠ ${fb[key] || "none"})`);
+  return errors;
+}
+
+export function checkContent({ dir = join(SITE, "content", "docs"), ids = repositoryPackages(), messages = join(SITE, "messages") } = {}) {
+  const slugs = ["start", ...ids];
+  const pairs = slugs.filter((s) => existsSync(join(dir, `${s}.mdx`)) && existsSync(join(dir, `${s}.fr.mdx`)));
+  return [
+    ...missingPages(dir, slugs),
+    ...unlistedPackages(dir, ids),
+    ...packageMessages(messages, ids),
+    ...pairs.flatMap((slug) => pairProblems(dir, slug)),
+  ];
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

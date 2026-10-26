@@ -102,18 +102,38 @@ export function balancedArguments(source, open) {
   let depth = 0;
   for (let i = open; i < source.length; i += 1) {
     const c = source[i];
-    if (c === '"' || c === "'" || c === "`") {
-      for (i += 1; i < source.length && source[i] !== c; i += 1) if (source[i] === "\\") i += 1;
-    } else if (c === "/" && source[i + 1] === "/") {
-      i = source.indexOf("\n", i);
-      if (i < 0) break;
-    } else if (c === "/" && source[i + 1] === "*") {
-      i = source.indexOf("*/", i + 2) + 1;
-      if (i <= 0) break;
-    } else if (c === "(") depth += 1;
+    const skipped = skipLiteralOrComment(source, i);
+    if (skipped === null) break;
+    if (skipped > i) i = skipped;
+    else if (c === "(") depth += 1;
     else if (c === ")" && --depth === 0) return source.slice(open + 1, i);
   }
   return source.slice(open + 1);
+}
+
+/**
+ * Where a string, template or comment that starts at `i` ends (the index of its last character), `i` itself when none starts
+ * there, null when a line comment or a block comment never ends.
+ * @param {string} source
+ * @param {number} i
+ * @returns {number | null}
+ */
+function skipLiteralOrComment(source, i) {
+  const c = source[i];
+  if (c === '"' || c === "'" || c === "`") {
+    let end = i + 1;
+    while (end < source.length && source[end] !== c) end += source[end] === "\\" ? 2 : 1;
+    return end;
+  }
+  if (c === "/" && source[i + 1] === "/") {
+    const end = source.indexOf("\n", i);
+    return end < 0 ? null : end;
+  }
+  if (c === "/" && source[i + 1] === "*") {
+    const end = source.indexOf("*/", i + 2);
+    return end < 0 ? null : end + 1;
+  }
+  return i;
 }
 
 // ── Selections live in the URL (Oussama, 2026-10-22: « changer les tabs doit changer les routes ») ──────────────────────

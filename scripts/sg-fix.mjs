@@ -24,7 +24,7 @@ export function withDateFnsImports(source) {
   for (const name of existing?.[1].split(",").map((n) => n.trim()).filter(Boolean) ?? []) imported.add(name);
   const missing = DATE_FNS.filter((name) => new RegExp(`\\b${name}\\(`).test(source) && !imported.has(name));
   if (missing.length === 0) return source;
-  const names = [...new Set([...imported, ...missing])].sort();
+  const names = [...new Set([...imported, ...missing])].sort((a, b) => a.localeCompare(b));
   const line = `import { ${names.join(", ")} } from "date-fns";`;
   if (existing) return source.replace(existing[0], line);
   const imports = [...source.matchAll(/^import[\s\S]*?from\s*["'][^"']+["'];?[ \t]*$/gm)];
@@ -38,12 +38,10 @@ function run() {
   const root = process.cwd();
   const bin = localBin(root);
   const paths = process.argv.slice(2);
-  const before = spawnSync("git", ["diff", "--name-only"], { cwd: root, encoding: "utf8" }).stdout.split("\n");
   const scan = spawnSync(bin, ["scan", "--update-all", ...paths], { cwd: root, encoding: "utf8" });
   if (scan.error) throw scan.error;
   const after = spawnSync("git", ["diff", "--name-only"], { cwd: root, encoding: "utf8" }).stdout.split("\n");
   const files = after.filter((f) => /\.(ts|tsx|mts)$/.test(f));
-  void before;
   let touched = 0;
   for (const file of files) {
     const path = resolve(root, file);

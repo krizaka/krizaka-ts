@@ -191,6 +191,25 @@ export class RatchetError extends Error {}
  */
 
 /**
+ * Each counter against its recorded value: the report, and the names that went up or down.
+ * @param {Counters} current
+ * @param {Counters} recorded
+ */
+function compareCounters(current, recorded) {
+  /** @type {RatchetResult["counters"]} */
+  const report = /** @type {any} */ ({});
+  /** @type {CounterName[]} */ const increased = [];
+  /** @type {CounterName[]} */ const decreased = [];
+  for (const name of COUNTERS) {
+    const delta = current[name] - recorded[name];
+    report[name] = { recorded: recorded[name], current: current[name], delta };
+    if (delta > 0) increased.push(name);
+    if (delta < 0) decreased.push(name);
+  }
+  return { report, increased, decreased };
+}
+
+/**
  * Runs the ratchet.
  * - `check` (default): fails when a counter is above its recorded value.
  * - `init`: creates the file with the current counters (refuses to overwrite one).
@@ -227,16 +246,7 @@ export async function runRatchet({ root, mode = "check", globs, file = RATCHET_F
   /** @type {CounterName[]} */ const added = recordedFile ? COUNTERS.filter((n) => recordedFile.counters[n] === undefined) : [];
   const recorded = /** @type {Counters} */ ({ ...current, ...recordedFile?.counters });
 
-  /** @type {RatchetResult["counters"]} */
-  const report = /** @type {any} */ ({});
-  /** @type {CounterName[]} */ const increased = [];
-  /** @type {CounterName[]} */ const decreased = [];
-  for (const name of COUNTERS) {
-    const delta = current[name] - recorded[name];
-    report[name] = { recorded: recorded[name], current: current[name], delta };
-    if (delta > 0) increased.push(name);
-    if (delta < 0) decreased.push(name);
-  }
+  const { report, increased, decreased } = compareCounters(current, recorded);
 
   let written = false;
   if (mode === "init") {

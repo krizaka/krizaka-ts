@@ -1,5 +1,5 @@
 import pg from "pg";
-import { afterAll, beforeAll, describe } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { apiKeysMigration, pgApiKeyStore } from "../src";
 import { apiKeyStoreContract } from "../src/testkit";
@@ -7,6 +7,15 @@ import { apiKeyStoreContract } from "../src/testkit";
 /** The PostgreSQL adapter against a real PostgreSQL (CI's service; locally ORGANIZE_DB_IT=1 DATABASE_URL=…), in a schema of its own: the same contract as the memory one. */
 const enabled = process.env.ORGANIZE_DB_IT === "1" && !!process.env.DATABASE_URL;
 const schema = `keys_${Math.random().toString(36).slice(2, 10)}`;
+
+describe("api key migration", () => {
+  it("creates the table against the product's account table", () => {
+    expect(apiKeysMigration("users")).toContain("REFERENCES users(id)");
+  });
+  it("refuses an owner table that is not a safe SQL identifier", () => {
+    expect(() => apiKeysMigration("users; DROP TABLE x")).toThrow("not a safe SQL identifier");
+  });
+});
 
 describe.runIf(enabled)("api key store: PostgreSQL", () => {
   let client: pg.Client;

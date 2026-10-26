@@ -38,7 +38,7 @@ export function onProse(markdown, fn) {
 
 /** MDX reads `{` as an expression and `<` as a tag: in prose they are escaped (autolinks `<https://…>` are kept). */
 export const mdxSafe = (markdown) =>
-  onProse(markdown, (text) => text.replace(/<(https?:\/\/[^>\s]+)>/g, "\u0000$1\u0001").replace(/[{}]/g, (c) => `\\${c}`).replace(/</g, "&lt;").replace(/\u0000/g, "<").replace(/\u0001/g, ">"));
+  onProse(markdown, (text) => text.replace(/<(https?:\/\/[^>\s]+)>/g, "\uE000$1\uE001").replace(/[{}]/g, (c) => `\\${c}`).replaceAll("<", "&lt;").replaceAll("\uE000", "<").replaceAll("\uE001", ">"));
 
 /** A README's relative links and images, made absolute on GitHub (the page is not in the repository's folder). */
 export function absolutizeLinks(markdown, dir) {

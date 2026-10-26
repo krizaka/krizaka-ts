@@ -42,7 +42,7 @@ export function compare(recorded, found, ruleIds) {
   const unrecorded = [];
   /** @type {Record<string, number>} */
   const next = {};
-  for (const id of [...ruleIds].sort()) {
+  for (const id of [...ruleIds].sort((a, b) => a.localeCompare(b))) {
     const current = found[id] ?? 0;
     if (!(id in recorded)) {
       unrecorded.push(id);
