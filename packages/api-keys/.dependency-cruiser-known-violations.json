@@ -1,0 +1,30 @@
+[
+  {
+    "type": "dependency",
+    "from": "src/keys.ts",
+    "to": "node_modules/date-fns/index.cjs",
+    "unresolvedTo": "date-fns",
+    "dependencyTypes": [
+      "npm",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "krizaka-first-dates"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/memory.ts",
+    "to": "node_modules/date-fns/index.cjs",
+    "unresolvedTo": "date-fns",
+    "dependencyTypes": [
+      "npm",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "krizaka-first-dates"
+    }
+  }
+]

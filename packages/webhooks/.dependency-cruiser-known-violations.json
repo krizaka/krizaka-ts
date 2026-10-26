@@ -1,0 +1,16 @@
+[
+  {
+    "type": "dependency",
+    "from": "src/webhooks.ts",
+    "to": "node_modules/date-fns/index.cjs",
+    "unresolvedTo": "date-fns",
+    "dependencyTypes": [
+      "npm",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "krizaka-first-dates"
+    }
+  }
+]

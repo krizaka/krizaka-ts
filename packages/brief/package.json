@@ -47,6 +47,7 @@
     "node": ">=22"
   },
   "dependencies": {
+    "@krizaka/intl": "^0.4.1",
     "date-fns": "^4.4.0"
   },
   "devDependencies": {

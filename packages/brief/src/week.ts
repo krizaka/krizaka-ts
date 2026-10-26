@@ -1,3 +1,4 @@
+import { getDateTimeFormat, localDay } from "@krizaka/intl";
 import { format, getISODay, startOfISOWeek } from "date-fns";
 
 /** The brief's week, in the shop's time zone. */
@@ -14,11 +15,11 @@ export interface BriefWeek {
   readonly hour: number;
 }
 
-/** The local calendar date and hour of an instant in a time zone (Intl, no library zone data). */
+/** The local calendar date (`@krizaka/intl`'s `localDay`) and hour of an instant in a time zone. */
 function localParts(instant: Date, timeZone: string): { year: number; month: number; day: number; hour: number } {
-  const parts = new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", hourCycle: "h23" }).formatToParts(instant);
-  const read = (type: Intl.DateTimeFormatPartTypes) => Number(parts.find((p) => p.type === type)?.value);
-  return { year: read("year"), month: read("month"), day: read("day"), hour: read("hour") };
+  const [year, month, day] = localDay(instant, timeZone).split("-").map(Number) as [number, number, number];
+  const hour = Number(getDateTimeFormat("en-CA", { timeZone, hour: "2-digit", hourCycle: "h23" }).format(instant));
+  return { year, month, day, hour };
 }
 
 /** The week an instant falls in, for a shop in `timeZone` (America/Montreal…). */

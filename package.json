@@ -6,12 +6,13 @@
   "packageManager": "pnpm@10.34.6",
   "scripts": {
     "build": "turbo run build",
-    "lint": "turbo run lint && ast-grep test --skip-snapshot-tests && node scripts/sg-ratchet.mjs && node scripts/check-file-names.mjs",
+    "lint": "turbo run lint && ast-grep test --skip-snapshot-tests && node scripts/sg-ratchet.mjs && node scripts/check-file-names.mjs && node scripts/deps.mjs",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test && vitest run",
     "check": "pnpm run lint && pnpm run typecheck && pnpm run test",
     "prepare": "git config core.hooksPath .githooks 2>/dev/null || true",
     "lint:sg": "node scripts/sg-ratchet.mjs",
+    "lint:deps": "node scripts/deps.mjs",
     "lint:sg:test": "ast-grep test --skip-snapshot-tests",
     "sg:ratchet:update": "node scripts/sg-ratchet.mjs --update",
     "changeset": "changeset",
@@ -22,6 +23,8 @@
   "devDependencies": {
     "@ast-grep/cli": "0.51.0",
     "@changesets/cli": "^3.0.3",
+    "@krizaka/config": "workspace:^",
+    "dependency-cruiser": "^18.6.0",
     "turbo": "^2.11.7",
     "vitest": "^4.1.11"
   },
