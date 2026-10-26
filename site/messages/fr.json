@@ -61,6 +61,9 @@
     "api-keys": {
       "hook": "Des clés d’API créées, renouvelées, révoquées et authentifiées ; montrées une fois, seul un hash est gardé."
     },
+    "orazaka-client": {
+      "hook": "Un seul client Orazaka pour les produits TypeScript : lancer un run, lire son statut et ses résultats, des erreurs typées, un délai maximal et un coupe-circuit."
+    },
     "webhooks": {
       "hook": "Des webhooks signés et idempotents, dans les deux sens : livrés avec reprises, vérifiés et appliqués une fois."
     },
