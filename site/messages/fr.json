@@ -85,6 +85,9 @@
     "outbox": {
       "hook": "La boîte d’envoi transactionnelle : écrite avec le travail, livrée au moins une fois par des workers à bail, rejouée, puis mise de côté."
     },
+    "payments": {
+      "hook": "Les paiements derrière un port : paiement avec rabais, webhooks vérifiés et appliqués une fois, remboursements et expiration, montants entiers."
+    },
     "rate-limit": {
       "hook": "Des limites par action : des fenêtres fixes par adresse et par sujet, réglées par l’admin, comptées exactement en concurrence."
     },

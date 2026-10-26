@@ -14,7 +14,7 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 /** The packages with TypeScript sources, and the folders of their sources (`config` is the preset itself: it has none). */
 export const PACKAGES = Object.freeze(Object.fromEntries(
-  ["api-keys", "audit", "auth", "brief", "db", "orazaka-client", "org", "organize", "outbox", "privacy", "rate-limit", "settings", "time", "webhooks"].map((name) => [`packages/${name}`, ["src"]]),
+  ["api-keys", "audit", "auth", "brief", "db", "orazaka-client", "org", "organize", "outbox", "payments", "privacy", "rate-limit", "settings", "time", "webhooks"].map((name) => [`packages/${name}`, ["src"]]),
 ));
 
 /** The packages of the repository that own a `src` folder: a new one cannot escape the cruise (scripts/deps.test.mjs). */
