@@ -79,6 +79,9 @@
     "db": {
       "hook": "La fondation base de données : types partagés, transactions, schémas de modules intégrés aux migrations du produit, base de test."
     },
+    "outbox": {
+      "hook": "La boîte d’envoi transactionnelle : écrite avec le travail, livrée au moins une fois par des workers à bail, rejouée, puis mise de côté."
+    },
     "rate-limit": {
       "hook": "Des limites par action : des fenêtres fixes par adresse et par sujet, réglées par l’admin, comptées exactement en concurrence."
     },
