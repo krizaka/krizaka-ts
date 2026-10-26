@@ -44,46 +44,59 @@ function paidFacts(o: Obj): PaidFacts {
   };
 }
 
+function translateCheckout(id: string, o: Obj, customerId: string | null): PaymentEvent {
+  const accountId = o.metadata?.account_id ?? text(o.client_reference_id);
+  if (!accountId) return { id, type: "ignored" };
+  const paid = o.payment_status === "paid" || o.payment_status === "no_payment_required";
+  if (o.mode === "payment" && paid && o.metadata?.kind) return { id, type: "payment_paid", kind: o.metadata.kind, accountId, customerId, ...paidFacts(o) };
+  if (o.mode === "subscription") return { id, type: "subscription_started", accountId, customerId, subscriptionId: text(o.subscription), ...paidFacts(o) };
+  return { id, type: "ignored" };
+}
+
+function translateExpired(id: string, o: Obj): PaymentEvent {
+  const checkoutRef = text(o.id);
+  if (!checkoutRef) return { id, type: "ignored" };
+  return { id, type: "checkout_expired", checkoutRef, accountId: o.metadata?.account_id ?? text(o.client_reference_id), metadata: { ...o.metadata } };
+}
+
+function translateRefund(id: string, o: Obj): PaymentEvent {
+  const chargeRef = text(o.id);
+  const amountRefunded = whole(o.amount_refunded);
+  const currency = text(o.currency);
+  if (!chargeRef || amountRefunded === null || !currency) return { id, type: "ignored" };
+  return { id, type: "payment_refunded", paymentRef: text(o.payment_intent), invoiceRef: text(o.invoice), chargeRef, amountRefunded, amountCharged: whole(o.amount) ?? 0, currency, metadata: { ...o.metadata } };
+}
+
+function translateSubscription(id: string, type: string, o: Obj, customerId: string | null): PaymentEvent {
+  const status = type === "customer.subscription.deleted" ? "canceled" : String(o.status ?? "");
+  const item = ((o.items as { data?: { current_period_end?: number }[] } | undefined)?.data ?? [])[0];
+  return {
+    id,
+    type: "subscription_changed",
+    accountId: o.metadata?.account_id ?? null,
+    customerId,
+    subscriptionId: String(o.id ?? ""),
+    status,
+    active: LIVE.has(status),
+    periodEnd: item?.current_period_end ?? (typeof o.current_period_end === "number" ? o.current_period_end : null),
+  };
+}
+
 /** The processor's event, in the domain's words. Anything the domain does not need is `ignored`. */
 export function translate(event: { id: string; type: string; data: { object: Record<string, unknown> } }): PaymentEvent {
   const o = event.data.object as Obj;
   const customerId = text(o.customer);
   switch (event.type) {
-    case "checkout.session.completed": {
-      const accountId = o.metadata?.account_id ?? text(o.client_reference_id);
-      if (!accountId) return { id: event.id, type: "ignored" };
-      if (o.mode === "payment" && (o.payment_status === "paid" || o.payment_status === "no_payment_required") && o.metadata?.kind) return { id: event.id, type: "payment_paid", kind: o.metadata.kind, accountId, customerId, ...paidFacts(o) };
-      if (o.mode === "subscription") return { id: event.id, type: "subscription_started", accountId, customerId, subscriptionId: text(o.subscription), ...paidFacts(o) };
-      return { id: event.id, type: "ignored" };
-    }
-    case "checkout.session.expired": {
-      const checkoutRef = text(o.id);
-      if (!checkoutRef) return { id: event.id, type: "ignored" };
-      return { id: event.id, type: "checkout_expired", checkoutRef, accountId: o.metadata?.account_id ?? text(o.client_reference_id), metadata: { ...o.metadata } };
-    }
-    case "charge.refunded": {
-      const chargeRef = text(o.id);
-      const amountRefunded = whole(o.amount_refunded);
-      const currency = text(o.currency);
-      if (!chargeRef || amountRefunded === null || !currency) return { id: event.id, type: "ignored" };
-      return { id: event.id, type: "payment_refunded", paymentRef: text(o.payment_intent), invoiceRef: text(o.invoice), chargeRef, amountRefunded, amountCharged: whole(o.amount) ?? 0, currency, metadata: { ...o.metadata } };
-    }
+    case "checkout.session.completed":
+      return translateCheckout(event.id, o, customerId);
+    case "checkout.session.expired":
+      return translateExpired(event.id, o);
+    case "charge.refunded":
+      return translateRefund(event.id, o);
     case "customer.subscription.created":
     case "customer.subscription.updated":
-    case "customer.subscription.deleted": {
-      const status = event.type === "customer.subscription.deleted" ? "canceled" : String(o.status ?? "");
-      const item = ((o.items as { data?: { current_period_end?: number }[] } | undefined)?.data ?? [])[0];
-      return {
-        id: event.id,
-        type: "subscription_changed",
-        accountId: o.metadata?.account_id ?? null,
-        customerId,
-        subscriptionId: String(o.id ?? ""),
-        status,
-        active: LIVE.has(status),
-        periodEnd: item?.current_period_end ?? (typeof o.current_period_end === "number" ? o.current_period_end : null),
-      };
-    }
+    case "customer.subscription.deleted":
+      return translateSubscription(event.id, event.type, o, customerId);
     default:
       return { id: event.id, type: "ignored" };
   }
