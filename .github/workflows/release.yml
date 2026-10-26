@@ -59,7 +59,8 @@ jobs:
       # @krizaka/org carries the facts every footer and app reads: each release of it publishes org/v1/org.json (and a hashed copy)
       # to the CDN. Needs the organisation secrets MEDIA_STORAGE_API_KEY and MEDIA_STORAGE_ZONE (optionally MEDIA_STORAGE_ENDPOINT,
       # MEDIA_CDN_HOSTNAME); without them the script warns and exits 0 — nothing is printed either way.
-      - if: steps.changesets.outputs.published == 'true' && contains(steps.changesets.outputs.publishedPackages, '"@krizaka/org"')
+      # Idempotent (same bytes, same names), so it runs after any publish and on demand rather than parsing which package was published.
+      - if: steps.changesets.outputs.published == 'true' || github.event_name == 'workflow_dispatch'
         working-directory: packages/org
         run: pnpm run build && pnpm run publish:cdn
         env:
