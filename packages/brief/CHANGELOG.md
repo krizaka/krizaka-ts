@@ -1,5 +1,11 @@
 # @krizaka/brief
 
+## 0.1.1
+
+### Patch Changes
+
+- 54ea159: The week reads the local calendar day from `@krizaka/intl`'s `localDay` and the hour from its cached `Intl` format, instead of a private `Intl.DateTimeFormat` (#77). Same results.
+
 ## 0.1.0
 
 ### Minor Changes

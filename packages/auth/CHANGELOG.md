@@ -1,5 +1,16 @@
 # @krizaka/auth
 
+## 0.8.0
+
+### Minor Changes
+
+- 273c554: `accountsSchema`, `rolesSchema` and `identityLinksSchema`: the accounts, roles and federated-links tables as `@krizaka/db` modules, version 1 byte-identical to `accountsMigration`, `rolesMigration` and `identityLinksMigration` (a product adopts with no DDL change). `Query` is `@krizaka/db`'s, re-exported under the same name. The three migration functions are deprecated (#51).
+
+### Patch Changes
+
+- Updated dependencies [273c554]
+  - @krizaka/db@0.2.0
+
 ## 0.7.0
 
 ### Minor Changes
