@@ -85,6 +85,9 @@
     "outbox": {
       "hook": "La boîte d’envoi transactionnelle : écrite avec le travail, livrée au moins une fois par des workers à bail, rejouée, puis mise de côté."
     },
+    "coupons": {
+      "hook": "Des coupons de rabais et de crédits gérés par l’admin : réservés sous verrou, confirmés une fois, libérés si non payés, remboursés ; des partenaires pour l’attribution."
+    },
     "credits": {
       "hook": "Un seul grand livre de crédits : octrois qui expirent avec plafonds par jour et par mois, achats, réservations et remboursements, exact en concurrence."
     },
