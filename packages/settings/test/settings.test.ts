@@ -1,7 +1,7 @@
-import pg from "pg";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import { ALL_SCOPES, bilingual, choice, defineSettings, describeSettings, flag, GLOBAL, integer, postgresSettings, type Query, resolveValue, SCOPE, type ScopeRef, seedLegacySettings, SettingsError, settingsMigration, subset, WORKSPACE_SCOPES } from "../src";
+import { ALL_SCOPES, bilingual, choice, defineSettings, describeSettings, flag, GLOBAL, integer, postgresSettings, resolveValue, SCOPE, type ScopeRef, seedLegacySettings, SettingsError, settingsMigration, subset, WORKSPACE_SCOPES } from "../src";
+import { databaseEnabled, testDatabase } from "./database";
 
 /** A registry of the kinds a product uses. */
 const registry = {
@@ -57,36 +57,16 @@ describe("the effective value is user, then workspace, then global, then the def
 });
 
 /** The adapter against a real PostgreSQL (CI's service; locally ORGANIZE_DB_IT=1 DATABASE_URL=…), in a schema of its own. */
-const enabled = process.env.ORGANIZE_DB_IT === "1" && !!process.env.DATABASE_URL;
 const NOW = new Date("2026-10-22T12:00:00Z");
 const ADMIN = { id: null, label: "admin@test.example" };
 
-describe.runIf(enabled)("the settings service on PostgreSQL", () => {
-  const schemaName = `set_${Math.random().toString(36).slice(2, 10)}`;
-  let client: pg.Client;
-  let query: Query;
+describe.runIf(databaseEnabled)("the settings service on PostgreSQL", () => {
+  const query = testDatabase("set", settingsMigration());
   const workspaces = new Map<string, string>();
   const service = () => postgresSettings(settings, { query: (s, p) => query(s, p), workspaceOf: async (u) => workspaces.get(u) ?? null, cacheMs: 0 });
   const user = (id: string): ScopeRef => ({ scope: "user", id });
   const workspace = (id: string): ScopeRef => ({ scope: "workspace", id });
 
-  beforeAll(async () => {
-    client = new pg.Client({ connectionString: process.env.DATABASE_URL });
-    await client.connect();
-    await client.query(`CREATE SCHEMA ${schemaName}; SET search_path TO ${schemaName}`);
-    let queue: Promise<unknown> = Promise.resolve(); // one client: statements run one after another
-    query = (sql, params) => {
-      const run = queue.then(async () => (await client.query(sql, params as unknown[])).rows);
-      queue = run.catch(() => undefined);
-      return run as never;
-    };
-    await client.query(settingsMigration());
-    await client.query(settingsMigration()); // twice: safe
-  });
-  afterAll(async () => {
-    await client.query(`DROP SCHEMA ${schemaName} CASCADE`);
-    await client.end();
-  });
 
   it("returns the default until something is set, then the global value", async () => {
     expect(await service().get("features.insight")).toBe(true);

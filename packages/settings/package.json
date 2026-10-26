@@ -1,7 +1,7 @@
 {
   "name": "@krizaka/settings",
   "version": "0.1.0",
-  "description": "A Krizaka product's configuration as data: a typed registry (flags, integers, choices, subsets, bilingual texts), resolved user over workspace over global over default, changed by an administrator with an audit line for every change, and the JSON-safe description an admin screen draws from. PostgreSQL adapter and migration included; no framework, no wall clock.",
+  "description": "A Krizaka product's configuration as data: a typed registry (flags, integers, choices, subsets, bilingual texts), resolved user over workspace over global over default, changed by an administrator with an audit line for every change, the price catalogue (CAD, before taxes, availability, limits) in dated versions a subscription keeps, and the JSON-safe description an admin screen draws from. PostgreSQL adapter and migration included; no framework, no wall clock.",
   "keywords": [
     "krizaka",
     "settings",

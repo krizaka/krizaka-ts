@@ -56,7 +56,7 @@
       "hook": "Comptes et rôles : profil, changement de courriel par lien, mot de passe, sessions, rôles en données."
     },
     "settings": {
-      "hook": "La configuration comme donnée : un registre typé, utilisateur avant espace avant global, chaque changement audité."
+      "hook": "La configuration comme donnée : un registre typé, utilisateur avant espace avant global, et le catalogue des prix en versions datées ; chaque changement audité."
     },
     "api-keys": {
       "hook": "Des clés d’API créées, renouvelées, révoquées et authentifiées ; montrées une fois, seul un hash est gardé."
