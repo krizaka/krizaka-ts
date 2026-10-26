@@ -6,9 +6,14 @@
 /** The Krizaka packages that render or carry the design: krizaka-ui's. A krizaka-ui package may depend on krizaka-ts, never the reverse. */
 const RENDERING = "^(node_modules/)?@krizaka/(ui|tokens|fonts|icons|tailwind|charts|email)(/|$)|(^|/)node_modules/@krizaka/(ui|tokens|fonts|icons|tailwind|charts|email)(/|$)";
 
+// `packages/time` is the dates facade (krizaka-ts#76): the one package that may import the date library. Each package is cruised
+// from its own folder (scripts/deps.mjs), so the facade is the run whose folder is `time`.
+const facade = require("node:path").basename(process.cwd()) === "time";
+const preset = require("@krizaka/config/dependency-cruiser").withOptions({ exemptFrom: facade ? ["^src/"] : [] });
+
 module.exports = {
-  extends: "@krizaka/config/dependency-cruiser",
   forbidden: [
+    ...preset.forbidden,
     {
       name: "krizaka-ts-not-from-ui",
       severity: "error",
@@ -18,6 +23,7 @@ module.exports = {
     },
   ],
   options: {
+    ...preset.options,
     exclude: { path: "(^|/)(dist|coverage)/" },
     // another package is not followed: its own run reports its violations, once.
     doNotFollow: { path: "(^|/)node_modules/|^\\.\\./(?!node_modules)[^/]+/" },

@@ -79,6 +79,9 @@
     "db": {
       "hook": "La fondation base de données : types partagés, transactions, schémas de modules intégrés aux migrations du produit, base de test."
     },
+    "time": {
+      "hook": "L’arithmétique des dates sur un instant, exacte dans tous les fuseaux : la façade que pointe la règle « Krizaka d’abord » des dates."
+    },
     "audit": {
       "hook": "Qui a fait quoi : une trace en ajout seul dans son propre schéma, dans la transaction ou à côté, filtrée, exportée et caviardée (Loi 25)."
     },
