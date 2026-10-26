@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { adoptMigration, checksumOf, emitMigration } from "@krizaka/db";
 import { describe, expect, it } from "vitest";
 
-import { accountsMigration, accountsSchema, identityLinksMigration, identityLinksSchema, rolesMigration, rolesSchema } from "../src";
+import { accountsMigration, accountsSchema, identityLinksMigration, identityLinksSchema, rolesMigration, rolesSchema, sessionsSchema } from "../src";
 
 const sha = (text: string) => createHash("sha256").update(text).digest("hex");
 
@@ -46,5 +46,11 @@ describe("the auth schemas", () => {
   it("the scoped roles declare the scope table, and the unscoped ones do not need it", () => {
     expect(() => emitMigration(rolesSchema(["owner"], { scoped: true }), 1, { tables: { owner: "accounts" } })).toThrow(/scope/);
     expect(emitMigration(rolesSchema(["owner"]), 1, { tables: { owner: "accounts" } })).not.toContain("REFERENCES undefined");
+  });
+
+  it("the sessions table is a module in `public`, with the shape the products' own table has", () => {
+    const sql = emitMigration(sessionsSchema, 1, { tables: { accounts: "accounts" } });
+    for (const needle of ["CREATE TABLE IF NOT EXISTS sessions", "token_hash   text NOT NULL UNIQUE", "REFERENCES accounts(id) ON DELETE CASCADE", "CREATE INDEX IF NOT EXISTS sessions_account", "('auth_sessions', 1, "]) expect(sql).toContain(needle);
+    expect(adoptMigration(sessionsSchema, 1, { tables: { accounts: "accounts" } })).not.toContain("sessions (");
   });
 });

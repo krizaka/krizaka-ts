@@ -1,7 +1,10 @@
+import { randomUUID } from "node:crypto";
+
 import { expect, it } from "vitest";
 
 import { type ExternalIdentity, FederationError, type IdentityProvider, pkceChallenge } from "./federation";
 import { IdentityLinkError, type IdentityLinkStore } from "./identity-links";
+import type { SessionStore } from "./sessions";
 
 /** What an `IdentityProvider` adapter is run against: the provider, and a way to make the far side hand out a one-time code. */
 export interface ProviderHarness {
@@ -109,5 +112,74 @@ export function identityLinkStoreContract(name: string, make: () => IdentityLink
     expect(await store.unlink(id, "google", a)).toBe(true);
     expect(await store.unlink(id, "google", a)).toBe(false);
     expect(await store.find("google", a)).toBeNull();
+  });
+}
+
+/** What a `SessionStore` adapter is run against: the store, an active account of the product, and a way to suspend it. */
+export interface SessionStoreHarness {
+  /** The store; the account it carries is `{ id }`. */
+  store: SessionStore<{ id: string }>;
+  /** An active account's id (the same `n` gives the same account). */
+  account(n: number): string | Promise<string>;
+  /** Suspends the account: its sessions no longer sign anybody in. */
+  suspend(accountId: string): void | Promise<void>;
+}
+
+const NOW = new Date("2026-10-26T12:00:00Z");
+const hours = (h: number) => {
+  const at = new Date(NOW);
+  at.setUTCHours(at.getUTCHours() + h);
+  return at;
+};
+const hashOf = () => `contract-hash-${randomUUID()}`;
+
+/** What every `SessionStore` adapter must do: the same behaviour behind the same port. */
+export function sessionStoreContract(name: string, make: () => SessionStoreHarness | Promise<SessionStoreHarness>) {
+  it(`${name}: finds a session by its hash with its account, until it expires`, async () => {
+    const { store, account } = await make();
+    const accountId = await account(1);
+    const tokenHash = hashOf();
+    await store.insert({ accountId, tokenHash, createdAt: NOW, expiresAt: hours(24), ip: "203.0.113.7", userAgent: "test" });
+    const found = await store.find(tokenHash, hours(1));
+    expect(found?.account).toEqual({ id: accountId });
+    expect(found?.id).toBeTruthy();
+    expect(await store.find(tokenHash, hours(24))).toBeNull();
+    expect(await store.find(tokenHash, hours(48))).toBeNull();
+  });
+
+  it(`${name}: knows no session for an unknown hash`, async () => {
+    const { store } = await make();
+    expect(await store.find("nope", NOW)).toBeNull();
+  });
+
+  it(`${name}: deletes a session, and only that one`, async () => {
+    const { store, account } = await make();
+    const accountId = await account(2);
+    const a = hashOf();
+    const b = hashOf();
+    await store.insert({ accountId, tokenHash: a, createdAt: NOW, expiresAt: hours(24), ip: null, userAgent: null });
+    await store.insert({ accountId, tokenHash: b, createdAt: NOW, expiresAt: hours(24), ip: null, userAgent: null });
+    await store.delete(a);
+    expect(await store.find(a, NOW)).toBeNull();
+    expect((await store.find(b, NOW))?.account.id).toBe(accountId);
+    await store.delete(a); // twice: safe
+  });
+
+  it(`${name}: a suspended account signs nobody in, at once`, async () => {
+    const { store, account, suspend } = await make();
+    const accountId = await account(3);
+    const tokenHash = hashOf();
+    await store.insert({ accountId, tokenHash, createdAt: NOW, expiresAt: hours(24), ip: null, userAgent: null });
+    expect(await store.find(tokenHash, NOW)).not.toBeNull();
+    await suspend(accountId);
+    expect(await store.find(tokenHash, NOW)).toBeNull();
+  });
+
+  it(`${name}: refuses the same hash twice`, async () => {
+    const { store, account } = await make();
+    const accountId = await account(4);
+    const tokenHash = hashOf();
+    await store.insert({ accountId, tokenHash, createdAt: NOW, expiresAt: hours(24), ip: null, userAgent: null });
+    await expect(store.insert({ accountId, tokenHash, createdAt: NOW, expiresAt: hours(24), ip: null, userAgent: null })).rejects.toThrow();
   });
 }

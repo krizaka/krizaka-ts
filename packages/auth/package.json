@@ -31,6 +31,14 @@
       "types": "./dist/testkit.d.ts",
       "import": "./dist/testkit.js"
     },
+    "./contract": {
+      "types": "./dist/contract.d.ts",
+      "import": "./dist/contract.js"
+    },
+    "./settings": {
+      "types": "./dist/settings.d.ts",
+      "import": "./dist/settings.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -52,13 +60,18 @@
   },
   "dependencies": {
     "@krizaka/db": "workspace:^",
+    "@krizaka/settings": "workspace:^",
     "date-fns": "^4.4.0"
   },
   "peerDependencies": {
-    "vitest": ">=4"
+    "vitest": ">=4",
+    "zod": ">=3.23"
   },
   "peerDependenciesMeta": {
     "vitest": {
+      "optional": true
+    },
+    "zod": {
       "optional": true
     }
   },
@@ -70,6 +83,7 @@
     "pg": "^8.23.1",
     "tsup": "^8.5.0",
     "typescript": "^5.9.3",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.11",
+    "zod": "^4.6.7"
   }
 }

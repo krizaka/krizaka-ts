@@ -57,9 +57,10 @@ function createConfig({ exemptFrom = [] } = {}) {
       {
         name: "not-to-dev-dep",
         severity: "error",
-        comment: "Production code imports a devDependency: it is not installed in production. Move the package to `dependencies`, or the import to a test.",
+        comment: "Production code imports a devDependency: it is not installed in production. Move the package to `dependencies` (or `peerDependencies`, for a library whose consumer installs it), or the import to a test.",
         from: { pathNot: [NODE_MODULES, DEV_FILES] },
-        to: { dependencyTypes: ["npm-dev"], dependencyTypesNot: ["type-only"], pathNot: ["node_modules/@types/"] },
+        // a package that is also a peer dependency (the library declares it for its consumer, and keeps a copy to test with) is installed where it is used
+        to: { dependencyTypes: ["npm-dev"], dependencyTypesNot: ["type-only", "npm-peer"], pathNot: ["node_modules/@types/"] },
       },
     ],
     options: {

@@ -128,3 +128,32 @@ CREATE INDEX IF NOT EXISTS external_identities_account ON external_identities(ac
     },
   ],
 });
+
+/**
+ * The table of web sessions: the cookie holds a random token, the table its keyed hash (a leaked table opens nothing). The shape the
+ * products' own `sessions` table has, so a product that has it adopts version 1 (`adoptMigration`) and one that does not emits it.
+ * Idempotent.
+ */
+export const sessionsSchema = defineModule({
+  module: "auth_sessions",
+  schema: "public",
+  tables: ["accounts"],
+  migrations: [
+    {
+      version: 1,
+      name: "sessions",
+      sql: (c) => `
+CREATE TABLE IF NOT EXISTS sessions (
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id   uuid NOT NULL REFERENCES ${c.tables.accounts}(id) ON DELETE CASCADE,
+  token_hash   text NOT NULL UNIQUE,
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  expires_at   timestamptz NOT NULL,
+  ip           text,
+  user_agent   text
+);
+CREATE INDEX IF NOT EXISTS sessions_account ON sessions(account_id);
+`,
+    },
+  ],
+});
