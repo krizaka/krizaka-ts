@@ -1,6 +1,6 @@
 {
   "name": "@krizaka/audit",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Who did what, for every Krizaka product: an append-only audit trail in its own schema, written inside the caller's transaction or quietly beside it, filtered for the admin, exported and redacted for Loi 25, purged after a retention set by the admin. No database client, no wall clock.",
   "keywords": [
     "krizaka",
