@@ -1,12 +1,13 @@
 import crypto from "node:crypto";
 
+import type { Query } from "@krizaka/db";
 import { addSeconds } from "date-fns";
 
 import { EVENT_ID_HEADER, EVENT_TYPE_HEADER, newEndpointSecret, SIGNATURE_HEADER, signBody, type VerifyResult,verifySignature } from "./signing";
 import { endpointUrlProblem } from "./url";
 
-/** A SQL executor: the rows of a statement and its parameters (the product's pool). */
-export type Query = <T = Record<string, unknown>>(sql: string, params?: unknown[]) => Promise<T[]>;
+/** A SQL executor: `@krizaka/db`'s `Query`, which the product passes (its pool, or its transaction's client). */
+export type { Query };
 
 // @fixed: how long a claimed delivery is held by its worker before another may take it, in seconds
 const LEASE_SECONDS = 60;

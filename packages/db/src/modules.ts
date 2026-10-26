@@ -19,6 +19,8 @@ export interface ModuleMigration {
 /** A module's schema: its name, the product tables it references (by role: `owner`, `scope`…), the modules it needs first. */
 export interface ModuleSchema {
   module: string;
+  /** The Postgres schema the tables live in when the product names none: the module's name by default; `public` for a module whose tables existed before ADR-001 (adopted, never moved). */
+  schema?: string;
   tables: readonly string[];
   requires: readonly string[];
   migrations: readonly ModuleMigration[];
@@ -41,14 +43,15 @@ export const MARKER_TABLE = "public.krizaka_module_versions";
 
 /**
  * Declares a module's schema. Versions are 1, 2, 3… in order; the module's name is a SQL identifier (it is also its default schema).
- * @param input the module's name, the product tables it references by role, the modules it requires, its migrations
+ * @param input the module's name, its default Postgres schema (the module's name when omitted), the product tables it references by role, the modules it requires, its migrations
  * @returns the checked schema
  * @throws DbError `DB_UNSAFE_IDENTIFIER` or `DB_BAD_VERSIONS`
  */
-export function defineModule(input: { module: string; tables?: readonly string[]; requires?: readonly string[]; migrations: readonly ModuleMigration[] }): ModuleSchema {
+export function defineModule(input: { module: string; schema?: string; tables?: readonly string[]; requires?: readonly string[]; migrations: readonly ModuleMigration[] }): ModuleSchema {
   ident(input.module);
+  if (input.schema !== undefined) ident(input.schema);
   if (input.migrations.some((m, i) => m.version !== i + 1)) throw new DbError(DB_CODE.badVersions, [`${input.module}: versions must be 1, 2, 3… in order`]);
-  return { module: input.module, tables: input.tables ?? [], requires: input.requires ?? [], migrations: input.migrations };
+  return { module: input.module, ...(input.schema === undefined ? {} : { schema: input.schema }), tables: input.tables ?? [], requires: input.requires ?? [], migrations: input.migrations };
 }
 
 /** The context a migration sees: only the tables the module declared (present and safe), the schema named. Reading another throws. */
@@ -62,7 +65,7 @@ function resolve(schema: ModuleSchema, context: ModuleContext): SchemaContext {
       return Reflect.get(target, role);
     },
   });
-  return { schema: ident(context.schema ?? schema.module), tables };
+  return { schema: ident(context.schema ?? schema.schema ?? schema.module), tables };
 }
 
 function migrationOf(schema: ModuleSchema, version: number): ModuleMigration {

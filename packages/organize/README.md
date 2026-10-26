@@ -4,10 +4,11 @@ A **name, an avatar, a description, tags, collections and an undeletable default
 (ADR-006). No ORM, no framework, no image library: you pass a `query` function and, for uploaded avatars, an `AvatarProcessor` and an `ObjectStore`.
 
 ```ts
-import { createOrganize, organizeMigration } from "@krizaka/organize";
+import { emitMigration } from "@krizaka/db";
+import { createOrganize, organizeSchema } from "@krizaka/organize";
 
 const schema = { defaultName: { fr: "Mes boutiques", en: "My shops" }, kinds: { shop: { table: "shops" } } };
-await db.query(organizeMigration(schema)); // once, in your migrations
+emitMigration(organizeSchema(schema), 1, { tables: {} }); // commit the SQL once, in your migrations
 const organize = createOrganize({ query: (sql, params) => pool.query(sql, params).then((r) => r.rows), schema, images });
 
 await organize.collections.create(owner, { name: "Quartier Est" });
@@ -15,6 +16,7 @@ await organize.profile("shop").rename(owner, shopId, "Salon Cèdre");
 await organize.tags.assign(owner, "shop", shopId, [tagId]);
 ```
 
+**Schema.** The tables are a `@krizaka/db` module (`organize`), version 1 byte-identical to the SQL this package shipped before, so a product that has them adopts with no DDL change: `adoptMigration(organizeSchema(schema), 1, context)` writes the marker only, `emitMigration(…)` writes the SQL for a database that lacks them. The old migration function stays, `@deprecated`, for one minor. The workspace layer is the module `organize_workspace` (`workspaceSchema(declaration)`), in its own Postgres schema.
 - The invariants are the database's: one default collection per owner (exclusion constraint + deferred trigger), never deleted while its owner
   exists, created with the owner in its language, and every entity given no collection falls into it.
 - Refusals are `OrganizeError` with a stable `code` and `status` (`DEFAULT_COLLECTION`, `NAME_TAKEN`, `AVATAR_NOT_ALLOWED`…): a product maps them to its own answers.
@@ -26,10 +28,10 @@ Tags with a colour marker, **status sets as data**, **saved views** and **bulk a
 declares (an account, a shop), configured by the admin in the database, audited. Decision: [ADR-003](../../docs/adr/ADR-003-workspace-organised.md).
 
 ```ts
-import { createWorkspace, dbWorkspaceStore, filterSql, parseView, workspaceMigration, type WorkspaceDecl } from "@krizaka/organize";
+import { createWorkspace, dbWorkspaceStore, filterSql, parseView, workspaceSchema, type WorkspaceDecl } from "@krizaka/organize";
 
 const decl: WorkspaceDecl = { scope: "shops", users: "accounts", kinds: { client: { table: "clients", scopeColumn: "shop_id", textColumns: ["name"] } } };
-await db.query(workspaceMigration(decl)); // committed in your own sequence, with a drift test
+emitMigration(workspaceSchema(decl), 1, { tables: {} }); // committed in your own sequence, with a drift test
 
 const workspace = createWorkspace({
   transaction: (work) => db.transaction(work),          // every change runs in one

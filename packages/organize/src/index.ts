@@ -3,6 +3,7 @@ export * from "./errors";
 export * from "./organize";
 export * from "./port";
 export * from "./rules";
+export { organizeSchema, workspaceSchema } from "./schema";
 export { DEFAULTS, ident, type KindDecl, organizeMigration,type OrganizeSchema } from "./sql";
 export * from "./status-sets";
 export * from "./views";

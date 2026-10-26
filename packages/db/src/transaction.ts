@@ -7,7 +7,7 @@ import type { Connect, Connection, Query } from "./port";
  * @returns the query function modules take
  */
 export function queryOf(connection: Connection): Query {
-  return async <T>(sql: string, params?: readonly unknown[]) => (await connection.query(sql, params ? [...params] : undefined)).rows as T[];
+  return async <T>(sql: string, params?: unknown[]) => (await connection.query(sql, params)).rows as T[];
 }
 
 /**

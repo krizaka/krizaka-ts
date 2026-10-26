@@ -1,11 +1,12 @@
 import crypto from "node:crypto";
 
+import type { Query } from "@krizaka/db";
 import { addHours, addMinutes } from "date-fns";
 
 import { AccountError, type AccountProfile, type AccountService, type ProfilePatch, type SessionSummary, type Theme } from "./port";
 
-/** A SQL executor: the rows of a statement and its parameters (the product's pool). */
-export type Query = <T = Record<string, unknown>>(sql: string, params?: unknown[]) => Promise<T[]>;
+/** A SQL executor: `@krizaka/db`'s `Query`, which the product passes (its pool, or its transaction's client). */
+export type { Query };
 
 export interface Mail {
   to: string;

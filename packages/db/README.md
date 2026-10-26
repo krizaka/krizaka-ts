@@ -22,7 +22,7 @@ pnpm add @krizaka/db
 import { defineModule } from "@krizaka/db";
 
 export const auditSchema = defineModule({
-  module: "audit",                 // also its Postgres schema, unless the product renames it
+  module: "audit",                 // also its Postgres schema, unless the product renames it (or the module sets `schema: "public"`, for tables that existed before and are adopted)
   tables: ["owner"],               // the product tables it references, by role, and only those
   migrations: [
     { version: 1, name: "entries", sql: (c) => `CREATE TABLE ${c.schema}.entry (id bigserial PRIMARY KEY, actor_id uuid REFERENCES ${c.tables.owner}(id) ON DELETE SET NULL);` },

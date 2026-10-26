@@ -1,7 +1,9 @@
+import type { Query } from "@krizaka/db";
+
 import type { ApiKeyRecord, ApiKeyStore } from "./port";
 
-/** The SQL runner this adapter needs: the app passes its own (no import from the app here). */
-export type Query = (sql: string, params?: unknown[]) => Promise<unknown[]>;
+/** The SQL runner this adapter needs: `@krizaka/db`'s `Query`, which the app passes (its own pool or its transaction's client). */
+export type { Query };
 
 interface Row {
   id: string;
@@ -24,7 +26,7 @@ const COLUMN_OF = { lastUsedAt: "last_used_at", revokedAt: "revoked_at", superse
 
 /** PostgreSQL adapter (table `api_keys`, migration 0021). */
 export function dbApiKeyStore(run: Query): ApiKeyStore {
-  const query = <T = unknown>(sql: string, params?: unknown[]) => run(sql, params) as Promise<T[]>;
+  const query = <T = unknown>(sql: string, params?: unknown[]) => run<T>(sql, params);
   return {
     async insert(r) {
       await query(`INSERT INTO api_keys (${COLUMNS}) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`, [r.id, r.ownerId, r.name, r.publicId, r.secretHash, r.scopes, r.expiresAt, r.createdAt, r.lastUsedAt, r.revokedAt, r.rotatedFromId, r.supersededAt]);

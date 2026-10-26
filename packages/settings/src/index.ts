@@ -5,5 +5,6 @@ export { AVAILABILITY, type Availability, definePrices, findTypedPrices, type Pr
 export { pricesMigration, priceStore } from "./prices-persistence";
 export * from "./registry";
 export { type Layers, type Resolved, resolveValue } from "./resolve";
+export { pricesSchema, settingsSchema } from "./schema";
 export { seedLegacySettings } from "./seed";
 export { type Actor, type AuditEntry, type Context, dbSettings, type DbSettingsDeps, GLOBAL, postgresSettings, type PostgresSettingsDeps, type Query, type ScopeRef, SettingsError, type SettingsService } from "./service";

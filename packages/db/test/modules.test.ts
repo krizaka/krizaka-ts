@@ -28,6 +28,13 @@ describe("a module schema", () => {
     expect(emitMigration(audit, 1, { ...context, schema: "kz_audit" })).toContain("CREATE TABLE kz_audit.entry");
   });
 
+  it("lets a module that predates ADR-001 keep its tables in another schema by default (`public`), which the product may still rename", () => {
+    const legacy = defineModule({ module: "legacy", schema: "public", migrations: [{ version: 1, name: "t", sql: () => "CREATE TABLE IF NOT EXISTS t (id int);" }] });
+    expect(emitMigration(legacy, 1, { tables: {} })).toContain("CREATE SCHEMA IF NOT EXISTS public;");
+    expect(emitMigration(legacy, 1, { tables: {}, schema: "kz" })).toContain("CREATE SCHEMA IF NOT EXISTS kz;");
+    expect(() => defineModule({ module: "legacy", schema: "Bad Schema", migrations: [] })).toThrow(DbError);
+  });
+
   it("refuses versions that are not 1, 2, 3… in order, and a module name that is not an identifier", () => {
     expect(() => defineModule({ module: "x", migrations: [{ version: 2, name: "a", sql: () => "" }] })).toThrow(/1, 2, 3/);
     expect(() => defineModule({ module: "Bad-Name", migrations: [] })).toThrow(DbError);

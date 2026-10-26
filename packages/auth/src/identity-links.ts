@@ -1,6 +1,7 @@
 import { compareAsc } from "date-fns";
 
 import type { Query } from "./accounts";
+import { identityLinksSchema } from "./schema";
 
 /**
  * Which external identity belongs to which account. Never a second user table: a row is only `(issuer, subject) → account`.
@@ -50,18 +51,12 @@ export function memoryIdentityLinks(): IdentityLinkStore {
   };
 }
 
-/** The table of links (idempotent). `accounts` is the product's account table. */
+/**
+ * The table of links (idempotent). `accounts` is the product's account table.
+ * @deprecated Use `identityLinksSchema` with `emitMigration` or `adoptMigration` from `@krizaka/db`. Removed in the next major.
+ */
 export function identityLinksMigration(): string {
-  return `
-CREATE TABLE IF NOT EXISTS external_identities (
-  issuer     text NOT NULL CHECK (char_length(issuer) BETWEEN 1 AND 200),
-  subject    text NOT NULL CHECK (char_length(subject) BETWEEN 1 AND 200),
-  account_id uuid NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
-  linked_at  timestamptz NOT NULL,
-  PRIMARY KEY (issuer, subject)
-);
-CREATE INDEX IF NOT EXISTS external_identities_account ON external_identities(account_id, linked_at);
-`;
+  return identityLinksSchema.migrations[0]!.sql({ schema: "public", tables: { accounts: "accounts" } });
 }
 
 /** The store over the product's own database (`external_identities`; see `identityLinksMigration`). */

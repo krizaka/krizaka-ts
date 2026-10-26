@@ -1,26 +1,15 @@
 import { settingsMigration } from "./migration";
 import type { PriceStore, StoredPriceVersion } from "./price-catalogue";
 import type { Price } from "./prices";
+import { pricesSchema } from "./schema";
 import type { Query } from "./service";
 
 /**
- * The price versions in the product's PostgreSQL (`price_versions`), each insert writing its audit line in `settings_audit`
- * (key `price.<product>.<plan>`) in the same statement. Rows are only ever added: a version once sold is never rewritten.
+ * The settings tables, then the price versions' (`price_versions`), for a product that runs the SQL by hand.
+ * @deprecated Use `settingsSchema` and `pricesSchema` with `emitMigration` or `adoptMigration` from `@krizaka/db`. Removed in the next major.
  */
 export function pricesMigration(): string {
-  return `${settingsMigration()}
-CREATE TABLE IF NOT EXISTS price_versions (
-  id             bigserial PRIMARY KEY,
-  key            text NOT NULL CHECK (key ~ '^[a-z][a-zA-Z0-9-]{0,39}[.][a-z][a-zA-Z0-9-]{0,39}$'),
-  price          jsonb NOT NULL,
-  before         jsonb NOT NULL,
-  effective_from timestamptz NOT NULL,
-  created_at     timestamptz NOT NULL,
-  actor_id       uuid,
-  actor_label    text NOT NULL
-);
-CREATE INDEX IF NOT EXISTS price_versions_key ON price_versions(key, id);
-`;
+  return `${settingsMigration()}${pricesSchema.migrations[0]!.sql({ schema: "public", tables: {} })}`;
 }
 
 interface Row {
