@@ -130,3 +130,10 @@ describe.runIf(enabled)("outbox: PostgreSQL", () => {
     expect(() => createOutbox({ clock: { now: () => T0 }, settings: OUTBOX_DEFAULTS, schema: "outbox; DROP TABLE x" })).toThrow(/DB_UNSAFE_IDENTIFIER/);
   });
 });
+
+describe("outbox: the names it checks", () => {
+  it("refuses an unsafe schema name before any SQL is written (a test that runs without a database)", () => {
+    expect(() => createOutbox({ clock: { now: () => T0 }, settings: OUTBOX_DEFAULTS, schema: "outbox; DROP TABLE x" })).toThrow(/DB_UNSAFE_IDENTIFIER/);
+    expect(() => dbOutboxStore(async () => [], "outbox; DROP TABLE x")).toThrow(/DB_UNSAFE_IDENTIFIER/);
+  });
+});

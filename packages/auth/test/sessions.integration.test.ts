@@ -43,3 +43,11 @@ describe.runIf(enabled)("sessions: PostgreSQL", () => {
     expect((await client.query("SELECT count(*)::int AS n FROM sessions WHERE token_hash = 'gone-hash'")).rows[0].n).toBe(0);
   });
 });
+
+describe("sessions: the table they need", () => {
+  it("is the one the PostgreSQL store reads and writes (a test that runs without a database)", () => {
+    const sql = sessionsSchema.migrations[0]!.sql({ schema: "public", tables: { accounts: "accounts" } });
+    expect(sql).toContain("token_hash   text NOT NULL UNIQUE");
+    expect(sql).toContain("expires_at   timestamptz NOT NULL");
+  });
+});
