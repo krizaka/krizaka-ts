@@ -1,0 +1,62 @@
+{
+  "name": "@krizaka/org",
+  "version": "0.0.0",
+  "description": "The public facts about Krizaka, in one validated JSON that every footer, site and app reads: legal name, NEQ, « Fait à Montréal » in French and English, brand marks, default avatars and banners, the live products and sites, the public contact, the footer line and the mobile apps' public runtime config. Typed data, JSON Schema, and the files published on the CDN.",
+  "keywords": [
+    "krizaka",
+    "organization",
+    "footer",
+    "brand",
+    "json-schema"
+  ],
+  "homepage": "https://ts.krizaka.com/org",
+  "bugs": "https://github.com/krizaka/krizaka-ts/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/krizaka/krizaka-ts.git",
+    "directory": "packages/org"
+  },
+  "license": "Apache-2.0",
+  "author": "Krizaka (https://www.krizaka.com)",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./org.json": "./dist/org.json",
+    "./org.schema.json": "./dist/org.schema.json",
+    "./apps/*.json": "./dist/apps/*.json",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsup && node scripts/emit.mjs",
+    "lint": "eslint . --max-warnings 0 && tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "check": "pnpm run lint && pnpm run test && pnpm run build",
+    "publish:cdn": "node scripts/publish.mjs",
+    "prepublishOnly": "pnpm run build"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "@krizaka/config": "workspace:^",
+    "@types/node": "^22.10.0",
+    "ajv": "^8.17.0",
+    "eslint": "^9.39.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.11"
+  }
+}
