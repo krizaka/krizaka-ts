@@ -1,6 +1,6 @@
 // The audit proven on its own fixtures, in a real browser: each broken fixture must be reported, the fine ones must not.
 // A guard that stopped seeing is itself a red build.
-import { BOX_TOO_WIDE, BROKEN_PARTS, CARD_OVER_NEXT, CHROME_BAD, CHROME_FINE, COLUMN_CUT, EMPTY_MAIN, FINE, FOLDED_SECTION, FRAME_FITS, FRAME_FORCES_SCROLL, HIDDEN_CONTENT, SECTIONS_OVERLAP, SMALL_ACTION } from "./fixtures.mjs";
+import { BOX_TOO_WIDE, BROKEN_PARTS, CARD_OVER_NEXT, CHROME_BAD, CHROME_FINE, COLUMN_CUT, EMPTY_MAIN, FINE, FOLDED_SECTION, FRAME_FITS, FRAME_FORCES_SCROLL, HIDDEN_CONTENT, SECTIONS_OVERLAP, SMALL_ACTION, TOKEN_IN_STRETCHED_ROW, TOKEN_WRAPPED } from "./fixtures.mjs";
 import { auditPage, problemsOf } from "./page-audit.mjs";
 import { auditContext } from "./settle.mjs";
 
@@ -9,6 +9,7 @@ const EXPECT = [
   ["a card over the next section", CARD_OVER_NEXT, /covers a neighbouring section/],
   ["two sections on top of each other", SECTIONS_OVERLAP, /covers a neighbouring section/],
   ["a column cut by a clipping wrapper", COLUMN_CUT, /is cut off/],
+  ["an identifier that breaks every few characters", TOKEN_WRAPPED, /wraps one character per line/],
   ["an empty <main>", EMPTY_MAIN, /empty <main>/, { emptyMain: true }],
   ["a frame that forces a scroll", FRAME_FORCES_SCROLL, /the frame forces a scroll/, { frame: true }],
   ["an action under the tap target", SMALL_ACTION, /an action is 24 px tall \(< 36\)/, { minAction: 36 }],
@@ -23,6 +24,7 @@ const FINES = [
   ["a fine layout", FINE],
   ["content that is not drawn (a visually hidden table, a folded details)", HIDDEN_CONTENT],
   ["a section folded in a details", FOLDED_SECTION],
+  ["a short token in a row a taller neighbour stretches", TOKEN_IN_STRETCHED_ROW],
 ];
 /** Fixtures that must stay clean even with every opt-in check on. */
 const ALL = { emptyMain: true, frame: true, minAction: 36, boxes: true, pictures: true, emptyControls: true, hardColors: true, landmarks: "public" };
