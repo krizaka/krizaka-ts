@@ -48,6 +48,9 @@ export function assertTerms(terms: DiscountTerms, mode: PlanConfig["mode"]): voi
   if (mode === "payment" && terms.duration !== "once") throw refuse("A one-off payment takes a discount of duration « once » only", PAYMENTS_CODE.badDiscount);
 }
 
+/** The invoice statuses this adapter reads. */
+const INVOICE = { draft: "draft", open: "open", paid: "paid" } as const;
+
 const isAmount = (n: unknown): n is number => typeof n === "number" && Number.isSafeInteger(n) && n > 0;
 
 /** Checks a charge before any call. @throws PaymentsError `PAYMENTS_BAD_MONEY` */
@@ -120,7 +123,7 @@ export function processorAdapter(config: ProcessorConfig): PaymentsPort {
   }
   /** Leaves nothing billed: an open invoice is voided (a draft is never billed and stays a draft), and the failure is rethrown. */
   async function abandon(invoiceId: string, status: string | undefined, cause: unknown, key: string): Promise<never> {
-    if (status !== "draft") await call("POST", `/v1/invoices/${invoiceId}/void`, {}, `${key}:void`).catch(() => undefined); // the original failure is the one to report
+    if (status !== INVOICE.draft) await call("POST", `/v1/invoices/${invoiceId}/void`, {}, `${key}:void`).catch(() => undefined); // the original failure is the one to report
     throw cause;
   }
   /** The payment of an invoice: the field the API version gives, else the invoice's payments list. */
@@ -141,7 +144,7 @@ export function processorAdapter(config: ProcessorConfig): PaymentsPort {
         { customer: request.customerId, auto_advance: false, collection_method: "charge_automatically", pending_invoice_items_behavior: "exclude", automatic_tax: { enabled: true }, metadata: request.metadata },
         `${key}:invoice`,
       );
-      let status = "draft";
+      let status: string = INVOICE.draft;
       try {
         await call(
           "POST",
@@ -150,7 +153,7 @@ export function processorAdapter(config: ProcessorConfig): PaymentsPort {
           `${key}:item`,
         );
         const finalised = await call<InvoiceBody>("POST", `/v1/invoices/${invoice.id}/finalize`, { auto_advance: false }, `${key}:finalize`);
-        status = finalised.status ?? "open";
+        status = finalised.status ?? INVOICE.open;
       } catch (error) {
         return abandon(invoice.id, status, error, key);
       }
@@ -160,7 +163,7 @@ export function processorAdapter(config: ProcessorConfig): PaymentsPort {
         return abandon(invoice.id, status, new PaymentsError(declined ? 402 : http, json.error?.message ?? `Stripe answered ${http}`, declined ? PAYMENTS_CODE.declined : PAYMENTS_CODE.processor), key);
       }
       const paid = json as unknown as InvoiceBody;
-      if (paid.status !== "paid") return abandon(invoice.id, paid.status, new PaymentsError(402, `The invoice is ${paid.status ?? "not paid"}`, PAYMENTS_CODE.declined), key);
+      if (paid.status !== INVOICE.paid) return abandon(invoice.id, paid.status, new PaymentsError(402, `The invoice is ${paid.status ?? "not paid"}`, PAYMENTS_CODE.declined), key);
       return { ref: invoice.id, paymentRef: await paymentOf(paid), amountTotal: paid.total ?? request.amountMinor, amountTax: taxOf(paid), currency: paid.currency ?? request.currency };
     },
     async refund(ref: string, options: RefundOptions = {}) {
