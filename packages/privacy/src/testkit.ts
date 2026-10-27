@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { expect, it } from "vitest";
 
+import type { Incident, IncidentStore } from "./incident";
 import type { ConsentRecord, PrivacyRequest, PrivacyStore, Subject } from "./port";
 
 const T0 = new Date("2026-10-26T12:00:00.000Z");
@@ -65,5 +66,69 @@ export function privacyStoreContract(name: string, make: () => PrivacyStore | Pr
     expect(await store.getRequest(randomUUID())).toBeNull();
     expect((await store.requestsOf(ERIC)).map((r) => r.id)).toEqual([broke.id, done.id]); // newest first
     expect(await store.requestsOf(CLIENT)).toEqual([]);
+  });
+}
+
+const awareDay = new Date("2026-10-20T09:00:00.000Z");
+const incident = (scope: string, overrides: Partial<Incident> = {}): Incident => ({
+  id: randomUUID(),
+  scope,
+  kind: "access",
+  awareAt: awareDay,
+  occurredAt: null,
+  description: "A staff account opened a file it should not have.",
+  information: ["lease"],
+  personsConcerned: 3,
+  measures: [{ at: awareDay, text: "Session revoked." }],
+  status: "open",
+  assessment: null,
+  caiNotice: null,
+  personsNotice: null,
+  drill: false,
+  openedBy: "admin",
+  openedAt: awareDay,
+  closedAt: null,
+  retainUntil: new Date("2031-10-20T09:00:00.000Z"),
+  ...overrides,
+});
+
+/** What every `IncidentStore` adapter must do. `make` gives an empty store. */
+export function incidentStoreContract(name: string, make: () => IncidentStore | Promise<IncidentStore>) {
+  it(`${name}: writes an entry and reads it back whole, dates included`, async () => {
+    const store = await make();
+    const assessed = incident("t1", { status: "assessed", assessment: { sensitivity: "high", consequences: "medium", likelihood: "high", seriousInjury: true, rationale: "Leases.", assessedAt: at(5), assessedBy: "dpo" }, caiNotice: { sentAt: at(9), channel: "form", reference: "CAI-1" } });
+    await store.insert(assessed);
+    expect(await store.get("t1", assessed.id)).toEqual(assessed);
+  });
+
+  it(`${name}: never shows an entry to another scope`, async () => {
+    const store = await make();
+    const mine = incident("t1");
+    await store.insert(mine);
+    await store.insert(incident("t2"));
+    expect(await store.get("t2", mine.id)).toBeNull();
+    expect((await store.list("t1")).map((i) => i.id)).toEqual([mine.id]);
+    await store.save({ ...mine, scope: "t2", description: "changed" });
+    expect((await store.get("t1", mine.id))?.description).toBe(mine.description);
+    expect(await store.get("t2", mine.id)).toBeNull();
+  });
+
+  it(`${name}: lists the register oldest awareness first, and replaces an open entry`, async () => {
+    const store = await make();
+    const later = incident("t1", { awareAt: at(100) });
+    const earlier = incident("t1", { awareAt: at(-100) });
+    await store.insert(later);
+    await store.insert(earlier);
+    expect((await store.list("t1")).map((i) => i.id)).toEqual([earlier.id, later.id]);
+    await store.save({ ...later, personsConcerned: 12 });
+    expect((await store.get("t1", later.id, { lock: true }))?.personsConcerned).toBe(12);
+  });
+
+  it(`${name}: refuses to edit a closed entry`, async () => {
+    const store = await make();
+    const closed = incident("t1", { status: "closed", closedAt: at(1) });
+    await store.insert(closed);
+    await expect(store.save({ ...closed, description: "rewritten" })).rejects.toThrow();
+    expect((await store.get("t1", closed.id))?.description).toBe(closed.description);
   });
 }

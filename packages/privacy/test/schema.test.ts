@@ -13,6 +13,11 @@ describe("the privacy schema", () => {
     expect(privacySchema.tables).toEqual([]);
   });
 
+  it("version 2 adds the incident register, guarded against deleting before retention and editing once closed", () => {
+    const sql = emitMigration(privacySchema, 2, context);
+    for (const needle of ["CREATE TABLE privacy.incident", "retain_until", "stays in the register until its retention ends", "a closed entry of the register is never edited", "BEFORE UPDATE OR DELETE ON privacy.incident"]) expect(sql).toContain(needle);
+  });
+
   it("version 1 is frozen: its SQL never changes after release (a change is version 2)", () => {
     expect(checksumOf(privacySchema, 1, context)).toBe(FROZEN_V1);
     expect(adoptMigration(privacySchema, 1, context)).toContain(FROZEN_V1);

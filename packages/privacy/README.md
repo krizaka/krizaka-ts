@@ -33,3 +33,28 @@ await privacy.purge(query);                               // from the product's 
 - **Erasure** runs every contributor's `eraseFor` in ONE transaction, withdraws the live consents (a new row each, version `erasure` or the one you pass), records the request and an audit entry `privacy.erasure_completed` that names the request and the modules and **no one**. If a contributor fails, nothing is erased, the request is recorded as `failed` with a code, and the error is thrown (if recording the failure fails too, an `AggregateError` with the original first).
 - **Retention:** `privacySettings({ screening: { retentionDays: 365 } })` (`@krizaka/privacy/settings`, needs `@krizaka/settings` and `zod`) declares `privacy.retention.screeningDays` (`payment-history` → `paymentHistoryDays`). `purge` calls every contributor's `purgeExpired` for each purpose that has a retention.
 - The request table holds an id of the subject and no other personal data, so it can outlive the erasure it proves. `privacyStoreContract` (from `@krizaka/privacy/testkit`) is the contract every store runs.
+
+## Confidentiality incident register
+
+The register that the Act respecting the protection of personal information in the private sector ([CQLR c. P-39.1](https://www.legisquebec.gouv.qc.ca/en/document/cs/P-39.1), ss. 3.5 to 3.8) asks every enterprise to keep, with the content and retention set by the [Regulation respecting confidentiality incidents](https://www.legisquebec.gouv.qc.ca/en/document/cr/P-39.1,%20r.%203.1). In short, as we read it (not legal advice): on reason to believe an incident occurred, reduce the risk and prevent a new one; assess the risk of serious injury from the sensitivity of the information, the anticipated consequences and the likelihood of misuse; if the risk is serious, notify the Commission d'accès à l'information and the people concerned promptly; and keep a register of every incident, serious or not, for at least five years after becoming aware of it, handed to the Commission on request.
+
+```ts
+import { createIncidentRegister, registerToCsv, suggestSeriousInjury } from "@krizaka/privacy";
+
+emitMigration(privacySchema, 2, { tables: {} });            // privacy.incident (after version 1)
+const incidents = createIncidentRegister({ clock: { now: () => new Date() }, audit });
+const admin = { id: account.id, label: account.name };
+
+const { id } = await incidents.open(query, { scope: tenantId, kind: "access", description: "…", information: ["lease"], personsConcerned: 3 }, admin);
+await incidents.recordMeasure(query, tenantId, id, "Session revoked", admin);
+await incidents.assess(query, tenantId, id, { sensitivity: "high", consequences: "high", likelihood: "medium", seriousInjury: suggestSeriousInjury(factors), rationale: "…" }, admin);
+await incidents.recordNotice(query, tenantId, id, "cai", { channel: "form" }, admin);     // and "persons"
+await incidents.close(query, tenantId, id, admin);       // a serious injury closes once both notices are recorded
+registerToCsv((await incidents.exportRegister(query, tenantId)).entries);
+```
+
+- **Every call is by `scope`** (the tenant): an entry of another scope is never found, edited or exported. The store is the `IncidentStore` port (`memoryIncidentStore`, `dbIncidentStore`; `incidentStoreContract` from `@krizaka/privacy/testkit`); the clock is injected.
+- **The register holds no personal data of the people concerned**: how many, and the categories of information, never the information.
+- **Kept five years**: `retainUntil` is five years after `awareAt`; the database refuses to delete an entry before it, and refuses to edit a closed one. A drill is marked (`drill`) and stays in the register.
+- `suggestSeriousInjury` is a guide for the person in charge; the decision (`seriousInjury`) is theirs and is recorded with its rationale. An incident without serious injury owes no notice (`recordNotice` refuses).
+- With `audit`, each step is traced as `privacy.incident_*` without the description or any person.
