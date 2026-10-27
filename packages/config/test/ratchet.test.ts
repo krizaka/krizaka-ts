@@ -197,7 +197,8 @@ describe("runRatchet", () => {
   });
 });
 
-describe("krizaka-ratchet CLI", () => {
+// each CLI call is a fresh node process that loads ESLint + the TS parser (cognitive complexity): several per test, slow on a shared CI runner
+describe("krizaka-ratchet CLI", { timeout: 90_000 }, () => {
   it("--init, then --json for CI (exit 0)", () => {
     expect(cli("--init").status).toBe(0);
     expect(existsSync(join(root, "lint-ratchet.json"))).toBe(true);

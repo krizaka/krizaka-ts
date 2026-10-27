@@ -148,22 +148,21 @@ export function countStackSource(source, { retire = [], maxFormFields = 1 } = {}
  * @returns {number}
  */
 export function countCognitiveComplexity(source, filename = "file.tsx") {
-  const linter = new Linter();
-  const messages = linter.verify(
-    source,
-    [
-      {
-        files: ["**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"],
-        languageOptions: { parser: /** @type {any} */ (tseslint.parser) },
-        plugins: { sonarjs },
-        rules: { "sonarjs/cognitive-complexity": ["error", COMPLEXITY_MAX] },
-      },
-    ],
-    // the extension picks the parser mode (JSX); the path is irrelevant, so a file outside the cwd still matches
-    { filename: `file${extname(filename)}` },
-  );
+  const messages = complexityLinter().verify(source, COMPLEXITY_CONFIG, { filename: `file${extname(filename)}` });
   return messages.filter((m) => m.ruleId === "sonarjs/cognitive-complexity").length;
 }
+
+/** One Linter for the whole run: building it (and the parser) per file made the CLI 10x slower in CI. */
+let sharedLinter;
+const complexityLinter = () => (sharedLinter ??= new Linter());
+const COMPLEXITY_CONFIG = [
+  {
+    files: ["**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"],
+    languageOptions: { parser: /** @type {any} */ (tseslint.parser) },
+    plugins: { sonarjs },
+    rules: { "sonarjs/cognitive-complexity": ["error", COMPLEXITY_MAX] },
+  },
+];
 
 /**
  * Counts the debts under `root`: the UI counters in the files of `globs`, the stack counters in those of `stackGlobs`.
