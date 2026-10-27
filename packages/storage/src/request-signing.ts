@@ -38,7 +38,7 @@ function signingKey(c: Credentials, date: string) {
 function signature(c: Credentials, method: string, url: URL, headers: Record<string, string>, payloadHash: string, amzDate: string) {
   const names = Object.keys(headers)
     .map((h) => h.toLowerCase())
-    .sort();
+    .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)); // code-unit order, as the signature requires
   const lower = Object.fromEntries(Object.entries(headers).map(([k, v]) => [k.toLowerCase(), v.trim().replace(/\s+/g, " ")]));
   const canonical = [method, canonicalPath(url), canonicalQuery(url), names.map((n) => `${n}:${lower[n]}\n`).join(""), names.join(";"), payloadHash].join("\n");
   const scope = `${amzDate.slice(0, 8)}/${c.region}/${c.service}/aws4_request`;

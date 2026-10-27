@@ -1,5 +1,7 @@
 import { createHash, createHmac } from "node:crypto";
 
+// The provider's own scheme (its documentation fixes SHA-256 over the concatenation); it is not how we store a password.
+// codeql[js/insufficient-password-hash]
 const sha256 = (data: string) => createHash("sha256").update(data);
 const urlSafe = (base64: string) => base64.replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
 
@@ -20,6 +22,7 @@ export const embedToken = (input: { tokenKey: string; videoId: string; expires: 
  * over `apiKey + videoId + expires`, hex; the token is the base64 of `<signature>:<expires>`.
  */
 export function mobileViewToken(input: { apiKey: string; videoId: string; expires: number }): string {
+  // codeql[js/insufficient-password-hash]
   const signature = createHmac("sha256", input.apiKey).update(`${input.apiKey}${input.videoId}${input.expires}`).digest("hex");
   return Buffer.from(`${signature}:${input.expires}`).toString("base64");
 }

@@ -13,7 +13,23 @@ export function sniffType(bytes: Uint8Array): string | null {
   if (ascii(bytes, 0, 5) === "%PDF-") return "application/pdf";
   if (ascii(bytes, 4, 8) === "ftyp") return "video/mp4";
   if (startsWith(bytes, [0x1a, 0x45, 0xdf, 0xa3])) return "video/webm";
-  const head = new TextDecoder("utf-8", { fatal: false }).decode(bytes.subarray(0, 512)).replace(/^[\uFEFF]/, "").trimStart();
-  if (/^(<\?xml[^>]*\?>\s*)?(<!--[\s\S]*?-->\s*)*<svg[\s>]/i.test(head)) return "image/svg+xml";
+  const head = new TextDecoder("utf-8", { fatal: false }).decode(bytes.subarray(0, 512)).replace("\uFEFF", "").trimStart();
+  if (startsSvg(head)) return "image/svg+xml";
   return null;
+}
+
+/** Whether text opens as an SVG document: an optional XML declaration and comments, then `<svg`. Read with indexOf, never a backtracking pattern. */
+function startsSvg(text: string): boolean {
+  let rest = text;
+  if (rest.startsWith("<?xml")) {
+    const end = rest.indexOf("?>");
+    if (end < 0) return false;
+    rest = rest.slice(end + 2).trimStart();
+  }
+  while (rest.startsWith("<!--")) {
+    const end = rest.indexOf("-->");
+    if (end < 0) return false;
+    rest = rest.slice(end + 3).trimStart();
+  }
+  return /^<svg[\s>]/i.test(rest);
 }

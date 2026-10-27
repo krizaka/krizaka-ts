@@ -39,7 +39,8 @@ export function remoteStore(options: RemoteStoreOptions): ObjectStore {
   const headers = { AccessKey: options.accessKey };
   const url = (key: string) => `${base}/${inZone(assertKey(key))}`;
   const listDir = async (dir: string): Promise<ObjectInfo[]> => {
-    const res = await options.fetch(dir === "" ? `${base}/${prefix === "" ? "" : `${prefix}/`}` : `${base}/${inZone(dir)}/`, { method: "GET", headers });
+    const root = prefix === "" ? "" : `${prefix}/`;
+    const res = await options.fetch(dir === "" ? `${base}/${root}` : `${base}/${inZone(dir)}/`, { method: "GET", headers });
     if (res.status === 404) return [];
     if (!res.ok) throw fail("listing", res.status);
     const entries = JSON.parse(await res.text()) as Entry[];
