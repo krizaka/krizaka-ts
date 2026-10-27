@@ -39,6 +39,31 @@ export interface OrgBanner {
   alt: Localized;
 }
 
+/** The kinds of entity that have a set of default pictures. */
+export type OrgDefaultKind = "person" | "folder" | "organisation" | "shop" | "banner";
+
+export interface OrgDefaultItem {
+  /** Stable within its kind (`silhouette-3`, `boom-bap`). */
+  id: string;
+  /** What the picture shows, in both languages (never who). */
+  alt: Localized;
+  urls: {
+    /** The vector, for the sets drawn from the code. */
+    svg?: string;
+    /** Size in px (a square's side, a banner's width) → URL. */
+    webp: Record<string, string>;
+  };
+}
+
+/** The central sets of default pictures: URLs an app uses by default, never its own copy. */
+export interface OrgDefaults {
+  /** The folder version on the CDN: a changed picture is a new version, the old URLs keep serving. */
+  version: string;
+  base: string;
+  rule: { pick: "fnv1a32-modulo"; description: string };
+  kinds: Record<OrgDefaultKind, OrgDefaultItem[]>;
+}
+
 export interface OrgMark {
   svg: string;
   png64: string;
@@ -49,8 +74,8 @@ export interface OrgMark {
 
 export interface Org {
   $schema: string;
-  /** The contract: `1` while the shape is the one of `org/v1/org.json`. */
-  schemaVersion: 1;
+  /** The contract: `2` adds `defaults` (compatible: everything of `1` is unchanged). */
+  schemaVersion: 2;
   /** The version of `@krizaka/org` that carries this data. */
   version: string;
   /** The day the facts were last reviewed (YYYY-MM-DD). */
@@ -77,9 +102,12 @@ export interface Org {
     manifest: string;
   };
   people: {
+    /** Legacy sets by brand (`people/defaults/v1/krizaka`): kept for the readers of schema 1; new code reads `defaults`. */
     defaults: OrgAvatar[];
     banners: OrgBanner[];
   };
+  /** The central default pictures (people, folders, organisations, shops, banners): use these URLs, never a copy. */
+  defaults: OrgDefaults;
   /** Only the products that are live. */
   products: OrgProduct[];
   sites: OrgSite[];

@@ -1,4 +1,5 @@
 import pkg from "../package.json" with { type: "json" };
+import { defaults as centralDefaults } from "./defaults";
 import type { Localized, Org, OrgAvatar, OrgMark } from "./org.types";
 
 /** The pull zone that serves the brand files and this JSON. */
@@ -38,7 +39,7 @@ const defaults: OrgAvatar[] = (["person", "plain"] as const).flatMap((kind) =>
 /** The public facts about Krizaka. Reviewed by pull request; changing a fact is one PR here and a release. */
 export const org: Org = {
   $schema: ORG_SCHEMA_URL,
-  schemaVersion: 1,
+  schemaVersion: 2,
   version: pkg.version,
   updatedAt: "2026-10-26",
   company: {
@@ -65,6 +66,7 @@ export const org: Org = {
     // No banner is published on the CDN yet; the set joins here with its alts when it is.
     banners: [],
   },
+  defaults: centralDefaults,
   products: [
     { id: "orazaka", name: "Orazaka", status: "devPreview", url: "https://dev.orazaka.com", repo: "https://github.com/krizaka/orazaka" },
     { id: "yomizaka", name: "Yomizaka", status: "development", url: "https://dev.yomizaka.com", repo: "https://github.com/krizaka/yomizaka" },

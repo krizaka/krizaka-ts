@@ -18,6 +18,27 @@ const themed = { type: "object", additionalProperties: false, required: ["dark",
 const date = { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$" } as const;
 const semver = { type: "string", pattern: "^\\d+\\.\\d+\\.\\d+$" } as const;
 
+const defaultItems = {
+  type: "array",
+  minItems: 1,
+  uniqueItems: true,
+  items: {
+    type: "object",
+    additionalProperties: false,
+    required: ["id", "alt", "urls"],
+    properties: {
+      id: slug,
+      alt: localized,
+      urls: {
+        type: "object",
+        additionalProperties: false,
+        required: ["webp"],
+        properties: { svg: httpsUrl, webp: { type: "object", minProperties: 1, propertyNames: { pattern: "^\\d+$" }, additionalProperties: httpsUrl } },
+      },
+    },
+  },
+} as const;
+
 /** The JSON Schema of `org/v1/org.json`. Nothing outside it is allowed (`additionalProperties: false` everywhere): a new fact is a new line here first. */
 export const orgSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
@@ -25,10 +46,10 @@ export const orgSchema = {
   title: "Krizaka organisation — public facts",
   type: "object",
   additionalProperties: false,
-  required: ["$schema", "schemaVersion", "version", "updatedAt", "company", "brand", "people", "products", "sites", "contact", "footer"],
+  required: ["$schema", "schemaVersion", "version", "updatedAt", "company", "brand", "people", "defaults", "products", "sites", "contact", "footer"],
   properties: {
     $schema: { type: "string" },
-    schemaVersion: { const: 1 },
+    schemaVersion: { enum: [1, 2] },
     version: semver,
     updatedAt: date,
     company: {
@@ -69,6 +90,22 @@ export const orgSchema = {
         banners: {
           type: "array",
           items: { type: "object", additionalProperties: false, required: ["id", "url", "alt"], properties: { id: slug, url: httpsUrl, alt: localized } },
+        },
+      },
+    },
+    defaults: {
+      type: "object",
+      additionalProperties: false,
+      required: ["version", "base", "rule", "kinds"],
+      properties: {
+        version: { type: "string", pattern: "^v\\d+$" },
+        base: httpsUrl,
+        rule: { type: "object", additionalProperties: false, required: ["pick", "description"], properties: { pick: { const: "fnv1a32-modulo" }, description: { type: "string", minLength: 1 } } },
+        kinds: {
+          type: "object",
+          additionalProperties: false,
+          required: ["person", "folder", "organisation", "shop", "banner"],
+          properties: Object.fromEntries(["person", "folder", "organisation", "shop", "banner"].map((kind) => [kind, defaultItems])),
         },
       },
     },

@@ -14,6 +14,11 @@ org.company.legalName; // « Technologies Krizaka Inc. »
 Without a build step, read it from the CDN: [krizaka-assets.b-cdn.net/org/v1/org.json](https://krizaka-assets.b-cdn.net/org/v1/org.json) (an immutable copy sits beside it,
 `org.<hash>.json`). Also exported: `@krizaka/org/org.json`, `@krizaka/org/org.schema.json` and `@krizaka/org/apps/<product>.json`.
 
+- **Default media come from here.** The `defaults` section lists the central sets of default pictures — `person`, `folder`,
+  `organisation`, `shop`, `banner` — with id, alt text in English and French and the URLs per size on Bunny
+  (`defaults/v1/<kind>/<id>-<size>.<ext>`, written by krizaka-ui `tools/export-defaults.mjs`). An app never hard-codes or bundles one:
+  `listDefaults(kind)` lists them, `defaultFor(kind, seed)` picks one deterministically (FNV-1a of the seed, modulo the list), `defaultUrl(item, size)` gives the URL,
+  `fetchDefaults(ORG_URL)` reads the section from the published JSON. A folder is never given a person.
 - **Public facts only.** Never an address, a phone number, figures, a secret, an IP address or an internal host: the test
   scans for them and the schema refuses any field it does not list.
 - **Validated.** `orgSchema` (JSON Schema 2020-12) and the types `Org`, `AppConfig`…; a test validates the data and requests every

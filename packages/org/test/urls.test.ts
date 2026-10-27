@@ -9,7 +9,7 @@ function urls(value: unknown, path = ""): [string, string][] {
   return [];
 }
 
-const SELF = new Set(["$schema"]); // published by the release this file belongs to, so not there yet when it is first written
+const SELF = new Set(["$schema", "base"]); // `$schema` is published by the release this file belongs to (not there yet when first written); `base` is a folder, not a file
 
 async function answers(url: string): Promise<number> {
   const head = await fetch(url, { method: "HEAD", redirect: "follow" });
@@ -22,7 +22,7 @@ describe("every URL in the org JSON answers", () => {
   const unique = [...new Set(all.map(([, url]) => url))];
 
   it("has URLs to check", () => {
-    expect(unique.length).toBeGreaterThan(40);
+    expect(unique.length).toBeGreaterThan(200); // the brand files, the apps and the central default sets
   });
 
   it("answers 200 for all of them", async () => {
