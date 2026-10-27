@@ -1,6 +1,6 @@
 {
   "name": "@krizaka/rate-limit",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Limits per action for every Krizaka product: fixed windows per address and per subject, the limits read from the admin's settings, a memory store and a PostgreSQL store whose atomic upsert counts exactly under concurrency, a stable 429 with Retry-After. No database client, no wall clock, no request object.",
   "keywords": [
     "krizaka",

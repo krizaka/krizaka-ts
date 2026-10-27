@@ -1,6 +1,6 @@
 {
   "name": "@krizaka/outbox",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "The transactional outbox of every Krizaka product: an event written in the caller's transaction, delivered after the commit at least once by leased workers, with doubling retries, dead letters and an idempotent-consumer helper. No broker, no database client, no wall clock.",
   "keywords": [
     "krizaka",
