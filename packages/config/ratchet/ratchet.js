@@ -309,7 +309,7 @@ export async function runRatchet({ root, mode = "check", globs, file = RATCHET_F
     const lowered = zero();
     for (const name of COUNTERS) lowered[name] = Math.min(recorded[name], current[name]);
     // a counter this version does not measure (a repository's own, or a newer preset's) is kept as recorded, never dropped
-    const counters = { ...lowered, ...Object.fromEntries(unmeasured.map((name) => [name, recordedFile?.counters?.[name]])) };
+    const counters = { ...lowered, ...Object.fromEntries(unmeasured.map((name) => [name, /** @type {Record<string, number>} */ (recordedFile?.counters)?.[name]])) };
     writeRatchet(path, { ...recordedFile, stackGlobs: recordedFile.stackGlobs ?? stackGlobs, counters });
     for (const name of decreased) report[name].recorded = lowered[name];
     written = true;
