@@ -56,6 +56,13 @@ jobs:
           # token (repository secret NPM_TOKEN) authenticates the publish; provenance still comes from id-token.
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      # npm can show the previous version for a few minutes after a green publish (@krizaka/storage@0.3.1): wait, with backoff, until
+      # every package changesets reports is visible, or fail naming the missing ones.
+      - if: steps.changesets.outputs.published == 'true'
+        run: node scripts/verify-published.mjs "$PUBLISHED"
+        env:
+          PUBLISHED: ${{ steps.changesets.outputs.publishedPackages }}
+
       # @krizaka/org carries the facts every footer and app reads: each release of it publishes org/v1/org.json (and a hashed copy)
       # to the CDN. Needs the organisation secrets MEDIA_STORAGE_API_KEY and MEDIA_STORAGE_ZONE (optionally MEDIA_STORAGE_ENDPOINT,
       # MEDIA_CDN_HOSTNAME); without them the script warns and exits 0 — nothing is printed either way.
