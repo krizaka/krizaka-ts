@@ -1,6 +1,6 @@
 {
   "name": "@krizaka/config",
-  "version": "0.12.0",
+  "version": "0.13.0",
   "description": "The shared configuration of every Krizaka JavaScript repository: ESLint flat configs (base, Next.js, the four UI rules, the stack rules, no locale ternary), the « Krizaka first » covered-domains map and the dependency-cruiser preset generated from it (refused imports, cycles, unresolvable imports, dev dependencies), tsconfig bases, Prettier, EditorConfig, the shared ast-grep rule pack (sets core, web, html) with the krizaka-sg-ratchet bin, the krizaka-seo-family check, and the krizaka-ratchet and krizaka-known-violations debt counters.",
   "keywords": [
     "krizaka",
