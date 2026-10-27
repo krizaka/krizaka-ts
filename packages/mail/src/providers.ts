@@ -4,6 +4,13 @@ import { bareAddress } from "./rules";
 /** The part of `fetch` the providers use: inject the global one (`fetch`), or a fake in a test. */
 export type FetchLike = (url: string, init: { method: "POST"; headers: Record<string, string>; body: string }) => Promise<{ ok: boolean; status: number; text(): Promise<string> }>;
 
+/** Trims trailing slashes without a regular expression (a long run of slashes must not be quadratic). */
+const withoutTrailingSlashes = (url: string) => {
+  let end = url.length;
+  while (end > 0 && url[end - 1] === "/") end -= 1;
+  return url.slice(0, end);
+};
+
 const failure = (provider: string, status: number, body: string) => new MailError(MAIL_CODE.provider, `${provider} answered ${status}: ${body.slice(0, 200)}`);
 
 const idOf = (body: string, key: string): string | null => {
@@ -26,7 +33,7 @@ export interface MailgunOptions {
 
 /** Mailgun's messages API (form-encoded, basic auth). */
 export function mailgunProvider(options: MailgunOptions): MailProvider {
-  const base = (options.apiUrl ?? "https://api.mailgun.net").replace(/\/+$/, "");
+  const base = withoutTrailingSlashes(options.apiUrl ?? "https://api.mailgun.net");
   const auth = `Basic ${Buffer.from(`api:${options.apiKey}`).toString("base64")}`;
   return {
     name: "mailgun",
@@ -52,7 +59,7 @@ export interface ResendOptions {
 
 /** Resend's emails API (JSON, bearer key, its own `Idempotency-Key`). */
 export function resendProvider(options: ResendOptions): MailProvider {
-  const base = (options.apiUrl ?? "https://api.resend.com").replace(/\/+$/, "");
+  const base = withoutTrailingSlashes(options.apiUrl ?? "https://api.resend.com");
   return {
     name: "resend",
     async send(mail) {
