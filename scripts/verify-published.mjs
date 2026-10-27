@@ -2,7 +2,6 @@
 // green publish (@krizaka/storage@0.3.1 showed 0.3.0 for ~4 min), so a consumer that installs right after the run fails.
 // Usage: node scripts/verify-published.mjs '<publishedPackages JSON of changesets/action>'
 // Retries with backoff for a few minutes, then fails with the list of missing packages.
-import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 export function parsePublished(json) {
@@ -28,10 +27,10 @@ export async function waitForPackages(packages, visible, { delays = [0, 10_000, 
   return missing;
 }
 
-function visibleOnNpm(name, version) {
+async function visibleOnNpm(name, version) {
   try {
-    const out = execFileSync("npm", ["view", `${name}@${version}`, "version", "--prefer-online"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
-    return out.trim() === version;
+    const response = await fetch(`https://registry.npmjs.org/${name.replace("/", "%2f")}/${version}`, { headers: { "cache-control": "no-cache" } });
+    return response.ok;
   } catch {
     return false;
   }
@@ -41,7 +40,8 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const packages = parsePublished(process.argv[2]);
   const missing = await waitForPackages(packages, visibleOnNpm);
   if (missing.length > 0) {
-    console.error(`Not visible on npm after the publish:\n${missing.map((p) => `  ${p.name}@${p.version}`).join("\n")}`);
+    const list = missing.map((p) => `  ${p.name}@${p.version}`).join("\n");
+    console.error("Not visible on npm after the publish:\n" + list);
     process.exit(1);
   }
   console.log(`${packages.length} published package(s) visible on npm`);
