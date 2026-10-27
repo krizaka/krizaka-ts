@@ -29,7 +29,7 @@ export async function waitForPackages(packages, visible, { delays = [0, 10_000, 
 
 async function visibleOnNpm(name, version) {
   try {
-    const response = await fetch(`https://registry.npmjs.org/${name.replace("/", "%2f")}/${version}`, { headers: { "cache-control": "no-cache" } });
+    const response = await fetch(`https://registry.npmjs.org/${encodeURIComponent(name)}/${version}`, { headers: { "cache-control": "no-cache" } });
     return response.ok;
   } catch {
     return false;
