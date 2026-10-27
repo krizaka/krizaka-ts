@@ -97,6 +97,15 @@ read any file (a Vite/Tauri app has no `"use client"`).
 2. **`krizaka/no-derived-state-in-effect`** — an effect whose only statements are `setX(…)` calls: compute the value
    during render, or reset the component with a `key`.
 
+### Cognitive complexity (Sonar S3776)
+
+On 2026-10-27 every failed quality gate came from Sonar's S3776 (krizaka/.github#319), and only Sonar checked it.
+`krizakaStack()` now carries **`sonarjs/cognitive-complexity` at 15** (`eslint-plugin-sonarjs`; the threshold is never
+raised, the rule never disabled): split the function (early returns, extracted helpers, a lookup table instead of a
+chain of `if`). **Error by default** (`complexity: "error"`); a repository with debt passes `complexity: "warn"` while
+`krizaka-ratchet` (`cognitiveComplexity`) freezes the count of functions over 15 at `--update` time and fails any
+increase. Test files (`*.test.*`, `*.spec.*`, `__tests__/`) are not counted, as Sonar does not scan them.
+
 ### The three stack rules
 
 From [ADR-001](https://github.com/krizaka/krizaka-ui/blob/main/docs/adr/ADR-001-tanstack-under-krizaka-facades.md) — the TanStack engines run headless, behind
@@ -229,6 +238,7 @@ npx krizaka-ratchet --json      # in CI: the same check, machine-readable
 | `directTanstackImport` | `from` / `import` / `import(` / `require(` of `"@tanstack/…"` |
 | `localTableOrForm` | `<table`, and `<form` … `</form>` holding more fields than `maxFormFields` (default 1) |
 | `retiredImport` | an import of a dependency listed in `retire` (e.g. `["framer-motion"]`): the way out of a dependency |
+| `cognitiveComplexity` | functions whose `sonarjs/cognitive-complexity` is above 15 (Sonar S3776), counted by running the rule on each source file of `stackGlobs`, tests excluded; the KPI of the cognitive debt, it only goes down |
 | `routeStateSelection` | a Tabs / chip group / choice grid / segmented switch (incl. `RadioGroup.Root variant="segmented"`) / toggle group of a view driven by local state (`value`, `defaultValue`, `onValueChange`) without `routeKey`, and without `// @ephemeral: <reason>`: the URL is the state |
 
 The UI counters scan `app/**/*.tsx`, `components/**/*.tsx` and `src/**/*.tsx` by default (`node_modules`, `dist`,
