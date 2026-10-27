@@ -52,6 +52,7 @@ describe("package surface", () => {
         "./dependency-cruiser",
         "./covered-domains",
         "./known-violations",
+        "./server-client-boundary",
         "./prettier",
         "./tsconfig/base.json",
         "./tsconfig/react-library.json",
@@ -62,6 +63,7 @@ describe("package surface", () => {
     expect(pkg.bin).toEqual({
       "krizaka-ratchet": "./bin/krizaka-ratchet.mjs",
       "krizaka-known-violations": "./bin/krizaka-known-violations.mjs",
+      "krizaka-server-client-boundary": "./bin/krizaka-server-client-boundary.mjs",
     });
     expect(pkg.peerDependencies).toMatchObject({ eslint: "^9 || ^10", typescript: "^5" });
   });

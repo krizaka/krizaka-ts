@@ -36,6 +36,7 @@
     "./covered-domains": "./covered-domains.cjs",
     "./covered-domains.json": "./covered-domains.json",
     "./known-violations": "./ratchet/known-violations.js",
+    "./server-client-boundary": "./ratchet/server-client-boundary.js",
     "./patterns": "./patterns.js",
     "./ratchet": "./ratchet/ratchet.js",
     "./prettier": "./prettier.config.js",
@@ -48,7 +49,8 @@
   },
   "bin": {
     "krizaka-ratchet": "./bin/krizaka-ratchet.mjs",
-    "krizaka-known-violations": "./bin/krizaka-known-violations.mjs"
+    "krizaka-known-violations": "./bin/krizaka-known-violations.mjs",
+    "krizaka-server-client-boundary": "./bin/krizaka-server-client-boundary.mjs"
   },
   "files": [
     "bin",
