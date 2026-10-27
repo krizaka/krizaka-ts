@@ -9,6 +9,7 @@ import sonarjs from "eslint-plugin-sonarjs";
 import { glob } from "tinyglobby";
 import tseslint from "typescript-eslint";
 
+import { SONAR_RULES } from "../eslint/sonar.js";
 import {
   ARBITRARY_VAR_SOURCE,
   balancedArguments,
@@ -37,9 +38,9 @@ export const DEFAULT_STACK_GLOBS = Object.freeze(
 const IGNORE = ["**/node_modules/**", "**/dist/**", "**/.next/**", "**/storybook-static/**", "**/coverage/**"];
 
 /** @typedef {"palette" | "light" | "arbitraryVar" | "classNameTemplate"} UiCounterName */
-/** @typedef {"fetchInClientEffect" | "asyncInEffect" | "derivedStateInEffect" | "directTanstackImport" | "localTableOrForm" | "retiredImport" | "routeStateSelection" | "cognitiveComplexity"} StackCounterName */
+/** @typedef {"fetchInClientEffect" | "asyncInEffect" | "derivedStateInEffect" | "directTanstackImport" | "localTableOrForm" | "retiredImport" | "routeStateSelection" | "cognitiveComplexity" | "sonar"} StackCounterName */
 /** @typedef {UiCounterName | StackCounterName} CounterName */
-/** @typedef {Record<CounterName, number>} Counters */
+/** @typedef {Record<CounterName, number> & Record<string, number>} Counters (plus one `sonarjs/<rule>` counter per Sonar rule with a violation) */
 /**
  * @typedef {object} RatchetFile
  * @property {string[]} [globs] files of the UI counters
@@ -62,12 +63,16 @@ export const STACK_COUNTERS = /** @type {const} */ ([
   "retiredImport",
   "routeStateSelection",
   "cognitiveComplexity",
+  "sonar",
 ]);
 /** Every counter, in report order. */
 export const COUNTERS = /** @type {const} */ ([...UI_COUNTERS, ...STACK_COUNTERS]);
 /** Sonar S3776's threshold (same value as eslint/stack.js COGNITIVE_COMPLEXITY_MAX). Never raised. */
 const COMPLEXITY_MAX = 15;
 const TEST_FILE = /(\.(test|spec)\.[cm]?[jt]sx?$)|(\/__tests__\/)/;
+/** Prefix of the per-rule Sonar counters (ADR-013): `sonarjs/no-nested-conditional`. */
+export const SONAR_PREFIX = "sonarjs/";
+const isSonarCounter = (/** @type {string} */ name) => name.startsWith(SONAR_PREFIX);
 const zero = () => /** @type {Counters} */ (Object.fromEntries(COUNTERS.map((name) => [name, 0])));
 
 /**
@@ -102,7 +107,7 @@ export function countSource(source, allow = []) {
  * `@tanstack/*`, hand-written tables and forms of more than `maxFormFields` fields, imports of the retired dependencies.
  * @param {string} source
  * @param {{ retire?: readonly string[], maxFormFields?: number }} [options]
- * @returns {Record<Exclude<StackCounterName, "cognitiveComplexity">, number>} (cognitiveComplexity: countCognitiveComplexity, it needs the file name)
+ * @returns {Record<Exclude<StackCounterName, "cognitiveComplexity" | "sonar">, number>} (cognitiveComplexity and sonar: countCognitiveComplexity and countSonar, they need the file name)
  */
 export function countStackSource(source, { retire = [], maxFormFields = 1 } = {}) {
   let fetchInClientEffect = 0;
@@ -152,6 +157,28 @@ export function countCognitiveComplexity(source, filename = "file.tsx") {
   return messages.filter((/** @type {{ ruleId: string | null }} */ m) => m.ruleId === "sonarjs/cognitive-complexity").length;
 }
 
+/**
+ * Counts the violations of the Sonar layer (the `eslint-plugin-sonarjs` recommended set, see eslint/sonar.js) in one
+ * source text, per rule: `{ "sonarjs/no-nested-conditional": 2 }`. A file that does not parse counts for nothing.
+ * @param {string} source
+ * @param {string} [filename]
+ * @returns {Record<string, number>}
+ */
+export function countSonar(source, filename = "file.tsx") {
+  /** @type {Record<string, number>} */
+  const found = {};
+  let messages;
+  try {
+    messages = complexityLinter().verify(source, SONAR_CONFIG, { filename: `file${extname(filename)}` });
+  } catch {
+    return found; // a rule that cannot read the file: ESLint reports it, the ratchet does not guess
+  }
+  for (const { ruleId } of /** @type {{ ruleId: string | null }[]} */ (messages)) {
+    if (ruleId && SONAR_RULES.has(ruleId)) found[ruleId] = (found[ruleId] ?? 0) + 1;
+  }
+  return found;
+}
+
 /** One Linter for the whole run: building it (and the parser) per file made the CLI 10x slower in CI. */
 /** @type {Linter | undefined} */
 let sharedLinter;
@@ -163,6 +190,16 @@ const COMPLEXITY_CONFIG = [
     languageOptions: { parser: /** @type {any} */ (tseslint.parser) },
     plugins: { sonarjs },
     rules: { "sonarjs/cognitive-complexity": ["error", COMPLEXITY_MAX] },
+  },
+];
+
+/** @type {any} */
+const SONAR_CONFIG = [
+  {
+    files: ["**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"],
+    languageOptions: { parser: /** @type {any} */ (tseslint.parser) },
+    plugins: { sonarjs },
+    rules: Object.fromEntries([...SONAR_RULES].map(([name, options]) => [name, ["error", ...options]])),
   },
 ];
 
@@ -191,7 +228,13 @@ export async function countRepository({
     const found = /** @type {Partial<Counters>} */ (countStackSource(readFileSync(file, "utf8"), { retire, maxFormFields }));
     for (const name of STACK_COUNTERS) counters[name] += found[name] ?? 0;
     // Sonar scans the product code, not its tests
-    if (!TEST_FILE.test(file)) counters.cognitiveComplexity += countCognitiveComplexity(readFileSync(file, "utf8"), file);
+    if (!TEST_FILE.test(file)) {
+      counters.cognitiveComplexity += countCognitiveComplexity(readFileSync(file, "utf8"), file);
+      for (const [rule, n] of Object.entries(countSonar(readFileSync(file, "utf8"), file))) {
+        counters[rule] = (counters[rule] ?? 0) + n;
+        counters.sonar += n;
+      }
+    }
   }
   return { counters, files: files.length, stackFiles: stackFiles.length };
 }
@@ -233,10 +276,10 @@ export class RatchetError extends Error {}
  * @property {number} stackFiles source files scanned by the stack counters
  * @property {string[]} globs
  * @property {string[]} stackGlobs
- * @property {Record<CounterName, { recorded: number, current: number, delta: number }>} counters
- * @property {CounterName[]} increased
- * @property {CounterName[]} decreased
- * @property {CounterName[]} added counters missing from the file (recorded at their current value by --update)
+ * @property {Record<string, { recorded: number, current: number, delta: number }>} counters (the named counters, and a `sonarjs/<rule>` one per Sonar rule with a violation)
+ * @property {string[]} increased
+ * @property {string[]} decreased
+ * @property {string[]} added counters missing from the file (recorded at their current value by --update)
  * @property {string[]} unmeasured counters of the file this version does not measure: kept as recorded by --update, never dropped
  * @property {boolean} written the ratchet file was created, lowered or completed
  */
@@ -247,13 +290,14 @@ export class RatchetError extends Error {}
  * @param {Counters} recorded
  */
 function compareCounters(current, recorded) {
+  const names = [...COUNTERS, ...new Set([...Object.keys(current), ...Object.keys(recorded)].filter(isSonarCounter))];
   /** @type {RatchetResult["counters"]} */
   const report = /** @type {any} */ ({});
-  /** @type {CounterName[]} */ const increased = [];
-  /** @type {CounterName[]} */ const decreased = [];
-  for (const name of COUNTERS) {
-    const delta = current[name] - recorded[name];
-    report[name] = { recorded: recorded[name], current: current[name], delta };
+  /** @type {string[]} */ const increased = [];
+  /** @type {string[]} */ const decreased = [];
+  for (const name of names) {
+    const delta = (current[name] ?? 0) - (recorded[name] ?? 0);
+    report[name] = { recorded: recorded[name] ?? 0, current: current[name] ?? 0, delta };
     if (delta > 0) increased.push(name);
     if (delta < 0) decreased.push(name);
   }
@@ -294,10 +338,14 @@ export async function runRatchet({ root, mode = "check", globs, file = RATCHET_F
     retire,
     maxFormFields,
   });
-  /** @type {CounterName[]} */ const added = recordedFile ? COUNTERS.filter((n) => recordedFile.counters[n] === undefined) : [];
+  /** @type {string[]} */ const added = recordedFile ? COUNTERS.filter((n) => recordedFile.counters[n] === undefined) : [];
   const recorded = /** @type {Counters} */ ({ ...current, ...recordedFile?.counters });
+  // once the Sonar layer is recorded (`sonar`), a rule with no recorded counter is recorded at 0: a first violation fails
+  if (recordedFile?.counters.sonar !== undefined) {
+    for (const name of Object.keys(current)) if (isSonarCounter(name) && recordedFile.counters[name] === undefined) recorded[name] = 0;
+  }
   /** @type {string[]} */
-  const unmeasured = Object.keys(recordedFile?.counters ?? {}).filter((n) => !COUNTERS.includes(/** @type {CounterName} */ (n)));
+  const unmeasured = Object.keys(recordedFile?.counters ?? {}).filter((n) => !isSonarCounter(n) && !COUNTERS.includes(/** @type {CounterName} */ (n)));
 
   const { report, increased, decreased } = compareCounters(current, recorded);
 
@@ -308,6 +356,11 @@ export async function runRatchet({ root, mode = "check", globs, file = RATCHET_F
   } else if (mode === "update" && (decreased.length > 0 || added.length > 0) && recordedFile) {
     const lowered = zero();
     for (const name of COUNTERS) lowered[name] = Math.min(recorded[name], current[name]);
+    // one counter per Sonar rule, only those still above 0 (an absent one is 0)
+    for (const name of Object.keys(report).filter(isSonarCounter)) {
+      const value = Math.min(recorded[name] ?? 0, current[name] ?? 0);
+      if (value > 0) lowered[name] = value;
+    }
     // a counter this version does not measure (a repository's own, or a newer preset's) is kept as recorded, never dropped
     const counters = { ...lowered, ...Object.fromEntries(unmeasured.map((name) => [name, /** @type {Record<string, number>} */ (recordedFile?.counters)?.[name]])) };
     writeRatchet(path, { ...recordedFile, stackGlobs: recordedFile.stackGlobs ?? stackGlobs, counters });

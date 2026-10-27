@@ -5,6 +5,7 @@
 import sonarjs from "eslint-plugin-sonarjs";
 
 import { krizakaPlugin } from "./plugin.js";
+import { SONAR_TEST_FILES, sonarRules } from "./sonar.js";
 
 /** Sonar S3776 threshold: a function above it is a quality-gate failure. Never raised. */
 export const COGNITIVE_COMPLEXITY_MAX = 15;
@@ -22,11 +23,14 @@ export const STACK_RULES = Object.freeze([
 
 /**
  * Flat config: the stack rules on an app's sources.
- * @param {{ files?: string[], ignores?: string[], severity?: "warn" | "error", effects?: "warn" | "error" | "off", complexity?: "warn" | "error", maxFormFields?: number }} [options]
+ * @param {{ files?: string[], ignores?: string[], severity?: "warn" | "error", effects?: "warn" | "error" | "off", complexity?: "warn" | "error", sonar?: "warn" | "error" | "off", maxFormFields?: number }} [options]
  *   `effects`: severity of the two effect rules (react-effects standard): `"error"` by default; a repository with debt
  *   passes `"warn"` while `krizaka-ratchet` (asyncInEffect, derivedStateInEffect) brings the count to 0.
  *   `complexity`: severity of `sonarjs/cognitive-complexity` (Sonar S3776, threshold 15): `"error"` by default; a
  *   repository with debt passes `"warn"` while `krizaka-ratchet` (`cognitiveComplexity`) freezes the count and fails any increase.
+ *   `sonar`: severity of the Sonar layer (the `eslint-plugin-sonarjs` recommended set, minus `SONAR_OFF`; ADR-013): `"error"` by
+ *   default; a repository with debt passes `"warn"` while `krizaka-ratchet` (`sonarjs/<rule>` counters) freezes each rule's
+ *   count and fails any increase. Test files are not part of it (Sonar does not scan them).
  *   `maxFormFields`: a form with at most this many fields is allowed (default 1 — a search box, a newsletter).
  * @returns {import("eslint").Linter.Config[]}
  */
@@ -36,6 +40,7 @@ export function krizakaStack({
   severity = "warn",
   effects = "error",
   complexity = "error",
+  sonar = "error",
   maxFormFields = 1,
 } = {}) {
   return [
@@ -58,6 +63,17 @@ export function krizakaStack({
         "sonarjs/cognitive-complexity": [complexity, COGNITIVE_COMPLEXITY_MAX],
       },
     },
+    ...(sonar === "off"
+      ? []
+      : [
+          {
+            name: "krizaka/sonar",
+            files,
+            ignores: [...ignores, ...SONAR_TEST_FILES],
+            plugins: { sonarjs },
+            rules: sonarRules(sonar),
+          },
+        ]),
   ];
 }
 

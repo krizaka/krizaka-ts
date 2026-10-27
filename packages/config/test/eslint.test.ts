@@ -231,12 +231,12 @@ describe("krizakaStack — the three stack rules (S1–S3, S11)", () => {
       </>
     );
     declare function Select(p: { name: string }): null;`;
-    const messages = await lint(krizakaStack(), code, "app/page.tsx");
+    const messages = await lint(krizakaStack({ sonar: "off" }), code, "app/page.tsx");
     expect(messages.map((m) => m.message)).toEqual([
       expect.stringMatching(/<form> of 2 fields/),
       expect.stringMatching(/<table>: use DataTable/),
     ]);
-    expect(await lint(krizakaStack({ maxFormFields: 2 }), code, "app/page.tsx")).toHaveLength(1);
+    expect(await lint(krizakaStack({ sonar: "off", maxFormFields: 2 }), code, "app/page.tsx")).toHaveLength(1);
   });
 
   it("takes files, ignores and severity; composes with noLocaleTernary (one plugin object)", async () => {
@@ -254,7 +254,7 @@ describe("krizakaStack — the three stack rules (S1–S3, S11)", () => {
 
   it("names exactly the stack rules (fetch, the two effect rules, table and form, the family switcher ban, the route state, Sonar's cognitive complexity)", () => {
     expect(STACK_RULES).toHaveLength(7);
-    expect(krizakaStack().flatMap((config) => Object.keys(config.rules!))).toEqual([...STACK_RULES]);
+    expect(krizakaStack({ sonar: "off" }).flatMap((config) => Object.keys(config.rules!))).toEqual([...STACK_RULES]);
   });
 });
 
@@ -413,5 +413,37 @@ describe("krizakaStack: sonarjs/cognitive-complexity (S3776, 15)", () => {
     expect(ids(await lint(krizakaStack(), "export const f = (a: number) => a + 1;", "lib/x.ts"))).not.toContain("sonarjs/cognitive-complexity");
     const { COGNITIVE_COMPLEXITY_MAX } = await import("../eslint/stack.js");
     expect(COGNITIVE_COMPLEXITY_MAX).toBe(15);
+  });
+});
+
+describe("krizakaStack: the Sonar layer (eslint-plugin-sonarjs recommended, ADR-013)", () => {
+  const nested = "export const f = (a: boolean, b: boolean) => (a ? 1 : b ? 2 : 3);";
+  const osCommand = `import { execSync } from "node:child_process";\nexport const ls = () => execSync("ls");`;
+  const severityOf = (messages: Linter.LintMessage[], id: string) => messages.find((m) => m.ruleId === id)?.severity;
+
+  it("fails a nested ternary (S3358) and an OS command from the PATH (S4036), as errors by default", async () => {
+    expect(severityOf(await lint(krizakaStack(), nested, "lib/x.ts"), "sonarjs/no-nested-conditional")).toBe(2);
+    expect(severityOf(await lint(krizakaStack(), osCommand, "lib/x.ts"), "sonarjs/no-os-command-from-path")).toBe(2);
+  });
+
+  it("is a warning on request and absent when off", async () => {
+    expect(severityOf(await lint(krizakaStack({ sonar: "warn" }), nested, "lib/x.ts"), "sonarjs/no-nested-conditional")).toBe(1);
+    expect(ids(await lint(krizakaStack({ sonar: "off" }), nested, "lib/x.ts"))).not.toContain("sonarjs/no-nested-conditional");
+  });
+
+  it("does not scan test files, as Sonar does not", async () => {
+    expect(ids(await lint(krizakaStack(), nested, "lib/x.test.ts"))).not.toContain("sonarjs/no-nested-conditional");
+  });
+
+  it("turns off only the explicit duplicates, each with a reason, and keeps cognitive-complexity out of the layer", async () => {
+    const { SONAR_OFF, SONAR_RULES, SONAR_OWN_COUNTER, sonarRules } = await import("../eslint/sonar.js");
+    for (const [name, reason] of Object.entries(SONAR_OFF)) {
+      expect(reason.length).toBeGreaterThan(10);
+      expect(SONAR_RULES.has(name)).toBe(false);
+      expect(sonarRules("error")[name]).toBe("off");
+    }
+    expect(SONAR_RULES.has(SONAR_OWN_COUNTER)).toBe(false);
+    expect(SONAR_RULES.size).toBeGreaterThan(150);
+    expect(SONAR_RULES.has("sonarjs/no-alphabetical-sort")).toBe(true);
   });
 });
