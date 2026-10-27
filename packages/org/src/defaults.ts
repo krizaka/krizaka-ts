@@ -9,9 +9,13 @@ export const DEFAULT_KINDS = ["person", "folder", "organisation", "shop", "banne
 /** The sizes (px) each kind is served in: squares for the pictures, widths for the banners (3:1). */
 const SIZES: Record<OrgDefaultKind, readonly number[]> = { person: [256, 512, 1024], folder: [256, 512, 1024], organisation: [256, 512, 1024], shop: [256, 512, 1024], banner: [960, 1920] };
 
+/** Withdrawn pictures, `<kind>/<id>`: kept in the JSON and on the CDN, never picked. The neon flamingo carries the wordmark of a paused product. */
+export const DISABLED_DEFAULTS: ReadonlySet<string> = new Set(["banner/the-neon-flamingo"]);
+
 const item = (kind: OrgDefaultKind, id: string, alt: Localized, drawn: boolean): OrgDefaultItem => ({
   id,
   alt,
+  ...(DISABLED_DEFAULTS.has(`${kind}/${id}`) ? { disabled: true as const } : {}),
   urls: {
     ...(drawn ? { svg: `${BASE}/${kind}/${id}.svg` } : {}),
     webp: Object.fromEntries(SIZES[kind].map((size) => [String(size), `${BASE}/${kind}/${id}-${size}.webp`])),
@@ -88,9 +92,9 @@ export function seedHash(seed: string | number): number {
   return h;
 }
 
-/** The items of a kind, in the order of the JSON. A source other than the bundled one is the JSON an app fetched. */
+/** The items of a kind that can be picked, in the order of the JSON (a withdrawn one is skipped). A source other than the bundled one is the JSON an app fetched. */
 export function listDefaults(kind: OrgDefaultKind, source: OrgDefaults = defaults): readonly OrgDefaultItem[] {
-  return source.kinds[kind] ?? [];
+  return (source.kinds[kind] ?? []).filter((entry) => entry.disabled !== true);
 }
 
 /** The item of a kind for a seed (an entity's id): deterministic, so a folder keeps its picture everywhere. `undefined` only when the kind's list is empty. */

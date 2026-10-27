@@ -29,6 +29,7 @@ const defaultItems = {
     properties: {
       id: slug,
       alt: localized,
+      disabled: { const: true },
       urls: {
         type: "object",
         additionalProperties: false,
