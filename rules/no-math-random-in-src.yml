@@ -1,0 +1,11 @@
+id: no-math-random-in-src
+language: Tsx
+severity: error
+message: "No `Math.random()` in package sources (Sonar S2245): use `crypto.randomUUID()` / `crypto.getRandomValues()`. Tests may keep it."
+rule:
+  pattern: Math.random()
+files:
+  - "**/src/**"
+ignores:
+  - "**/node_modules/**"
+  - "**/dist/**"

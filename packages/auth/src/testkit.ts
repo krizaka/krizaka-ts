@@ -72,7 +72,7 @@ export function identityProviderContract(name: string, make: () => ProviderHarne
 /** What every IdentityLinkStore adapter must do. `account(n)` gives an account id the adapter accepts. */
 export function identityLinkStoreContract(name: string, make: () => IdentityLinkStore | Promise<IdentityLinkStore>, account: (n: number) => string | Promise<string>) {
   const NOW = new Date("2026-10-26T12:00:00Z");
-  const subject = () => `sub-${Math.random().toString(36).slice(2)}`;
+  const subject = () => `sub-${randomUUID()}`;
 
   it(`${name}: finds a linked identity, and nothing else`, async () => {
     const store = await make();

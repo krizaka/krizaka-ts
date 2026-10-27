@@ -19,7 +19,7 @@ export function apiKeyStoreContract(name: string, make: () => ApiKeyStore | Prom
     supersededAt: null,
     ...over,
   });
-  const pid = () => Math.random().toString(16).slice(2, 14).padEnd(12, "0");
+  const pid = () => crypto.randomUUID().replaceAll("-", "").slice(0, 12);
 
   it(`${name}: stores a record and finds it by id and by its public id, dates and scopes intact`, async () => {
     const store = await make();
