@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { ALL_SCOPES, bilingual, choice, dbSettings, defineSettings, describeSettings, flag, GLOBAL, integer, resolveValue, SCOPE, type ScopeRef, seedLegacySettings, SettingsError, settingsMigration, subset, WORKSPACE_SCOPES } from "../src";
+import { ALL_SCOPES, bilingual, choice, dbSettings, defineSettings, describeSettings, flag, GLOBAL, integer, resolveValue, SCOPE, type ScopeRef, seedLegacySettings, SettingsError, settingsMigration, subset, text, WORKSPACE_SCOPES } from "../src";
 import { databaseEnabled, testDatabase } from "./database";
 
 /** A registry of the kinds a product uses. */
 const registry = {
   "app.maintenance": flag("general", false),
   "app.message": bilingual("general", { fr: "Retour bientôt.", en: "Back soon." }),
+  "mail.from": text("mail", "Krizaka <no-reply@example.com>"),
+  "mail.replyTo": text("mail", "", { empty: true }),
   "signup.open": flag("general", false),
   "payments.display": choice("general", ["test", "live"], "test"),
   "features.insight": flag("features", true, ALL_SCOPES),
@@ -17,6 +19,17 @@ const registry = {
   "plans.pro": integer("plans", 100, { min: 1, max: 1000 }),
 } as const;
 const settings = defineSettings(registry);
+
+describe("the text kind", () => {
+  it("trims, bounds its length, and refuses an empty value unless allowed", () => {
+    const from = settings.defOf("mail.from");
+    expect(from.kind).toBe("text");
+    expect(from.schema.parse("  a@b.c  ")).toBe("a@b.c");
+    expect(from.schema.safeParse("   ").success).toBe(false);
+    expect(from.schema.safeParse("x".repeat(201)).success).toBe(false);
+    expect(settings.defOf("mail.replyTo").schema.safeParse("").success).toBe(true);
+  });
+});
 
 describe("the registry", () => {
   it.each(settings.keys)("%s: its default is valid for its own schema and it can be set somewhere", (key) => {

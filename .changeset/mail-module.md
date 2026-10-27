@@ -1,0 +1,8 @@
+---
+"@krizaka/mail": minor
+"@krizaka/settings": minor
+---
+
+New package (#58): `@krizaka/mail`. `createMail` (`queue` in the caller's transaction through the outbox topic `mail`, `deliver` for the worker: suppression and key checks, send, then claim, so a crash sends again rather than loses; `suppress`, `unsuppress`, `purge`), `mailgunProvider`, `resendProvider`, `logProvider` and `providerFor` over an injected `fetch`, `parseMailgunWebhook` and `parseResendWebhook` (signature, age, hard bounces and complaints), `mailSchema` (`mail.delivery`, `mail.suppression` as address hashes, `mail.idempotency`), `dbMailStore`, `memoryMailStore`, `emailPorts` (the three ports of `@krizaka/email`, structurally), `@krizaka/mail/settings` (`mail.provider`, `mail.from`, `mail.replyTo`, `mail.retentionDays`), `evt.mail.requested.v1` and `mailStoreContract`.
+
+`@krizaka/settings` gains the `text` kind (`text(group, default, { max, empty })`): one trimmed line of free text, for an address or a name.

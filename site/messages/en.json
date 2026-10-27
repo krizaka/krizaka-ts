@@ -85,6 +85,9 @@
     "outbox": {
       "hook": "The transactional outbox: written with the work, delivered at least once by leased workers, retried, then dead-lettered."
     },
+    "mail": {
+      "hook": "Queued mail sent after the commit, once per key, never to a suppressed address; the provider is the admin's choice; bounces and complaints suppress."
+    },
     "coupons": {
       "hook": "Discount and credit coupons the admin manages: reserved under a lock, confirmed once, released when unpaid, refunded; partners for attribution."
     },
