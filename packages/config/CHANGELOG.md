@@ -1,5 +1,11 @@
 # @krizaka/config
 
+## 0.14.0
+
+### Minor Changes
+
+- 9148481: ast-grep `web` set: `no-hardcoded-default-media` refuses a hard-coded `people/defaults`, `defaults/v<n>/` or `krizaka-defaults` path; default media come from `@krizaka/org` (krizaka-ts#134, akinaza#411).
+
 ## 0.13.0
 
 ### Minor Changes
