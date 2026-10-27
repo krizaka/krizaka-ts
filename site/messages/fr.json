@@ -88,6 +88,9 @@
     "mail": {
       "hook": "Courriel en file : envoyé après le commit, une fois par clé, jamais à une adresse supprimée ; le fournisseur est le choix de l'admin ; rebonds et plaintes suppriment."
     },
+    "notifications": {
+      "hook": "La cloche, les canaux et les préférences : un notify écrit l'élément et un message d'outbox par canal activé ; les plafonds de rafale tiennent en concurrence ; l'admin règle les défauts."
+    },
     "coupons": {
       "hook": "Des coupons de rabais et de crédits gérés par l’admin : réservés sous verrou, confirmés une fois, libérés si non payés, remboursés ; des partenaires pour l’attribution."
     },
