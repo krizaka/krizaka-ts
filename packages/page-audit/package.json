@@ -1,0 +1,68 @@
+{
+  "name": "@krizaka/page-audit",
+  "version": "0.1.0",
+  "description": "The page audit of every Krizaka app, in one place: horizontal overflow, a card out of its panel, sections covering each other, a column cut off, top chrome overlaps, unnamed buttons, empty headings. Runs in a real browser (Playwright) over a route list, viewports and themes, with View Transitions neutralised and a self-test on its own fixtures.",
+  "keywords": [
+    "krizaka",
+    "audit",
+    "overflow",
+    "layout",
+    "playwright"
+  ],
+  "homepage": "https://ts.krizaka.com/page-audit",
+  "bugs": "https://github.com/krizaka/krizaka-ts/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/krizaka/krizaka-ts.git",
+    "directory": "packages/page-audit"
+  },
+  "license": "Apache-2.0",
+  "author": "Krizaka (https://www.krizaka.com)",
+  "type": "module",
+  "main": "./src/index.mjs",
+  "types": "./src/index.d.ts",
+  "bin": {
+    "krizaka-page-audit": "./src/cli.mjs"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.mjs"
+    },
+    "./settle": {
+      "types": "./src/index.d.ts",
+      "import": "./src/settle.mjs"
+    },
+    "./fixtures": "./src/fixtures.mjs",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "node --check src/index.mjs",
+    "test": "vitest run",
+    "check": "pnpm run lint && pnpm run test",
+    "prepublishOnly": "pnpm run check"
+  },
+  "peerDependencies": {
+    "playwright-core": ">=1.40"
+  },
+  "devDependencies": {
+    "@krizaka/config": "workspace:^",
+    "@types/node": "^22.10.0",
+    "eslint": "^9.39.0",
+    "playwright-core": "^1.55.0",
+    "vitest": "^4.1.11"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
