@@ -91,6 +91,12 @@
     "notifications": {
       "hook": "La cloche, les canaux et les préférences : un notify écrit l'élément et un message d'outbox par canal activé ; les plafonds de rafale tiennent en concurrence ; l'admin règle les défauts."
     },
+    "storage": {
+      "hook": "Fichiers derrière un seul port : noms hachés par le contenu, liens signés et publics ; une zone HTTP, tout bucket compatible S3 ou un dossier, au choix de l'admin ; octets vérifiés par nombre magique."
+    },
+    "video": {
+      "hook": "Vidéo derrière un seul port : téléversements reprenables signés côté serveur, jetons de lecture et liens HLS signés, statuts de webhook signés."
+    },
     "coupons": {
       "hook": "Des coupons de rabais et de crédits gérés par l’admin : réservés sous verrou, confirmés une fois, libérés si non payés, remboursés ; des partenaires pour l’attribution."
     },
