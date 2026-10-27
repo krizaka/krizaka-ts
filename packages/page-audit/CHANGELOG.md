@@ -1,5 +1,11 @@
 # @krizaka/page-audit
 
+## 0.3.1
+
+### Patch Changes
+
+- 8656e38: A token in a table cell is not « wrapped one character per line » because a taller neighbour stretches its row: the check measures the text's own lines, not the cell's box.
+
 ## 0.3.0
 
 ### Minor Changes
