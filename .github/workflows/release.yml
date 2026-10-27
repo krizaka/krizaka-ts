@@ -47,7 +47,7 @@ jobs:
           # PR, or the next frozen install fails (run 40070679529). The script lives in package.json (run 40072186334).
           # One npm script: the action runs version-script without a shell, so an "and then" here would be passed as an argument.
           version-script: pnpm run version-packages
-          publish-script: pnpm changeset publish   # → npm publish --provenance ; tags @krizaka/ui@2.0.0, @krizaka/tokens@1.0.0…
+          publish-script: bash scripts/publish-packages.sh   # every package by OIDC first, NPM_TOKEN as the logged fallback (::warning:: names it); then `changeset tag`
           pr-title: "chore: version packages"
           github-token: ${{ steps.app.outputs.token || secrets.GITHUB_TOKEN }}
         env:
@@ -77,11 +77,12 @@ jobs:
           MEDIA_CDN_HOSTNAME: ${{ secrets.MEDIA_CDN_HOSTNAME }}
 
       # @krizaka/config 0.9.0 was published from a stale copy in krizaka-ui (no `krizaka-known-violations`, no covered-domains or
-      # dependency-cruiser presets) and broke the apps' pre-push hooks. krizaka-ts is the single source; 0.9.1 replaces it. Idempotent
-      # (deprecating twice is a no-op) and run with the same automation token as the publish, never printed. Remove once 0.9.0 is long gone.
+      # dependency-cruiser presets) and broke the apps' pre-push hooks. krizaka-ts is the single source; 0.9.1 replaces it.
+      # Runs AFTER the publish and never blocks it: skipped when 0.9.0 already carries a deprecation message (it does since 2026-10-27;
+      # the automation token gets E422 on a second deprecate), and a failure is a ::warning::, not a red run. Remove once 0.9.0 is long gone.
       - if: steps.changesets.outputs.published == 'true' || github.event_name == 'workflow_dispatch'
-        continue-on-error: true
         run: |
-          npm deprecate "@krizaka/config@0.9.0" "broken: use >=0.9.1"
+          if [ -n "$(npm view "@krizaka/config@0.9.0" deprecated 2>/dev/null)" ]; then echo "@krizaka/config@0.9.0 is already deprecated"; exit 0; fi
+          npm deprecate "@krizaka/config@0.9.0" "broken: use >=0.9.1" || echo "::warning::npm deprecate @krizaka/config@0.9.0 failed (token without the right to deprecate?)"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
