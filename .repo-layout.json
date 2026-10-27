@@ -1,0 +1,8 @@
+{
+  "allow": [
+    {
+      "path": ".pre-commit-config.yaml",
+      "why": "Org security hooks (gitleaks, zizmor) run on each commit; the file is read by pre-commit, not by the monorepo tooling"
+    }
+  ]
+}
