@@ -155,8 +155,9 @@ export function dbCouponStore(query: Query, schema = "coupons"): CouponStore {
       return row ? toRedemption(row) : null;
     },
     async usage(couponId, accountId, now) {
+      const counted = COUNTS.replaceAll("$NOW", () => "$3");
       const [row] = await query<{ total: number; account: number }>(
-        `SELECT count(*) FILTER (WHERE ${COUNTS.replace("$NOW", "$3")})::int AS total, count(*) FILTER (WHERE ${COUNTS.replace("$NOW", "$3")} AND account_id = $2)::int AS account FROM ${redemption} WHERE coupon_id = $1`,
+        `SELECT count(*) FILTER (WHERE ${counted})::int AS total, count(*) FILTER (WHERE ${counted} AND account_id = $2)::int AS account FROM ${redemption} WHERE coupon_id = $1`,
         [couponId, accountId, now],
       );
       return { total: row?.total ?? 0, account: row?.account ?? 0 };
