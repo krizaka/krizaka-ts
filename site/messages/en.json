@@ -88,6 +88,9 @@
     "mail": {
       "hook": "Queued mail sent after the commit, once per key, never to a suppressed address; the provider is the admin's choice; bounces and complaints suppress."
     },
+    "notifications": {
+      "hook": "The bell, channels and preferences: one notify writes the item and one outbox message per enabled channel; burst caps hold under concurrency; the admin tunes defaults."
+    },
     "coupons": {
       "hook": "Discount and credit coupons the admin manages: reserved under a lock, confirmed once, released when unpaid, refunded; partners for attribution."
     },
