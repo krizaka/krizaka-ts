@@ -1,4 +1,5 @@
-import { hashedName, type Layout } from "./keys";
+import { hashedName } from "./hashing";
+import type { Layout } from "./keys";
 import { type ObjectStore, STORAGE_CODE, StorageError } from "./port";
 import { sniffType } from "./sniff";
 

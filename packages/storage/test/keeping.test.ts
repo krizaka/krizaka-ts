@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 
 import { describe, expect, it } from "vitest";
 
-import { COUNTRY_OF_REGION, countryOf, describeStore, encryptedStore, memoryObjectStore, open, parseEncryptionKey, parseVaultKey, residencyOf, residencyOfConfig, seal, storageNotice, STORE_KIND, type StoreDescriptor, where } from "../src";
+import { COUNTRY_OF_REGION, countryOf, describeStore, encryptedStore, memoryObjectStore, open, parseEncryptionKey, parseVaultKey, residencyOf, residencyOfConfig, seal, storageNotice, STORE_KIND, type StoreDescriptor, where } from "../src/node";
 import { type DeploymentStorage, openResolved, resolveStorage } from "../src/resolve";
 import { STORAGE_DEFAULTS, type StorageSettings } from "../src/settings";
 import { objectStoreContract } from "../src/testkit";

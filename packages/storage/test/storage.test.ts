@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { afterAll, describe, expect, it } from "vitest";
 
-import { assertKey, bucketStore, checkEndpoint, createStorage, defineLayout, type FetchLike, folderStore, hashedName, memoryObjectStore, remoteStore, sniffType, STORAGE_CODE,trimSlashes } from "../src";
+import { assertKey, bucketStore, checkEndpoint, createStorage, defineLayout, type FetchLike, folderStore, hashedName, memoryObjectStore, remoteStore, sniffType, STORAGE_CODE,trimSlashes } from "../src/node";
 import { EMPTY_SHA256, presignGet, signRequest } from "../src/request-signing";
 import { limitsOf, readStorageSettings, storageSettings, storeFromSettings } from "../src/settings";
 import { objectStoreContract } from "../src/testkit";
