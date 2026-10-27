@@ -10,7 +10,7 @@ export type Scope = (typeof SCOPE)[keyof typeof SCOPE];
 /** The order a value is looked up in: the most specific wins (user, then workspace, then global). */
 export const SCOPES_BY_SPECIFICITY = [SCOPE.user, SCOPE.workspace, SCOPE.global] as const;
 
-export const KIND = { flag: "flag", integer: "integer", choice: "choice", bilingual: "bilingual", subset: "subset" } as const;
+export const KIND = { flag: "flag", integer: "integer", choice: "choice", bilingual: "bilingual", text: "text", subset: "subset" } as const;
 export type Kind = (typeof KIND)[keyof typeof KIND];
 
 export interface Def<T = unknown> {
@@ -35,6 +35,15 @@ export const flag = (group: string, value: boolean, scopes: readonly Scope[] = G
 export const integer = (group: string, value: number, bounds: { min: number; max: number; unit?: string }, scopes: readonly Scope[] = GLOBAL_ONLY): Def<number> => ({ group, kind: KIND.integer, schema: z.number().int().min(bounds.min).max(bounds.max), default: value, scopes, ...bounds });
 export const choice = <const C extends readonly [string, ...string[]]>(group: string, choices: C, value: C[number], scopes: readonly Scope[] = GLOBAL_ONLY): Def<C[number]> => ({ group, kind: KIND.choice, schema: z.enum(choices), default: value, scopes, choices });
 export const subset = <const C extends readonly [string, ...string[]]>(group: string, choices: C, value: C[number][], scopes: readonly Scope[] = GLOBAL_ONLY): Def<C[number][]> => ({ group, kind: KIND.subset, schema: z.array(z.enum(choices)).min(1), default: value, scopes, choices });
+/** A single line of free text (an address, a name): trimmed, 1 to `max` characters (default 200). The default may be empty only when `empty` allows it. */
+export const text = (group: string, value: string, options: { max?: number; empty?: boolean } = {}, scopes: readonly Scope[] = GLOBAL_ONLY): Def<string> => ({
+  group,
+  kind: KIND.text,
+  schema: z.string().trim().min(options.empty ? 0 : 1).max(options.max ?? 200),
+  default: value,
+  scopes,
+  max: options.max ?? 200,
+});
 export const bilingual = (group: string, value: { fr: string; en: string }, scopes: readonly Scope[] = GLOBAL_ONLY): Def<{ fr: string; en: string }> => ({ group, kind: KIND.bilingual, schema: z.object({ fr: z.string().trim().min(1).max(500), en: z.string().trim().min(1).max(500) }), default: value, scopes });
 
 /** A registry: keys to definitions (write it `as const satisfies Registry` to keep the keys and the value types). */

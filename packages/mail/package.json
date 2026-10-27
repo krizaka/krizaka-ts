@@ -1,0 +1,88 @@
+{
+  "name": "@krizaka/mail",
+  "version": "0.0.0",
+  "description": "Mail for every Krizaka product: queued in the caller's transaction through the outbox, delivered once per idempotency key, never to a suppressed address (stored as a hash); providers (Mailgun, Resend, log) over an injected fetch; bounces and complaints from signed webhooks. No vendor SDK, no environment variable, no wall clock.",
+  "keywords": [
+    "krizaka",
+    "mail",
+    "email",
+    "outbox",
+    "suppression",
+    "mailgun",
+    "resend"
+  ],
+  "homepage": "https://github.com/krizaka/krizaka-ts/tree/main/packages/mail",
+  "bugs": "https://github.com/krizaka/krizaka-ts/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/krizaka/krizaka-ts.git",
+    "directory": "packages/mail"
+  },
+  "license": "Apache-2.0",
+  "author": "Krizaka (https://www.krizaka.com)",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./settings": {
+      "types": "./dist/settings.d.ts",
+      "import": "./dist/settings.js"
+    },
+    "./testkit": {
+      "types": "./dist/testkit.d.ts",
+      "import": "./dist/testkit.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsup",
+    "lint": "eslint . --max-warnings 0 && tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "check": "pnpm run lint && pnpm run test && pnpm run build",
+    "prepublishOnly": "pnpm run build"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "@krizaka/config": "workspace:^",
+    "@krizaka/outbox": "workspace:^",
+    "@types/node": "^22.10.0",
+    "@types/pg": "^8.23.1",
+    "eslint": "^9.39.0",
+    "pg": "^8.23.1",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.11",
+    "zod": "^4.6.7"
+  },
+  "dependencies": {
+    "@krizaka/db": "workspace:^",
+    "@krizaka/settings": "workspace:^",
+    "@krizaka/time": "workspace:^"
+  },
+  "peerDependencies": {
+    "vitest": ">=4",
+    "zod": ">=3.23"
+  },
+  "peerDependenciesMeta": {
+    "vitest": {
+      "optional": true
+    },
+    "zod": {
+      "optional": true
+    }
+  }
+}
