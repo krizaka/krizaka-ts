@@ -79,6 +79,41 @@ export interface Price {
   interval: "day" | "week" | "month" | "year" | null;
 }
 
+/** A one-off charge of an amount the product computed (a provider's cost plus a margin, say), on a customer who already holds a payment method. */
+export interface ChargeRequest {
+  /** Makes the charge idempotent: a retry with the same key never charges twice, and returns the same result. Stable per thing sold (a check id). */
+  key: string;
+  customerId: string;
+  /** Before tax, integer minor units, positive. */
+  amountMinor: number;
+  currency: string;
+  /** The invoice line the customer reads. */
+  description: string;
+  /** The processor's tax code of the service (Stripe Tax); without it the account's default applies. */
+  taxCode?: string;
+  /** Echoed on the invoice. */
+  metadata?: Record<string, string>;
+}
+
+/** A charge that went through: the invoice reference to refund by, the payment reference when the processor gave one, and what was taken. */
+export interface ChargeResult {
+  /** The invoice's reference: pass it to `refund`. */
+  ref: string;
+  paymentRef: string | null;
+  /** Tax included, in minor units. */
+  amountTotal: number;
+  /** The tax in it, in minor units (0 when none applies). */
+  amountTax: number;
+  currency: string;
+}
+
+export interface RefundOptions {
+  /** Makes the refund idempotent. */
+  key?: string;
+  /** Part of the payment, in minor units; the whole payment when omitted. */
+  amountMinor?: number;
+}
+
 export interface PaymentsPort {
   /** Creates the processor's customer for an account (idempotent per account). */
   createCustomer(email: string, accountId: string): Promise<{ id: string }>;
@@ -88,6 +123,14 @@ export interface PaymentsPort {
   portal(customerId: string, returnUrl: string, locale: "en" | "fr"): Promise<{ url: string }>;
   /** The processor's current price of a plan (read by lookup key). */
   price(kind: PlanKind): Promise<Price>;
+  /**
+   * A one-off charge with tax: an invoice with one line, taxed by the processor (Stripe Tax, from the customer's address), finalised and
+   * paid with the customer's saved payment method. A declined payment or an address the tax cannot be computed for leaves nothing
+   * billed (the invoice is voided) and throws `PAYMENTS_DECLINED` or `PAYMENTS_PROCESSOR`.
+   */
+  charge(request: ChargeRequest): Promise<ChargeResult>;
+  /** Gives a charge back, in whole or in part. `ref` is `ChargeResult.ref` (an invoice) or a payment reference. */
+  refund(ref: string, options?: RefundOptions): Promise<{ refundRef: string; amountRefunded: number; currency: string }>;
   /** Verifies the notification's proof of origin (read from its headers) over the raw body and translates it; throws `PaymentsError` on a bad signature. */
   parseWebhook(rawBody: string, headers: Headers, nowSeconds: number): PaymentEvent;
 }
@@ -116,6 +159,8 @@ export const PAYMENTS_CODE = {
   needsClock: "PAYMENTS_NEEDS_CLOCK",
   processor: "PAYMENTS_PROCESSOR",
   badMoney: "PAYMENTS_BAD_MONEY",
+  declined: "PAYMENTS_DECLINED",
+  noPayment: "PAYMENTS_NO_PAYMENT",
 } as const;
 export type PaymentsCode = (typeof PAYMENTS_CODE)[keyof typeof PAYMENTS_CODE];
 
