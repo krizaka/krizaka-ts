@@ -1,6 +1,6 @@
 # ADR-002: Coupons: discount and credit coupons the admin manages, with our database as the source of truth
 
-- **Status:** proposed (2026-10-23). It waits for the CTO's « validé » on krizaka/krizaka-ts#46.
+- **Status:** accepted (2026-10-26). Validated by the CTO on krizaka/krizaka-ts#46.
 - **Issue:** krizaka/krizaka-ts#46. It depends on the module map of krizaka/krizaka-ts#47 ([ADR-001](ADR-001-modular-architecture.md), PR #48) and on #34 (payments).
 - **Design:** [`docs/design/coupons.md`](../design/coupons.md) holds the inventory with file:line, the schema, the API, the admin and UI side, and the rollout.
 
