@@ -64,7 +64,9 @@ const findApp = (root) => ["app", "src/app"].map((d) => join(root, d)).find((d) 
 
 /** @param {string} root @param {string} aliasDir @param {string} from @param {string} spec @returns {string | null} */
 const resolveLocal = (root, aliasDir, from, spec) => {
-  const base = spec.startsWith("@/") ? join(root, aliasDir, spec.slice(2)) : spec.startsWith(".") ? resolve(dirname(from), spec) : null;
+  let base = null;
+  if (spec.startsWith("@/")) base = join(root, aliasDir, spec.slice(2));
+  else if (spec.startsWith(".")) base = resolve(dirname(from), spec);
   if (!base) return null;
   for (const ext of EXTENSIONS) if (isFile(base + ext)) return base + ext;
   for (const index of ["index.ts", "index.tsx", "index.js"]) if (isFile(join(base, index))) return join(base, index);
@@ -117,25 +119,30 @@ export const packageIsClient = (root, spec) => {
  * @returns {string[]}
  */
 export const functionNames = (clause) => {
-  /** @type {string[]} */
-  const names = [];
   const words = clause.trim().split(/\s+/);
-  if (words[words.length - 1] === "from") words.pop();
+  if (words.at(-1) === "from") words.pop();
   const text = words.join(" ");
-  if (text.startsWith("type ") || text.startsWith("type{")) return names;
+  if (text.startsWith("type ") || text.startsWith("type{")) return [];
   const open = text.indexOf("{");
   const close = open < 0 ? -1 : text.indexOf("}", open);
-  const braces = open < 0 ? "" : text.slice(open + 1, close < 0 ? text.length : close);
-  for (const part of braces.split(",")) {
-    const tokens = part.trim().split(" ");
-    const name = tokens[0] ?? "";
-    if (!name || (name === "type" && tokens.length > 1)) continue;
-    if (/^[a-z_$]/.test(name)) names.push(name);
-  }
-  const rest = open < 0 ? text : `${text.slice(0, open)} ${close < 0 ? "" : text.slice(close + 1)}`;
-  const head = rest.split(",").join(" ").trim().split(" ")[0] ?? "";
-  if (head && !head.startsWith("*") && /^[a-z_$]/.test(head)) names.push(head); // default import: `import readIt from "@krizaka/x"`
+  const names = open < 0 ? [] : bracedNames(text.slice(open + 1, close < 0 ? text.length : close));
+  const head = defaultImportName(open < 0 ? text : `${text.slice(0, open)} ${close < 0 ? "" : text.slice(close + 1)}`);
+  if (head) names.push(head);
   return names;
+};
+
+/** The function-like names inside the braces of an import clause (`type X` entries are erased). @param {string} braces @returns {string[]} */
+const bracedNames = (braces) =>
+  braces
+    .split(",")
+    .map((part) => part.trim().split(" "))
+    .filter((tokens) => tokens[0] && !(tokens[0] === "type" && tokens.length > 1) && /^[a-z_$]/.test(tokens[0]))
+    .map((tokens) => tokens[0]);
+
+/** The default import of what is left outside the braces, when it is function-like: `import readIt from "@krizaka/x"`. @param {string} rest @returns {string | null} */
+const defaultImportName = (rest) => {
+  const head = rest.replaceAll(",", " ").trim().split(" ")[0] ?? "";
+  return head && !head.startsWith("*") && /^[a-z_$]/.test(head) ? head : null;
 };
 
 /**
