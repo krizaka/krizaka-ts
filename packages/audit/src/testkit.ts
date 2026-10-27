@@ -10,7 +10,7 @@ import type { AuditInsert, AuditStore } from "./port";
  * @param owner the n-th actor id
  */
 export function auditStoreContract(name: string, make: () => AuditStore | Promise<AuditStore>, owner: (n: number) => string | Promise<string>) {
-  const tag = () => `t${Math.random().toString(36).slice(2, 10)}`;
+  const tag = () => `t${crypto.randomUUID().replaceAll("-", "").slice(0, 8)}`;
   const entry = (prefix: string, over: Partial<AuditInsert> = {}): AuditInsert => ({
     at: new Date("2026-10-23T10:00:00Z"),
     actorId: null,

@@ -32,7 +32,7 @@ export function workspaceStoreContract(name: string, kind: string, make: () => P
 
   it(`${name}: a configuration is written once, then only from the version it was read at`, async () => {
     const { store } = await make();
-    const k = `${kind}_c${Math.random().toString(36).slice(2, 8)}`;
+    const k = `${kind}_c${crypto.randomUUID().replaceAll("-", "").slice(0, 6)}`;
     const config = contractConfig(k);
     expect(await store.config(k)).toBeNull();
     expect(await store.saveConfig(k, config, null, at, null)).toBe(1);
