@@ -22,7 +22,7 @@ import {
   type OnExhausted,
   type Query,
 } from "./port";
-import { checkAmount, checkKey, checkSettings, type Draw, planDraws, skipFirst } from "./rules";
+import { checkAmount, checkKey, checkNewGrant, checkSettings, type Draw, planDraws, skipFirst } from "./rules";
 
 export interface CreditsDeps {
   clock: Clock;
@@ -113,7 +113,6 @@ export interface Credits {
   history(query: Query, accountId: string, options?: { limit?: number; before?: Date }): Promise<Entry[]>;
 }
 
-const MAX_SOURCE = 200;
 const MAX_REASON = 300;
 // @fixed: the page size of the history when the caller names none (a screen's worth)
 const DEFAULT_HISTORY = 50;
@@ -172,18 +171,10 @@ export function createCredits(deps: CreditsDeps): Credits {
     );
 
   async function create(tx: Query, kind: "grant" | "purchase", input: GrantInput | PurchaseInput): Promise<{ grantId: string; replayed: boolean }> {
-    checkAmount(input.amount, "a grant");
-    checkKey(input.idempotencyKey);
-    if (!input.accountId) throw new CreditsError(CREDITS_CODE.badGrant, "A grant has an account");
-    if (!input.source || input.source.length > MAX_SOURCE) throw new CreditsError(CREDITS_CODE.badGrant, `A source is 1 to ${MAX_SOURCE} characters`);
     const now = deps.clock.now();
+    checkNewGrant(kind, input, now);
     const granted = kind === "grant";
     const g = input as GrantInput;
-    if (granted) {
-      if (!(g.expiresAt instanceof Date) || Number.isNaN(g.expiresAt.valueOf()) || g.expiresAt <= now) throw new CreditsError(CREDITS_CODE.badGrant, "A granted pot lapses in the future");
-      for (const cap of [g.capPerDay, g.capPerMonth]) if (cap !== undefined && cap !== null) checkAmount(cap, "a cap");
-      if (g.onExhausted !== ON_EXHAUSTED.stop && g.onExhausted !== ON_EXHAUSTED.fallbackPaid) throw new CreditsError(CREDITS_CODE.badGrant, "onExhausted is stop or fallback_paid");
-    }
     const store = storeFor(tx);
     await store.lock(input.accountId);
     const operation = `${kind}.${input.idempotencyKey}`;
