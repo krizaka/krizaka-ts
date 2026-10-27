@@ -149,10 +149,11 @@ export function countStackSource(source, { retire = [], maxFormFields = 1 } = {}
  */
 export function countCognitiveComplexity(source, filename = "file.tsx") {
   const messages = complexityLinter().verify(source, COMPLEXITY_CONFIG, { filename: `file${extname(filename)}` });
-  return messages.filter((m) => m.ruleId === "sonarjs/cognitive-complexity").length;
+  return messages.filter((/** @type {{ ruleId: string | null }} */ m) => m.ruleId === "sonarjs/cognitive-complexity").length;
 }
 
 /** One Linter for the whole run: building it (and the parser) per file made the CLI 10x slower in CI. */
+/** @type {Linter | undefined} */
 let sharedLinter;
 const complexityLinter = () => (sharedLinter ??= new Linter());
 const COMPLEXITY_CONFIG = [
