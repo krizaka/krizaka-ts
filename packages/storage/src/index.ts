@@ -1,9 +1,13 @@
 export { bucketStore, type BucketStoreOptions } from "./bucket-store";
+export { encryptedStore, parseEncryptionKey } from "./encrypted-store";
 export { checkEndpoint } from "./endpoint";
 export { type FolderOptions, folderStore } from "./folder-store";
 export { assertKey, defineLayout, hashedName, hashOf, type Layout, trimSlashes, typeOfName } from "./keys";
 export { memoryObjectStore } from "./memory-store";
 export * from "./port";
+export { COUNTRY_OF_REGION, countryOf, type Residency, residencyOf, residencyOfConfig } from "./regions";
 export { remoteStore, type RemoteStoreOptions } from "./remote-store";
 export { sniffType } from "./sniff";
 export { createStorage, type Storage, type StorageDeps, type StorageLimits, type UploadInput } from "./storage";
+export { open, parseVaultKey, seal } from "./vault";
+export { describeStore, type NoticeKey, storageNotice, STORE_KIND, type StoreDescriptor, type StoreOwner, where, type WhereOptions } from "./where";

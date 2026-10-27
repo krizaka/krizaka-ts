@@ -33,6 +33,10 @@
       "types": "./dist/settings.d.ts",
       "import": "./dist/settings.js"
     },
+    "./resolve": {
+      "types": "./dist/resolve.d.ts",
+      "import": "./dist/resolve.js"
+    },
     "./testkit": {
       "types": "./dist/testkit.d.ts",
       "import": "./dist/testkit.js"
