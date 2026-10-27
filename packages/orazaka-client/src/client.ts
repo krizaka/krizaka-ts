@@ -1,5 +1,6 @@
 import { addMilliseconds, isAfter } from "date-fns";
 
+import { type CheckPurposeKey, type CheckResult, type CollectCheckInput, parseCheck, type StartCheckInput } from "./checks";
 import { type Circuit, type CircuitOptions, type Clock, createCircuit } from "./circuit";
 import { ORAZAKA_CODE, OrazakaError, orazakaRefusal } from "./errors";
 import { isTerminal, type OrazakaRun, parseInstallations, parseRun } from "./run";
@@ -49,6 +50,14 @@ export interface OrazakaClient {
   getRun(runId: string): Promise<OrazakaRun>;
   /** Reads the run until it is over (succeeded, failed or cancelled) and answers it; a failed run is returned, not thrown. */
   waitForRun(runId: string, options?: WaitOptions): Promise<OrazakaRun>;
+  /**
+   * Starts an external check (`POST /api/v1/checks/{purpose}`): court records or credit, through Orazaka's one door.
+   * Orazaka, not the product, decides consent, key, budget and provider; a refusal (`NO_CONSENT`, `NO_KEY`,
+   * `BUDGET_EXHAUSTED`, `NOT_CONFIGURED`) is the answer, with outcome `REFUSED`. Answers `PENDING` with a `providerRef` when the provider replies later.
+   */
+  startCheck(purpose: CheckPurposeKey, input: StartCheckInput): Promise<CheckResult>;
+  /** Collects a `PENDING` check by its provider reference (`GET /api/v1/checks/{providerRef}`); `PENDING` again while the provider works. */
+  collectCheck(providerRef: string, input: CollectCheckInput): Promise<CheckResult>;
   /** The Studios this key has installed — also the cheapest call that proves the key and the connection. */
   studios(): Promise<string[]>;
   /** The circuit breaker, for diagnostics. */
@@ -57,6 +66,9 @@ export interface OrazakaClient {
 
 const STUDIO_KEY = /^[a-z0-9][a-z0-9-]{0,79}$/i;
 const RUN_ID = /^[0-9a-f-]{36}$/i;
+const CHECK_PURPOSES: readonly string[] = ["court-records", "credit"];
+/** A provider's opaque reference: printable, no slash, so it cannot change the path. */
+const PROVIDER_REF = /^[A-Za-z0-9._:~-]{1,120}$/;
 const IDEMPOTENCY_KEY = /^[!-~]{1,255}$/;
 /** The stable code the edge answers (HTTP 422) when an idempotency key already started a different request. */
 const KEY_REUSED = "idempotency_key_reused";
@@ -162,6 +174,16 @@ export function createOrazakaClient(options: OrazakaClientOptions): OrazakaClien
       if (options.autoInstall !== false) await ensureInstalled(studio);
       const res = await call(`/api/v1/studios/${studio}/runs`, { method: "POST", body: { inputs }, headers: idempotencyKey ? { "idempotency-key": idempotencyKey } : {} });
       return { run: parseRun(await json(res)), replayed: res.headers.get("idempotent-replayed") === "true" };
+    },
+    async startCheck(purpose, { subject, consented, runId }) {
+      if (!CHECK_PURPOSES.includes(purpose)) throw new OrazakaError(ORAZAKA_CODE.input, "Not a check purpose", { status: 422 });
+      const res = await call(`/api/v1/checks/${purpose}`, { method: "POST", body: { ...subject, runId, consented } });
+      return parseCheck(await json(res));
+    },
+    async collectCheck(providerRef, { subjectId, consented }) {
+      if (!PROVIDER_REF.test(providerRef)) throw new OrazakaError(ORAZAKA_CODE.input, "Not a provider reference", { status: 422 });
+      const query = new URLSearchParams({ subjectId, consented: String(consented) });
+      return parseCheck(await json(await call(`/api/v1/checks/${providerRef}?${query}`)));
     },
     async waitForRun(runId, { intervalMs = DEFAULT_WAIT_INTERVAL_MS, timeoutMs: waitMs = DEFAULT_WAIT_TIMEOUT_MS } = {}) {
       const deadline = addMilliseconds(options.clock.now(), waitMs);
