@@ -68,3 +68,12 @@ jobs:
           MEDIA_STORAGE_ZONE: ${{ secrets.MEDIA_STORAGE_ZONE }}
           MEDIA_STORAGE_ENDPOINT: ${{ secrets.MEDIA_STORAGE_ENDPOINT }}
           MEDIA_CDN_HOSTNAME: ${{ secrets.MEDIA_CDN_HOSTNAME }}
+
+      # @krizaka/config 0.9.0 was published from a stale copy in krizaka-ui (no `krizaka-known-violations`, no covered-domains or
+      # dependency-cruiser presets) and broke the apps' pre-push hooks. krizaka-ts is the single source; 0.9.1 replaces it. Idempotent
+      # (deprecating twice is a no-op) and run with the same automation token as the publish, never printed. Remove once 0.9.0 is long gone.
+      - if: steps.changesets.outputs.published == 'true' || github.event_name == 'workflow_dispatch'
+        continue-on-error: true
+        run: npm deprecate "@krizaka/config@0.9.0" "broken: use >=0.9.1"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

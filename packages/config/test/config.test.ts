@@ -94,3 +94,40 @@ describe("README", () => {
     }
   });
 });
+
+// @krizaka/config 0.9.0 was published from a stale copy in krizaka-ui without these: the pre-push hooks of the apps broke
+// (« krizaka-known-violations: not found »). krizaka-ts is the single source; the package must ship its whole surface.
+describe("published surface", () => {
+  const files = new Set<string>(pkg.files);
+  const exportsMap = Object.keys(pkg.exports);
+
+  it.each(["krizaka-ratchet", "krizaka-known-violations"])("the bin %s exists and is shipped", (name) => {
+    const target = pkg.bin[name] as string;
+    expect(target).toBeTruthy();
+    expect(readdirSync(fileURLToPath(new URL("../bin", import.meta.url)))).toContain(target.replace("./bin/", ""));
+    expect(files.has("bin")).toBe(true);
+  });
+
+  it.each(["./covered-domains", "./covered-domains.json", "./dependency-cruiser", "./known-violations", "./eslint/stack"])(
+    "exports %s",
+    (entry) => {
+      expect(exportsMap).toContain(entry);
+    },
+  );
+
+  it("every export and bin points to a file that exists and is published", () => {
+    const root = fileURLToPath(new URL("..", import.meta.url));
+    const targets = [...Object.values(pkg.exports), ...Object.values(pkg.bin)] as string[];
+    for (const target of targets) {
+      expect(() => readFileSync(join(root, target))).not.toThrow();
+      expect(target === "./package.json" || files.has(target.slice(2)) || [...files].some((f) => target.startsWith(`./${f}/`))).toBe(true);
+    }
+  });
+
+  it("knows the two effect rules and their ratchet counters", async () => {
+    const { STACK_RULES } = await import("../eslint/stack.js");
+    expect(STACK_RULES).toEqual(expect.arrayContaining(["krizaka/no-async-in-effect", "krizaka/no-derived-state-in-effect"]));
+    const { STACK_COUNTERS } = await import("../ratchet/ratchet.js");
+    expect(STACK_COUNTERS).toEqual(expect.arrayContaining(["asyncInEffect", "derivedStateInEffect"]));
+  });
+});

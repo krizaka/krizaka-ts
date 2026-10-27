@@ -12,6 +12,7 @@ import {
   CLASSNAME_TEMPLATE_SOURCE,
   countFormFields,
   EFFECT_CALL_SOURCE,
+  effectProblem,
   FETCH_CALL_SOURCE,
   importSource,
   isLocalSelection,
@@ -21,6 +22,7 @@ import {
   TABLE_OR_FORM_SOURCE,
   TANSTACK_SCOPE,
   USE_CLIENT_SOURCE,
+  withoutDependencyArray,
 } from "../patterns.js";
 
 export const RATCHET_FILE = "lint-ratchet.json";
@@ -32,7 +34,7 @@ export const DEFAULT_STACK_GLOBS = Object.freeze(
 const IGNORE = ["**/node_modules/**", "**/dist/**", "**/.next/**", "**/storybook-static/**", "**/coverage/**"];
 
 /** @typedef {"palette" | "light" | "arbitraryVar" | "classNameTemplate"} UiCounterName */
-/** @typedef {"fetchInClientEffect" | "directTanstackImport" | "localTableOrForm" | "retiredImport" | "routeStateSelection"} StackCounterName */
+/** @typedef {"fetchInClientEffect" | "asyncInEffect" | "derivedStateInEffect" | "directTanstackImport" | "localTableOrForm" | "retiredImport" | "routeStateSelection"} StackCounterName */
 /** @typedef {UiCounterName | StackCounterName} CounterName */
 /** @typedef {Record<CounterName, number>} Counters */
 /**
@@ -50,6 +52,8 @@ export const UI_COUNTERS = /** @type {const} */ (["palette", "light", "arbitrary
 /** The stack counters (the three rules of krizakaStack, and the dependencies to retire), in report order. */
 export const STACK_COUNTERS = /** @type {const} */ ([
   "fetchInClientEffect",
+  "asyncInEffect",
+  "derivedStateInEffect",
   "directTanstackImport",
   "localTableOrForm",
   "retiredImport",
@@ -101,6 +105,15 @@ export function countStackSource(source, { retire = [], maxFormFields = 1 } = {}
       fetchInClientEffect += body.match(new RegExp(FETCH_CALL_SOURCE, "g"))?.length ?? 0;
     }
   }
+  // react-effects standard: every effect (client file or not — a Vite/Tauri app has no directive) is read once
+  let asyncInEffect = 0;
+  let derivedStateInEffect = 0;
+  for (const effect of source.matchAll(new RegExp(EFFECT_CALL_SOURCE, "g"))) {
+    const body = balancedArguments(source, (effect.index ?? 0) + effect[0].length - 1);
+    const problem = effectProblem(withoutDependencyArray(body)); // the dependency array is not the callback
+    if (problem === "async") asyncInEffect += 1;
+    else if (problem === "derived") derivedStateInEffect += 1;
+  }
   let localTableOrForm = 0;
   for (const element of source.matchAll(new RegExp(TABLE_OR_FORM_SOURCE, "g"))) {
     if (element[1] === "table") localTableOrForm += 1;
@@ -111,6 +124,8 @@ export function countStackSource(source, { retire = [], maxFormFields = 1 } = {}
   }
   return {
     fetchInClientEffect,
+    asyncInEffect,
+    derivedStateInEffect,
     directTanstackImport: source.match(new RegExp(importSource([TANSTACK_SCOPE]), "g"))?.length ?? 0,
     localTableOrForm,
     retiredImport: source.match(new RegExp(importSource(retire), "g"))?.length ?? 0,
