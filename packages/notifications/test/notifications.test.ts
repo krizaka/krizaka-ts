@@ -36,6 +36,16 @@ function harness(cfg = config()) {
 }
 
 describe("notify", () => {
+  it.each(["ana", "@example.com", "ana@", "ana@example", "ana@@example.com", "ana@example..com", "ana@example.com.", "a na@example.com", "ana@example.com\r\nBcc: x@y.z", "<ana@example.com>"])("refuses the address « %s »", async (email) => {
+    const h = harness();
+    await expect(h.notifications.notify(h.tx, { accountId: h.account, category: "messages", template: "new-message", email })).rejects.toMatchObject({ code: NOTIFICATION_CODE.badInput });
+  });
+  it("answers in linear time to a long run of dots", async () => {
+    const h = harness();
+    const started = Date.now();
+    await expect(h.notifications.notify(h.tx, { accountId: h.account, category: "messages", template: "new-message", email: `!@${"!.".repeat(50_000)}` })).rejects.toMatchObject({ code: NOTIFICATION_CODE.badInput });
+    expect(Date.now() - started).toBeLessThan(1000);
+  });
   it("writes the bell item and one outbox message per enabled channel, in the shape of Java's request", async () => {
     const h = harness();
     await h.notifications.registerDevice(h.tx, h.account, { platform: "ios", token: "tok-a" });

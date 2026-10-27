@@ -89,6 +89,16 @@ export interface NotifyInput {
   dedupeKey?: string;
 }
 
+const NOT_IN_ADDRESS = /[\s<>]/;
+
+/** One `@`, a local part, and a domain of dot-separated non-empty parts: no backtracking pattern over library input. */
+function isAddress(value: string): boolean {
+  const at = value.indexOf("@");
+  if (at < 1 || at !== value.lastIndexOf("@") || NOT_IN_ADDRESS.test(value)) return false;
+  const labels = value.slice(at + 1).split(".");
+  return labels.length >= 2 && labels.every((label) => label !== "");
+}
+
 /** @throws NotificationError on the first thing wrong with an input. */
 export function checkInput(input: NotifyInput): void {
   const bad = (why: string) => new NotificationError(NOTIFICATION_CODE.badInput, why);
@@ -96,7 +106,7 @@ export function checkInput(input: NotifyInput): void {
   if (!TEMPLATE.test(input.template)) throw bad("template is lower-case words joined by hyphens");
   if (input.locale !== undefined && !LOCALE.test(input.locale)) throw bad("locale is a language tag like fr or en-CA");
   if (input.dedupeKey !== undefined && (input.dedupeKey === "" || input.dedupeKey.length > MAX_KEY)) throw bad("dedupeKey is 1 to 200 characters");
-  if (input.email !== undefined && (/[\r\n]/.test(input.email) || !/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(input.email))) throw bad("email is not an address");
+  if (input.email !== undefined && !isAddress(input.email)) throw bad("email is not an address");
   for (const [key, value] of Object.entries(input.variables ?? {})) if (typeof value !== "string") throw bad(`variable « ${key} » must be a string`);
   if (Buffer.byteLength(JSON.stringify({ v: input.variables ?? {}, p: input.payload ?? {} })) > MAX_PAYLOAD_BYTES) throw bad("variables and payload are too big for a notification");
 }
