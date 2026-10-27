@@ -164,14 +164,15 @@ function clipsOf() {
     .map(nameOf);
 }
 
-/** A long token (an id, an address) that wraps character by character: a cell taller than two lines for text without a space. */
+/** A long token (an id, an address) that wraps character by character: text without a space whose own lines (not the cell's, which a taller neighbour in the row stretches) are more than two and a half. */
 function tooTall(el) {
   const text = (el.textContent || "").trim();
   if (text.length < 12 || /\s/.test(text) || el.children.length > 1) return false;
   const cs = getComputedStyle(el);
   const lh = Number.parseFloat(cs.lineHeight) || Number.parseFloat(cs.fontSize) * 1.4;
-  const content = el.getBoundingClientRect().height - Number.parseFloat(cs.paddingTop) - Number.parseFloat(cs.paddingBottom);
-  return content > lh * 2.5;
+  const range = document.createRange();
+  range.selectNodeContents(el);
+  return range.getBoundingClientRect().height > lh * 2.5;
 }
 
 function wrappedOf() {

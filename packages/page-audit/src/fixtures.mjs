@@ -43,3 +43,8 @@ export const BROKEN_PARTS = page(`<img src="data:image/png;base64,AAAA" width="4
 /** Chrome that fits the family: one footer naming Krizaka, a nav. */
 export const CHROME_FINE = `<!doctype html><html><body><nav>n</nav><main><p>Hello</p></main><footer>A Krizaka product</footer></body></html>`;
 export const CHROME_BAD = `<!doctype html><html><body><main><p>Hello</p></main><footer>one</footer><footer>two</footer></body></html>`;
+
+/** A short token in a table row stretched by a tall neighbour: the cell is tall, its text is one line. */
+export const TOKEN_IN_STRETCHED_ROW = page(`<table style="width:600px"><tbody><tr><td>orazaka-media-pack</td><td>${"A long description. ".repeat(30)}</td></tr></tbody></table>`);
+/** An identifier in a narrow cell that breaks every few characters. */
+export const TOKEN_WRAPPED = page(`<table style="width:100px;table-layout:fixed"><tbody><tr><td style="word-break:break-all;font-size:20px">abcdefghijklmnopqrstuvwxyz0123456789</td></tr></tbody></table>`);
