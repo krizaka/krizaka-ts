@@ -37,3 +37,9 @@ Decision: [ADR-006](https://github.com/krizaka/.github/blob/main/docs/adr/ADR-00
 pnpm install
 pnpm run check      # lint · typecheck · tests
 ```
+
+## License
+
+[Apache-2.0](LICENSE)
+
+The Krizaka names and birds are not licensed by Apache-2.0 (s. 6): [trademark policy](https://github.com/krizaka/.github/blob/main/TRADEMARKS.md).
