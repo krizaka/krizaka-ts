@@ -37,6 +37,7 @@ Decision: [ADR-006](https://github.com/krizaka/.github/blob/main/docs/adr/ADR-00
 
 ```bash
 pnpm install
+pre-commit install   # once: the gitleaks and zizmor hooks on each commit
 pnpm run check      # lint · typecheck · tests
 ```
 
