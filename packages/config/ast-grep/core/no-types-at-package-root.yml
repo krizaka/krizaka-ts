@@ -1,0 +1,11 @@
+id: no-types-at-package-root
+language: Tsx
+severity: error
+message: "No `types.ts` at a package root: types live in `<feature>/<feature>.types.ts` (or `shared/`), next to the schemas that parse the data at the edge."
+rule:
+  kind: program
+files:
+  - "packages/*/src/types.ts"
+  - "packages/*/src/types.tsx"
+  - "src/types.ts"
+  - "src/types.tsx"

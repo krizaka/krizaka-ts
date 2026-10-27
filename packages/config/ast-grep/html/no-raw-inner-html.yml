@@ -1,0 +1,21 @@
+id: no-raw-inner-html
+language: Tsx
+severity: error
+message: "No `dangerouslySetInnerHTML` unless the value goes through `jsonLd(...)` (JSON-LD scripts: `lib/json-ld.ts` escapes `<`). Other HTML is rendered as React elements, never injected."
+rule:
+  kind: jsx_attribute
+  has:
+    kind: property_identifier
+    regex: ^dangerouslySetInnerHTML$
+  not:
+    has:
+      stopBy: end
+      kind: call_expression
+      has:
+        field: function
+        kind: identifier
+        regex: ^jsonLd$
+ignores:
+  - "**/node_modules/**"
+  - "**/.next/**"
+  - "**/dist/**"

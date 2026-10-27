@@ -1,0 +1,25 @@
+id: no-get-time-arithmetic
+language: Tsx
+severity: error
+message: "Time arithmetic on `getTime()`: use date-fns (`differenceInMilliseconds`, `addMinutes`, `isBefore`…)."
+rule:
+  any:
+    - pattern: $A.getTime() - $B
+    - pattern: $A - $B.getTime()
+    - pattern: $A.getTime() + $B
+  not:
+    pattern: $C.getTime() - $D.getTime()
+  # the `a.getTime() - b.getTime()` form has its own rule (with a fix)
+ignores:
+  - "**/node_modules/**"
+  - "**/.next/**"
+  - "**/dist/**"
+  - "**/*.test.ts"
+  - "**/__tests__/**"
+  - "**/tests/**"
+  - "**/*.test.tsx"
+  - "**/*.spec.ts"
+  - "**/*.spec.tsx"
+  - "e2e/**"
+  - "scripts/**"
+  - "**/scripts/**"

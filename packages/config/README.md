@@ -296,3 +296,25 @@ The CI step, after the install:
 ## License
 
 [Apache-2.0](https://github.com/krizaka/krizaka-ts/blob/main/LICENSE)
+
+## ast-grep pack and the SEO check
+
+One source for the code rules (ADR-013, `docs/standards/guards.md`): the repositories carry no copy of `sg-ratchet.mjs`, of the rules or of `check-seo-family.mjs`.
+
+- **Rules by set**, files in `node_modules/@krizaka/config/ast-grep/<set>`: `core` (hand-written time arithmetic, ambient clock, env and db in domain code, enum compare, `enum`, numeric exports, `types.ts` at a package root), `web` (hand-made nav, hand-made language switch), `html` (raw `innerHTML`). The domain rules read `packages/*/src`, `apps/*/lib`, `src` and `lib`.
+- **A repository's `sgconfig.yml`** names the sets it adopts and its own rules (each local rule is a file in `rules/` with its test in `rule-tests/`, and a comment saying why it is not shared):
+
+  ```yaml
+  ruleDirs:
+    - node_modules/@krizaka/config/ast-grep/core
+    - node_modules/@krizaka/config/ast-grep/web
+    - rules
+  testConfigs:
+    - testDir: rule-tests
+  languageGlobs:
+    Tsx: ["*.ts", "*.mts"]
+  ```
+
+- **`krizaka-sg-ratchet`** runs `ast-grep scan`, counts the violations per rule and refuses any increase against `sg-ratchet.json` (`--update` lowers the counts, records a new rule, never raises one). The rules are those of the `ruleDirs`.
+- **`krizaka-seo-family --base http://localhost:3000 --host https://www.example.com …`** is the SEO contract of every site of the family (robots.txt, sitemap, llms.txt, canonical, Open Graph, JSON-LD, noindex); its flags are in the header of `bin/krizaka-seo-family.mjs`.
+- The rules' tests are in `ast-grep/rule-tests` and run with this package's `pnpm test`.
