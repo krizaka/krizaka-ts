@@ -1,7 +1,7 @@
 import { differenceInSeconds } from "@krizaka/time";
 
 import { rawCall } from "./http";
-import { type CheckoutRequest, type Clock, type DiscountStore, type DiscountTerms, PAYMENTS_CODE, PaymentsError, type PaymentsPort, type PlanKind, type Price } from "./port";
+import { type ChargeRequest, type ChargeResult, type CheckoutRequest, type Clock, type DiscountStore, type DiscountTerms, PAYMENTS_CODE, PaymentsError, type PaymentsPort, type PlanKind, type Price, type RefundOptions } from "./port";
 import { DEFAULT_TOLERANCE_SECONDS, translate, verifySignature } from "./webhook";
 
 /** How a plan is bought: a one-off payment or a subscription, and where its price is found. */
@@ -47,6 +47,30 @@ export function assertTerms(terms: DiscountTerms, mode: PlanConfig["mode"]): voi
   if (terms.duration === "repeating" && !(Number.isSafeInteger(terms.durationMonths) && terms.durationMonths! >= 1)) throw refuse("A repeating discount names its months", PAYMENTS_CODE.badDiscount);
   if (mode === "payment" && terms.duration !== "once") throw refuse("A one-off payment takes a discount of duration « once » only", PAYMENTS_CODE.badDiscount);
 }
+
+const isAmount = (n: unknown): n is number => typeof n === "number" && Number.isSafeInteger(n) && n > 0;
+
+/** Checks a charge before any call. @throws PaymentsError `PAYMENTS_BAD_MONEY` */
+export function assertCharge(request: ChargeRequest): void {
+  if (!isAmount(request.amountMinor)) throw refuse("A charge is a positive integer of minor units", PAYMENTS_CODE.badMoney);
+  if (!/^[a-z]{3}$/.test(request.currency)) throw refuse("A currency is three lowercase letters", PAYMENTS_CODE.badMoney);
+  if (request.key.trim() === "" || request.description.trim() === "") throw refuse("A charge has an idempotency key and a description", PAYMENTS_CODE.badMoney);
+}
+
+interface InvoiceBody {
+  id: string;
+  status?: string;
+  total?: number;
+  currency?: string;
+  /** Before the 2025 API versions. */
+  tax?: number | null;
+  /** From the 2025 API versions. */
+  total_taxes?: { amount?: number }[];
+  payment_intent?: string | null;
+  charge?: string | null;
+}
+
+const taxOf = (invoice: InvoiceBody) => invoice.tax ?? (invoice.total_taxes ?? []).reduce((sum, t) => sum + (t.amount ?? 0), 0);
 
 /** The Stripe adapter of the payments port. Stripe Tax computes the taxes (on the discounted amount) from the buyer's address; prices are found by lookup key. */
 export function processorAdapter(config: ProcessorConfig): PaymentsPort {
@@ -94,7 +118,67 @@ export function processorAdapter(config: ProcessorConfig): PaymentsPort {
     if (ahead > MAX_EXPIRY_SECONDS) throw refuse("The session must expire within 24 hours", PAYMENTS_CODE.badExpiry);
     return Math.floor(expiresAt.valueOf() / 1000);
   }
+  /** Leaves nothing billed: an open invoice is voided (a draft is never billed and stays a draft), and the failure is rethrown. */
+  async function abandon(invoiceId: string, status: string | undefined, cause: unknown, key: string): Promise<never> {
+    if (status !== "draft") await call("POST", `/v1/invoices/${invoiceId}/void`, {}, `${key}:void`).catch(() => undefined); // the original failure is the one to report
+    throw cause;
+  }
+  /** The payment of an invoice: the field the API version gives, else the invoice's payments list. */
+  async function paymentOf(invoice: InvoiceBody): Promise<string | null> {
+    const direct = invoice.payment_intent ?? invoice.charge ?? null;
+    if (direct) return direct;
+    const list = await call<{ data?: { payment?: { payment_intent?: string; charge?: string } }[] }>("GET", "/v1/invoice_payments", { invoice: invoice.id, limit: 1 });
+    const found = list.data?.[0]?.payment;
+    return found?.payment_intent ?? found?.charge ?? null;
+  }
   return {
+    async charge(request: ChargeRequest): Promise<ChargeResult> {
+      assertCharge(request);
+      const key = request.key;
+      const invoice = await call<InvoiceBody>(
+        "POST",
+        "/v1/invoices",
+        { customer: request.customerId, auto_advance: false, collection_method: "charge_automatically", pending_invoice_items_behavior: "exclude", automatic_tax: { enabled: true }, metadata: request.metadata },
+        `${key}:invoice`,
+      );
+      let status = "draft";
+      try {
+        await call(
+          "POST",
+          "/v1/invoiceitems",
+          { customer: request.customerId, invoice: invoice.id, amount: request.amountMinor, currency: request.currency, description: request.description, tax_behavior: "exclusive", ...(request.taxCode ? { tax_code: request.taxCode } : {}) },
+          `${key}:item`,
+        );
+        const finalised = await call<InvoiceBody>("POST", `/v1/invoices/${invoice.id}/finalize`, { auto_advance: false }, `${key}:finalize`);
+        status = finalised.status ?? "open";
+      } catch (error) {
+        return abandon(invoice.id, status, error, key);
+      }
+      const { ok, status: http, json } = await rawCall(config, "POST", `/v1/invoices/${invoice.id}/pay`, {}, `${key}:pay`);
+      if (!ok) {
+        const declined = http === 402 || (json.error as { type?: string } | undefined)?.type === "card_error";
+        return abandon(invoice.id, status, new PaymentsError(declined ? 402 : http, json.error?.message ?? `Stripe answered ${http}`, declined ? PAYMENTS_CODE.declined : PAYMENTS_CODE.processor), key);
+      }
+      const paid = json as unknown as InvoiceBody;
+      if (paid.status !== "paid") return abandon(invoice.id, paid.status, new PaymentsError(402, `The invoice is ${paid.status ?? "not paid"}`, PAYMENTS_CODE.declined), key);
+      return { ref: invoice.id, paymentRef: await paymentOf(paid), amountTotal: paid.total ?? request.amountMinor, amountTax: taxOf(paid), currency: paid.currency ?? request.currency };
+    },
+    async refund(ref: string, options: RefundOptions = {}) {
+      if (options.amountMinor !== undefined && !isAmount(options.amountMinor)) throw refuse("A refund is a positive integer of minor units", PAYMENTS_CODE.badMoney);
+      let payment = ref;
+      if (ref.startsWith("in_")) {
+        const found = await paymentOf(await call<InvoiceBody>("GET", `/v1/invoices/${ref}`));
+        if (!found) throw new PaymentsError(404, `Invoice ${ref} has no payment to refund`, PAYMENTS_CODE.noPayment);
+        payment = found;
+      }
+      const made = await call<{ id: string; amount: number; currency: string }>(
+        "POST",
+        "/v1/refunds",
+        { [payment.startsWith("ch_") || payment.startsWith("py_") ? "charge" : "payment_intent"]: payment, ...(options.amountMinor === undefined ? {} : { amount: options.amountMinor }) },
+        options.key,
+      );
+      return { refundRef: made.id, amountRefunded: made.amount, currency: made.currency };
+    },
     async price(kind) {
       const row = await priceRow(kind);
       return { amount: row.unit_amount ?? 0, currency: row.currency ?? "usd", interval: row.recurring?.interval ?? null };
