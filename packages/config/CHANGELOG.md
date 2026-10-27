@@ -1,5 +1,11 @@
 # @krizaka/config
 
+## 0.11.0
+
+### Minor Changes
+
+- a4da09a: Sonar's cognitive complexity (S3776, threshold 15) at lint time: `krizakaStack()` adds `sonarjs/cognitive-complexity` (error by default, `complexity: "warn"` for a repository with debt) and `krizaka-ratchet` a `cognitiveComplexity` counter that freezes existing violations and fails any increase (krizaka/.github#319).
+
 ## 0.10.0
 
 ### Minor Changes
