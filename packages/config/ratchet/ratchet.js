@@ -156,6 +156,7 @@ export function countCognitiveComplexity(source, filename = "file.tsx") {
 /** @type {Linter | undefined} */
 let sharedLinter;
 const complexityLinter = () => (sharedLinter ??= new Linter());
+/** @type {any} */
 const COMPLEXITY_CONFIG = [
   {
     files: ["**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"],
