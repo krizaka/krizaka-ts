@@ -47,6 +47,15 @@ const decode = (s) =>
 const tags = (html, name) => [...html.matchAll(new RegExp(`<${name}\\s[^>]*>`, "gi"))].map((m) => m[0]);
 const strip = (u) => u.replace(/\/$/, "");
 
+/** robots.txt of a site that is not indexed: Disallow everything, advertise nothing (dev, preview, consoles). @param {string} text @returns {string[]} */
+function auditHiddenRobots(text) {
+  const problems = [];
+  if (!/user-agent:\s*\*[\s\S]*?disallow:\s*\/\s*(\n|$)/i.test(text))
+    problems.push("robots.txt: a site that is not indexed must Disallow: / for *");
+  if (/^sitemap:/im.test(text)) problems.push("robots.txt: a site that is not indexed must not advertise a sitemap");
+  return problems;
+}
+
 /** robots.txt of a site: `index` says whether it wants to be crawled.
  * @param {string} text
  * @param {{ host: string, index?: boolean, sitemap?: boolean }} opts - `sitemap: false` for an operator console, which has none
@@ -65,10 +74,7 @@ export function auditRobots(text, { host, index = true, sitemap = true }) {
       else if (!/^allow:\s*\/\s*$/im.test(g)) problems.push(`robots.txt: ${bot} is not allowed`);
     }
   } else {
-    if (!/user-agent:\s*\*[\s\S]*?disallow:\s*\/\s*(\n|$)/i.test(text))
-      problems.push("robots.txt: a site that is not indexed must Disallow: / for *");
-    // A site that is not indexed advertises nothing: no sitemap line (dev, preview, consoles).
-    if (/^sitemap:/im.test(text)) problems.push("robots.txt: a site that is not indexed must not advertise a sitemap");
+    problems.push(...auditHiddenRobots(text));
   }
   return problems;
 }
@@ -136,48 +142,57 @@ const leadsToOrg = (node) => {
   ].some((k) => [].concat(node[k] ?? []).some((v) => refId(v) === ORG_ID));
 };
 
-/** One page of the site. `path` is its route ("/", "/fr/"); `host` the public origin.
- * @param {string} html
- * @param {string} path
- * @param {{ host: string, index?: boolean, types?: string[], home?: boolean, organizationHome?: boolean }} opts
- * @returns {string[]} */
-export function auditHtml(html, path, { host, index = true, types = [], home = false, organizationHome = false }) {
-  const problems = [];
+/** @param {string} html @returns {string[]} */
+function auditTitle(html) {
   const titles = [...html.matchAll(/<title>([^<]*)<\/title>/g)].map((m) => decode(m[1]));
-  if (titles.length !== 1) problems.push(`${titles.length} <title> (expected 1)`);
-  else if (!titles[0].trim()) problems.push("empty <title>");
-  const metas = tags(html, "meta");
-  const meta = (key, v) => metas.filter((m) => attr(m, key) === v).map((m) => attr(m, "content"));
-  const desc = meta("name", "description");
-  if (desc.length !== 1) problems.push(`${desc.length} meta description (expected 1)`);
-  else if (decode(desc[0]).length < 30 || decode(desc[0]).length > 400)
-    problems.push(`description length ${decode(desc[0]).length}`);
+  if (titles.length !== 1) return [`${titles.length} <title> (expected 1)`];
+  return titles[0].trim() ? [] : ["empty <title>"];
+}
 
-  const links = tags(html, "link");
+/** @param {string[]} desc the content of the description metas @returns {string[]} */
+function auditDescription(desc) {
+  if (desc.length !== 1) return [`${desc.length} meta description (expected 1)`];
+  const length = decode(desc[0]).length;
+  return length < 30 || length > 400 ? [`description length ${length}`] : [];
+}
+
+/** The canonical and the hreflang alternates of a page. @param {string[]} links @param {string} host @param {string} path @returns {string[]} */
+function auditLinks(links, host, path) {
+  const problems = [];
   const canonical = links.filter((l) => /rel="canonical"/.test(l)).map((l) => attr(l, "href"));
-  const expected = (u) => strip(u);
   if (canonical.length !== 1) problems.push(`${canonical.length} canonical (expected 1)`);
-  else if (!(canonical[0] === `${host}${path}` || expected(canonical[0]) === expected(`${host}${path}`)))
-    problems.push(`canonical ${canonical[0]} is not ${host}${path}`);
+  else if (strip(canonical[0]) !== strip(`${host}${path}`)) problems.push(`canonical ${canonical[0]} is not ${host}${path}`);
   else if (!canonical[0].startsWith(host)) problems.push(`canonical ${canonical[0]} is off ${host}`);
   for (const l of links.filter((l) => /hreflang/i.test(l))) {
     const href = attr(l, "href");
     if (!href?.startsWith(host)) problems.push(`hreflang ${attr(l, "hreflang")} off host: ${href}`);
   }
-  for (const [what, v] of [
-    ["og:title", meta("property", "og:title")],
-    ["og:description", meta("property", "og:description")],
-    ["og:image", meta("property", "og:image")],
-    ["twitter:card", meta("name", "twitter:card")],
+  return problems;
+}
+
+/** Open Graph, Twitter card and the robots meta. @param {(key: string, v: string) => string[]} meta @param {boolean} index @returns {string[]} */
+function auditSocial(meta, index) {
+  const problems = [];
+  for (const [what, key, v] of [
+    ["og:title", "property", "og:title"],
+    ["og:description", "property", "og:description"],
+    ["og:image", "property", "og:image"],
+    ["twitter:card", "name", "twitter:card"],
   ]) {
-    if (v.length === 0 || !v[0]) problems.push(`${what} missing`);
+    const found = meta(key, v);
+    if (found.length === 0 || !found[0]) problems.push(`${what} missing`);
   }
   const og = meta("property", "og:image")[0];
   if (og && !/^https:\/\//.test(og)) problems.push(`og:image is not absolute: ${og}`);
   const robots = (meta("name", "robots")[0] ?? "").toLowerCase();
   if (index && /noindex/.test(robots)) problems.push(`indexed site but robots meta is "${robots}"`);
   if (!index && !/noindex/.test(robots)) problems.push("site is not indexed but the page has no robots noindex meta");
+  return problems;
+}
 
+/** The JSON-LD of a page: parses, carries the home's types, leads back to the Organization. */
+function auditJsonLd(html, { types, home, organizationHome }) {
+  const problems = [];
   let nodes = [];
   try {
     nodes = jsonLd(html);
@@ -185,20 +200,38 @@ export function auditHtml(html, path, { host, index = true, types = [], home = f
     problems.push(`JSON-LD does not parse: ${e.message}`);
   }
   if (nodes.length === 0) problems.push("no JSON-LD");
-  const have = new Set(nodes.flatMap((n) => [].concat(n["@type"] ?? [])));
+  const have = new Set(nodes.flatMap((n) => [n["@type"] ?? []].flat()));
   if (home) for (const t of types) if (!have.has(t)) problems.push(`home: ${t} JSON-LD missing`);
   if (home && organizationHome && !nodes.some((n) => n["@id"] === ORG_ID))
     problems.push(`home: the Organization node must carry @id ${ORG_ID}`);
   if (!organizationHome) {
     const subjects = nodes.filter(
-      (n) => !["BreadcrumbList", "ListItem", "Question", "Answer"].includes([].concat(n["@type"])[0]),
+      (n) => !["BreadcrumbList", "ListItem", "Question", "Answer"].includes([n["@type"]].flat()[0]),
     );
     if (subjects.length && !subjects.some(leadsToOrg))
       problems.push(`JSON-LD never points back to the Krizaka Organization (${ORG_ID})`);
   }
-  const declared = [...links, ...metas].join("\n");
-  if (/https:\/\/krizaka\.com/.test(declared)) problems.push("the apex https://krizaka.com is declared (use www)");
   return problems;
+}
+
+/** One page of the site. `path` is its route ("/", "/fr/"); `host` the public origin.
+ * @param {string} html
+ * @param {string} path
+ * @param {{ host: string, index?: boolean, types?: string[], home?: boolean, organizationHome?: boolean }} opts
+ * @returns {string[]} */
+export function auditHtml(html, path, { host, index = true, types = [], home = false, organizationHome = false }) {
+  const metas = tags(html, "meta");
+  const links = tags(html, "link");
+  const meta = (key, v) => metas.filter((m) => attr(m, key) === v).map((m) => attr(m, "content"));
+  const declared = [...links, ...metas].join("\n");
+  return [
+    ...auditTitle(html),
+    ...auditDescription(meta("name", "description")),
+    ...auditLinks(links, host, path),
+    ...auditSocial(meta, index),
+    ...auditJsonLd(html, { types, home, organizationHome }),
+    ...(/https:\/\/krizaka\.com/.test(declared) ? ["the apex https://krizaka.com is declared (use www)"] : []),
+  ];
 }
 
 /** An operator console (admin.*): not indexed, said in the page itself.
