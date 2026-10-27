@@ -7,7 +7,7 @@ import type { AuditPort, Clock, Query } from "./port";
  * categories of information).
  */
 
-/** What happened to the information (s. 3.6 of the Act speaks of access, use, communication and loss). */
+/** What happened to the information (the Act speaks of unauthorised access, use, communication and loss). */
 export const INCIDENT_KIND = { access: "access", use: "use", communication: "communication", loss: "loss" } as const;
 export type IncidentKind = (typeof INCIDENT_KIND)[keyof typeof INCIDENT_KIND];
 
@@ -20,7 +20,7 @@ export type Level = (typeof LEVEL)[keyof typeof LEVEL];
 export const NOTICE_TARGET = { cai: "cai", persons: "persons" } as const;
 export type NoticeTarget = (typeof NOTICE_TARGET)[keyof typeof NOTICE_TARGET];
 
-/** The three factors of the risk assessment (s. 3.7) and the decision of the person in charge. */
+/** The three factors of the risk assessment (s. 3.6) and the decision of the person in charge. */
 export interface IncidentAssessment {
   /** How sensitive the information is. */
   sensitivity: Level;
@@ -132,7 +132,7 @@ export interface RegisterDocument {
 export interface IncidentRegister {
   /** Opens an incident (s. 3.5: as soon as there is reason to believe one occurred). */
   open(query: Query, input: IncidentInput, actor: IncidentActor): Promise<Incident>;
-  /** Writes the risk assessment (s. 3.7); it can be redone until the incident is closed. */
+  /** Writes the risk assessment (s. 3.6); it can be redone until the incident is closed. */
   assess(query: Query, scope: string, id: string, input: AssessmentInput, actor: IncidentActor): Promise<Incident>;
   /** Records a measure taken to reduce the risk and prevent a new incident (s. 3.5). */
   recordMeasure(query: Query, scope: string, id: string, text: string, actor: IncidentActor): Promise<Incident>;
