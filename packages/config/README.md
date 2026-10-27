@@ -301,7 +301,7 @@ The CI step, after the install:
 
 One source for the code rules (ADR-013, `docs/standards/guards.md`): the repositories carry no copy of `sg-ratchet.mjs`, of the rules or of `check-seo-family.mjs`.
 
-- **Rules by set**, files in `node_modules/@krizaka/config/ast-grep/<set>`: `core` (hand-written time arithmetic, ambient clock, env and db in domain code, enum compare, `enum`, numeric exports, `types.ts` at a package root), `web` (hand-made nav, hand-made language switch), `html` (raw `innerHTML`). The domain rules read `packages/*/src`, `apps/*/lib`, `src` and `lib`.
+- **Rules by set**, files in `node_modules/@krizaka/config/ast-grep/<set>`: `core` (hand-written time arithmetic, ambient clock, env and db in domain code, enum compare, `enum`, numeric exports, `types.ts` at a package root), `web` (hand-made nav, hand-made language switch, hard-coded default media), `html` (raw `innerHTML`). The domain rules read `packages/*/src`, `apps/*/lib`, `src` and `lib`.
 - **A repository's `sgconfig.yml`** names the sets it adopts and its own rules (each local rule is a file in `rules/` with its test in `rule-tests/`, and a comment saying why it is not shared):
 
   ```yaml

@@ -1,0 +1,13 @@
+id: no-hardcoded-default-media
+valid:
+  - |
+    const a = defaultFor("person", seed);
+  - |
+    const b = "https://krizaka-assets.b-cdn.net/site/products/akinaza/tour/report.webm";
+invalid:
+  - |
+    const a = "https://krizaka-assets.b-cdn.net/people/defaults/v1/akinaza/person.svg";
+  - |
+    const b = `${CDN}/defaults/v1/shop/shop-1-512.webp`;
+  - |
+    const c = "krizaka-defaults/avatar-3.png";
