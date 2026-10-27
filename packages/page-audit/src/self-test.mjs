@@ -31,6 +31,17 @@ const FINES_STRICT = [
   ["the family chrome", CHROME_FINE, ALL],
 ];
 
+async function problemsOn(page, html, checks) {
+  await page.setContent(html);
+  return problemsOf("fixture", await page.evaluate(auditPage), checks);
+}
+
+/** The failure for a fixture that must be clean and is not (none, when it is). */
+async function reported(page, name, html, checks) {
+  const fine = await problemsOn(page, html, checks);
+  return fine.length ? [`the audit reports ${String(name)}: ${fine.join(" | ")}`] : [];
+}
+
 /** @returns {Promise<string[]>} the failures (empty when the audit sees what it must and nothing else) */
 export async function selfTest({ launch } = {}) {
   const browser = launch ? await launch() : await (await import("playwright-core")).chromium.launch();
@@ -38,21 +49,12 @@ export async function selfTest({ launch } = {}) {
   try {
     const page = await (await auditContext(browser, { viewport: { width: 1280, height: 800 } })).newPage();
     for (const [name, html, pattern, checks] of EXPECT) {
-      await page.setContent(html);
-      const problems = problemsOf("fixture", await page.evaluate(auditPage), checks);
-      if (!problems.some((p) => pattern.test(p))) failures.push(`the audit does not see ${name}: ${problems.join(" | ") || "no problem reported"}`);
+      const problems = await problemsOn(page, html, checks);
+      if (!problems.some((p) => pattern.test(p))) failures.push(`the audit does not see ${String(name)}: ${problems.join(" | ") || "no problem reported"}`);
     }
-    for (const [name, html] of FINES) {
-      await page.setContent(html);
-      const fine = problemsOf("fixture", await page.evaluate(auditPage));
-      if (fine.length) failures.push(`the audit reports ${name}: ${fine.join(" | ")}`);
-    }
+    for (const [name, html] of FINES) failures.push(...(await reported(page, name, html)));
     await page.setViewportSize({ width: 1280, height: 700 });
-    for (const [name, html, checks] of FINES_STRICT) {
-      await page.setContent(html);
-      const fine = problemsOf("fixture", await page.evaluate(auditPage), checks);
-      if (fine.length) failures.push(`the audit reports ${name}: ${fine.join(" | ")}`);
-    }
+    for (const [name, html, checks] of FINES_STRICT) failures.push(...(await reported(page, name, html, checks)));
   } finally {
     await browser.close();
   }

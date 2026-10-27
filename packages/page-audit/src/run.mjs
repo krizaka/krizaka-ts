@@ -85,6 +85,12 @@ function a11yProblems(state) {
   return problems;
 }
 
+/** The HTTP status of the load when asked for (`null`: no response), else `undefined`. */
+function statusOf(response, checks) {
+  if (!checks.status) return undefined;
+  return response ? response.status() : null;
+}
+
 /** One route at one width: load, settle, measure, screenshot. */
 async function measure(page, { base, spec, viewport, settleMs, prepare, checks, errors, where, shots, a11y, kind, theme }) {
   await resizeSettled(page, viewport);
@@ -101,27 +107,31 @@ async function measure(page, { base, spec, viewport, settleMs, prepare, checks, 
     mkdirSync(shots, { recursive: true });
     await page.screenshot({ path: join(shots, `${where.replace(/[/?=&@ ]/g, "_")}.png`) });
   }
-  const status = checks.status ? (response ? response.status() : null) : undefined;
+  const status = statusOf(response, checks);
   const landmarks = spec.chrome ?? checks.landmarks;
   return problemsOf(where, result, { ...checks, landmarks, status, errors: errors.take() });
 }
 
-/** Audits the routes of one page (one context): each width, with `attempts` tries before a route counts as « could not be audited ». */
+/** One route at one width, with `attempts` tries before it counts as « could not be audited ». */
+async function measureWithRetries(page, o, spec, viewport, where) {
+  let failure;
+  for (let attempt = 1; attempt <= o.attempts; attempt++) {
+    try {
+      return await measure(page, { ...o, spec, viewport, where });
+    } catch (error) {
+      failure = error;
+    }
+  }
+  return [`${where}: could not be audited — ${String(failure?.message).split("\n")[0]}`];
+}
+
+/** Audits the routes of one page (one context), each width. */
 async function auditPageRoutes(page, routes, o) {
   const problems = [];
   for (const spec of routes) {
     for (const w of o.widths) {
       const viewport = viewportOf(w, o.height);
-      const where = `${nameOfRoute(spec)} @${viewport.width} ${o.theme}`;
-      let found;
-      for (let attempt = 1; attempt <= o.attempts && !found; attempt++) {
-        try {
-          found = await measure(page, { ...o, spec, viewport, where });
-        } catch (error) {
-          if (attempt === o.attempts) found = [`${where}: could not be audited — ${String(error.message).split("\n")[0]}`];
-        }
-      }
-      problems.push(...found);
+      problems.push(...(await measureWithRetries(page, o, spec, viewport, `${nameOfRoute(spec)} @${viewport.width} ${o.theme}`)));
     }
   }
   return problems;
