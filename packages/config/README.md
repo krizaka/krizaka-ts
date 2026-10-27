@@ -83,7 +83,20 @@ Flat config replaces a rule's options instead of concatenating them: a repositor
 `no-restricted-syntax` merges both lists with `krizakaUiRestrictedSyntax()`. `no-locale-ternary` is a plugin rule for
 that reason — it composes with anything.
 
-### The stack rules
+### The effect rules (react-effects)
+
+[`useEffect` is for the outside world](https://github.com/krizaka/.github/blob/main/docs/standards/react-effects.md)
+(Oussama, 2026-10-27). Two rules of `krizakaStack()`, **errors by default** (`effects: "error"`); a repository with debt
+passes `effects: "warn"` while `krizaka-ratchet` (`asyncInEffect`, `derivedStateInEffect`) brings the count to 0. They
+read any file (a Vite/Tauri app has no `"use client"`).
+
+1. **`krizaka/no-async-in-effect`** — an effect that awaits, calls `.then(`, `fetch(`, `invoke(`, `api.*` or `*Client.*`:
+   read with `useQuery`, write with `useMutation` (`@krizaka/query`), keyed by the selection. A subscribe-and-cleanup
+   effect (`listen(`, `addEventListener(`, `subscribe(`, `WebSocket`… plus a `return`) is never reported.
+2. **`krizaka/no-derived-state-in-effect`** — an effect whose only statements are `setX(…)` calls: compute the value
+   during render, or reset the component with a `key`.
+
+### The three stack rules
 
 From [ADR-001](https://github.com/krizaka/krizaka-ui/blob/main/docs/adr/ADR-001-tanstack-under-krizaka-facades.md) — the TanStack engines run headless, behind
 `@krizaka/*` facades; a product never imports them. Warnings: `krizaka-ratchet` counts the same patterns, so an app
@@ -195,6 +208,8 @@ npx krizaka-ratchet --json      # in CI: the same check, machine-readable
 | `arbitraryVar` | `\[var\(--` |
 | `classNameTemplate` | `` className=\{\s*` `` |
 | `fetchInClientEffect` | in a file opening with `"use client"`: `fetch(` / `krizakaFetch(` between the parentheses of a `useEffect(` / `useLayoutEffect(` |
+| `asyncInEffect` | an effect (`useEffect(` / `useLayoutEffect(`, any file) whose callback awaits or calls `.then(`, `fetch(`, `invoke(`, `api.*`, `*Client.*`, and is not a subscribe-and-cleanup |
+| `derivedStateInEffect` | an effect whose only statements are `setX(…)` calls (optionally under `if`) |
 | `directTanstackImport` | `from` / `import` / `import(` / `require(` of `"@tanstack/…"` |
 | `localTableOrForm` | `<table`, and `<form` … `</form>` holding more fields than `maxFormFields` (default 1) |
 | `retiredImport` | an import of a dependency listed in `retire` (e.g. `["framer-motion"]`): the way out of a dependency |

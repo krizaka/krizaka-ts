@@ -8,7 +8,7 @@ const USAGE = `Usage: krizaka-ratchet [globs…] [--init | --update] [--json] [-
 
 Counts the UI debts — raw palette colours, light: variants, [var(--…)] utilities, className template strings — in the
 source files (default: app/**/*.tsx components/**/*.tsx src/**/*.tsx), and the stack debts — fetch in a client effect,
-direct @tanstack/* imports, hand-written tables and forms, imports of the dependencies listed in "retire" — in every
+data loaded in an effect, state derived in an effect, direct @tanstack/* imports, hand-written tables and forms, imports of the dependencies listed in "retire" — in every
 source file of app, components, src, lib, hooks and features; compares them with lint-ratchet.json.
 
   (no flag)  fail (exit 1) when a counter is above its recorded value
@@ -24,6 +24,8 @@ const LABELS = {
   arbitraryVar: "[var(--…)] utilities",
   classNameTemplate: "className template strings",
   fetchInClientEffect: "fetch in a client effect",
+  asyncInEffect: "data loaded in an effect (useQuery instead)",
+  derivedStateInEffect: "state derived in an effect (render instead)",
   directTanstackImport: "direct @tanstack/* imports",
   localTableOrForm: "hand-written tables / forms",
   retiredImport: "imports of retired deps",

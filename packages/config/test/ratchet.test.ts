@@ -9,8 +9,8 @@ import { countRepository, countSource, countStackSource, runRatchet } from "../r
 const FIXTURE = fileURLToPath(new URL("./fixtures/repo", import.meta.url));
 const BIN = fileURLToPath(new URL("../bin/krizaka-ratchet.mjs", import.meta.url));
 const UI = { palette: 6, light: 3, arbitraryVar: 2, classNameTemplate: 2 };
-// lib/use-data.ts (fetch in a client effect ×2, @tanstack ×2) · features/forms.tsx (a table, a form of two fields)
-const STACK = { fetchInClientEffect: 2, directTanstackImport: 2, localTableOrForm: 2, retiredImport: 0, routeStateSelection: 0 };
+// lib/use-data.ts (fetch in a client effect ×2, data loaded in an effect ×1, + lib/server-data.ts ×1, @tanstack ×2) · features/forms.tsx (a table, a form of two fields)
+const STACK = { fetchInClientEffect: 2, asyncInEffect: 2, derivedStateInEffect: 0, directTanstackImport: 2, localTableOrForm: 2, retiredImport: 0, routeStateSelection: 0 };
 const TOTAL = { ...UI, ...STACK };
 const STACK_GLOBS = ["app", "components", "src", "lib", "hooks", "features"].map((d) => `${d}/**/*.{js,jsx,mjs,ts,tsx,mts}`);
 
@@ -59,6 +59,20 @@ describe("countStackSource", () => {
     expect(countStackSource(`"use client";\n${effect}`).fetchInClientEffect).toBe(2);
     expect(countStackSource(`// a "use client" word in a comment\n${effect}`).fetchInClientEffect).toBe(0);
     expect(countStackSource(`/* header */\n'use client'\nReact.useLayoutEffect(() => void krizakaFetch(u))`).fetchInClientEffect).toBe(1);
+  });
+
+  it("counts the effects that load data and the effects that only set state, in any file", () => {
+    const code = [
+      `useEffect(() => { invoke("list", { dir }).then(setFiles); }, [dir]);`,
+      `useEffect(() => { void (async () => { setX(await api.get(id)); })(); }, [id]);`,
+      `useEffect(() => { setDir(root); }, [root]);`,
+      `useEffect(() => { if (!open) { setQuery(""); setPage(0); } }, [open]);`,
+      `useEffect(() => { const un = listen("file-added", async () => { await qc.invalidateQueries(); }); return () => { void un.then((f) => f()); }; }, []);`,
+      `useEffect(() => { const url = URL.createObjectURL(blob); setUrl(url); return () => URL.revokeObjectURL(url); }, [blob]);`,
+      `useEffect(() => { document.title = "x"; }, []);`,
+      `useEffect(() => { const off = on<Probe>("stack-probe", (p) => setProbe(p)); return () => { void off.then((f) => f()); }; }, []);`,
+    ].join("\n");
+    expect(countStackSource(code)).toMatchObject({ asyncInEffect: 2, derivedStateInEffect: 2 });
   });
 
   it("counts every form of @tanstack import, never the facades", () => {
@@ -159,7 +173,7 @@ describe("runRatchet", () => {
     expect((await runRatchet({ root })).ok).toBe(true); // the two-field form is allowed with maxFormFields 2
     addDebt(`"use client";\nimport { m } from "framer-motion/m";\nuseEffect(() => { fetch("/a"); }, []);`);
     const result = await runRatchet({ root });
-    expect(result.increased).toEqual(["fetchInClientEffect", "retiredImport"]);
+    expect(result.increased).toEqual(["fetchInClientEffect", "asyncInEffect", "retiredImport"]);
   });
 
   it("uses the globs recorded in the file", async () => {

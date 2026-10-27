@@ -3,7 +3,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { countFormFields, EFFECT_NAMES_SOURCE, FETCH_NAMES_SOURCE, isLocalSelection, LIGHT_VARIANT_SOURCE, paletteSource } from "../patterns.js";
+import { countFormFields, EFFECT_NAMES_SOURCE, effectProblem, FETCH_NAMES_SOURCE, isLocalSelection, LIGHT_VARIANT_SOURCE, paletteSource } from "../patterns.js";
 
 /** @typedef {import("eslint").Rule.RuleModule} RuleModule */
 /** @typedef {import("estree").Node} Node */
@@ -68,6 +68,52 @@ export const noFetchInClientEffect = {
         context.report({ node, messageId: "fetchInEffect" }),
     };
   },
+};
+
+/**
+ * Reports the effects (`useEffect` / `useLayoutEffect`) whose callback `effectProblem` says is `kind`.
+ * @param {import("eslint").Rule.RuleContext} context
+ * @param {"async" | "derived"} kind
+ * @param {string} messageId
+ */
+function effectVisitor(context, kind, messageId) {
+  return {
+    [`CallExpression${callee(EFFECT_NAMES_SOURCE)}`]: (/** @type {import("estree").CallExpression} */ node) => {
+      const fn = node.arguments[0];
+      if (fn?.type !== "ArrowFunctionExpression" && fn?.type !== "FunctionExpression") return;
+      if (effectProblem(context.sourceCode.getText(fn.body)) === kind) context.report({ node, messageId });
+    },
+  };
+}
+
+/** Oussama, 2026-10-27: async data is `useQuery` / `useMutation`, never an effect (standard: react-effects). */
+/** @type {RuleModule} */
+export const noAsyncInEffect = {
+  meta: {
+    type: "problem",
+    docs: { description: "Forbid loading data (await, .then, fetch, invoke, api.*, *Client.*) in a useEffect that is not a subscription." },
+    schema: [],
+    messages: {
+      asyncInEffect:
+        "Data is not loaded in an effect: read it with useQuery and write it with useMutation (@krizaka/query), keyed by the selection so a stale answer is dropped. An effect is for a subscription (with its cleanup) or an object URL. See krizaka/.github docs/standards/react-effects.md.",
+    },
+  },
+  create: (context) => effectVisitor(context, "async", "asyncInEffect"),
+};
+
+/** Oussama, 2026-10-27: syncing React state is computed in render, never an effect (standard: react-effects). */
+/** @type {RuleModule} */
+export const noDerivedStateInEffect = {
+  meta: {
+    type: "problem",
+    docs: { description: "Forbid a useEffect whose only statements are setState calls (derive the value in render, or reset with a key)." },
+    schema: [],
+    messages: {
+      derivedState:
+        "An effect that only sets state from props or state renders twice: compute the value during render, or reset the component with a `key`. See krizaka/.github docs/standards/react-effects.md.",
+    },
+  },
+  create: (context) => effectVisitor(context, "derived", "derivedState"),
 };
 
 /** Oussama, 2026-10-22: « changer les tabs doit changer les routes » — a selection of a page lives in the URL. */
