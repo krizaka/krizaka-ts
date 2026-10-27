@@ -27,3 +27,19 @@ export const HIDDEN_CONTENT = page(
 export const FOLDED_SECTION = page(
   `<div style="display:flex;flex-direction:column"><section data-testid="facts" style="height:80px">Faits</section><details><summary>Détails</summary><section data-testid="closing-note" style="padding:16px">Ce que nous avons vérifié</section></details><section data-testid="other" style="height:80px">Autres</section></div>`,
 );
+
+/** A page whose `<main>` draws nothing. */
+export const EMPTY_MAIN = page("");
+/** The signed-in frame asks 1000 px of a 700 px screen under a 60 px notice (akinaza#444). */
+export const FRAME_FORCES_SCROLL = page(`<div style="height:60px">notice</div><div data-app-frame-slot><div style="min-height:1000px">shell</div></div>`);
+/** The same frame, sized to what is left of the screen. */
+export const FRAME_FITS = page(`<div style="height:60px">notice</div><div data-app-frame-slot><div style="min-height:500px">shell</div></div>`);
+/** A button-styled action 24 px tall, under the 36 px tap target. */
+export const SMALL_ACTION = page(`<a class="kz-button" href="/" style="display:block;height:24px;width:120px">Go</a>`);
+/** A landmark whose content is wider than its box. */
+export const BOX_TOO_WIDE = page(`<aside style="width:200px"><div style="width:500px">wide</div></aside>`);
+/** Broken picture, a tile that draws nothing, an inline hard-coded colour. */
+export const BROKEN_PARTS = page(`<img src="data:image/png;base64,AAAA" width="40" height="40" alt=""><a href="/" style="display:block;width:60px;height:60px"></a><p style="color:#ff0000">x</p>`);
+/** Chrome that fits the family: one footer naming Krizaka, a nav. */
+export const CHROME_FINE = `<!doctype html><html><body><nav>n</nav><main><p>Hello</p></main><footer>A Krizaka product</footer></body></html>`;
+export const CHROME_BAD = `<!doctype html><html><body><main><p>Hello</p></main><footer>one</footer><footer>two</footer></body></html>`;

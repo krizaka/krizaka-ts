@@ -1,7 +1,7 @@
 {
   "name": "@krizaka/page-audit",
   "version": "0.2.0",
-  "description": "The page audit of every Krizaka app, in one place: horizontal overflow, a card out of its panel, sections covering each other, a column cut off, top chrome overlaps, unnamed buttons, empty headings. Runs in a real browser (Playwright) over a route list, viewports and themes, with View Transitions neutralised and a self-test on its own fixtures.",
+  "description": "The page audit of every Krizaka app, in one place: HTTP status, empty main, horizontal overflow, a card out of its panel, sections covering each other, a column cut off, top chrome overlaps, unnamed buttons, empty headings. Runs in a real browser (Playwright) over a route list, viewports and themes, with View Transitions neutralised and a self-test on its own fixtures.",
   "keywords": [
     "krizaka",
     "audit",
@@ -50,9 +50,16 @@
     "prepublishOnly": "pnpm run check"
   },
   "peerDependencies": {
+    "@krizaka/a11y-audit": ">=0.2.0",
     "playwright-core": ">=1.40"
   },
+  "peerDependenciesMeta": {
+    "@krizaka/a11y-audit": {
+      "optional": true
+    }
+  },
   "devDependencies": {
+    "@krizaka/a11y-audit": "0.2.0",
     "@krizaka/config": "workspace:^",
     "@types/node": "^22.10.0",
     "eslint": "^9.39.0",

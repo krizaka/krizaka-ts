@@ -566,6 +566,9 @@ importers:
 
   packages/page-audit:
     devDependencies:
+      '@krizaka/a11y-audit':
+        specifier: 0.2.0
+        version: 0.2.0
       '@krizaka/config':
         specifier: workspace:^
         version: link:../config
@@ -1628,6 +1631,10 @@ packages:
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
 
+  '@krizaka/a11y-audit@0.2.0':
+    resolution: {integrity: sha512-hRQwJuX3PCtJdc6M3KkT+WwyluV8WVW2pGenZIE/qNC7pcGpkrcIqwFb5gauu7JcJkhraekto/egOIX4QLfm1g==}
+    engines: {node: '>=22'}
+
   '@krizaka/intl@0.4.1':
     resolution: {integrity: sha512-mxk3T8OBwdHYC2nJMUDqNzts3mu2gcvdcqZ7qBFRq64D8cfxqR1d3hTy6lYpMjyCnxmsuBBZ6ACrc1+tlnjB8g==}
     engines: {node: '>=22'}
@@ -2352,6 +2359,10 @@ packages:
   available-typed-arrays@1.0.7:
     resolution: {integrity: sha512-wvUjBtSGN7+7SjNpq/9M2Tg350UZD3q62IFZLbRAR1bSMlCo1ZaeW+BJ+D090e4hIIZLBcTDWe4Mh4jvUDajzQ==}
     engines: {node: '>= 0.4'}
+
+  axe-core@4.11.0:
+    resolution: {integrity: sha512-ilYanEU8vxxBexpJd8cWM4ElSQq4QctCLKih0TSfjIfCQTeyH/6zVrmIJfLPrKTKJRbiG+cfnZbQIjAlJmF1jQ==}
+    engines: {node: '>=4'}
 
   axe-core@4.14.0:
     resolution: {integrity: sha512-9WTZxEjsZ7b13TH8JPmbV2z8CHbl80/2hm3XPEG4JgNdQLK81IBRXmSxHfMAOkSqQeRxT/0dwNDz2GOm3zzpcQ==}
@@ -4704,6 +4715,10 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.6.0
 
+  '@krizaka/a11y-audit@0.2.0':
+    dependencies:
+      axe-core: 4.11.0
+
   '@krizaka/intl@0.4.1': {}
 
   '@krizaka/payments@0.1.0': {}
@@ -5296,6 +5311,8 @@ snapshots:
   available-typed-arrays@1.0.7:
     dependencies:
       possible-typed-array-names: 1.1.0
+
+  axe-core@4.11.0: {}
 
   axe-core@4.14.0: {}
 

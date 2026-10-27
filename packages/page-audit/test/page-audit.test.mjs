@@ -44,3 +44,37 @@ describe("what counts as a problem on a rendered page", () => {
     assert.match(problemsOf("x", { ...fine, clips: ["button[header-check].truncate"] })[0], /content cut inside its box \(button\[header-check\]/);
   });
 });
+
+describe("the checks of the dev-preview crawls (akinaza#341, orazaka-web-client#124), opt-in", () => {
+  it("the HTTP status of the load: 4xx, 5xx, or no response", () => {
+    assert.deepEqual(problemsOf("x", fine, { status: 200 }), []);
+    assert.match(problemsOf("x", fine, { status: 404 })[0], /HTTP 404/);
+    assert.match(problemsOf("x", fine, { status: null })[0], /HTTP none/);
+    assert.deepEqual(problemsOf("x", fine), []);
+  });
+  it("an empty <main>", () => {
+    assert.match(problemsOf("x", { ...fine, emptyMain: true }, { emptyMain: true })[0], /empty <main>/);
+    assert.deepEqual(problemsOf("x", { ...fine, emptyMain: true }), []);
+  });
+  it("the frame that forces a scroll: top + forced over the viewport", () => {
+    assert.match(problemsOf("x", { ...fine, frame: { top: 60, forced: 900, viewport: 800 } }, { frame: true })[0], /forces a scroll \(starts at 60 px and asks 900 px of a 800 px screen\)/);
+    assert.deepEqual(problemsOf("x", { ...fine, frame: { top: 60, forced: 740, viewport: 800 } }, { frame: true }), []);
+    assert.deepEqual(problemsOf("x", { ...fine, frame: null }, { frame: true }), []);
+  });
+  it("an action under the tap target, a landmark wider than its box, a broken picture, a tile with nothing, a hard-coded colour", () => {
+    assert.match(problemsOf("x", { ...fine, actions: [44, 30] }, { minAction: 36 })[0], /30 px tall \(< 36\)/);
+    assert.match(problemsOf("x", { ...fine, boxes: ["<aside> 500px in 200px"] }, { boxes: true })[0], /wider than its box/);
+    assert.match(problemsOf("x", { ...fine, brokenPictures: ["/a.png"] }, { pictures: true })[0], /broken picture \/a.png/);
+    assert.match(problemsOf("x", { ...fine, emptyControls: ["empty tile"] }, { emptyControls: true })[0], /empty tile/);
+    assert.match(problemsOf("x", { ...fine, hardColors: 2 }, { hardColors: true })[0], /2 element\(s\) with a hard-coded colour/);
+  });
+  it("the family chrome by kind of page", () => {
+    const ok = { footers: 1, footerNamesKrizaka: true, nav: true };
+    assert.deepEqual(problemsOf("x", { ...fine, landmarks: ok }, { landmarks: "public" }), []);
+    assert.match(problemsOf("x", { ...fine, landmarks: { ...ok, footers: 0 } }, { landmarks: "public" })[0], /0 page footers/);
+    assert.match(problemsOf("x", { ...fine, landmarks: { ...ok, footerNamesKrizaka: false } }, { landmarks: "public" })[0], /does not name Krizaka/);
+    assert.match(problemsOf("x", { ...fine, landmarks: { ...ok, footers: 2 } }, { landmarks: "app" })[0], /at most one/);
+    assert.deepEqual(problemsOf("x", { ...fine, landmarks: { footers: 0, footerNamesKrizaka: false, nav: false } }, { landmarks: "auth" }), []);
+    assert.match(problemsOf("x", { ...fine, landmarks: { ...ok, nav: false } }, { landmarks: "app" })[0], /no <nav>/);
+  });
+});

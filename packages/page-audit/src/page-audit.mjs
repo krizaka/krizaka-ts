@@ -17,7 +17,7 @@ const apart = (a, b) => !a.contains(b) && !b.contains(a);
 /** An element that pokes out only matters when nothing clips it: decorative layers (aria-hidden) and anything inside a clipping or scrolling ancestor are meant to extend. */
 function clipped(el) {
   for (let n = el; n && n !== document.body; n = n.parentElement) {
-    if (n.getAttribute("aria-hidden") === "true") return true;
+    if (n.getAttribute("aria-hidden") === "true" || n.hasAttribute("inert")) return true;
     if (n !== el && ["hidden", "clip", "auto", "scroll"].includes(getComputedStyle(n).overflowX)) return true;
   }
   return false;
@@ -27,7 +27,7 @@ function wideOf(doc) {
   return [...document.querySelectorAll("body *")]
     .filter((el) => {
       const r = el.getBoundingClientRect();
-      return r.width > 0 && (r.right > doc.clientWidth + 1 || r.left < -1) && !clipped(el);
+      return r.width > 0 && getComputedStyle(el).visibility !== "hidden" && (r.right > doc.clientWidth + 1 || r.left < -1) && !clipped(el);
     })
     .slice(0, 3)
     .map((el) => `${el.tagName.toLowerCase()}.${String(el.className).split(" ").slice(0, 3).join(".")}`);
@@ -192,6 +192,74 @@ function unlabelledFilesOf() {
   return [...document.querySelectorAll("input[type=file]")].filter((i) => !(i.getAttribute("aria-label") || i.getAttribute("aria-labelledby") || i.title || i.labels?.length)).length;
 }
 
+/** `<main>` with no text at all: the page answered but drew nothing (a route that fell through, a failed fetch). */
+function emptyMainOf() {
+  return document.querySelector("main")?.innerText.trim().length === 0;
+}
+
+/** Height of every action of the page's main (a button-styled link): the tap targets the responsive guard keeps over `minAction`. */
+function actionsOf() {
+  return [...document.querySelectorAll("main a[class*='kz-button'], main a[data-slot='button'], main .kz-button")].filter((a) => a.getBoundingClientRect().width > 0).map((a) => Math.round(a.getBoundingClientRect().height));
+}
+
+/**
+ * The signed-in frame's own screen (akinaza#444): its shell (`min-height`) and its sticky rail must fit in what is left of the viewport
+ * under the notice, or every page, an empty one included, scrolls by the notice's height. `null` when the page has no `[data-app-frame-slot]`.
+ */
+function frameOf(doc) {
+  const shell = document.querySelector("[data-app-frame-slot] > *");
+  if (!shell) return null;
+  const rail = [...shell.querySelectorAll("nav")].find((n) => getComputedStyle(n).position === "sticky");
+  return {
+    top: Math.round(shell.getBoundingClientRect().top + window.scrollY),
+    forced: Math.round(Math.max(Number.parseFloat(getComputedStyle(shell).minHeight) || 0, rail ? rail.getBoundingClientRect().height : 0)),
+    viewport: doc.clientHeight,
+  };
+}
+
+/** A landmark (`main`, `aside`, `header`, `nav`) whose content is wider than its own box, with nothing to scroll it. */
+function boxesOf() {
+  return [...document.querySelectorAll("main, aside, header, nav")]
+    .filter((box) => getComputedStyle(box).overflowX === "visible" && box.scrollWidth > box.clientWidth + 1 && box.clientWidth > 0)
+    .slice(0, 3)
+    .map((box) => `<${box.tagName.toLowerCase()}> ${box.scrollWidth}px in ${box.clientWidth}px`);
+}
+
+/** The family contract of the page chrome: the page's own footers (not those of an article or a dialog), whether the first names Krizaka, a navigation landmark. */
+function landmarksOf() {
+  const footers = [...document.querySelectorAll("footer")].filter((f) => !f.closest("main, article, section, dialog, [role=dialog]"));
+  return { footers: footers.length, footerNamesKrizaka: /krizaka/i.test(footers[0]?.textContent || ""), nav: !!document.querySelector("nav") };
+}
+
+/** A picture drawn at a real size that never loaded. */
+function brokenPicturesOf() {
+  return [...document.querySelectorAll("img")]
+    .filter((img) => {
+      const box = img.getBoundingClientRect();
+      return box.width > 8 && box.height > 8 && img.complete && img.naturalWidth === 0 && !!img.currentSrc;
+    })
+    .slice(0, 3)
+    .map((img) => img.currentSrc.slice(0, 80));
+}
+
+/** A control of the main that collapsed (under 4 px tall), or a tile that renders nothing (no text, label or image). */
+function emptyControlsOf() {
+  const found = [];
+  for (const el of document.querySelectorAll("main a[href], main button")) {
+    const box = el.getBoundingClientRect();
+    const style = getComputedStyle(el);
+    if (style.visibility === "hidden" || style.display === "none") continue;
+    if (box.width > 0 && box.height > 0 && box.height < 4) found.push(`collapsed control ${(el.getAttribute("aria-label") || el.textContent || "").trim().slice(0, 30)}`);
+    else if (box.width > 24 && box.height > 24 && !el.textContent?.trim() && !el.getAttribute("aria-label") && !el.getAttribute("aria-labelledby") && !el.querySelector("img, svg, video, picture, canvas")) found.push("empty tile");
+  }
+  return [...new Set(found)].slice(0, 3);
+}
+
+/** Elements whose inline style carries a colour that is not a token (`var(--kz-*)`). */
+function hardColorsOf() {
+  return [...document.querySelectorAll("[style]")].filter((e) => /#[0-9a-f]{3,8}\b|rgba?\(/i.test(e.getAttribute("style") || "") && !/var\(/.test(e.getAttribute("style") || "")).length;
+}
+
 function measurePage() {
   const doc = document.documentElement;
   const panels = [...document.querySelectorAll("[data-panel], main section, main [role=region]")].filter((el) => !el.closest(ARIA_HIDDEN) && !folded(el));
@@ -213,11 +281,19 @@ function measurePage() {
     emptyHeadings: emptyHeadingsOf(),
     unlabelledFiles: unlabelledFilesOf(),
     wrapped: wrappedOf(),
+    emptyMain: emptyMainOf(),
+    actions: actionsOf(),
+    frame: frameOf(doc),
+    boxes: boxesOf(),
+    landmarks: landmarksOf(),
+    brokenPictures: brokenPicturesOf(),
+    emptyControls: emptyControlsOf(),
+    hardColors: hardColorsOf(),
     segmentError: !!document.querySelector('[data-testid="segment-error"]'),
   };
 }
 
-const PROBES = [tooTall, wrappedOf, className, nameOf, scrolls, meets, apart, clipped, wideOf, named, unnamedOf, headerActionOf, folded, keptBetween, notDrawn, runsOut, spillOf, overlapsOf, cutBy, cutColumnsOf, topBoxOf, isTopBar, chromeOverlapsOf, clipsOf, emptyHeadingsOf, unlabelledFilesOf, measurePage];
+const PROBES = [tooTall, wrappedOf, className, nameOf, scrolls, meets, apart, clipped, wideOf, named, unnamedOf, headerActionOf, folded, keptBetween, notDrawn, runsOut, spillOf, overlapsOf, cutBy, cutColumnsOf, topBoxOf, isTopBar, chromeOverlapsOf, clipsOf, emptyHeadingsOf, unlabelledFilesOf, emptyMainOf, actionsOf, frameOf, boxesOf, landmarksOf, brokenPicturesOf, emptyControlsOf, hardColorsOf, measurePage];
 
 /** The expression Playwright runs in the page (`page.evaluate(auditPage)`): the probes, serialised together, then the measure. */
 export const auditPage = `(() => {\nconst ARIA_HIDDEN = ${JSON.stringify(ARIA_HIDDEN)};\n${PROBES.map((f) => `const ${f.name} = ${f.toString()};`).join("\n")}\nreturn measurePage();\n})()`;
@@ -234,8 +310,17 @@ function accessibilityProblems(where, result, fileLabels) {
   return problems;
 }
 
-export function problemsOf(where, result, { errors = [], h1 = false, headerAction = false, fileLabels = false } = {}) {
+export function problemsOf(where, result, { errors = [], h1 = false, headerAction = false, fileLabels = false, status, emptyMain = false, frame = false, minAction, boxes = false, landmarks, pictures = false, emptyControls = false, hardColors = false } = {}) {
   return [
+    ...statusProblems(where, status),
+    ...(emptyMain && result.emptyMain ? [`${where}: empty <main>`] : []),
+    ...(frame ? frameProblems(where, result.frame) : []),
+    ...(minAction ? actionProblems(where, result.actions ?? [], minAction) : []),
+    ...(boxes ? boxProblems(where, result.boxes ?? []) : []),
+    ...(landmarks ? landmarkProblems(where, result.landmarks, landmarks) : []),
+    ...(pictures && result.brokenPictures?.length ? [`${where}: broken picture ${result.brokenPictures.join(", ")}`] : []),
+    ...(emptyControls ? (result.emptyControls ?? []).map((c) => `${where}: ${c}`) : []),
+    ...(hardColors && result.hardColors ? [`${where}: ${result.hardColors} element(s) with a hard-coded colour in an inline style`] : []),
     ...errorsOf(where, errors),
     ...layoutProblems(where, result),
     ...(h1 ? namingProblems(where, result) : []),
@@ -284,4 +369,36 @@ function headerActionProblems(where, action) {
 
 function chipProblems(where, chips) {
   return chips.some((h) => h < 44) ? [`${where}: a chip is ${Math.min(...chips)} px tall (< 44)`] : [];
+}
+
+/** The HTTP status of the page's own load (`undefined`: not asked): a 4xx or 5xx, or no response at all. */
+function statusProblems(where, status) {
+  if (status === undefined) return [];
+  return status === null || status >= 400 ? [`${where}: HTTP ${status ?? "none"}`] : [];
+}
+
+/** The signed-in frame forces a scroll when what it asks of the screen (its shell, its rail) does not fit under what is above it. */
+function frameProblems(where, frame) {
+  if (!frame || frame.top + frame.forced <= frame.viewport + 1) return [];
+  return [`${where}: the frame forces a scroll (starts at ${frame.top} px and asks ${frame.forced} px of a ${frame.viewport} px screen)`];
+}
+
+/** A button-styled action under `min` px tall is hard to tap. */
+function actionProblems(where, actions, min) {
+  return actions.some((h) => h < min) ? [`${where}: an action is ${Math.min(...actions)} px tall (< ${min})`] : [];
+}
+
+function boxProblems(where, boxes) {
+  return boxes.map((b) => `${where}: never overflows — ${b} content wider than its box`);
+}
+
+/** `kind`: "public" (one page footer that names Krizaka, a nav), "app" (at most one footer, a nav), "auth" (at most one footer, no nav asked). */
+function landmarkProblems(where, found, kind) {
+  const problems = [];
+  if (kind === "public") {
+    if (found.footers !== 1) problems.push(`${where}: ${found.footers} page footers (one « A Krizaka product » footer expected)`);
+    else if (!found.footerNamesKrizaka) problems.push(`${where}: the footer does not name Krizaka`);
+  } else if (found.footers > 1) problems.push(`${where}: ${found.footers} page footers (at most one)`);
+  if (kind !== "auth" && !found.nav) problems.push(`${where}: no <nav> landmark`);
+  return problems;
 }

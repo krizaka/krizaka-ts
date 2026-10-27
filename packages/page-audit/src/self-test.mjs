@@ -1,6 +1,6 @@
 // The audit proven on its own fixtures, in a real browser: each broken fixture must be reported, the fine ones must not.
 // A guard that stopped seeing is itself a red build.
-import { CARD_OVER_NEXT, COLUMN_CUT, FINE, FOLDED_SECTION, HIDDEN_CONTENT, SECTIONS_OVERLAP } from "./fixtures.mjs";
+import { BOX_TOO_WIDE, BROKEN_PARTS, CARD_OVER_NEXT, CHROME_BAD, CHROME_FINE, COLUMN_CUT, EMPTY_MAIN, FINE, FOLDED_SECTION, FRAME_FITS, FRAME_FORCES_SCROLL, HIDDEN_CONTENT, SECTIONS_OVERLAP, SMALL_ACTION } from "./fixtures.mjs";
 import { auditPage, problemsOf } from "./page-audit.mjs";
 import { auditContext } from "./settle.mjs";
 
@@ -9,11 +9,26 @@ const EXPECT = [
   ["a card over the next section", CARD_OVER_NEXT, /covers a neighbouring section/],
   ["two sections on top of each other", SECTIONS_OVERLAP, /covers a neighbouring section/],
   ["a column cut by a clipping wrapper", COLUMN_CUT, /is cut off/],
+  ["an empty <main>", EMPTY_MAIN, /empty <main>/, { emptyMain: true }],
+  ["a frame that forces a scroll", FRAME_FORCES_SCROLL, /the frame forces a scroll/, { frame: true }],
+  ["an action under the tap target", SMALL_ACTION, /an action is 24 px tall \(< 36\)/, { minAction: 36 }],
+  ["a landmark wider than its box", BOX_TOO_WIDE, /content wider than its box/, { boxes: true }],
+  ["a broken picture", BROKEN_PARTS, /broken picture/, { pictures: true }],
+  ["a tile that draws nothing", BROKEN_PARTS, /empty tile/, { emptyControls: true }],
+  ["a hard-coded inline colour", BROKEN_PARTS, /hard-coded colour/, { hardColors: true }],
+  ["two page footers and no nav", CHROME_BAD, /2 page footers/, { landmarks: "public" }],
+  ["no nav landmark", CHROME_BAD, /no <nav> landmark/, { landmarks: "app" }],
 ];
 const FINES = [
   ["a fine layout", FINE],
   ["content that is not drawn (a visually hidden table, a folded details)", HIDDEN_CONTENT],
   ["a section folded in a details", FOLDED_SECTION],
+];
+/** Fixtures that must stay clean even with every opt-in check on. */
+const ALL = { emptyMain: true, frame: true, minAction: 36, boxes: true, pictures: true, emptyControls: true, hardColors: true, landmarks: "public" };
+const FINES_STRICT = [
+  ["a frame that fits its screen", FRAME_FITS, { frame: true, emptyMain: false }],
+  ["the family chrome", CHROME_FINE, ALL],
 ];
 
 /** @returns {Promise<string[]>} the failures (empty when the audit sees what it must and nothing else) */
@@ -22,14 +37,20 @@ export async function selfTest({ launch } = {}) {
   const failures = [];
   try {
     const page = await (await auditContext(browser, { viewport: { width: 1280, height: 800 } })).newPage();
-    for (const [name, html, pattern] of EXPECT) {
+    for (const [name, html, pattern, checks] of EXPECT) {
       await page.setContent(html);
-      const problems = problemsOf("fixture", await page.evaluate(auditPage));
+      const problems = problemsOf("fixture", await page.evaluate(auditPage), checks);
       if (!problems.some((p) => pattern.test(p))) failures.push(`the audit does not see ${name}: ${problems.join(" | ") || "no problem reported"}`);
     }
     for (const [name, html] of FINES) {
       await page.setContent(html);
       const fine = problemsOf("fixture", await page.evaluate(auditPage));
+      if (fine.length) failures.push(`the audit reports ${name}: ${fine.join(" | ")}`);
+    }
+    await page.setViewportSize({ width: 1280, height: 700 });
+    for (const [name, html, checks] of FINES_STRICT) {
+      await page.setContent(html);
+      const fine = problemsOf("fixture", await page.evaluate(auditPage), checks);
       if (fine.length) failures.push(`the audit reports ${name}: ${fine.join(" | ")}`);
     }
   } finally {
