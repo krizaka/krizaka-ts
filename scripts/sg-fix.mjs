@@ -9,7 +9,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { localBin } from "./sg-ratchet.mjs";
+import { localBin } from "../packages/config/bin/krizaka-sg-ratchet.mjs";
 
 export const DATE_FNS = ["hoursToMilliseconds", "minutesToMilliseconds", "differenceInMilliseconds"];
 

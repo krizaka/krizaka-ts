@@ -64,6 +64,8 @@ describe("package surface", () => {
       "krizaka-ratchet": "./bin/krizaka-ratchet.mjs",
       "krizaka-known-violations": "./bin/krizaka-known-violations.mjs",
       "krizaka-server-client-boundary": "./bin/krizaka-server-client-boundary.mjs",
+      "krizaka-sg-ratchet": "./bin/krizaka-sg-ratchet.mjs",
+      "krizaka-seo-family": "./bin/krizaka-seo-family.mjs",
     });
     expect(pkg.peerDependencies).toMatchObject({ eslint: "^9 || ^10", typescript: "^5" });
   });

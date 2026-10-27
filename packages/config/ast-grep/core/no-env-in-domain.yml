@@ -14,6 +14,10 @@ files:
   - "packages/*/src/**/*.tsx"
   - "apps/*/lib/**/*.ts"
   - "apps/*/lib/**/*.tsx"
+  - "src/**/*.ts"
+  - "src/**/*.tsx"
+  - "lib/**/*.ts"
+  - "lib/**/*.tsx"
 ignores:
   - "**/node_modules/**"
   - "**/*.test.ts"

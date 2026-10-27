@@ -1,13 +1,15 @@
 #!/usr/bin/env node
-/* eslint-disable no-console -- a command-line tool: its output is the interface */
+
 // The ast-grep ratchet: runs `ast-grep scan` (rules/, sgconfig.yml), counts the violations per rule and refuses any
 // increase against sg-ratchet.json. The counts only go down.
-//   node scripts/sg-ratchet.mjs            check (CI, npm run lint)
-//   node scripts/sg-ratchet.mjs --update   lower the recorded counts to the current ones (never raises one;
+//   krizaka-sg-ratchet            check (CI, npm run lint)
+//   krizaka-sg-ratchet --update   lower the recorded counts to the current ones (never raises one;
 //                                          a rule that is new is recorded at its current count)
-// Identical in every Krizaka TypeScript repository (keep the copies identical). Dependency-free.
+// Shipped by @krizaka/config as the `krizaka-sg-ratchet` bin: one source, no copy in the repositories (ADR-013).
+// The rules are the ruleDirs of the repository's sgconfig.yml: the sets of the pack (node_modules/@krizaka/config/ast-grep/<set>)
+// and its own `rules/`. Dependency-free.
 import { spawnSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -88,7 +90,9 @@ function run() {
   }
   if (update) {
     if (result.increased.length > 0) {
-      console.error(`sg-ratchet: ${result.increased.join(", ")} went up — fix the new violations; --update never raises a count.`);
+      console.error(
+        `sg-ratchet: ${result.increased.join(", ")} went up — fix the new violations; --update never raises a count.`,
+      );
       process.exit(1);
     }
     writeFileSync(file, `${JSON.stringify({ counters: result.next }, null, 2)}\n`);
@@ -96,29 +100,58 @@ function run() {
     return;
   }
   if (result.unrecorded.length > 0) {
-    console.error(`sg-ratchet: new rule(s) not in ${RATCHET_FILE}: ${result.unrecorded.join(", ")} — run \`npm run sg:ratchet:update\`.`);
+    console.error(
+      `sg-ratchet: new rule(s) not in ${RATCHET_FILE}: ${result.unrecorded.join(", ")} — run \`npm run sg:ratchet:update\`.`,
+    );
   }
   if (result.increased.length > 0) {
-    console.error(`sg-ratchet: more violations than recorded for ${result.increased.join(", ")}. Run \`npx ast-grep scan\` to see them; fix them (the debt only goes down).`);
+    console.error(
+      `sg-ratchet: more violations than recorded for ${result.increased.join(", ")}. Run \`npx ast-grep scan\` to see them; fix them (the debt only goes down).`,
+    );
   }
   if (!result.ok) process.exit(1);
   if (result.decreased.length > 0) {
-    console.log(`sg-ratchet: ${result.decreased.join(", ")} went down — run \`npm run sg:ratchet:update\` to lock the gain.`);
+    console.log(
+      `sg-ratchet: ${result.decreased.join(", ")} went down — run \`npm run sg:ratchet:update\` to lock the gain.`,
+    );
   }
   console.log("sg-ratchet: ok");
 }
 
 /**
+ * The directories named by `ruleDirs:` in sgconfig.yml (paths relative to the file).
+ * @param {string} root
+ * @returns {string[]}
+ */
+export function ruleDirsFromConfig(root) {
+  const file = resolve(root, "sgconfig.yml");
+  if (!existsSync(file)) return [resolve(root, "rules")];
+  const dirs = [];
+  let inside = false;
+  for (const line of readFileSync(file, "utf8").split("\n")) {
+    if (/^ruleDirs:\s*$/.test(line)) inside = true;
+    else if (inside) {
+      const m = line.match(/^\s+-\s+(\S+)\s*$/);
+      if (m) dirs.push(resolve(root, m[1]));
+      else if (!/^\s*(#.*)?$/.test(line)) inside = false;
+    }
+  }
+  return dirs;
+}
+
+/**
+ * Every rule id of the rule directories of sgconfig.yml.
  * @param {string} root
  * @returns {string[]}
  */
 export function ruleIdsFromDir(root) {
-  const dir = resolve(root, "rules");
   const ids = [];
-  for (const name of readDirSafe(dir)) {
-    if (!name.endsWith(".yml")) continue;
-    const m = readFileSync(resolve(dir, name), "utf8").match(/^id:\s*(\S+)/m);
-    if (m) ids.push(m[1]);
+  for (const dir of ruleDirsFromConfig(root)) {
+    for (const name of readDirSafe(dir)) {
+      if (!name.endsWith(".yml")) continue;
+      const m = readFileSync(resolve(dir, name), "utf8").match(/^id:\s*(\S+)/m);
+      if (m) ids.push(m[1]);
+    }
   }
   return ids;
 }
@@ -132,4 +165,4 @@ function readDirSafe(dir) {
   }
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) run();
+if (process.argv[1] && realpathSync(resolve(process.argv[1])) === realpathSync(fileURLToPath(import.meta.url))) run();

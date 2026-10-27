@@ -1,0 +1,16 @@
+id: no-hand-made-language-switch
+language: Tsx
+severity: error
+message: "No hand-made language switch (a link or a button that names the other language, `hrefLang` in a component). The family has one: `NavBar.Language` / `LanguageSwitch` from @krizaka/ui — a globe and the current code, the languages named in their own language, links with hreflang from `languagesFor(pathname)`."
+rule:
+  kind: jsx_attribute
+  any:
+    - has:
+        kind: property_identifier
+        regex: ^hrefLang$
+    # a row of buttons that sets the locale: `aria-pressed={locale === code}`
+    - regex: ^aria-pressed=\{\s*locale\s*===
+ignores:
+  - "**/node_modules/**"
+  - "**/.next/**"
+  - "**/dist/**"

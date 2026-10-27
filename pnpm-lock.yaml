@@ -196,6 +196,9 @@ importers:
         specifier: ^8.71.1
         version: 8.72.0(eslint@9.39.5)(typescript@5.9.3)
     devDependencies:
+      '@ast-grep/cli':
+        specifier: 0.51.0
+        version: 0.51.0
       '@size-limit/file':
         specifier: ^14.2.0
         version: 14.3.0(size-limit@14.3.0)
