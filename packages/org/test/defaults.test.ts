@@ -43,7 +43,9 @@ describe("the defaults section", () => {
       }
     }
     expect(listDefaults("person")).toHaveLength(18);
-    expect(listDefaults("banner")).toHaveLength(12);
+    // twelve banners in the JSON, the neon flamingo withdrawn (it carries the wordmark of a paused product): eleven can be picked
+    expect(defaults.kinds.banner).toHaveLength(12);
+    expect(listDefaults("banner")).toHaveLength(11);
   });
 
   it("names every URL <base>/<kind>/<id>-<size>.<ext> under the versioned prefix", () => {
@@ -119,6 +121,20 @@ describe("the section holds nothing private", () => {
     const urls = section.match(/https?:\/\/[^"]+/g) ?? [];
     expect(urls.length).toBeGreaterThan(150);
     for (const url of urls) expect(url.startsWith("https://krizaka-assets.b-cdn.net/defaults/v1")).toBe(true);
-    for (const key of section.match(/"[A-Za-z]+":/g) ?? []) expect(["version", "base", "rule", "pick", "description", "kinds", "person", "folder", "organisation", "shop", "banner", "id", "alt", "en", "fr", "urls", "svg", "webp"].map((k) => `"${k}":`)).toContain(key);
+    for (const key of section.match(/"[A-Za-z]+":/g) ?? []) expect(["version", "base", "rule", "pick", "description", "kinds", "person", "folder", "organisation", "shop", "banner", "id", "alt", "en", "fr", "urls", "svg", "webp", "disabled"].map((k) => `"${k}":`)).toContain(key);
+  });
+});
+
+describe("withdrawn pictures", () => {
+  it("keeps the neon flamingo in the JSON and its files served, but never picks it", () => {
+    const flamingo = defaults.kinds.banner.find((b) => b.id === "the-neon-flamingo");
+    expect(flamingo).toMatchObject({ disabled: true });
+    expect(flamingo?.urls.webp["1920"]).toBe("https://krizaka-assets.b-cdn.net/defaults/v1/banner/the-neon-flamingo-1920.webp");
+    expect(listDefaults("banner").some((b) => b.id === "the-neon-flamingo")).toBe(false);
+    for (let seed = 0; seed < 500; seed++) expect(defaultFor("banner", seed)?.id).not.toBe("the-neon-flamingo");
+  });
+  it("offers no default that names a paused product (Orochia, Kachizaka, Yasakia, Yororis): in its id or its alt text", () => {
+    const paused = /orochia|kachizaka|yasakia|yazakia|yororis/i;
+    for (const kind of DEFAULT_KINDS) for (const entry of listDefaults(kind)) expect(`${entry.id} ${entry.alt.en} ${entry.alt.fr}`, `${kind}/${entry.id}`).not.toMatch(paused);
   });
 });

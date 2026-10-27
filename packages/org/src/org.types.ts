@@ -47,6 +47,8 @@ export interface OrgDefaultItem {
   id: string;
   /** What the picture shows, in both languages (never who). */
   alt: Localized;
+  /** Withdrawn from the set: still listed in the JSON, and its files stay served (a versioned URL never changes), but `listDefaults` and `defaultFor` skip it. */
+  disabled?: true;
   urls: {
     /** The vector, for the sets drawn from the code. */
     svg?: string;
