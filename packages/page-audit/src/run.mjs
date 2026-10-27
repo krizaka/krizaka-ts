@@ -17,6 +17,46 @@ async function chromiumOf(launch) {
   return chromium.launch();
 }
 
+/** Persists the theme the way the apps do, before any page script runs. */
+function rememberTheme([key, value]) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // storage blocked: the colour scheme is still emulated
+  }
+}
+
+/** The page's console errors and uncaught exceptions, read and cleared by `take()`. */
+function collectErrors(page) {
+  let errors = [];
+  page.on("console", (m) => {
+    if (isPageError(m)) errors.push(m.text().slice(0, 140));
+  });
+  page.on("pageerror", (e) => errors.push(String(e).slice(0, 140)));
+  return {
+    take() {
+      const seen = errors;
+      errors = [];
+      return seen;
+    },
+  };
+}
+
+/** One route at one width: load, settle, measure, screenshot. */
+async function measure(page, { base, route, width, height, settleMs, prepare, checks, errors, where, shots }) {
+  await resizeSettled(page, { width, height });
+  // « load » and the faces, not « networkidle »: router prefetches can keep the page from ever going idle.
+  await loadSettled(page, `${base}${route}`);
+  if (prepare) await prepare(page, route);
+  if (settleMs) await page.waitForTimeout(settleMs);
+  const result = await page.evaluate(auditPage);
+  if (shots) {
+    mkdirSync(shots, { recursive: true });
+    await page.screenshot({ path: join(shots, `${where.replace(/[/?=&@ ]/g, "_")}.png`) });
+  }
+  return problemsOf(where, result, { ...checks, errors: errors.take() });
+}
+
 /**
  * @param {object} o
  * @param {string} o.base  origin of the running app
@@ -38,35 +78,13 @@ export async function auditRoutes({ base, routes, widths = WIDTHS, themes = THEM
   try {
     for (const theme of themes) {
       const context = await auditContext(browser, { colorScheme: theme });
-      if (themeKey) {
-        await context.addInitScript(([key, value]) => {
-          try {
-            localStorage.setItem(key, value);
-          } catch {
-            // storage blocked: the colour scheme is still emulated
-          }
-        }, [themeKey, theme]);
-      }
+      if (themeKey) await context.addInitScript(rememberTheme, [themeKey, theme]);
       const page = await context.newPage();
-      let errors = [];
-      page.on("console", (m) => {
-        if (isPageError(m)) errors.push(m.text().slice(0, 140));
-      });
-      page.on("pageerror", (e) => errors.push(String(e).slice(0, 140)));
+      const errors = collectErrors(page);
       for (const route of routes) {
         for (const width of widths) {
-          await resizeSettled(page, { width, height });
-          // « load » and the faces, not « networkidle »: router prefetches can keep the page from ever going idle.
-          await loadSettled(page, `${base}${route}`);
-          if (prepare) await prepare(page, route);
-          if (settleMs) await page.waitForTimeout(settleMs);
-          const result = await page.evaluate(auditPage);
-          problems.push(...problemsOf(`${route} @${width} ${theme}`, result, { ...checks, errors }));
-          errors = [];
-          if (shots) {
-            mkdirSync(shots, { recursive: true });
-            await page.screenshot({ path: join(shots, `${route.replace(/[/?=&]/g, "_") || "_"}-${width}-${theme}.png`) });
-          }
+          const where = `${route} @${width} ${theme}`;
+          problems.push(...(await measure(page, { base, route, width, height, settleMs, prepare, checks, errors, where, shots })));
         }
       }
       await context.close();
