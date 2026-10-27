@@ -10,7 +10,9 @@ export function emailPorts(store: MailStore, clock: Clock) {
     log: { record: (entry: Omit<DeliveryEntry, "at"> & { at?: string }) => store.record({ ...entry, at: entry.at ? new Date(entry.at) : clock.now() }) },
     suppression: {
       has: (email: string) => store.isSuppressed(hashAddress(email)),
-      add: async (email: string, reason: SuppressionReason) => void (await store.suppress(hashAddress(email), reason, clock.now())),
+      add: async (email: string, reason: SuppressionReason): Promise<void> => {
+        await store.suppress(hashAddress(email), reason, clock.now());
+      },
     },
     idempotency: {
       claim: (key: string) => store.claimKey(key, clock.now()),
