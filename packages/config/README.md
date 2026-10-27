@@ -54,6 +54,7 @@ the package.
 | `@krizaka/config/dependency-cruiser` | The shared dependency-cruiser config, generated from the covered-domains map: one `krizaka-first-<domain>` rule per domain (dates, i18n, query, icons, ui), `no-circular`, `not-to-unresolvable`, `not-to-dev-dep`. `.withOptions({ exemptFrom })` for a monorepo whose own packages are the facades. |
 | `@krizaka/config/covered-domains` · `/covered-domains.json` | The covered-domains map (one data file) and its helpers: the message, the patterns, the Markdown table of « Use Krizaka first ». |
 | `krizaka-known-violations` (bin) · `@krizaka/config/known-violations` | The known violations of dependency-cruiser, which only shrink, see below. |
+| `krizaka-server-client-boundary` (bin) · `@krizaka/config/server-client-boundary` | Fails when a server-rendered module imports a function from a `"use client"` `@krizaka/*` module (React #441), see below. |
 | `@krizaka/config/tsconfig/*.json` | `base` (strict, ES2022, bundler resolution), `react-library` (+ DOM, `react-jsx`), `next` (+ the Next plugin, `noEmit`, `incremental`), `react-native` (`jsx: react-native`, `customConditions`; with Expo: `"extends": ["expo/tsconfig.base", "@krizaka/config/tsconfig/react-native.json"]`). |
 | `@krizaka/config/prettier` · `.editorconfig` | The formatting. |
 | `krizaka-ratchet` (bin) | The debt counter, see below. |
@@ -169,6 +170,21 @@ stays only for repositories that have not moved yet.
 
 `noLocaleTernary({ files, routing })`: `routing` lists the files allowed to compare locales (default: `proxy.ts`,
 `middleware.ts`, `i18n.ts`, `seo.ts`, `app/[locale]/layout.tsx`, `I18nProvider.tsx`).
+
+### Server/client boundary (`krizaka-server-client-boundary`)
+
+A Next.js server module that calls a function exported by a `"use client"` module (`readFilterParams()` of
+`@krizaka/ui/filter-bar`) crashes the page with React error #441. Unit tests ignore the directive and `next build` does not
+see it. Every Next.js App Router app runs the guard in its lint:
+
+```sh
+krizaka-server-client-boundary                 # from the app's folder: reads app/ or src/app/ and the "@/*" alias of tsconfig.json
+krizaka-server-client-boundary --root apps/web --app app --scope @krizaka
+```
+
+It walks the pages, layouts and routes, then every local module they import, and stops at a `"use client"` file. A lowercase
+value import (a function, a hook, a constant) from a client module of the scope is an offence; components and `import type`
+are fine. Render a component, or move the function to a plain module. `checkBoundary()` is also exported for a test.
 
 ### Environment variable names (`krizaka/env-name`)
 
