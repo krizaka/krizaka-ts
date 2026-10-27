@@ -126,7 +126,7 @@
         "ratchet/ratchet.js",
         "patterns.js"
       ],
-      "limit": "12.5 kB",
+      "limit": "13.5 kB",
       "gzip": true
     }
   ]

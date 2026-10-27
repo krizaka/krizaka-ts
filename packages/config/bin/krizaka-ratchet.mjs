@@ -18,6 +18,7 @@ source file of app, components, src, lib, hooks and features; compares them with
   --root     repository root (default: current directory)
   --file     ratchet file name (default: lint-ratchet.json)`;
 
+/** @type {Record<string, string>} */
 const LABELS = {
   palette: "raw palette colours",
   light: "light: variants",
@@ -31,6 +32,7 @@ const LABELS = {
   retiredImport: "imports of retired deps",
   routeStateSelection: "selections in local state (not the URL)",
   cognitiveComplexity: "functions over complexity 15 (S3776)",
+  sonar: "Sonar rules (sonarjs, total)",
 };
 
 let args;
@@ -72,11 +74,13 @@ try {
     console.log(JSON.stringify(result, null, 2));
   } else {
     console.log(`krizaka-ratchet — ${result.files} files for the UI, ${result.stackFiles} for the stack`);
-    for (const name of COUNTERS) {
+    // the named counters, then one line per Sonar rule that has a violation or a recorded count
+    const lines = [...COUNTERS, ...Object.keys(result.counters).filter((name) => name.startsWith("sonarjs/"))];
+    for (const name of lines) {
       const { recorded, current, delta } = result.counters[name];
       const mark = delta > 0 ? "✗" : delta < 0 ? "↓" : "=";
       const sign = delta > 0 ? `+${delta}` : `${delta}`;
-      console.log(`  ${mark} ${LABELS[name].padEnd(28)} ${String(current).padStart(6)}  (recorded ${recorded}, ${sign})`);
+      console.log(`  ${mark} ${(LABELS[name] ?? name).padEnd(28)} ${String(current).padStart(6)}  (recorded ${recorded}, ${sign})`);
     }
     if (result.mode === "init") console.log(`Created ${result.file}.`);
     else if (result.written) console.log(`${result.decreased.length > 0 ? "Lowered" : "Completed"} ${result.file}: commit it.`);

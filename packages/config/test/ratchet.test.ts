@@ -10,7 +10,7 @@ const FIXTURE = fileURLToPath(new URL("./fixtures/repo", import.meta.url));
 const BIN = fileURLToPath(new URL("../bin/krizaka-ratchet.mjs", import.meta.url));
 const UI = { palette: 6, light: 3, arbitraryVar: 2, classNameTemplate: 2 };
 // lib/use-data.ts (fetch in a client effect ×2, data loaded in an effect ×1, + lib/server-data.ts ×1, @tanstack ×2) · features/forms.tsx (a table, a form of two fields)
-const STACK = { fetchInClientEffect: 2, asyncInEffect: 2, derivedStateInEffect: 0, directTanstackImport: 2, localTableOrForm: 2, retiredImport: 0, routeStateSelection: 0, cognitiveComplexity: 0 };
+const STACK = { fetchInClientEffect: 2, asyncInEffect: 2, derivedStateInEffect: 0, directTanstackImport: 2, localTableOrForm: 2, retiredImport: 0, routeStateSelection: 0, cognitiveComplexity: 0, sonar: 0 };
 const TOTAL = { ...UI, ...STACK };
 const STACK_GLOBS = ["app", "components", "src", "lib", "hooks", "features"].map((d) => `${d}/**/*.{js,jsx,mjs,ts,tsx,mts}`);
 
@@ -295,5 +295,48 @@ describe("cognitiveComplexity (Sonar S3776)", () => {
     expect(run.status).toBe(1);
     expect(run.stdout).toMatch(/functions over complexity 15/);
     expect(ratchetFile().counters.cognitiveComplexity).toBe(0);
+  });
+});
+
+describe("sonar (eslint-plugin-sonarjs recommended, one counter per rule)", () => {
+  const NESTED = "export const f = (a: boolean, b: boolean) => (a ? 1 : b ? 2 : 3);\n";
+
+  it("counts the violations per rule, tests excluded", async () => {
+    const { countSonar } = await import("../ratchet/ratchet.js");
+    expect(countSonar(NESTED, "lib/x.ts")).toEqual({ "sonarjs/no-nested-conditional": 1 });
+    expect(countSonar("export const g = 1;", "lib/x.ts")).toEqual({});
+    expect(countSonar("export const = ;", "lib/x.ts")).toEqual({});
+  });
+
+  it("freezes the existing violations, fails a new one and lowers when fixed", async () => {
+    writeFileSync(join(root, "lib/nested.ts"), NESTED);
+    expect(cli("--init").status).toBe(0);
+    expect(ratchetFile().counters).toMatchObject({ sonar: expect.any(Number), "sonarjs/no-nested-conditional": 1 });
+    expect(cli().status).toBe(0);
+    writeFileSync(join(root, "lib/nested2.ts"), NESTED);
+    const run = cli();
+    expect(run.status).toBe(1);
+    expect(run.stdout).toMatch(/sonarjs\/no-nested-conditional/);
+    rmSync(join(root, "lib/nested2.ts"));
+    rmSync(join(root, "lib/nested.ts"));
+    expect(cli("--update").status).toBe(0);
+    expect(ratchetFile().counters["sonarjs/no-nested-conditional"]).toBeUndefined();
+  });
+
+  it("fails the first violation of a rule that had none once the layer is recorded", async () => {
+    expect(cli("--init").status).toBe(0);
+    writeFileSync(join(root, "lib/nested.ts"), NESTED);
+    expect(cli().status).toBe(1);
+  });
+
+  it("records the layer on --update in a file written before it, without failing", async () => {
+    expect(cli("--init").status).toBe(0);
+    const file = ratchetFile();
+    delete file.counters.sonar;
+    writeFileSync(join(root, "lint-ratchet.json"), JSON.stringify(file));
+    writeFileSync(join(root, "lib/nested.ts"), NESTED);
+    expect(cli().status).toBe(0);
+    expect(cli("--update").status).toBe(0);
+    expect(ratchetFile().counters["sonarjs/no-nested-conditional"]).toBe(1);
   });
 });

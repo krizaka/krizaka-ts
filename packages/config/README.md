@@ -106,6 +106,22 @@ chain of `if`). **Error by default** (`complexity: "error"`); a repository with 
 `krizaka-ratchet` (`cognitiveComplexity`) freezes the count of functions over 15 at `--update` time and fails any
 increase. Test files (`*.test.*`, `*.spec.*`, `__tests__/`) are not counted, as Sonar does not scan them.
 
+### The Sonar layer (ADR-013)
+
+`krizakaStack()` also enables the whole **`eslint-plugin-sonarjs` recommended set** (SonarCloud's JS/TS engine,
+krizaka/.github#333), so Sonar's findings fail at lint time, before push. `sonar: "error"` by default; a repository with
+debt passes `sonar: "warn"` while `krizaka-ratchet` freezes each rule's count (a `sonar` total and one `sonarjs/<rule>`
+counter per rule with a violation) and fails any increase, or the first violation of a rule that had none. Test files are
+not part of the layer (Sonar does not scan them). Rules that need type information (S2871 `no-alphabetical-sort`,
+`deprecation`, `different-types-comparison`…) fire only when the lint runs with `projectService`.
+
+Turned off, each for a stated reason (`SONAR_OFF` in `@krizaka/config/eslint/sonar`): `no-fallthrough`, `no-labels`,
+`no-empty-character-class`, `no-invalid-regexp`, `no-control-regex`, `no-regex-spaces`, `no-misleading-character-class`,
+`no-delete-var`, `no-useless-catch`, `generator-without-yield`, `updated-const-var` (ESLint core already enforces them),
+`no-unused-vars`, `unused-import` (`@typescript-eslint/no-unused-vars`, tsc), `no-extra-arguments` (tsc),
+`link-with-target-blank` (`react/jsx-no-target-blank`). `cognitive-complexity` keeps its own threshold and counter (above).
+A rule is never switched off because it is noisy: fix the code or let the ratchet hold the count.
+
 ### The three stack rules
 
 From [ADR-001](https://github.com/krizaka/krizaka-ui/blob/main/docs/adr/ADR-001-tanstack-under-krizaka-facades.md) — the TanStack engines run headless, behind
@@ -239,6 +255,7 @@ npx krizaka-ratchet --json      # in CI: the same check, machine-readable
 | `localTableOrForm` | `<table`, and `<form` … `</form>` holding more fields than `maxFormFields` (default 1) |
 | `retiredImport` | an import of a dependency listed in `retire` (e.g. `["framer-motion"]`): the way out of a dependency |
 | `cognitiveComplexity` | functions whose `sonarjs/cognitive-complexity` is above 15 (Sonar S3776), counted by running the rule on each source file of `stackGlobs`, tests excluded; the KPI of the cognitive debt, it only goes down |
+| `sonar`, `sonarjs/<rule>` | violations of the Sonar layer (the `eslint-plugin-sonarjs` recommended set, minus `SONAR_OFF` and cognitive complexity), tests excluded: a total, and one counter per rule with a violation (an absent rule is 0); the KPI of the Sonar-at-lint debt, it only goes down |
 | `routeStateSelection` | a Tabs / chip group / choice grid / segmented switch (incl. `RadioGroup.Root variant="segmented"`) / toggle group of a view driven by local state (`value`, `defaultValue`, `onValueChange`) without `routeKey`, and without `// @ephemeral: <reason>`: the URL is the state |
 
 The UI counters scan `app/**/*.tsx`, `components/**/*.tsx` and `src/**/*.tsx` by default (`node_modules`, `dist`,
