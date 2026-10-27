@@ -1,5 +1,12 @@
 # @krizaka/outbox
 
+## 0.1.1
+
+### Patch Changes
+
+- Updated dependencies [8210a9a]
+  - @krizaka/settings@0.5.0
+
 ## 0.1.0
 
 ### Minor Changes

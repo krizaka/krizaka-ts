@@ -1,5 +1,12 @@
 # @krizaka/auth
 
+## 0.9.1
+
+### Patch Changes
+
+- Updated dependencies [8210a9a]
+  - @krizaka/settings@0.5.0
+
 ## 0.9.0
 
 ### Minor Changes
