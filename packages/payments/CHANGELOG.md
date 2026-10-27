@@ -1,0 +1,7 @@
+# @krizaka/payments
+
+## 0.3.0
+
+### Minor Changes
+
+- 13f5fb8: `@krizaka/payments` moves to krizaka-ts (#55), same npm name, 0.2.2 to 0.3.0; krizaka-ui stops publishing it. The processor stays behind `PaymentsPort`. `checkout` takes `discount` (`DiscountTerms`: one processor coupon per `(couponId, termsVersion)`, remembered in `payments.discount`, sent as `discounts` next to automatic tax, never a promotion code), `idempotencyKey`, `metadata` and `expiresAt` (31 minutes to 24 hours), and answers `{ url, checkoutRef, expiresAt }`. Events: `checkout_expired` and `payment_refunded` (cumulative) are translated; `payment_paid` and `subscription_started` carry `checkoutRef`, `paymentRef`, `invoiceRef`, `amountTotal`, `amountDiscount`, `currency`, `metadata`. `applyOnceInTransaction` is the way (record and effect in one transaction, `payments.event`); `adoptPaymentEventsSql` moves a product's `payment_events`; `announcePayment` appends `evt.payment.*.v1` to the outbox. Also: `money`, `formatMoney`, `paymentsSchema`, `@krizaka/payments/settings` (`payments.webhookToleranceSeconds`), `@krizaka/payments/testkit`, `plansFromPrices`, repricing through `transfer_lookup_key`, and the setup's webhook now listens to expired and refunded.
