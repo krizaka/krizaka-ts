@@ -1,6 +1,7 @@
-import { type Coupon, type CouponStore, type Partner, type PartnerRow, type Redemption, REDEMPTION_STATUS } from "./port";
+import { type Coupon, COUPON_STATUS, type CouponStore, KIND, type Partner, type PartnerRow, type Redemption, REDEMPTION_STATUS } from "./port";
 import { countsAsUse } from "./rules";
 
+const PARTNER_ACTIVE: Partner["status"] = "active";
 const clone = <T extends object>(v: T): T => ({ ...v });
 
 /**
@@ -57,7 +58,7 @@ export function memoryCouponStore(): CouponStore {
       return clone(p);
     },
     async listPartners(o) {
-      return page(newestFirst([...partners.values()].filter((p) => o.includeArchived || p.status === "active")), o.limit, o.offset).map(clone);
+      return page(newestFirst([...partners.values()].filter((p) => o.includeArchived || p.status === PARTNER_ACTIVE)), o.limit, o.offset).map(clone);
     },
     async insertRedemption(r) {
       unique("idempotencyKey", r.idempotencyKey, r.id);
@@ -113,13 +114,13 @@ export function memoryCouponStore(): CouponStore {
         row.redemptions += 1;
         row.discountMinor += r.amountDiscountMinor ?? 0;
         row.revenueMinor += (r.amountPaidMinor ?? 0) - r.amountRefundedMinor;
-        row.creditsGranted += c.kind === "credit" ? (c.credits ?? 0) : 0;
+        row.creditsGranted += c.kind === KIND.credit ? (c.credits ?? 0) : 0;
         rows.set(key, row);
       }
       return [...rows.values()].sort((a, b) => a.code.localeCompare(b.code) || (a.currency ?? "").localeCompare(b.currency ?? ""));
     },
     async activeAmountCoupons() {
-      return [...coupons.values()].filter((c) => c.status === "active" && c.amountOffMinor !== null).sort((a, b) => a.createdAt.valueOf() - b.createdAt.valueOf() || a.id.localeCompare(b.id)).map(clone);
+      return [...coupons.values()].filter((c) => c.status === COUPON_STATUS.active && c.amountOffMinor !== null).sort((a, b) => a.createdAt.valueOf() - b.createdAt.valueOf() || a.id.localeCompare(b.id)).map(clone);
     },
   };
 }
