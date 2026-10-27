@@ -252,8 +252,8 @@ describe("krizakaStack — the three stack rules (S1–S3, S11)", () => {
     ]);
   });
 
-  it("names exactly the stack rules (fetch, the two effect rules, table and form, the family switcher ban, the route state)", () => {
-    expect(STACK_RULES).toHaveLength(6);
+  it("names exactly the stack rules (fetch, the two effect rules, table and form, the family switcher ban, the route state, Sonar's cognitive complexity)", () => {
+    expect(STACK_RULES).toHaveLength(7);
     expect(krizakaStack().flatMap((config) => Object.keys(config.rules!))).toEqual([...STACK_RULES]);
   });
 });
@@ -396,5 +396,22 @@ describe("krizaka/route-state-selection — a selection of a page lives in the U
     expect(segmented.filter((m) => m.ruleId === "krizaka/route-state-selection")).toHaveLength(1);
     const form = await lint(krizakaStack(), page(`<RadioGroup.Root value={t} onValueChange={setT} />`), "components/Form.tsx");
     expect(form.filter((m) => m.ruleId === "krizaka/route-state-selection")).toEqual([]);
+  });
+});
+
+describe("krizakaStack: sonarjs/cognitive-complexity (S3776, 15)", () => {
+  const complex = `export function f(a: number[], b: boolean) {
+  for (const x of a) { if (x > 1) { if (b) { for (const y of a) {
+    if (y > x && b) { return y; } if (y < x || b) { return x; } while (y > 3 && x) { return 0; } } } } }
+}`;
+  it("is an error by default and a warning on request", async () => {
+    expect(ids(await lint(krizakaStack(), complex, "lib/x.ts"))).toContain("sonarjs/cognitive-complexity");
+    expect((await lint(krizakaStack(), complex, "lib/x.ts")).find((m) => m.ruleId === "sonarjs/cognitive-complexity")!.severity).toBe(2);
+    expect((await lint(krizakaStack({ complexity: "warn" }), complex, "lib/x.ts")).find((m) => m.ruleId === "sonarjs/cognitive-complexity")!.severity).toBe(1);
+  });
+  it("accepts a simple function and the threshold is 15", async () => {
+    expect(ids(await lint(krizakaStack(), "export const f = (a: number) => a + 1;", "lib/x.ts"))).not.toContain("sonarjs/cognitive-complexity");
+    const { COGNITIVE_COMPLEXITY_MAX } = await import("../eslint/stack.js");
+    expect(COGNITIVE_COMPLEXITY_MAX).toBe(15);
   });
 });

@@ -10,7 +10,7 @@ const FIXTURE = fileURLToPath(new URL("./fixtures/repo", import.meta.url));
 const BIN = fileURLToPath(new URL("../bin/krizaka-ratchet.mjs", import.meta.url));
 const UI = { palette: 6, light: 3, arbitraryVar: 2, classNameTemplate: 2 };
 // lib/use-data.ts (fetch in a client effect ×2, data loaded in an effect ×1, + lib/server-data.ts ×1, @tanstack ×2) · features/forms.tsx (a table, a form of two fields)
-const STACK = { fetchInClientEffect: 2, asyncInEffect: 2, derivedStateInEffect: 0, directTanstackImport: 2, localTableOrForm: 2, retiredImport: 0, routeStateSelection: 0 };
+const STACK = { fetchInClientEffect: 2, asyncInEffect: 2, derivedStateInEffect: 0, directTanstackImport: 2, localTableOrForm: 2, retiredImport: 0, routeStateSelection: 0, cognitiveComplexity: 0 };
 const TOTAL = { ...UI, ...STACK };
 const STACK_GLOBS = ["app", "components", "src", "lib", "hooks", "features"].map((d) => `${d}/**/*.{js,jsx,mjs,ts,tsx,mts}`);
 
@@ -197,7 +197,8 @@ describe("runRatchet", () => {
   });
 });
 
-describe("krizaka-ratchet CLI", () => {
+// each CLI call is a fresh node process that loads ESLint + the TS parser (cognitive complexity): several per test, slow on a shared CI runner
+describe("krizaka-ratchet CLI", { timeout: 90_000 }, () => {
   it("--init, then --json for CI (exit 0)", () => {
     expect(cli("--init").status).toBe(0);
     expect(existsSync(join(root, "lint-ratchet.json"))).toBe(true);
@@ -246,5 +247,40 @@ describe("runRatchet file argument", () => {
   it("still accepts a nested .json file", async () => {
     const result = await runRatchet({ root, mode: "init", file: "config/my-ratchet.json" }).catch((e: Error) => e);
     expect(String(result)).not.toMatch(/must be a \.json file inside/);
+  });
+});
+
+// a function of cognitive complexity 16 (nested ifs weigh more each level)
+const COMPLEX = `export function f(a: number[], b: boolean) {
+  for (const x of a) {
+    if (x > 1) {
+      if (b) {
+        for (const y of a) {
+          if (y > x && b) { return y; }
+          if (y < x || b) { return x; }
+          while (y > 3 && x) { return 0; }
+        }
+      }
+    }
+  }
+}
+`;
+
+describe("cognitiveComplexity (Sonar S3776)", () => {
+  it("counts the functions above 15, not the simple ones", async () => {
+    const { countCognitiveComplexity } = await import("../ratchet/ratchet.js");
+    expect(countCognitiveComplexity(COMPLEX, "lib/x.ts")).toBe(1);
+    expect(countCognitiveComplexity("export const f = (a: number) => (a > 1 ? 1 : 2);", "lib/x.ts")).toBe(0);
+  });
+
+  it("fails the ratchet when a new function goes over, ignoring test files", async () => {
+    expect(cli("--init").status).toBe(0);
+    writeFileSync(join(root, "lib/x.test.ts"), COMPLEX);
+    expect(cli().status).toBe(0);
+    writeFileSync(join(root, "lib/x.ts"), COMPLEX);
+    const run = cli();
+    expect(run.status).toBe(1);
+    expect(run.stdout).toMatch(/functions over complexity 15/);
+    expect(ratchetFile().counters.cognitiveComplexity).toBe(0);
   });
 });

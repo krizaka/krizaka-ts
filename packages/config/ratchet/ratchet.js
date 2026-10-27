@@ -2,9 +2,12 @@
 // Same patterns as the ESLint rules (../patterns.js), applied to the source text: the counter sees every
 // occurrence (a class in a `cn()` argument or a constant too), so it can only be stricter than the rule.
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { isAbsolute, relative, resolve } from "node:path";
+import { extname, isAbsolute, relative, resolve } from "node:path";
 
+import { Linter } from "eslint";
+import sonarjs from "eslint-plugin-sonarjs";
 import { glob } from "tinyglobby";
+import tseslint from "typescript-eslint";
 
 import {
   ARBITRARY_VAR_SOURCE,
@@ -34,7 +37,7 @@ export const DEFAULT_STACK_GLOBS = Object.freeze(
 const IGNORE = ["**/node_modules/**", "**/dist/**", "**/.next/**", "**/storybook-static/**", "**/coverage/**"];
 
 /** @typedef {"palette" | "light" | "arbitraryVar" | "classNameTemplate"} UiCounterName */
-/** @typedef {"fetchInClientEffect" | "asyncInEffect" | "derivedStateInEffect" | "directTanstackImport" | "localTableOrForm" | "retiredImport" | "routeStateSelection"} StackCounterName */
+/** @typedef {"fetchInClientEffect" | "asyncInEffect" | "derivedStateInEffect" | "directTanstackImport" | "localTableOrForm" | "retiredImport" | "routeStateSelection" | "cognitiveComplexity"} StackCounterName */
 /** @typedef {UiCounterName | StackCounterName} CounterName */
 /** @typedef {Record<CounterName, number>} Counters */
 /**
@@ -58,9 +61,13 @@ export const STACK_COUNTERS = /** @type {const} */ ([
   "localTableOrForm",
   "retiredImport",
   "routeStateSelection",
+  "cognitiveComplexity",
 ]);
 /** Every counter, in report order. */
 export const COUNTERS = /** @type {const} */ ([...UI_COUNTERS, ...STACK_COUNTERS]);
+/** Sonar S3776's threshold (same value as eslint/stack.js COGNITIVE_COMPLEXITY_MAX). Never raised. */
+const COMPLEXITY_MAX = 15;
+const TEST_FILE = /(\.(test|spec)\.[cm]?[jt]sx?$)|(\/__tests__\/)/;
 const zero = () => /** @type {Counters} */ (Object.fromEntries(COUNTERS.map((name) => [name, 0])));
 
 /**
@@ -95,7 +102,7 @@ export function countSource(source, allow = []) {
  * `@tanstack/*`, hand-written tables and forms of more than `maxFormFields` fields, imports of the retired dependencies.
  * @param {string} source
  * @param {{ retire?: readonly string[], maxFormFields?: number }} [options]
- * @returns {Record<StackCounterName, number>}
+ * @returns {Record<Exclude<StackCounterName, "cognitiveComplexity">, number>} (cognitiveComplexity: countCognitiveComplexity, it needs the file name)
  */
 export function countStackSource(source, { retire = [], maxFormFields = 1 } = {}) {
   let fetchInClientEffect = 0;
@@ -134,6 +141,32 @@ export function countStackSource(source, { retire = [], maxFormFields = 1 } = {}
 }
 
 /**
+ * Counts the functions above Sonar's cognitive-complexity threshold (S3776) in one source text, with the same
+ * `sonarjs/cognitive-complexity` rule the ESLint preset uses. A file that does not parse counts for 0 (ESLint reports it).
+ * @param {string} source
+ * @param {string} [filename]
+ * @returns {number}
+ */
+export function countCognitiveComplexity(source, filename = "file.tsx") {
+  const messages = complexityLinter().verify(source, COMPLEXITY_CONFIG, { filename: `file${extname(filename)}` });
+  return messages.filter((/** @type {{ ruleId: string | null }} */ m) => m.ruleId === "sonarjs/cognitive-complexity").length;
+}
+
+/** One Linter for the whole run: building it (and the parser) per file made the CLI 10x slower in CI. */
+/** @type {Linter | undefined} */
+let sharedLinter;
+const complexityLinter = () => (sharedLinter ??= new Linter());
+/** @type {any} */
+const COMPLEXITY_CONFIG = [
+  {
+    files: ["**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"],
+    languageOptions: { parser: /** @type {any} */ (tseslint.parser) },
+    plugins: { sonarjs },
+    rules: { "sonarjs/cognitive-complexity": ["error", COMPLEXITY_MAX] },
+  },
+];
+
+/**
  * Counts the debts under `root`: the UI counters in the files of `globs`, the stack counters in those of `stackGlobs`.
  * @param {{ root: string, globs?: readonly string[], stackGlobs?: readonly string[], allow?: string[],
  *   retire?: readonly string[], maxFormFields?: number }} options
@@ -155,8 +188,10 @@ export async function countRepository({
     for (const name of UI_COUNTERS) counters[name] += found[name];
   }
   for (const file of stackFiles) {
-    const found = countStackSource(readFileSync(file, "utf8"), { retire, maxFormFields });
-    for (const name of STACK_COUNTERS) counters[name] += found[name];
+    const found = /** @type {Partial<Counters>} */ (countStackSource(readFileSync(file, "utf8"), { retire, maxFormFields }));
+    for (const name of STACK_COUNTERS) counters[name] += found[name] ?? 0;
+    // Sonar scans the product code, not its tests
+    if (!TEST_FILE.test(file)) counters.cognitiveComplexity += countCognitiveComplexity(readFileSync(file, "utf8"), file);
   }
   return { counters, files: files.length, stackFiles: stackFiles.length };
 }
