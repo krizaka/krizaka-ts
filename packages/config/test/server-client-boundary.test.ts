@@ -50,6 +50,15 @@ describe("checkBoundary", () => {
     expect(spawnSync(process.execPath, [BIN, "--root", root], { encoding: "utf8" }).status).toBe(0);
   });
 
+  it("reads a multi-line import, a re-export, and a client directive after comments", () => {
+    put("src/app/page.tsx", `import {\n  FilterBar,\n  readFilterParams as read,\n} from "@krizaka/ui/filter-bar";\nexport { writeIt } from "@krizaka/ui/filter-bar";\nimport "./panel";`);
+    put("src/app/panel.tsx", `/* a banner\n   over two lines */\n// and a line\n'use client';\nimport { readFilterParams } from "@krizaka/ui/filter-bar";`);
+    expect(checkBoundary({ root }).offences).toEqual([
+      'src/app/page.tsx imports readFilterParams from @krizaka/ui/filter-bar ("use client")',
+      'src/app/page.tsx imports writeIt from @krizaka/ui/filter-bar ("use client")',
+    ]);
+  });
+
   it("refuses without an app folder", () => {
     rmSync(join(root, "src"), { recursive: true, force: true });
     expect(() => checkBoundary({ root })).toThrow(/No app folder/);

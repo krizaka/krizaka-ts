@@ -8,8 +8,8 @@ import { dirname, join, relative, resolve } from "node:path";
 
 export const DEFAULT_SCOPE = "@krizaka";
 const ENTRY = /(?:^|[\\/])(?:page|layout|route|error|global-error|loading|not-found|default|template)\.(?:ts|tsx|js|jsx|mjs)$/;
-const CLIENT = /^\s*(?:\/\*[\s\S]*?\*\/\s*|\/\/[^\n]*\n\s*)*["']use client["']/;
-const IMPORT = /^(import|export)\s+(type\s+)?([^;]*?)\s+from\s+["']([^"']+)["']/gm;
+// `import … from "x"` / `export … from "x"`: the clause is everything up to the first quote (no nested quantifier: linear).
+const STATEMENT = /(?:^|\n)[ \t]*(import|export)\b([^"';]*)["']([^"']+)["']/g;
 const EXTENSIONS = ["", ".ts", ".tsx", ".js", ".jsx", ".mjs"];
 
 /** @param {string} dir @returns {string[]} */
@@ -21,15 +21,37 @@ const walk = (dir) =>
   });
 
 /** @param {string} path */
+/** Does the module start with the `"use client"` directive (comments and blank lines may come first)? Scanned, not matched: linear. @param {string} source */
+export const isClientSource = (source) => {
+  let i = 0;
+  for (;;) {
+    while (i < source.length && /\s/.test(source[i])) i++;
+    if (source.startsWith("/*", i)) {
+      const end = source.indexOf("*/", i + 2);
+      if (end < 0) return false;
+      i = end + 2;
+    } else if (source.startsWith("//", i)) {
+      const end = source.indexOf("\n", i);
+      if (end < 0) return false;
+      i = end + 1;
+    } else break;
+  }
+  const quote = source[i];
+  return (quote === '"' || quote === "'") && source.startsWith("use client", i + 1) && source[i + 11] === quote;
+};
+
+/** @param {string} path */
 const isFile = (path) => existsSync(path) && statSync(path).isFile();
 
-/** The `"@/*"` alias of tsconfig.json (comments tolerated); `@/` means the root when there is none. */
+/** The `"@/*"` alias of tsconfig.json (read as text: comments and trailing commas are fine); `@/` means the root when there is none. */
 /** @param {string} root */
 export const readAlias = (root) => {
   try {
-    const text = readFileSync(join(root, "tsconfig.json"), "utf8").replace(/(^|[^:"'])\/\/.*$/gm, "$1").replace(/\/\*[\s\S]*?\*\//g, "");
-    const target = JSON.parse(text.replace(/,(\s*[}\]])/g, "$1")).compilerOptions?.paths?.["@/*"]?.[0];
-    if (typeof target === "string") return target.replace(/\/?\*$/, "") || ".";
+    const text = readFileSync(join(root, "tsconfig.json"), "utf8");
+    const key = text.indexOf('"@/*"');
+    const open = key < 0 ? -1 : text.indexOf('"', text.indexOf("[", key) + 1);
+    const target = open < 0 ? "" : text.slice(open + 1, text.indexOf('"', open + 1));
+    if (target) return target.replace(/\/?\*$/, "") || ".";
   } catch {
     // no tsconfig, or one we cannot read: the default stands
   }
@@ -85,22 +107,33 @@ export const packageIsClient = (root, spec) => {
   }
   if (!file) return false;
   const entry = join(dir, file);
-  return isFile(entry) && CLIENT.test(readFileSync(entry, "utf8"));
+  return isFile(entry) && isClientSource(readFileSync(entry, "utf8"));
 };
 
-/** The lowercase (function-like) names a statement brings in as values; a type-only import is erased and harmless. */
-/** @param {string} clause @returns {string[]} */
+/**
+ * The lowercase (function-like) names a statement's clause brings in as values; a type-only import is erased and harmless.
+ * `clause` is the text between `import`/`export` and the quote of the module, e.g. ` { a, type B } from `.
+ * @param {string} clause
+ * @returns {string[]}
+ */
 export const functionNames = (clause) => {
   /** @type {string[]} */
   const names = [];
-  const braces = clause.match(/\{([^}]*)\}/)?.[1] ?? "";
+  const words = clause.trim().split(/\s+/);
+  if (words[words.length - 1] === "from") words.pop();
+  const text = words.join(" ");
+  if (text.startsWith("type ") || text.startsWith("type{")) return names;
+  const open = text.indexOf("{");
+  const close = open < 0 ? -1 : text.indexOf("}", open);
+  const braces = open < 0 ? "" : text.slice(open + 1, close < 0 ? text.length : close);
   for (const part of braces.split(",")) {
-    const text = part.trim();
-    if (!text || text.startsWith("type ")) continue;
-    const name = text.split(/\s+as\s+/)[0].trim();
-    if (/^[a-z_$]/.test(name) || name === "default") names.push(name);
+    const tokens = part.trim().split(" ");
+    const name = tokens[0] ?? "";
+    if (!name || (name === "type" && tokens.length > 1)) continue;
+    if (/^[a-z_$]/.test(name)) names.push(name);
   }
-  const head = clause.replace(/\{[^}]*\}/, "").replace(/,/g, " ").trim();
+  const rest = open < 0 ? text : `${text.slice(0, open)} ${close < 0 ? "" : text.slice(close + 1)}`;
+  const head = rest.split(",").join(" ").trim().split(" ")[0] ?? "";
   if (head && !head.startsWith("*") && /^[a-z_$]/.test(head)) names.push(head); // default import: `import readIt from "@krizaka/x"`
   return names;
 };
@@ -129,10 +162,10 @@ export const checkBoundary = ({ root = process.cwd(), appDir, alias, scope = DEF
     if (seen.has(file)) return;
     seen.add(file);
     const source = readFileSync(file, "utf8");
-    if (CLIENT.test(source)) return;
-    for (const match of source.matchAll(IMPORT)) {
-      if (match[2]) continue; // import type
-      const [, , , clause, spec] = match;
+    if (isClientSource(source)) return;
+    for (const match of source.matchAll(STATEMENT)) {
+      const [, , clause, spec] = match;
+      if (!clause.trimEnd().endsWith("from")) continue; // `import "x"`, or a string in some other statement
       if (spec.startsWith(`${scope}/`)) {
         const names = functionNames(clause);
         if (names.length && isClient(spec)) offences.push(`${relative(root, file)} imports ${names.join(", ")} from ${spec} ("use client")`);
