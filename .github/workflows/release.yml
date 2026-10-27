@@ -74,6 +74,7 @@ jobs:
       # (deprecating twice is a no-op) and run with the same automation token as the publish, never printed. Remove once 0.9.0 is long gone.
       - if: steps.changesets.outputs.published == 'true' || github.event_name == 'workflow_dispatch'
         continue-on-error: true
-        run: npm deprecate "@krizaka/config@0.9.0" "broken: use >=0.9.1"
+        run: |
+          npm deprecate "@krizaka/config@0.9.0" "broken: use >=0.9.1"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
