@@ -13,7 +13,7 @@ source file of app, components, src, lib, hooks and features; compares them with
 
   (no flag)  fail (exit 1) when a counter is above its recorded value
   --init     create lint-ratchet.json with the current counters
-  --update   lower the recorded counters to the current values (never raises them), record the new ones
+  --update   lower the recorded counters to the current values (never raises them), record the new ones, keep the counters it does not know
   --json     machine-readable report on stdout (for CI)
   --root     repository root (default: current directory)
   --file     ratchet file name (default: lint-ratchet.json)`;
@@ -82,6 +82,9 @@ try {
     else if (result.written) console.log(`${result.decreased.length > 0 ? "Lowered" : "Completed"} ${result.file}: commit it.`);
     else if (result.decreased.length > 0) console.log(`Debt went down: run krizaka-ratchet --update and commit ${result.file}.`);
     else if (result.added.length > 0) console.log(`New counters (${result.added.join(", ")}): run krizaka-ratchet --update and commit ${result.file}.`);
+    if (result.unmeasured.length > 0) {
+      console.log(`  ! not measured by this version, kept as recorded: ${result.unmeasured.join(", ")}`);
+    }
     if (!result.ok) {
       console.error(
         `Debt went up (${result.increased.join(", ")}): roles of @krizaka/tailwind and cn() for the UI; @krizaka/query, @krizaka/ui/data-table and @krizaka/ui/form for the stack.`,

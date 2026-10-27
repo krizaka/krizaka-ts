@@ -154,6 +154,19 @@ describe("runRatchet", () => {
     expect(ratchetFile().counters).toEqual({ ...STACK, palette: 5, light: 3, arbitraryVar: 0, classNameTemplate: 2 });
   });
 
+  it("--update keeps a counter it does not measure, and says so (the 0.11.0 regression: pageTemplate was dropped)", async () => {
+    await runRatchet({ root, mode: "init" });
+    const file = ratchetFile();
+    writeFileSync(join(root, "lint-ratchet.json"), JSON.stringify({ ...file, counters: { ...file.counters, pageTemplate: 38 } }));
+    rmSync(join(root, "app/settings/panel.tsx")); // something to lower, so the file is rewritten
+    const result = await runRatchet({ root, mode: "update" });
+    expect(result).toMatchObject({ ok: true, written: true, unmeasured: ["pageTemplate"] });
+    expect(ratchetFile().counters).toMatchObject({ pageTemplate: 38, palette: 5 });
+    const check = cli("--update");
+    expect(check.stdout).toContain("pageTemplate");
+    expect(ratchetFile().counters.pageTemplate).toBe(38);
+  });
+
   const APP_UI = { palette: 4, light: 2, arbitraryVar: 2, classNameTemplate: 1 }; // app/**/*.tsx only
 
   it("a file without the stack counters still checks, and --update records them", async () => {
