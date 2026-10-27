@@ -237,6 +237,7 @@ export class RatchetError extends Error {}
  * @property {CounterName[]} increased
  * @property {CounterName[]} decreased
  * @property {CounterName[]} added counters missing from the file (recorded at their current value by --update)
+ * @property {string[]} unmeasured counters of the file this version does not measure: kept as recorded by --update, never dropped
  * @property {boolean} written the ratchet file was created, lowered or completed
  */
 
@@ -295,6 +296,8 @@ export async function runRatchet({ root, mode = "check", globs, file = RATCHET_F
   });
   /** @type {CounterName[]} */ const added = recordedFile ? COUNTERS.filter((n) => recordedFile.counters[n] === undefined) : [];
   const recorded = /** @type {Counters} */ ({ ...current, ...recordedFile?.counters });
+  /** @type {string[]} */
+  const unmeasured = Object.keys(recordedFile?.counters ?? {}).filter((n) => !COUNTERS.includes(/** @type {CounterName} */ (n)));
 
   const { report, increased, decreased } = compareCounters(current, recorded);
 
@@ -305,7 +308,9 @@ export async function runRatchet({ root, mode = "check", globs, file = RATCHET_F
   } else if (mode === "update" && (decreased.length > 0 || added.length > 0) && recordedFile) {
     const lowered = zero();
     for (const name of COUNTERS) lowered[name] = Math.min(recorded[name], current[name]);
-    writeRatchet(path, { ...recordedFile, stackGlobs: recordedFile.stackGlobs ?? stackGlobs, counters: lowered });
+    // a counter this version does not measure (a repository's own, or a newer preset's) is kept as recorded, never dropped
+    const counters = { ...lowered, ...Object.fromEntries(unmeasured.map((name) => [name, /** @type {Record<string, number>} */ (recordedFile?.counters)?.[name]])) };
+    writeRatchet(path, { ...recordedFile, stackGlobs: recordedFile.stackGlobs ?? stackGlobs, counters });
     for (const name of decreased) report[name].recorded = lowered[name];
     written = true;
   }
@@ -323,6 +328,7 @@ export async function runRatchet({ root, mode = "check", globs, file = RATCHET_F
     increased,
     decreased,
     added,
+    unmeasured,
     written,
   };
 }
