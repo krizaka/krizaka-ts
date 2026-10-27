@@ -244,3 +244,58 @@ describe("the Studios of the key", () => {
     expect(await client.studios()).toEqual(["compliance-check"]);
   });
 });
+
+describe("external checks", () => {
+  const subject = { subjectId: "tenant-42", lastName: "Tremblay", firstName: "Ariane", birthDate: "1990-04-12", region: "QC" };
+  const answer = (over: Record<string, unknown>) => JSON.stringify({ purpose: "COURT_RECORDS", outcome: "NO_MATCH", refusal: null, category: "NONE", providerRef: null, runId: null, ...over });
+
+  it("posts the subject and the consent flag to the purpose, with the key as a bearer", async () => {
+    const { client, seen } = make([{ status: 200, body: answer({ outcome: "PENDING", providerRef: "case-777", runId: RUN_ID }) }]);
+    const result = await client.startCheck("court-records", { subject, consented: true, runId: RUN_ID });
+    expect(result).toEqual({ purpose: "COURT_RECORDS", outcome: "PENDING", refusal: null, category: "NONE", providerRef: "case-777", runId: RUN_ID });
+    expect(seen).toHaveLength(1);
+    expect(`${seen[0]?.method} ${seen[0]?.url}`).toBe("POST https://api.orazaka.test/api/v1/checks/court-records");
+    expect(seen[0]?.headers.authorization).toBe("Bearer oz_test");
+    expect(seen[0]?.body).toEqual({ ...subject, runId: RUN_ID, consented: true });
+  });
+
+  it("answers a refusal as a result, not an exception", async () => {
+    const { client } = make([{ status: 200, body: answer({ outcome: "REFUSED", refusal: "NO_CONSENT" }) }, { status: 200, body: answer({ purpose: "CREDIT", outcome: "REFUSED", refusal: "NOT_CONFIGURED" }) }]);
+    expect(await client.startCheck("court-records", { subject, consented: false })).toMatchObject({ outcome: "REFUSED", refusal: "NO_CONSENT" });
+    expect(await client.startCheck("credit", { subject, consented: true })).toMatchObject({ purpose: "CREDIT", outcome: "REFUSED", refusal: "NOT_CONFIGURED", providerRef: null });
+  });
+
+  it("collects a pending check by its reference, with the subject and the consent as the query", async () => {
+    const { client, seen } = make([{ status: 200, body: answer({ outcome: "MATCH", category: "CRIMINAL", providerRef: "case-777" }) }]);
+    const result = await client.collectCheck("case-777", { subjectId: "tenant-42", consented: true });
+    expect(result).toMatchObject({ outcome: "MATCH", category: "CRIMINAL", providerRef: "case-777" });
+    expect(`${seen[0]?.method} ${seen[0]?.url}`).toBe("GET https://api.orazaka.test/api/v1/checks/case-777?subjectId=tenant-42&consented=true");
+  });
+
+  it("maps the door's refusals to the stable codes: 404 not found, 403 key, 429 busy", async () => {
+    const { client } = make([{ status: 404 }, { status: 403 }, { status: 429, headers: { "retry-after": "7" } }]);
+    expect((await failure(client.collectCheck("case-9", { subjectId: "s", consented: true }))).code).toBe(ORAZAKA_CODE.notFound);
+    expect((await failure(client.startCheck("credit", { subject, consented: true }))).code).toBe(ORAZAKA_CODE.key);
+    const busy = await failure(client.startCheck("credit", { subject, consented: true }));
+    expect(busy.code).toBe(ORAZAKA_CODE.busy);
+    expect(busy.retryAfterSeconds).toBe(7);
+  });
+
+  it("refuses a purpose or a reference that is not one, before any call", async () => {
+    const { client, seen } = make([]);
+    expect((await failure(client.startCheck("identity" as never, { subject, consented: true }))).code).toBe(ORAZAKA_CODE.input);
+    expect((await failure(client.collectCheck("../runs", { subjectId: "s", consented: true }))).code).toBe(ORAZAKA_CODE.input);
+    expect(seen).toHaveLength(0);
+  });
+
+  it("refuses an answer that is not a check, or a refusal without its reason", async () => {
+    const { client } = make([{ status: 200, body: "{}" }, { status: 200, body: answer({ outcome: "REFUSED" }) }, { status: 200, body: answer({ refusal: "NO_KEY" }) }]);
+    for (let i = 0; i < 3; i++) expect((await failure(client.startCheck("credit", { subject, consented: true }))).code).toBe(ORAZAKA_CODE.shape);
+  });
+
+  it("without a key, throws ORAZAKA_NOT_CONFIGURED and asks nobody", async () => {
+    const { client, seen } = make([], { apiKey: undefined });
+    expect((await failure(client.startCheck("credit", { subject, consented: true }))).code).toBe(ORAZAKA_CODE.notConfigured);
+    expect(seen).toHaveLength(0);
+  });
+});
