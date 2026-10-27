@@ -76,6 +76,9 @@
     "org": {
       "hook": "The public facts about Krizaka in one validated JSON that every footer, site and app reads: legal identity, marks, live products, sites, footer line."
     },
+    "page-audit": {
+      "hook": "The page audit of every app: overflow, a card out of its panel, overlaps and cut columns, over routes, widths and themes, with a self-test."
+    },
     "db": {
       "hook": "The database foundation: shared types, transactions, module schemas embedded in the product’s own migrations, a test database."
     },
