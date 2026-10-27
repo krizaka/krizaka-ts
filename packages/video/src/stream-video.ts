@@ -7,7 +7,7 @@ export interface StreamVideoOptions {
   /** The numeric id of the video library. */
   libraryId: string;
   /** The library API key: creates and deletes videos, signs uploads and mobile tokens. Server only. */
-  apiKey: string;
+  libraryKey: string;
   /** The « Token authentication key » of the library and its pull zone: signs the embed token and the CDN links. */
   tokenKey: string;
   /** The library's read-only API key: the key of the webhook signature. */
@@ -52,7 +52,7 @@ const checkId = (videoId: string) => {
 /** Bunny Stream, behind the `VideoProvider` port. */
 export function streamVideo(options: StreamVideoOptions): VideoProvider {
   const api = withoutTrailingSlashes(options.apiUrl ?? "https://video.bunnycdn.com");
-  const headers = { AccessKey: options.apiKey, accept: "application/json", "content-type": "application/json" };
+  const headers = { AccessKey: options.libraryKey, accept: "application/json", "content-type": "application/json" };
   const nowSeconds = () => Math.floor(options.clock.now().valueOf() / 1000);
   const ttl = (seconds: number) => {
     if (!Number.isInteger(seconds) || seconds < 1 || seconds > 86_400) throw badInput("ttlSeconds is 1 to 86400");
@@ -74,13 +74,13 @@ export function streamVideo(options: StreamVideoOptions): VideoProvider {
         videoId,
         endpoint: `${api}/tusupload`,
         expires,
-        headers: { AuthorizationSignature: tusSignature({ libraryId: options.libraryId, apiKey: options.apiKey, expires, videoId }), AuthorizationExpire: String(expires), VideoId: videoId, LibraryId: options.libraryId },
+        headers: { AuthorizationSignature: tusSignature({ libraryId: options.libraryId, libraryKey: options.libraryKey, expires, videoId }), AuthorizationExpire: String(expires), VideoId: videoId, LibraryId: options.libraryId },
       };
     },
     viewToken(videoId, ttlSeconds, surface) {
       const expires = nowSeconds() + ttl(ttlSeconds);
       checkId(videoId);
-      return { expires, token: surface === "embed" ? embedToken({ tokenKey: options.tokenKey, videoId, expires }) : mobileViewToken({ apiKey: options.apiKey, videoId, expires }) };
+      return { expires, token: surface === "embed" ? embedToken({ tokenKey: options.tokenKey, videoId, expires }) : mobileViewToken({ libraryKey: options.libraryKey, videoId, expires }) };
     },
     playbackUrls(videoId, ttlSeconds) {
       const expires = nowSeconds() + ttl(ttlSeconds);

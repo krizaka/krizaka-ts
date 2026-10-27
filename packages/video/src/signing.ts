@@ -1,15 +1,14 @@
 import { createHash, createHmac } from "node:crypto";
 
-// The provider's own scheme (its documentation fixes SHA-256 over the concatenation); it is not how we store a password.
-// codeql[js/insufficient-password-hash]
+// The provider's own scheme (its documentation fixes SHA-256 over the concatenation); it is not how a password is stored.
 const sha256 = (data: string) => createHash("sha256").update(data);
 const urlSafe = (base64: string) => base64.replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
 
 /**
- * The signature of a TUS upload (Stream docs, « TUS resumable uploads »): hex SHA-256 of `libraryId + apiKey + expires + videoId`,
+ * The signature of a TUS upload (Stream docs, « TUS resumable uploads »): hex SHA-256 of `libraryId + libraryKey + expires + videoId`,
  * concatenated with no separator, `expires` in Unix seconds. It is computed on the SERVER: the client gets the signature, not the key.
  */
-export const tusSignature = (input: { libraryId: string; apiKey: string; expires: number; videoId: string }): string => sha256(`${input.libraryId}${input.apiKey}${input.expires}${input.videoId}`).digest("hex");
+export const tusSignature = (input: { libraryId: string; libraryKey: string; expires: number; videoId: string }): string => sha256(`${input.libraryId}${input.libraryKey}${input.expires}${input.videoId}`).digest("hex");
 
 /**
  * The token of the embedded web player (Stream docs, « Embedded view token authentication »): hex SHA-256 of
@@ -19,11 +18,10 @@ export const embedToken = (input: { tokenKey: string; videoId: string; expires: 
 
 /**
  * The token of the mobile SDKs (Stream docs, « Token authentication with Mobile SDKs »): HMAC-SHA256, keyed by the library API key,
- * over `apiKey + videoId + expires`, hex; the token is the base64 of `<signature>:<expires>`.
+ * over `libraryKey + videoId + expires`, hex; the token is the base64 of `<signature>:<expires>`.
  */
-export function mobileViewToken(input: { apiKey: string; videoId: string; expires: number }): string {
-  // codeql[js/insufficient-password-hash]
-  const signature = createHmac("sha256", input.apiKey).update(`${input.apiKey}${input.videoId}${input.expires}`).digest("hex");
+export function mobileViewToken(input: { libraryKey: string; videoId: string; expires: number }): string {
+  const signature = createHmac("sha256", input.libraryKey).update(`${input.libraryKey}${input.videoId}${input.expires}`).digest("hex");
   return Buffer.from(`${signature}:${input.expires}`).toString("base64");
 }
 

@@ -11,7 +11,7 @@ Video behind one port: server-signed resumable uploads, playback tokens and sign
 ```ts
 import { streamVideo } from "@krizaka/video";
 
-const video = streamVideo({ libraryId, apiKey, tokenKey, readOnlyKey, cdnHostname, fetch, clock });
+const video = streamVideo({ libraryId, libraryKey, tokenKey, readOnlyKey, cdnHostname, fetch, clock });
 const { videoId } = await video.createVideo({ title: "Moment" });
 const session = video.uploadSession(videoId, 3600); // hand it to the client's TUS uploader
 const { token, expires } = video.viewToken(videoId, 120, "embed");

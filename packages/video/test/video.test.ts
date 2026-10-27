@@ -13,16 +13,16 @@ const fetch: FetchLike = async (url, init) => {
   if (init.method === "POST") return { ok: true, status: 201, text: async () => JSON.stringify({ guid: "0de20000-0000-4000-8000-000000000001" }) };
   return { ok: !url.includes("gone"), status: url.includes("gone") ? 404 : 200, text: async () => "" };
 };
-const make = (over: Partial<Parameters<typeof streamVideo>[0]> = {}) => streamVideo({ libraryId: "773325", apiKey: "api-key", tokenKey: "token-key", readOnlyKey: "read-only-key", cdnHostname: "vz-1.b-cdn.net", fetch, clock: { now: () => NOW }, ...over });
+const make = (over: Partial<Parameters<typeof streamVideo>[0]> = {}) => streamVideo({ libraryId: "773325", libraryKey: "api-key", tokenKey: "token-key", readOnlyKey: "read-only-key", cdnHostname: "vz-1.b-cdn.net", fetch, clock: { now: () => NOW }, ...over });
 
 videoProviderContract("stream", () => make());
 
 // The documentation gives the formulas, not the expected outputs (checked 2026-10-26): the expected values below are computed
 // independently from the documented formula with node:crypto, never copied from a guess.
 describe("the signatures, from the documented formulas", () => {
-  it("TUS: sha256 hex of libraryId + apiKey + expires + videoId", () => {
+  it("TUS: sha256 hex of libraryId + libraryKey + expires + videoId", () => {
     const expected = createHash("sha256").update("773325api-key1793000000vid-1").digest("hex");
-    expect(tusSignature({ libraryId: "773325", apiKey: "api-key", expires: 1793000000, videoId: "vid-1" })).toBe(expected);
+    expect(tusSignature({ libraryId: "773325", libraryKey: "api-key", expires: 1793000000, videoId: "vid-1" })).toBe(expected);
     expect(expected).toHaveLength(64);
   });
   it("embed: sha256 hex of tokenKey + videoId + expires, on the docs' example inputs", () => {
@@ -31,7 +31,7 @@ describe("the signatures, from the documented formulas", () => {
     expect(embedToken({ tokenKey: key, videoId: id, expires: 1623440202 })).toBe(createHash("sha256").update(`${key}${id}1623440202`).digest("hex"));
   });
   it("mobile: base64 of <hmac-sha256 hex>:<expires>, keyed and fed by the api key", () => {
-    const token = mobileViewToken({ apiKey: "k", videoId: "abc123", expires: 1710000000 });
+    const token = mobileViewToken({ libraryKey: "k", videoId: "abc123", expires: 1710000000 });
     const sig = createHmac("sha256", "k").update("kabc1231710000000").digest("hex");
     expect(Buffer.from(token, "base64").toString()).toBe(`${sig}:1710000000`);
   });
@@ -54,7 +54,7 @@ describe("the stream adapter", () => {
   it("builds the TUS session: the endpoint, the four headers, the signature of the documented formula", () => {
     const s = make().uploadSession("vid-1", 3600);
     expect(s.endpoint).toBe("https://video.bunnycdn.com/tusupload");
-    expect(s.headers).toEqual({ AuthorizationSignature: tusSignature({ libraryId: "773325", apiKey: "api-key", expires: sec + 3600, videoId: "vid-1" }), AuthorizationExpire: String(sec + 3600), VideoId: "vid-1", LibraryId: "773325" });
+    expect(s.headers).toEqual({ AuthorizationSignature: tusSignature({ libraryId: "773325", libraryKey: "api-key", expires: sec + 3600, videoId: "vid-1" }), AuthorizationExpire: String(sec + 3600), VideoId: "vid-1", LibraryId: "773325" });
   });
   it("deletes a video, answering false for one that is gone, and throws on a refusal", async () => {
     expect(await make().deleteVideo("vid-1")).toBe(true);
