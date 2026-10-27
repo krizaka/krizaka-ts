@@ -1,7 +1,7 @@
 import { createHash, createHmac } from "node:crypto";
 
 const sha256 = (data: string) => createHash("sha256").update(data);
-const urlSafe = (base64: string) => base64.replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "");
+const urlSafe = (base64: string) => base64.replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
 
 /**
  * The signature of a TUS upload (Stream docs, « TUS resumable uploads »): hex SHA-256 of `libraryId + apiKey + expires + videoId`,

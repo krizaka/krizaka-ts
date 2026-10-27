@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import { assertKey, typeOfName } from "./keys";
+import { assertKey, trimSlashes, typeOfName } from "./keys";
 import { type Clock, type FetchLike, type ObjectInfo, type ObjectStore, STORAGE_CODE, StorageError } from "./port";
 
 export interface RemoteStoreOptions {
@@ -33,13 +33,13 @@ const fail = (what: string, status: number) => new StorageError(STORAGE_CODE.pro
  * and a pull zone for public and token-signed links. Reads and writes go through the authenticated API, never the public zone.
  */
 export function remoteStore(options: RemoteStoreOptions): ObjectStore {
-  const prefix = (options.prefix ?? "").replace(/^\/+|\/+$/g, "");
+  const prefix = trimSlashes(options.prefix ?? "");
   const inZone = (key: string) => (prefix === "" ? "" : `${prefix}/`) + key;
   const base = `https://${options.endpoint}/${options.zone}`;
   const headers = { AccessKey: options.accessKey };
   const url = (key: string) => `${base}/${inZone(assertKey(key))}`;
   const listDir = async (dir: string): Promise<ObjectInfo[]> => {
-    const res = await options.fetch(`${base}/${inZone(dir)}${dir === "" ? "" : "/"}`.replace(/\/\/$/, "/"), { method: "GET", headers });
+    const res = await options.fetch(dir === "" ? `${base}/${prefix === "" ? "" : `${prefix}/`}` : `${base}/${inZone(dir)}/`, { method: "GET", headers });
     if (res.status === 404) return [];
     if (!res.ok) throw fail("listing", res.status);
     const entries = JSON.parse(await res.text()) as Entry[];

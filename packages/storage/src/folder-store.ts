@@ -1,7 +1,7 @@
 import { mkdir, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, join, resolve, sep } from "node:path";
 
-import { assertKey, typeOfName } from "./keys";
+import { assertKey, trimSlashes, typeOfName } from "./keys";
 import type { ObjectInfo, ObjectStore } from "./port";
 
 export interface FolderOptions {
@@ -69,6 +69,6 @@ export function folderStore(options: FolderOptions): ObjectStore {
     async signedUrl() {
       return null;
     },
-    publicUrl: (key) => (options.publicBaseUrl ? `${options.publicBaseUrl.replace(/\/+$/, "")}/${assertKey(key)}` : null),
+    publicUrl: (key) => (options.publicBaseUrl ? `${trimSlashes(options.publicBaseUrl, "end")}/${assertKey(key)}` : null),
   };
 }

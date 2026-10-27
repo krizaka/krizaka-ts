@@ -1,4 +1,4 @@
-import { assertKey, typeOfName } from "./keys";
+import { assertKey, trimSlashes, typeOfName } from "./keys";
 import { type Clock, type FetchLike, type ObjectInfo, type ObjectStore, STORAGE_CODE, StorageError } from "./port";
 import { type Credentials, hashPayload, presignGet, signRequest } from "./request-signing";
 
@@ -29,9 +29,9 @@ const tag = (xml: string, name: string) => new RegExp(`<${name}>([\\s\\S]*?)</${
  */
 export function bucketStore(options: BucketStoreOptions): ObjectStore {
   const creds: Credentials = { accessKeyId: options.accessKeyId, secretAccessKey: options.secretAccessKey, region: options.region, service: "s3" };
-  const prefix = (options.prefix ?? "").replace(/^\/+|\/+$/g, "");
+  const prefix = trimSlashes(options.prefix ?? "");
   const inBucket = (key: string) => (prefix === "" ? "" : `${prefix}/`) + key;
-  const origin = options.endpoint.replace(/\/+$/, "");
+  const origin = trimSlashes(options.endpoint, "end");
   const encodePath = (path: string) => path.split("/").map(encodeURIComponent).join("/");
   const urlOf = (key: string) => `${origin}/${options.bucket}/${encodePath(inBucket(assertKey(key)))}`;
   const send = (method: string, url: string, body?: Uint8Array, extra: Record<string, string> = {}) => {
@@ -82,6 +82,6 @@ export function bucketStore(options: BucketStoreOptions): ObjectStore {
     async signedUrl(key, ttlSeconds) {
       return presignGet(creds, urlOf(key), ttlSeconds, options.clock.now());
     },
-    publicUrl: (key) => (options.publicBaseUrl ? `${options.publicBaseUrl.replace(/\/+$/, "")}/${assertKey(key)}` : null),
+    publicUrl: (key) => (options.publicBaseUrl ? `${trimSlashes(options.publicBaseUrl, "end")}/${assertKey(key)}` : null),
   };
 }

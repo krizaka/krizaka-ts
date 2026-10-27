@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { afterAll, describe, expect, it } from "vitest";
 
-import { assertKey, bucketStore, checkEndpoint, createStorage, defineLayout, type FetchLike, folderStore, hashedName, memoryObjectStore, remoteStore, sniffType, STORAGE_CODE } from "../src";
+import { assertKey, bucketStore, checkEndpoint, createStorage, defineLayout, type FetchLike, folderStore, hashedName, memoryObjectStore, remoteStore, sniffType, STORAGE_CODE,trimSlashes } from "../src";
 import { EMPTY_SHA256, presignGet, signRequest } from "../src/request-signing";
 import { limitsOf, readStorageSettings, storageSettings, storeFromSettings } from "../src/settings";
 import { objectStoreContract } from "../src/testkit";
@@ -225,5 +225,13 @@ describe("the settings fragment: the admin chooses the provider", () => {
     expect(storeFromSettings(s3, { accessKeyId: "a", secretAccessKey: "s" }, deps).publicUrl("a.png")).toBeNull();
     expect(() => storeFromSettings({ ...s3, endpoint: "https://10.0.0.1" }, { accessKeyId: "a", secretAccessKey: "s" }, deps)).toThrow(expect.objectContaining({ code: STORAGE_CODE.badEndpoint }));
     expect(storeFromSettings({ ...base, root: undefined } as never, { root: "/tmp/kz" }, deps)).toBeDefined();
+  });
+});
+
+describe("trimSlashes", () => {
+  it("trims slashes at the ends without a regular expression, even a very long run", () => {
+    expect(trimSlashes("//a/b//")).toBe("a/b");
+    expect(trimSlashes("https://cdn.example.com///", "end")).toBe("https://cdn.example.com");
+    expect(trimSlashes("/".repeat(200_000))).toBe("");
   });
 });

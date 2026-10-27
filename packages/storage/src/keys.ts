@@ -6,6 +6,15 @@ import { STORAGE_CODE, StorageError } from "./port";
 const MAX_KEY = 1024;
 const SEGMENT = /^[A-Za-z0-9][A-Za-z0-9._ ()@+=,~-]*$/;
 
+/** Trims slashes at the ends without a regular expression (a long run of slashes must not be quadratic). */
+export function trimSlashes(value: string, ends: "both" | "end" = "both"): string {
+  let start = 0;
+  let end = value.length;
+  if (ends === "both") while (start < end && value[start] === "/") start += 1;
+  while (end > start && value[end - 1] === "/") end -= 1;
+  return value.slice(start, end);
+}
+
 /**
  * A key is `a/b/name.ext`: no empty segment, no `.` or `..`, no leading or trailing slash, no backslash, no control character.
  * @throws StorageError `STORAGE_BAD_KEY`

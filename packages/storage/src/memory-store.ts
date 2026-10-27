@@ -1,4 +1,4 @@
-import { assertKey, typeOfName } from "./keys";
+import { assertKey, trimSlashes, typeOfName } from "./keys";
 import type { ObjectStore } from "./port";
 
 /** An in-memory store, for unit tests and demos: the behaviour of the others (the contract kit runs on all). */
@@ -28,6 +28,6 @@ export function memoryObjectStore(options: { publicBaseUrl?: string } = {}): Obj
     async signedUrl() {
       return null;
     },
-    publicUrl: (key) => (options.publicBaseUrl ? `${options.publicBaseUrl.replace(/\/+$/, "")}/${assertKey(key)}` : null),
+    publicUrl: (key) => (options.publicBaseUrl ? `${trimSlashes(options.publicBaseUrl, "end")}/${assertKey(key)}` : null),
   };
 }

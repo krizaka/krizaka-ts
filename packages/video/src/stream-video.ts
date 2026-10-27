@@ -35,6 +35,13 @@ const STATUS: Record<number, VideoStatus> = {
   10: VIDEO_STATUS.metadata,
 };
 
+/** Trims trailing slashes without a regular expression (a long run of slashes must not be quadratic). */
+const withoutTrailingSlashes = (url: string) => {
+  let end = url.length;
+  while (end > 0 && url[end - 1] === "/") end -= 1;
+  return url.slice(0, end);
+};
+
 const ID = /^[0-9a-zA-Z-]{1,64}$/;
 const badInput = (why: string) => new VideoError(VIDEO_CODE.badInput, why);
 const checkId = (videoId: string) => {
@@ -44,7 +51,7 @@ const checkId = (videoId: string) => {
 
 /** Bunny Stream, behind the `VideoProvider` port. */
 export function streamVideo(options: StreamVideoOptions): VideoProvider {
-  const api = (options.apiUrl ?? "https://video.bunnycdn.com").replace(/\/+$/, "");
+  const api = withoutTrailingSlashes(options.apiUrl ?? "https://video.bunnycdn.com");
   const headers = { AccessKey: options.apiKey, accept: "application/json", "content-type": "application/json" };
   const nowSeconds = () => Math.floor(options.clock.now().valueOf() / 1000);
   const ttl = (seconds: number) => {
