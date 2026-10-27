@@ -26,8 +26,13 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "types": "./dist/node.d.ts",
+      "node": "./dist/node.js",
+      "default": "./dist/index.js"
+    },
+    "./node": {
+      "types": "./dist/node.d.ts",
+      "import": "./dist/node.js"
     },
     "./settings": {
       "types": "./dist/settings.d.ts",
@@ -64,6 +69,7 @@
     "@krizaka/config": "workspace:^",
     "@types/node": "^22.10.0",
     "@types/pg": "^8.23.1",
+    "esbuild": "^0.25.0",
     "eslint": "^9.39.0",
     "pg": "^8.23.1",
     "tsup": "^8.5.0",
