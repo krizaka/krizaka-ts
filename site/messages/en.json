@@ -91,6 +91,12 @@
     "notifications": {
       "hook": "The bell, channels and preferences: one notify writes the item and one outbox message per enabled channel; burst caps hold under concurrency; the admin tunes defaults."
     },
+    "storage": {
+      "hook": "Files behind one port: content-hashed names, signed and public links; an HTTP zone, any S3-compatible bucket or a folder, chosen by the admin; bytes checked by magic number."
+    },
+    "video": {
+      "hook": "Video behind one port: server-signed resumable uploads, playback tokens and signed HLS links, signed webhook statuses."
+    },
     "coupons": {
       "hook": "Discount and credit coupons the admin manages: reserved under a lock, confirmed once, released when unpaid, refunded; partners for attribution."
     },
