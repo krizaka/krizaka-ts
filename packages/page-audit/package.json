@@ -34,7 +34,11 @@
       "import": "./src/settle.mjs"
     },
     "./fixtures": "./src/fixtures.mjs",
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./visual": {
+      "types": "./src/visual.d.ts",
+      "import": "./src/visual.mjs"
+    }
   },
   "files": [
     "src",
