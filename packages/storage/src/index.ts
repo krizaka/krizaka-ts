@@ -9,4 +9,5 @@ export { memoryObjectStore } from "./memory-store";
 export * from "./port";
 export { COUNTRY_OF_REGION, countryOf, type Residency, residencyOf, residencyOfConfig } from "./regions";
 export { sniffType } from "./sniff";
+export { type SweepOptions, sweepOrphans, type SweepResult } from "./sweep";
 export { describeStore, type NoticeKey, storageNotice, STORE_KIND, type StoreDescriptor, type StoreOwner, where, type WhereOptions } from "./where";
