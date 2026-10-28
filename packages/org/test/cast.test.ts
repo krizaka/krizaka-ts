@@ -13,8 +13,8 @@ describe("the demo cast", () => {
   });
 
   it("has Eric, Mira and Camille in every product, as the deployed QA accounts do", () => {
-    for (const product of ["yomizaka", "akinaza"] as const) {
-      expect(castOf(product).map((p) => p.id)).toEqual(expect.arrayContaining(["eric", "mira", "camille"]));
+    for (const product of ["orazaka", "yomizaka", "akinaza"] as const) {
+      expect(castOf(product).map((p) => p.id)).toEqual(expect.arrayContaining(product === "orazaka" ? ["eric", "mira", "krizaka"] : ["eric", "mira", "camille"]));
       expect(persona(product, "mira").role).toBe("admin");
     }
   });
