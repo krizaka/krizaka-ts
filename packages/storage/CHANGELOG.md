@@ -1,5 +1,12 @@
 # @krizaka/storage
 
+## 0.6.0
+
+### Minor Changes
+
+- 2b30ee8: Dropbox as a user-scope provider (ADR-005, slice 4): `dropboxStore` (App folder, upload sessions above 150 MB, no signed or public link: the app streams), the OAuth 2 PKCE helpers (`pkcePair`, `dropboxAuthorizeUrl`, `exchangeDropboxCode`, `refreshDropboxToken`, `revokeDropbox`), the new code `STORAGE_DISCONNECTED` for a revoked or expired connection, and `dropbox` opened by `openProvider`.
+- 76fbcf5: Providers in the database (ADR-005, slice 2), in `@krizaka/storage/provider-admin`: `storageSchema`, `dbProviderStore` / `memoryProviderStore` with a contract, `createProviderService` (create, test, set default, change key, disable, retire, rotate the vault key, bootstrap from the environment; secrets returned as set / not set, every change audited), `moveBatch` (SHA-256-verified move) and `readDual` (reads from both stores during a move).
+
 ## 0.5.0
 
 ### Minor Changes
