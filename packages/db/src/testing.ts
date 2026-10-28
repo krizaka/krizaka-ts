@@ -1,5 +1,4 @@
 import { randomBytes } from "node:crypto";
-import type { Socket } from "node:net";
 
 import { rethrowAfter } from "./cleanup";
 import { ident } from "./identifiers";
@@ -53,10 +52,15 @@ export async function createTestDatabase(options: TestDatabaseOptions): Promise<
 }
 
 /** What `endPool` needs of a `pg.Pool`, said structurally: the package imports no driver. */
+export interface ClosableStream {
+  destroyed: boolean;
+  once(event: "close", listener: () => void): unknown;
+}
+
 export interface EndablePool {
   end(): Promise<void>;
   /** `pg.Pool`'s connected clients (private in its typings, hence read structurally). */
-  _clients?: { connection?: { stream?: Socket } }[];
+  _clients?: { connection?: { stream?: ClosableStream } }[];
 }
 
 /**
