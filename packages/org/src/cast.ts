@@ -2,7 +2,7 @@ import { defaultUrl, listDefaults } from "./defaults";
 import type { OrgDefaultItem } from "./org.types";
 
 /** The products that have a demo cast. */
-export type CastProduct = "yomizaka" | "akinaza";
+export type CastProduct = "orazaka" | "yomizaka" | "akinaza";
 
 /** What a persona does in the app: a member, a shop owner or a customer of one, an administrator. */
 export type CastRole = "member" | "admin" | "owner" | "client";
@@ -34,6 +34,11 @@ export const CAST: readonly CastPersona[] = [
   { id: "eric", product: "yomizaka", firstName: "Éric", displayName: "Éric Tremblay", role: "member", locale: "fr", avatar: "community-lead", workspace: "rosemont-villeray" },
   { id: "mira", product: "yomizaka", firstName: "Mira", displayName: "Mira Haddad", role: "admin", locale: "fr", avatar: "ai-builder", workspace: "administration" },
   { id: "camille", product: "yomizaka", firstName: "Camille", displayName: "Camille Tremblay", role: "member", locale: "fr", avatar: "visual-artist", workspace: "rosemont-villeray" },
+  // Orazaka: the accounts already deployed on dev. Éric is the user (ORAZAKA_USER_*, APP_QA_ORAZAKA_PERSONA_*), Mira the administrator
+  // (ORAZAKA_ADMIN_*, APP_QA_ORAZAKA_MIRA_*), Krizaka the company as an SME customer (APP_QA_ORAZAKA_KRIZAKA_*). The greeting reads the name: never « qa_user ».
+  { id: "eric", product: "orazaka", firstName: "Éric", displayName: "Éric Tremblay", role: "member", locale: "fr", avatar: "community-lead", workspace: "demo" },
+  { id: "mira", product: "orazaka", firstName: "Mira", displayName: "Mira Haddad", role: "admin", locale: "fr", avatar: "ai-builder", workspace: "administration" },
+  { id: "krizaka", product: "orazaka", firstName: "Krizaka", displayName: "Krizaka", role: "member", locale: "fr", avatar: "tech-architect", workspace: "demo" },
   // Akinaza: Éric owns the Krizaka studio, Léa is the Saint-Henri walker, Camille is her first client, Mira administers.
   { id: "eric", product: "akinaza", firstName: "Éric", displayName: "Éric Tremblay", role: "owner", locale: "fr", avatar: "community-lead", banner: "creator-loft-studio", workspace: "krizaka-studio" },
   { id: "mira", product: "akinaza", firstName: "Mira", displayName: "Mira Haddad", role: "admin", locale: "fr", avatar: "ai-builder", workspace: "administration" },
