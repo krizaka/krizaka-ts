@@ -1,6 +1,6 @@
 {
   "name": "@krizaka/org",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "The public facts about Krizaka, in one validated JSON that every footer, site and app reads: legal name, NEQ, « Fait à Montréal » in French and English, brand marks, default avatars and banners, the live products and sites, the public contact, the footer line and the mobile apps' public runtime config. Typed data, JSON Schema, and the files published on the CDN.",
   "keywords": [
     "krizaka",
