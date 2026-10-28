@@ -55,6 +55,8 @@ export async function createTestDatabase(options: TestDatabaseOptions): Promise<
 /** What `endPool` needs of a `pg.Pool`, said structurally: the package imports no driver. */
 export interface EndablePool {
   end(): Promise<void>;
+  /** `pg.Pool`'s connected clients (private in its typings, hence read structurally). */
+  _clients?: { connection?: { stream?: Socket } }[];
 }
 
 /**
@@ -65,7 +67,7 @@ export interface EndablePool {
  * @param pool a `pg.Pool` (or anything with `end()` and, as `pg` has, its `_clients`)
  */
 export async function endPool(pool: EndablePool): Promise<void> {
-  const clients = (pool as { _clients?: { connection?: { stream?: Socket } }[] })._clients ?? [];
+  const clients = pool._clients ?? [];
   const closed = clients.flatMap(({ connection }) => {
     const stream = connection?.stream;
     return stream && !stream.destroyed ? [new Promise<void>((resolve) => void stream.once("close", () => resolve()))] : [];
