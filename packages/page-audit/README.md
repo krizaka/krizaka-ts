@@ -40,3 +40,26 @@ await auditRoutes({
 
 `a11y` runs axe through `@krizaka/a11y-audit` (an optional peer) and ratchets with the repo's own baseline file; `--a11y-update` and
 `--a11y-init` work as there. The CLI takes `--sitemap`, `--status`, `--empty-main`, `--min-action`, `--a11y app:baseline.json`.
+
+## Visual regression of the journeys (0.4)
+
+`@krizaka/page-audit/visual` (krizaka/.github#375) compares screenshots of an app's main journeys against Linux baselines, with `@playwright/test`
+as the runner. It freezes what moves (clock, motion, caret, View Transition, locale, time zone, fonts) and leaves the app its routes, its persona and its masks.
+
+```js
+import { test, expect } from "@playwright/test";
+import { defineJourneyTests } from "@krizaka/page-audit/visual";
+defineJourneyTests({
+  test, expect,
+  signIn: async (page) => { /* the seeded persona signs in through the form */ },
+  journeys: [
+    { name: "landing", path: "/fr" },
+    { name: "home", path: "/fr/app", session: true, mask: ["[data-live]"] },
+    { name: "home", path: "/fr/app", session: true, firstPaint: true, viewports: ["phone"] },          // the HTML the server sent
+    { name: "home", path: "/fr/app", session: true, firstPaint: { hold: ["**/api/me"] } },             // hydrated, account query pending
+  ],
+});
+```
+
+Baselines are taken in the official Playwright container by the shared workflows of krizaka/.github (`visual-regression.yml` to compare,
+`update-visual-baselines.yml` to commit them on a branch); never on a Mac.
