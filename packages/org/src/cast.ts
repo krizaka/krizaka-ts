@@ -75,7 +75,7 @@ export function castMedia(p: CastPersona, size = 512): { avatar: string; banner?
  */
 export function seedFingerprint(counts: Readonly<Record<string, number>>): string {
   return Object.keys(counts)
-    .sort()
+    .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)) // by code point, never by locale: the same string on every machine
     .map((table) => `${table}=${counts[table]}`)
     .join(";");
 }
