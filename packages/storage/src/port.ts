@@ -53,6 +53,7 @@ export const STORAGE_CODE = {
   inUse: "STORAGE_PROVIDER_IN_USE",
   notVerified: "STORAGE_PROVIDER_NOT_VERIFIED",
   testFailed: "STORAGE_TEST_FAILED",
+  disconnected: "STORAGE_DISCONNECTED",
 } as const;
 export type StorageCode = (typeof STORAGE_CODE)[keyof typeof STORAGE_CODE];
 

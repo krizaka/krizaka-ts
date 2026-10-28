@@ -1,4 +1,5 @@
 import { bucketStore } from "./bucket-store";
+import { dropboxStore } from "./dropbox-store";
 import { checkEndpoint } from "./endpoint";
 import { folderStore } from "./folder-store";
 import { type Clock, type FetchLike, type ObjectStore, STORAGE_CODE, StorageError } from "./port";
@@ -48,6 +49,7 @@ export function openProvider(kindName: string, coordinates: Readonly<Record<stri
     const store = remoteStore({ endpoint: coordinates.endpoint!, zone: coordinates.zone!, accessKey: credentials.accessKey!, ...optional("prefix", coordinates.prefix), ...optional("pullHostname", coordinates.pullHostname), ...optional("tokenKey", credentials.tokenKey), ...deps });
     return { store, kind, residency: { key: "elsewhere", country: null, province: null, text: "Elsewhere (no Canadian region)" } };
   }
+  if (kindName === "dropbox") return { store: dropboxStore({ clientId: coordinates.clientId!, refreshToken: credentials.refreshToken!, ...optional("prefix", coordinates.prefix), ...deps }), kind, residency: { key: "user-cloud", country: null, province: null, text: "Your own Dropbox: we make no claim about where it is" } };
   const endpoint = checkEndpoint(coordinates.endpoint!, ctx.runtime === "dev" ? { allowLocal: true } : {});
   const store = bucketStore({ endpoint, region: coordinates.region!, bucket: coordinates.bucket!, accessKeyId: credentials.accessKeyId!, secretAccessKey: credentials.secretAccessKey!, ...optional("prefix", coordinates.prefix), ...deps });
   return { store, kind, residency: residencyLabel({ provider: "s3", endpoint, region: coordinates.region! }) };

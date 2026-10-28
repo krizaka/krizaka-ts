@@ -47,6 +47,7 @@ describe("openProvider guards", () => {
   });
   it("refuses an unknown or unimplemented kind, a missing field, and a private endpoint", () => {
     expect(code(() => openProvider("ftp", {}, {}, ctx()))).toBe("STORAGE_BAD_CONFIG");
+    expect(code(() => openProvider("google-drive", {}, { refreshToken: "t" }, ctx()))).toBe("STORAGE_BAD_CONFIG");
     expect(code(() => openProvider("dropbox", {}, { refreshToken: "t" }, ctx()))).toBe("STORAGE_BAD_CONFIG");
     expect(code(() => openProvider("device", {}, {}, ctx({ runtime: "server" })))).toBe("STORAGE_BAD_CONFIG");
     expect(code(() => openProvider("s3", { ...s3, bucket: "" }, keys, ctx()))).toBe("STORAGE_BAD_CONFIG");

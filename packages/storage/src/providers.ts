@@ -79,11 +79,11 @@ export const PROVIDER_KINDS: readonly ProviderKind[] = [
     scopes: ["user"],
     runtimes: ["server"],
     devOnly: false,
-    implemented: false,
+    implemented: true,
     // Temporary links live 4 h, longer than our 900 s cap: the app streams the file.
     capabilities: { private: true, signedUrls: false, publicUrls: false, maxObjectBytes: DROPBOX_MAX, serverSideEncryption: "provider" },
     residency: "user-cloud",
-    coordinates: [],
+    coordinates: [text("clientId", true), text("prefix", false)],
     credentials: [secret("refreshToken", true)],
   },
   { kind: "google-drive", scopes: ["user"], runtimes: ["server"], devOnly: false, implemented: false, capabilities: { private: true, signedUrls: false, publicUrls: false, maxObjectBytes: 5 * 1024 * GIB, serverSideEncryption: "provider" }, residency: "user-cloud", coordinates: [], credentials: [secret("refreshToken", true)] },
