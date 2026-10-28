@@ -30,15 +30,19 @@ export interface CastPersona {
 export const CAST_VERSION = 1;
 
 export const CAST: readonly CastPersona[] = [
+  // The same three people as the deployed QA accounts (Eric, Mira, Camille) in each product, so a laptop and the dev deployment hold the same names.
   { id: "eric", product: "yomizaka", firstName: "Éric", displayName: "Éric Tremblay", role: "member", locale: "fr", avatar: "community-lead", workspace: "rosemont-villeray" },
-  { id: "marie-eve", product: "yomizaka", firstName: "Marie-Ève", displayName: "Marie-Ève Bouchard", role: "admin", locale: "fr", avatar: "wise-auditor", workspace: "administration" },
+  { id: "mira", product: "yomizaka", firstName: "Mira", displayName: "Mira Haddad", role: "admin", locale: "fr", avatar: "ai-builder", workspace: "administration" },
+  { id: "camille", product: "yomizaka", firstName: "Camille", displayName: "Camille Tremblay", role: "member", locale: "fr", avatar: "visual-artist", workspace: "rosemont-villeray" },
+  // Akinaza: Éric owns the Krizaka studio, Léa is the Saint-Henri walker, Camille is her first client, Mira administers.
+  { id: "eric", product: "akinaza", firstName: "Éric", displayName: "Éric Tremblay", role: "owner", locale: "fr", avatar: "community-lead", banner: "creator-loft-studio", workspace: "krizaka-studio" },
+  { id: "mira", product: "akinaza", firstName: "Mira", displayName: "Mira Haddad", role: "admin", locale: "fr", avatar: "ai-builder", workspace: "administration" },
   { id: "lea", product: "akinaza", firstName: "Léa", displayName: "Léa Beaulieu", role: "owner", locale: "fr", avatar: "studio-maker", banner: "cafe-maker-studio", workspace: "saint-henri" },
   { id: "camille", product: "akinaza", firstName: "Camille", displayName: "Camille Tremblay", role: "client", locale: "fr", avatar: "visual-artist", workspace: "saint-henri" },
   { id: "jordan", product: "akinaza", firstName: "Jordan", displayName: "Jordan Lee", role: "client", locale: "en", avatar: "tech-architect", workspace: "saint-henri" },
   { id: "nadia", product: "akinaza", firstName: "Nadia", displayName: "Nadia Benali", role: "client", locale: "fr", avatar: "digital-creator", workspace: "saint-henri" },
   { id: "etienne", product: "akinaza", firstName: "Étienne", displayName: "Étienne Gagnon", role: "client", locale: "fr", avatar: "boom-bap", workspace: "saint-henri" },
   { id: "sofia", product: "akinaza", firstName: "Sofia", displayName: "Sofia Rossi", role: "client", locale: "en", avatar: "salon-tattoo-maker", workspace: "saint-henri" },
-  { id: "simon", product: "akinaza", firstName: "Simon", displayName: "Simon Roy", role: "admin", locale: "fr", avatar: "ai-builder", workspace: "administration" },
 ];
 
 /** The personas of a product, in cast order. */
