@@ -49,6 +49,10 @@ export const STORAGE_CODE = {
   badSecretKey: "STORAGE_BAD_SECRET_KEY",
   unreadable: "STORAGE_UNREADABLE",
   keepingOff: "STORAGE_KEEPING_OFF",
+  notFound: "STORAGE_PROVIDER_NOT_FOUND",
+  inUse: "STORAGE_PROVIDER_IN_USE",
+  notVerified: "STORAGE_PROVIDER_NOT_VERIFIED",
+  testFailed: "STORAGE_TEST_FAILED",
 } as const;
 export type StorageCode = (typeof STORAGE_CODE)[keyof typeof STORAGE_CODE];
 
