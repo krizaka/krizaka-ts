@@ -101,9 +101,10 @@ export function shotOptions({ mask = [], page } = {}) {
  *            viewports?: string[], firstPaint?: true | { hold: string[] } }
  *   firstPaint: the page before it is alive. `true` turns JavaScript off (the HTML the server sent); `{ hold }` keeps JavaScript
  *   but never answers the listed URL patterns (the account query, say), so the account mark is captured while its query is pending.
+ * now: the instant of the browser clock (default FROZEN_TIME); an app whose seed stamps rows with the day of the run passes that moment.
  * signIn(page, { base }): signs the persona in; its cookies are kept and reused by every signed-in capture of the worker.
  */
-export function defineJourneyTests({ test, expect, journeys, signIn, base, viewports = VIEWPORTS, themes = VISUAL_THEMES, themeKey = "kz-theme" }) {
+export function defineJourneyTests({ test, expect, journeys, signIn, base, viewports = VIEWPORTS, themes = VISUAL_THEMES, themeKey = "kz-theme", now = FROZEN_TIME }) {
   let session;
   const sessionState = (browser) => {
     session ??= (async () => {
@@ -125,7 +126,7 @@ export function defineJourneyTests({ test, expect, journeys, signIn, base, viewp
         const context = await browser.newContext(visualContextOptions({ size: cell.size, theme: cell.theme, javaScript, storageState }));
         try {
           const page = await context.newPage();
-          await prepareVisualPage(page, { theme: cell.theme, themeKey });
+          await prepareVisualPage(page, { theme: cell.theme, themeKey, now });
           for (const pattern of journey.firstPaint?.hold ?? []) await page.route(pattern, () => undefined);
           const path = typeof journey.path === "function" ? await journey.path(page, { origin }) : journey.path;
           await page.goto(new URL(path, origin).toString(), { waitUntil: journey.firstPaint ? "domcontentloaded" : "load" });

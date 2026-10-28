@@ -21,6 +21,6 @@ export function settleForShot(page: Page, o?: { javaScript?: boolean }): Promise
 export function shotOptions(o?: { mask?: string[]; page?: Page }): Record<string, unknown>;
 export function defineJourneyTests(o: {
   test: unknown; expect: unknown; journeys: Journey[]; signIn: (page: Page, o: { base?: string }) => Promise<void>;
-  base?: string; viewports?: Record<string, Size>; themes?: readonly string[]; themeKey?: string;
+  base?: string; viewports?: Record<string, Size>; themes?: readonly string[]; themeKey?: string; now?: string;
 }): void;
 export type { Browser };
