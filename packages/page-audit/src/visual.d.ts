@@ -8,7 +8,7 @@ export const VISUAL_LOCALE: string;
 export const VISUAL_TIME_ZONE: string;
 export const FREEZE_CSS: string;
 export interface Journey {
-  name: string; path: string; session?: boolean; mask?: string[]; viewports?: string[];
+  name: string; path: string | ((page: Page, o: { origin: string }) => Promise<string>); session?: boolean; mask?: string[]; viewports?: string[];
   ready?: string | ((page: Page) => Promise<unknown>);
   firstPaint?: true | { hold: string[] };
 }

@@ -97,7 +97,7 @@ export function shotOptions({ mask = [], page } = {}) {
 /**
  * Registers one test per journey × viewport × theme.
  *
- * journey: { name, path, session?: boolean, mask?: string[] (selectors of live values), ready?: selector | (page) => Promise,
+ * journey: { name, path (a string, or `(page, { origin }) => Promise<string>` that finds it, e.g. the first document), session?: boolean, mask?: string[] (selectors of live values), ready?: selector | (page) => Promise,
  *            viewports?: string[], firstPaint?: true | { hold: string[] } }
  *   firstPaint: the page before it is alive. `true` turns JavaScript off (the HTML the server sent); `{ hold }` keeps JavaScript
  *   but never answers the listed URL patterns (the account query, say), so the account mark is captured while its query is pending.
@@ -127,7 +127,8 @@ export function defineJourneyTests({ test, expect, journeys, signIn, base, viewp
           const page = await context.newPage();
           await prepareVisualPage(page, { theme: cell.theme, themeKey });
           for (const pattern of journey.firstPaint?.hold ?? []) await page.route(pattern, () => undefined);
-          await page.goto(new URL(journey.path, origin).toString(), { waitUntil: journey.firstPaint ? "domcontentloaded" : "load" });
+          const path = typeof journey.path === "function" ? await journey.path(page, { origin }) : journey.path;
+          await page.goto(new URL(path, origin).toString(), { waitUntil: journey.firstPaint ? "domcontentloaded" : "load" });
           if (typeof journey.ready === "string") await page.locator(journey.ready).first().waitFor();
           else if (journey.ready) await journey.ready(page);
           await settleForShot(page, { javaScript });
