@@ -1,5 +1,11 @@
 # @krizaka/page-audit
 
+## 0.5.1
+
+### Patch Changes
+
+- 02011b3: `@krizaka/page-audit/visual`: a first-paint capture (JavaScript off) no longer hangs for the test timeout: `settleForShot` does not inject the freeze style (Playwright cannot run a script in such a page); `animations: "disabled"` still freezes CSS animations.
+
 ## 0.5.0
 
 ### Minor Changes
