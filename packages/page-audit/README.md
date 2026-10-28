@@ -24,7 +24,8 @@ before anything is measured (yomizaka#354). `prepare(page, route)` signs in or s
 Opt-in through `checks` (nothing changes for a repo that does not ask): `status` (HTTP 4xx/5xx or no response), `emptyMain`, `frame`
 (the signed-in frame, `[data-app-frame-slot]`, forces a scroll), `minAction` (a button-styled action under N px), `boxes` (a landmark
 wider than its box), `landmarks` (`"public"` one footer naming Krizaka and a nav, `"app"`, `"auth"`), `pictures`, `emptyControls`,
-`hardColors`. Console noise the app tolerates: `ignoreConsole: [/…/]` (`[]` counts every error); `attempts` retries a route.
+`hardColors`, `maps` (an empty map, akinaza#488: a GL / Leaflet / `[data-kz-map]` box under 120 px on a side, a GL map with no canvas,
+a Leaflet map with no loaded tile; `maps: { required: true }` also fails a page that should draw one but has none). Console noise the app tolerates: `ignoreConsole: [/…/]` (`[]` counts every error); `attempts` retries a route.
 
 ```js
 const routes = await routesFromSitemap(base, { first: ["/", "/docs"], limit: 14 }); // a crawl as the route source (null: nothing answers)

@@ -1,6 +1,6 @@
 // The audit proven on its own fixtures, in a real browser: each broken fixture must be reported, the fine ones must not.
 // A guard that stopped seeing is itself a red build.
-import { BOX_TOO_WIDE, BROKEN_PARTS, CARD_OVER_NEXT, CHROME_BAD, CHROME_FINE, COLUMN_CUT, EMPTY_MAIN, FINE, FOLDED_SECTION, FRAME_FITS, FRAME_FORCES_SCROLL, HIDDEN_CONTENT, SECTIONS_OVERLAP, SMALL_ACTION, TOKEN_IN_STRETCHED_ROW, TOKEN_WRAPPED } from "./fixtures.mjs";
+import { BOX_TOO_WIDE, BROKEN_PARTS, CARD_OVER_NEXT, CHROME_BAD, CHROME_FINE, COLUMN_CUT, EMPTY_MAIN, FINE, FOLDED_SECTION, FRAME_FITS, FRAME_FORCES_SCROLL, HIDDEN_CONTENT, MAP_COLLAPSED, MAP_FINE, MAP_HIDDEN, MAP_NO_CANVAS, SECTIONS_OVERLAP, SMALL_ACTION, TOKEN_IN_STRETCHED_ROW, TOKEN_WRAPPED } from "./fixtures.mjs";
 import { auditPage, problemsOf } from "./page-audit.mjs";
 import { auditContext } from "./settle.mjs";
 
@@ -17,6 +17,9 @@ const EXPECT = [
   ["a broken picture", BROKEN_PARTS, /broken picture/, { pictures: true }],
   ["a tile that draws nothing", BROKEN_PARTS, /empty tile/, { emptyControls: true }],
   ["a hard-coded inline colour", BROKEN_PARTS, /hard-coded colour/, { hardColors: true }],
+  ["a map that laid out at 0 px", MAP_COLLAPSED, /the map .* is \d+x0 px \(empty\)/, { maps: true }],
+  ["a map with no canvas", MAP_NO_CANVAS, /has no canvas/, { maps: true }],
+  ["no map where one is required", FINE, /no map on the page/, { maps: { required: true } }],
   ["two page footers and no nav", CHROME_BAD, /2 page footers/, { landmarks: "public" }],
   ["no nav landmark", CHROME_BAD, /no <nav> landmark/, { landmarks: "app" }],
 ];
@@ -27,10 +30,12 @@ const FINES = [
   ["a short token in a row a taller neighbour stretches", TOKEN_IN_STRETCHED_ROW],
 ];
 /** Fixtures that must stay clean even with every opt-in check on. */
-const ALL = { emptyMain: true, frame: true, minAction: 36, boxes: true, pictures: true, emptyControls: true, hardColors: true, landmarks: "public" };
+const ALL = { emptyMain: true, frame: true, minAction: 36, boxes: true, pictures: true, emptyControls: true, hardColors: true, landmarks: "public", maps: true };
 const FINES_STRICT = [
   ["a frame that fits its screen", FRAME_FITS, { frame: true, emptyMain: false }],
   ["the family chrome", CHROME_FINE, ALL],
+  ["maps with a size and something drawn", MAP_FINE, { maps: true }],
+  ["a map that is not drawn (display none)", MAP_HIDDEN, { maps: true }],
 ];
 
 async function problemsOn(page, html, checks) {

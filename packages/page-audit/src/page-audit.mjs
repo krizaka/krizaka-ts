@@ -261,6 +261,21 @@ function hardColorsOf() {
   return [...document.querySelectorAll("[style]")].filter((e) => /#[0-9a-f]{3,8}\b|rgba?\(/i.test(e.getAttribute("style") || "") && !/var\(/.test(e.getAttribute("style") || "")).length;
 }
 
+/**
+ * The live maps of the page (maplibre / mapbox GL, Leaflet, or anything marked `[data-kz-map]`): a map is a box with a size and something drawn in it.
+ * One that lays out at 0 px (an `absolute inset-0` map in a frame with no height of its own) overflows nothing, so no other probe sees it.
+ * GL maps are told by their canvas; Leaflet by its loaded tiles. A map with no client rect (`display: none`, a closed tab) is not drawn, so not measured.
+ */
+function mapsOf() {
+  return [...document.querySelectorAll(".maplibregl-map, .mapboxgl-map, .leaflet-container, [data-kz-map]")]
+    .filter((el) => el.getClientRects().length > 0 && !el.closest(ARIA_HIDDEN) && !folded(el) && !el.parentElement?.closest(".maplibregl-map, .mapboxgl-map, .leaflet-container, [data-kz-map]"))
+    .map((el) => {
+      const box = el.getBoundingClientRect();
+      const canvas = el.querySelector("canvas")?.getBoundingClientRect();
+      return { name: nameOf(el), width: Math.round(box.width), height: Math.round(box.height), canvas: !!canvas && canvas.width > 0 && canvas.height > 0, leaflet: el.classList.contains("leaflet-container"), tiles: el.querySelectorAll(".leaflet-tile-loaded").length };
+    });
+}
+
 function measurePage() {
   const doc = document.documentElement;
   const panels = [...document.querySelectorAll("[data-panel], main section, main [role=region]")].filter((el) => !el.closest(ARIA_HIDDEN) && !folded(el));
@@ -290,11 +305,12 @@ function measurePage() {
     brokenPictures: brokenPicturesOf(),
     emptyControls: emptyControlsOf(),
     hardColors: hardColorsOf(),
+    maps: mapsOf(),
     segmentError: !!document.querySelector('[data-testid="segment-error"]'),
   };
 }
 
-const PROBES = [tooTall, wrappedOf, className, nameOf, scrolls, meets, apart, clipped, wideOf, named, unnamedOf, headerActionOf, folded, keptBetween, notDrawn, runsOut, spillOf, overlapsOf, cutBy, cutColumnsOf, topBoxOf, isTopBar, chromeOverlapsOf, clipsOf, emptyHeadingsOf, unlabelledFilesOf, emptyMainOf, actionsOf, frameOf, boxesOf, landmarksOf, brokenPicturesOf, emptyControlsOf, hardColorsOf, measurePage];
+const PROBES = [tooTall, wrappedOf, className, nameOf, scrolls, meets, apart, clipped, wideOf, named, unnamedOf, headerActionOf, folded, keptBetween, notDrawn, runsOut, spillOf, overlapsOf, cutBy, cutColumnsOf, topBoxOf, isTopBar, chromeOverlapsOf, clipsOf, emptyHeadingsOf, unlabelledFilesOf, emptyMainOf, actionsOf, frameOf, boxesOf, landmarksOf, brokenPicturesOf, emptyControlsOf, hardColorsOf, mapsOf, measurePage];
 
 /** The expression Playwright runs in the page (`page.evaluate(auditPage)`): the probes, serialised together, then the measure. */
 export const auditPage = `(() => {\nconst ARIA_HIDDEN = ${JSON.stringify(ARIA_HIDDEN)};\n${PROBES.map((f) => `const ${f.name} = ${f.toString()};`).join("\n")}\nreturn measurePage();\n})()`;
@@ -311,7 +327,7 @@ function accessibilityProblems(where, result, fileLabels) {
   return problems;
 }
 
-export function problemsOf(where, result, { errors = [], h1 = false, headerAction = false, fileLabels = false, status, emptyMain = false, frame = false, minAction, boxes = false, landmarks, pictures = false, emptyControls = false, hardColors = false } = {}) {
+export function problemsOf(where, result, { errors = [], h1 = false, headerAction = false, fileLabels = false, status, emptyMain = false, frame = false, minAction, boxes = false, landmarks, pictures = false, emptyControls = false, hardColors = false, maps = false } = {}) {
   return [
     ...statusProblems(where, status),
     ...(emptyMain && result.emptyMain ? [`${where}: empty <main>`] : []),
@@ -322,6 +338,7 @@ export function problemsOf(where, result, { errors = [], h1 = false, headerActio
     ...(pictures && result.brokenPictures?.length ? [`${where}: broken picture ${result.brokenPictures.join(", ")}`] : []),
     ...(emptyControls ? (result.emptyControls ?? []).map((c) => `${where}: ${c}`) : []),
     ...(hardColors && result.hardColors ? [`${where}: ${result.hardColors} element(s) with a hard-coded colour in an inline style`] : []),
+    ...(maps ? mapProblems(where, result.maps ?? [], maps) : []),
     ...errorsOf(where, errors),
     ...layoutProblems(where, result),
     ...(h1 ? namingProblems(where, result) : []),
@@ -329,6 +346,24 @@ export function problemsOf(where, result, { errors = [], h1 = false, headerActio
     ...chipProblems(where, result.chips ?? []),
     ...accessibilityProblems(where, result, fileLabels),
   ];
+}
+
+/** The smallest side (px) of a map worth the name. */
+export const MIN_MAP_SIDE = 120;
+
+/**
+ * An empty map (akinaza#488): a box under `min` px on a side, a GL map with no canvas, a Leaflet map with no loaded tile.
+ * `maps` is `true` (the default minimum) or `{ min, required }`; with `required`, a page that was expected to draw a map and has none is a problem too.
+ */
+function mapProblems(where, found, option) {
+  const { min = MIN_MAP_SIDE, required = false } = option === true ? {} : option;
+  if (!found.length) return required ? [`${where}: no map on the page`] : [];
+  const out = [];
+  for (const m of found) {
+    if (m.width < min || m.height < min) out.push(`${where}: the map ${m.name} is ${m.width}x${m.height} px (empty)`);
+    else if (m.leaflet ? m.tiles === 0 : !m.canvas) out.push(`${where}: the map ${m.name} ${m.leaflet ? "has no loaded tile" : "has no canvas"}`);
+  }
+  return out;
 }
 
 function errorsOf(where, errors) {

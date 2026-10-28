@@ -77,4 +77,16 @@ describe("the checks of the dev-preview crawls (akinaza#341, orazaka-web-client#
     assert.deepEqual(problemsOf("x", { ...fine, landmarks: { footers: 0, footerNamesKrizaka: false, nav: false } }, { landmarks: "auth" }), []);
     assert.match(problemsOf("x", { ...fine, landmarks: { ...ok, nav: false } }, { landmarks: "app" })[0], /no <nav>/);
   });
+  it("an empty map: 0 px, no canvas, no loaded tile (akinaza#488); nothing when it is drawn or when not asked", () => {
+    const map = { name: "div.maplibregl-map", width: 600, height: 300, canvas: true, leaflet: false, tiles: 0 };
+    assert.deepEqual(problemsOf("x", { ...fine, maps: [map] }, { maps: true }), []);
+    assert.match(problemsOf("x", { ...fine, maps: [{ ...map, height: 0 }] }, { maps: true })[0], /600x0 px \(empty\)/);
+    assert.match(problemsOf("x", { ...fine, maps: [{ ...map, canvas: false }] }, { maps: true })[0], /has no canvas/);
+    assert.match(problemsOf("x", { ...fine, maps: [{ ...map, leaflet: true, canvas: false }] }, { maps: true })[0], /no loaded tile/);
+    assert.deepEqual(problemsOf("x", { ...fine, maps: [{ ...map, leaflet: true, tiles: 4 }] }, { maps: true }), []);
+    assert.deepEqual(problemsOf("x", { ...fine, maps: [{ ...map, height: 0 }] }), []);
+    assert.deepEqual(problemsOf("x", { ...fine, maps: [] }, { maps: true }), []);
+    assert.match(problemsOf("x", { ...fine, maps: [] }, { maps: { required: true } })[0], /no map on the page/);
+    assert.match(problemsOf("x", { ...fine, maps: [{ ...map, height: 150 }] }, { maps: { min: 200 } })[0], /empty/);
+  });
 });
