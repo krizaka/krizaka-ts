@@ -1,6 +1,6 @@
 {
   "name": "@krizaka/architecture",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "The C4 view of a repository, generated from its code: containers from the workspaces, components from the folders, the imports between them, the external services from the env declarations. Dependency-free, runs on a local checkout, writes JSON and a text version.",
   "keywords": [
     "krizaka",
