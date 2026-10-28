@@ -46,7 +46,11 @@
       "types": "./dist/testkit.d.ts",
       "import": "./dist/testkit.js"
     },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./provider-admin": {
+      "types": "./dist/provider-admin.d.ts",
+      "import": "./dist/provider-admin.js"
+    }
   },
   "files": [
     "dist",
