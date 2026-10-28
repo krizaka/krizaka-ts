@@ -51,6 +51,35 @@ export async function createTestDatabase(options: TestDatabaseOptions): Promise<
   return { name, drop };
 }
 
+/** What `endPool` needs of a `pg.Pool`, said structurally: the package imports no driver. */
+export interface ClosableStream {
+  destroyed: boolean;
+  once(event: "close", listener: () => void): unknown;
+}
+
+export interface EndablePool {
+  end(): Promise<void>;
+  /** `pg.Pool`'s connected clients (private in its typings, hence read structurally). */
+  _clients?: { connection?: { stream?: ClosableStream } }[];
+}
+
+/**
+ * Ends a `pg` pool and waits until its sockets are really closed. `pool.end()` resolves once every client is asked to end,
+ * before the server has closed its side: a `DROP DATABASE … WITH (FORCE)` right after kills a backend that is still there,
+ * the idle client reads « terminating connection due to administrator command » (57P01) and the pool raises an uncaught
+ * error (the flake of akinaza#518 and yomizaka's integration tests). Call it in a test's teardown, before the drop.
+ * @param pool a `pg.Pool` (or anything with `end()` and, as `pg` has, its `_clients`)
+ */
+export async function endPool(pool: EndablePool): Promise<void> {
+  const clients = pool._clients ?? [];
+  const closed = clients.flatMap(({ connection }) => {
+    const stream = connection?.stream;
+    return stream && !stream.destroyed ? [new Promise<void>((resolve) => void stream.once("close", () => resolve()))] : [];
+  });
+  await pool.end();
+  await Promise.all(closed);
+}
+
 const MARKER = /\('([a-z_][a-z0-9_]*)', (\d+), '([0-9a-f]{64})'\)/g;
 
 /** The text as the drift test compares it: whitespace collapsed, drizzle's statement breakpoints ignored. */
