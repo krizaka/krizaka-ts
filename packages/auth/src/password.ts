@@ -1,7 +1,10 @@
 import crypto from "node:crypto";
-import { promisify } from "node:util";
 
-const scrypt = promisify(crypto.scrypt) as (password: string, salt: Buffer, keylen: number, options: crypto.ScryptOptions) => Promise<Buffer>;
+/** Called only when a password is hashed or checked: the module also loads in a browser bundle (the role model), where `crypto.scrypt` does not exist. */
+const scrypt = (password: string, salt: Buffer, keylen: number, options: crypto.ScryptOptions): Promise<Buffer> =>
+  new Promise((resolve, reject) => {
+    crypto.scrypt(password, salt, keylen, options, (error, key) => (error ? reject(error) : resolve(key)));
+  });
 
 /**
  * scrypt (N=2^15, r=8, p=1), a 16-byte salt, stored as `scrypt$N$r$p$salt$hash` (base64url). These are the parameters of the copies
