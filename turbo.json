@@ -23,6 +23,9 @@
       "dependsOn": [
         "^build"
       ],
+      "outputs": [
+        "coverage/**"
+      ],
       "passThroughEnv": [
         "DATABASE_URL",
         "ORGANIZE_DB_IT"

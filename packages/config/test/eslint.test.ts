@@ -6,7 +6,7 @@ import { ESLint, type Linter } from "eslint";
 import tseslint from "typescript-eslint";
 
 import { envNamePrefixProblem, envNames, ownProductPrefix } from "../eslint/env-names.js";
-import { krizakaBase } from "../eslint/index.js";
+import { KRIZAKA_IGNORES, krizakaBase } from "../eslint/index.js";
 import { krizakaUi, krizakaUiRestrictedSyntax, krizakaUiRules } from "../eslint/krizaka-ui.js";
 import { krizakaNext } from "../eslint/next.js";
 import { LOCALE_TERNARY_SELECTORS, noLocaleTernary } from "../eslint/no-locale-ternary.js";
@@ -445,5 +445,13 @@ describe("krizakaStack: the Sonar layer (eslint-plugin-sonarjs recommended, ADR-
     expect(SONAR_RULES.has(SONAR_OWN_COUNTER)).toBe(false);
     expect(SONAR_RULES.size).toBeGreaterThan(150);
     expect(SONAR_RULES.has("sonarjs/no-alphabetical-sort")).toBe(true);
+  });
+});
+
+describe("KRIZAKA_IGNORES — tsup's temporary config", () => {
+  it("never lints the bundled config tsup writes next to a build (the lint/build race of krizaka-ts#211)", async () => {
+    const eslint = new ESLint({ overrideConfigFile: true, overrideConfig: [{ ignores: [...KRIZAKA_IGNORES] }], cwd: process.cwd() });
+    expect(KRIZAKA_IGNORES).toContain("**/tsup.config.bundled_*");
+    expect(await eslint.isPathIgnored(join(process.cwd(), "packages/time/tsup.config.bundled_0whpqqdtbqs.mjs"))).toBe(true);
   });
 });

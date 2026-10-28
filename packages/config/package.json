@@ -75,7 +75,7 @@
   "scripts": {
     "lint": "eslint . --max-warnings 0 && tsc --noEmit --noUnusedLocals --noUnusedParameters --noFallthroughCasesInSwitch --noImplicitReturns",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run && ast-grep test --skip-snapshot-tests -c ast-grep/sgconfig.yml",
+    "test": "vitest run --coverage --coverage.provider=v8 --coverage.reporter=lcov --coverage.reporter=text-summary \"--coverage.include=src/**/*.ts\" && ast-grep test --skip-snapshot-tests -c ast-grep/sgconfig.yml",
     "size": "size-limit",
     "publint": "publint",
     "check": "pnpm run lint && pnpm run test && pnpm run size && pnpm run publint"
