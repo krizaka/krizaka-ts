@@ -34,3 +34,4 @@ These are the defects code review found most often on 2026-10-23. Check them you
 - **A bug means a missing guard** ([standard](https://github.com/krizaka/.github/blob/main/docs/standards/bug-means-missing-guard.md)): the fix PR first adds a guard that fails on `main`, then fixes the bug; the bug issue says why the guards missed it.
 
 **Repository layout:** the root follows [krizaka/.github `docs/standards/repo-layout.md`](https://github.com/krizaka/.github/blob/main/docs/standards/repo-layout.md); the CI guard `check-repo-layout` fails on a stray root file, and a justified extra is declared in `.repo-layout.json` with its why.
+**Merging:** main has a merge queue (ruleset « Merge queue »). `ci.yml` and `security.yml` run on `merge_group`, and the SonarCloud CI analysis (not the automatic one, which never analyses a queue branch) posts « SonarCloud Code Analysis » on the queue commit.
