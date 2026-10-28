@@ -57,3 +57,43 @@ export function residencyOfConfig(config: { provider: "http" | "s3"; endpoint: s
   if (labels.some((label) => countryOf(label) !== "CA")) return "elsewhere";
   return residencyOf(config.region);
 }
+
+/**
+ * The province of a Canadian region. Loi 25 counts « outside Québec », not « outside Canada », so the residency text needs it
+ * (data: one line per region). A Canadian region not listed here is « Canada » without a province, never a guess.
+ */
+export const PROVINCE_OF_REGION: Readonly<Record<string, "QC" | "ON" | "AB">> = {
+  "ca-central-1": "QC",
+  bhs: "QC",
+  "ca-montreal-1": "QC",
+  canadacentral: "ON",
+  tor: "ON",
+  tor1: "ON",
+  "ca-toronto-1": "ON",
+  "ca-west-1": "AB",
+};
+
+export type Province = (typeof PROVINCE_OF_REGION)[string];
+
+export const provinceOf = (region: string): Province | undefined => PROVINCE_OF_REGION[region.trim().toLowerCase()];
+
+const PROVINCE_NAME = { QC: "Québec", ON: "Ontario", AB: "Alberta" } as const;
+
+/** Where the files would live, as the screen says it before saving: `key` for the product's messages, `text` the English sentence. */
+export interface ResidencyLabel {
+  key: "canada-qc" | "canada-on" | "canada-ab" | "canada" | "elsewhere" | "unknown" | "user-cloud" | "device";
+  country: string | null;
+  province: Province | null;
+  text: string;
+}
+
+/** The label of a configured store: Canada only when region and endpoint agree (`residencyOfConfig`); the province from the region table. */
+export function residencyLabel(config: { provider: "http" | "s3"; endpoint: string; region: string }): ResidencyLabel {
+  if (residencyOfConfig(config) !== "canada") {
+    const country = countryOf(config.region) ?? null;
+    return { key: "elsewhere", country, province: null, text: country ? `Elsewhere: ${country}` : "Elsewhere" };
+  }
+  const province = provinceOf(config.region);
+  if (!province) return { key: "canada", country: "CA", province: null, text: "Canada" };
+  return { key: `canada-${province.toLowerCase()}` as ResidencyLabel["key"], country: "CA", province, text: `Canada (${PROVINCE_NAME[province]})` };
+}
