@@ -29,7 +29,7 @@ describe("endPool", () => {
   it("does not wait for a socket that is already destroyed, nor for a pool without clients", async () => {
     const gone = fakeSocket();
     gone.close();
-    await endPool({ _clients: [{ connection: { stream: gone.socket } }, {}], end: async () => {} });
-    await endPool({ end: async () => {} });
+    await expect(endPool({ _clients: [{ connection: { stream: gone.socket } }, {}], end: async () => {} })).resolves.toBeUndefined();
+    await expect(endPool({ end: async () => {} })).resolves.toBeUndefined();
   });
 });
