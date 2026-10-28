@@ -12,6 +12,13 @@ describe("the demo cast", () => {
     }
   });
 
+  it("has Eric, Mira and Camille in every product, as the deployed QA accounts do", () => {
+    for (const product of ["yomizaka", "akinaza"] as const) {
+      expect(castOf(product).map((p) => p.id)).toEqual(expect.arrayContaining(["eric", "mira", "camille"]));
+      expect(persona(product, "mira").role).toBe("admin");
+    }
+  });
+
   it("holds no e-mail address and no secret", () => {
     expect(JSON.stringify(CAST)).not.toMatch(/@|password|secret/i);
   });
@@ -27,9 +34,9 @@ describe("the demo cast", () => {
 
   it("gives each product a member or owner and an administrator", () => {
     expect(personaByRole("yomizaka", "member").id).toBe("eric");
-    expect(personaByRole("yomizaka", "admin").displayName).toBe("Marie-Ève Bouchard");
+    expect(personaByRole("yomizaka", "admin").displayName).toBe("Mira Haddad");
     expect(castOf("akinaza").filter((p) => p.role === "client")).toHaveLength(5);
-    expect(() => persona("yomizaka", "nobody")).toThrow(/known: eric, marie-eve/);
+    expect(() => persona("yomizaka", "nobody")).toThrow(/known: eric, mira, camille/);
   });
 
   it("resolves media from the defaults, on the CDN", () => {
