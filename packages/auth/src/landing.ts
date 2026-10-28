@@ -25,7 +25,12 @@ export interface LandingRule {
   home: string | ((request: Request) => string);
 }
 
-const trimmed = (path: string) => (path.length > 1 ? path.replace(/\/+$/, "") : path);
+// Linear on any input (a loop, not a `/\/+$/` regular expression: CodeQL js/polynomial-redos on the request path).
+const trimmed = (path: string) => {
+  let end = path.length;
+  while (end > 1 && path.charCodeAt(end - 1) === 47) end--;
+  return path.slice(0, end);
+};
 
 /**
  * The landing route with a session cookie answers 307 to the home before any HTML: private, never stored, varying with the

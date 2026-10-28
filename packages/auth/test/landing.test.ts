@@ -50,3 +50,12 @@ describe("sessionHint: a readable « a session cookie exists » flag, never the 
     expect(set(sessionHint(new Response(null), at("/"), { cookie: "yomizaka_session", secure: false }))).toBe("");
   });
 });
+
+describe("landingRedirect on hostile paths", () => {
+  it("matches a path of many slashes in linear time (no polynomial regular expression)", () => {
+    const started = performance.now();
+    expect(landingRedirect(at(`/${"/".repeat(50_000)}x`, "yomizaka_session=t"), rule)).toBeNull();
+    expect(performance.now() - started).toBeLessThan(200);
+    expect(landingRedirect(at("/fr///", "yomizaka_session=t"), rule)?.status).toBe(307);
+  });
+});
