@@ -48,3 +48,12 @@ export const CHROME_BAD = `<!doctype html><html><body><main><p>Hello</p></main><
 export const TOKEN_IN_STRETCHED_ROW = page(`<table style="width:600px"><tbody><tr><td>orazaka-media-pack</td><td>${"A long description. ".repeat(30)}</td></tr></tbody></table>`);
 /** An identifier in a narrow cell that breaks every few characters. */
 export const TOKEN_WRAPPED = page(`<table style="width:100px;table-layout:fixed"><tbody><tr><td style="word-break:break-all;font-size:20px">abcdefghijklmnopqrstuvwxyz0123456789</td></tr></tbody></table>`);
+
+/** A map that laid out at 0 px: `absolute inset-0` in a frame with no height of its own (akinaza#488). */
+export const MAP_COLLAPSED = page(`<section><div style="position:relative"><div class="maplibregl-map" style="position:absolute;inset:0"><canvas width="0" height="0"></canvas></div></div></section>`);
+/** A map box with a size and a canvas, and a Leaflet one with a loaded tile. */
+export const MAP_FINE = page(`<section><div class="maplibregl-map" style="height:300px;width:600px"><canvas style="width:600px;height:300px" width="600" height="300"></canvas></div><div class="leaflet-container" style="height:300px;width:600px"><img class="leaflet-tile-loaded" alt="" width="256" height="256"></div></section>`);
+/** A GL map box of a good size where nothing was drawn (no canvas). */
+export const MAP_NO_CANVAS = page(`<section><div class="maplibregl-map" style="height:300px;width:600px"></div></section>`);
+/** A map that is not drawn (display none: a closed tab, a small screen): nothing to measure. */
+export const MAP_HIDDEN = page(`<section><div class="maplibregl-map" style="display:none"></div></section>`);
