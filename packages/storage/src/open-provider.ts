@@ -43,8 +43,8 @@ export function openProvider(kindName: string, coordinates: Readonly<Record<stri
   need(kind.coordinates, coordinates, "the");
   need(kind.credentials, credentials, "the");
   const deps = { fetch: ctx.fetch, clock: ctx.clock };
-  if (kind.kind === "folder") return { store: folderStore({ root: coordinates.root! }), kind, residency: { key: "device", country: null, province: null, text: "This machine (development)" } };
-  if (kind.kind === "bunny") {
+  if (kindName === "folder") return { store: folderStore({ root: coordinates.root! }), kind, residency: { key: "device", country: null, province: null, text: "This machine (development)" } };
+  if (kindName === "bunny") {
     const store = remoteStore({ endpoint: coordinates.endpoint!, zone: coordinates.zone!, accessKey: credentials.accessKey!, ...optional("prefix", coordinates.prefix), ...optional("pullHostname", coordinates.pullHostname), ...optional("tokenKey", credentials.tokenKey), ...deps });
     return { store, kind, residency: { key: "elsewhere", country: null, province: null, text: "Elsewhere (no Canadian region)" } };
   }
