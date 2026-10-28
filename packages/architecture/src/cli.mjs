@@ -9,7 +9,9 @@ import { buildC4, toText } from "./index.mjs";
 const args = process.argv.slice(2);
 const flag = (name) => {
   const i = args.indexOf(`--${name}`);
-  return i < 0 ? undefined : (args[i + 1] && !args[i + 1].startsWith("--") ? args[i + 1] : true);
+  if (i < 0) return undefined;
+  const value = args[i + 1];
+  return value && !value.startsWith("--") ? value : true;
 };
 const repoPath = args.find((a, i) => !a.startsWith("--") && !(args[i - 1] ?? "").startsWith("--"));
 
@@ -32,4 +34,7 @@ if (typeof out === "string") writeFileSync(resolve(out), json);
 else if (text !== true) process.stdout.write(json);
 if (typeof text === "string") writeFileSync(resolve(text), toText(c4));
 else if (text === true) process.stdout.write(toText(c4));
-if (typeof out === "string") console.log(`${c4.repo}: ${Object.values(c4.levels).map((l) => `${l.nodes.length} ${l.level} node(s)`).join(", ")} -> ${out}`);
+if (typeof out === "string") {
+  const counts = Object.values(c4.levels).map((l) => l.nodes.length + " " + l.level + " node(s)").join(", ");
+  console.log(`${c4.repo}: ${counts} -> ${out}`);
+}

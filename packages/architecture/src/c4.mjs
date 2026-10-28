@@ -1,5 +1,6 @@
 // The three C4 levels (context, containers, components) from the facts of a checkout: `{ level, nodes, edges }` each.
 import { contextOf } from "./imports.mjs";
+import { asc } from "./order.mjs";
 import { componentOf, containerOfPath, scan } from "./scan.mjs";
 
 export const SCHEMA = "krizaka.c4/1";
@@ -18,10 +19,10 @@ const EXTERNALS = {
   AI: "AI provider",
 };
 const LIBRARIES = "external:krizaka-libraries";
-const byId = (a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+const byId = (a, b) => asc(a.id, b.id);
 
 const node = (id, level, kind, name, extra = {}) => {
-  const files = [...new Set(extra.files ?? [])].sort();
+  const files = [...new Set(extra.files ?? [])].sort(asc);
   return { id, level, kind, name, description: extra.description ?? "", technology: extra.technology, files: files.slice(0, FILE_CAP), fileCount: extra.fileCount ?? files.length };
 };
 
@@ -32,7 +33,7 @@ class Edges {
     const key = `${from}|${to}|${label}`;
     const edge = this.#map.get(key) ?? { from, to, label, count: 0, files: [] };
     edge.count += files.length;
-    edge.files = [...new Set([...edge.files, ...files])].sort().slice(0, EDGE_FILE_CAP);
+    edge.files = [...new Set([...edge.files, ...files])].sort(asc).slice(0, EDGE_FILE_CAP);
     this.#map.set(key, edge);
   }
   list() {
@@ -45,20 +46,21 @@ const componentId = (c, name) => `component:${c.name}/${name}`;
 const externalId = (ctx) => `external:${ctx.toLowerCase()}`;
 
 /** Env names by external context, with the declaring files, per container dir: `Map<dir, Map<context, { names, files }>>`. */
+function putUse(use, dir, name, path) {
+  const ctx = contextOf(name);
+  if (!EXTERNALS[ctx]) return;
+  const byCtx = use.get(dir) ?? new Map();
+  const entry = byCtx.get(ctx) ?? { names: new Set(), files: new Set() };
+  entry.names.add(name);
+  entry.files.add(path);
+  byCtx.set(ctx, entry);
+  use.set(dir, byCtx);
+}
+
 function envUse(facts) {
   const use = new Map();
-  const put = (dir, name, path) => {
-    const ctx = contextOf(name);
-    if (!EXTERNALS[ctx]) return;
-    const byCtx = use.get(dir) ?? new Map();
-    const entry = byCtx.get(ctx) ?? { names: new Set(), files: new Set() };
-    entry.names.add(name);
-    entry.files.add(path);
-    byCtx.set(ctx, entry);
-    use.set(dir, byCtx);
-  };
-  for (const d of facts.declarations) d.names.forEach((n) => put(d.container, n, d.path));
-  for (const f of facts.files) f.envs.forEach((n) => put(f.container, n, f.path));
+  for (const d of facts.declarations) d.names.forEach((n) => putUse(use, d.container, n, d.path));
+  for (const f of facts.files) f.envs.forEach((n) => putUse(use, f.container, n, f.path));
   return use;
 }
 
@@ -72,7 +74,7 @@ const externalNodes = (use) => {
       agg.set(ctx, entry);
     }
   }
-  return [...agg].map(([ctx, { names, files }]) => node(externalId(ctx), "external", "external", EXTERNALS[ctx], { description: `Configured by ${[...names].sort().join(", ")}`, files }));
+  return [...agg].map(([ctx, { names, files }]) => node(externalId(ctx), "external", "external", EXTERNALS[ctx], { description: `Configured by ${[...names].sort(asc).join(", ")}`, files }));
 };
 
 const workspaceByName = (containers) => new Map(containers.map((c) => [c.name, c]));
@@ -104,7 +106,7 @@ function containerEdges(facts, use) {
 const libraryNode = (facts) => {
   const byName = workspaceByName(facts.containers);
   const used = new Set([...facts.containers.flatMap((c) => c.deps), ...facts.files.flatMap((f) => f.imports.filter((i) => i.kind === "package").map((i) => i.name))].filter((n) => isLibrary(n, byName)));
-  return used.size ? [node(LIBRARIES, "external", "external", "Krizaka libraries", { description: [...used].sort().join(", ") })] : [];
+  return used.size ? [node(LIBRARIES, "external", "external", "Krizaka libraries", { description: [...used].sort(asc).join(", ") })] : [];
 };
 
 const containerNodes = (facts) => facts.containers.map((c) => {
@@ -138,6 +140,17 @@ const componentNodes = (facts) => {
   return [...groups].map(([id, g]) => node(id, "component", "component", g.name, { description: g.c.name, technology: g.c.technology, files: g.files }));
 };
 
+/** The edge one import of a file draws from its component: to another container, or to another component of the same one. */
+function importEdge(facts, byName, c, from, imp) {
+  if (imp.kind === "package") {
+    return byName.has(imp.name) && imp.name !== c.name ? [from, containerId(byName.get(imp.name)), "uses"] : undefined;
+  }
+  const target = containerOfPath(facts.containers, imp.target);
+  if (target?.dir !== c.dir) return undefined;
+  const to = componentId(c, componentOf(c, imp.target));
+  return to === from ? undefined : [from, to, "imports"];
+}
+
 function componentEdges(facts, use) {
   const edges = new Edges();
   const byName = workspaceByName(facts.containers);
@@ -145,12 +158,8 @@ function componentEdges(facts, use) {
     const c = facts.containers.find((x) => x.dir === f.container);
     const from = componentId(c, f.component);
     for (const imp of f.imports) {
-      if (imp.kind === "package" && byName.has(imp.name) && imp.name !== c.name) edges.add(from, containerId(byName.get(imp.name)), "uses", [f.path]);
-      if (imp.kind === "local") {
-        const target = containerOfPath(facts.containers, imp.target);
-        const to = target?.dir === c.dir ? componentId(c, componentOf(c, imp.target)) : undefined;
-        if (to && to !== from) edges.add(from, to, "imports", [f.path]);
-      }
+      const edge = importEdge(facts, byName, c, from, imp);
+      if (edge) edges.add(...edge, [f.path]);
     }
     for (const n of f.envs.filter((name) => use.get(f.container)?.has(contextOf(name)))) edges.add(from, externalId(contextOf(n)), "reads", [f.path]);
   }

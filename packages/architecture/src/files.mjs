@@ -2,6 +2,8 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, posix } from "node:path";
 
+import { asc } from "./order.mjs";
+
 const SKIP_DIRS = new Set(["node_modules", ".git", "dist", "build", ".next", ".turbo", "coverage", "out", "target", ".open-next", ".expo", ".cache", ".venv"]);
 const CODE = /\.(?:[cm]?[jt]sx?)$/;
 const TEST = /(?:\.(?:test|spec|stories)\.[cm]?[jt]sx?$|(?:^|\/)(?:__tests__|test|tests|e2e|fixtures)\/)/;
@@ -25,7 +27,9 @@ export const readJson = (path) => {
 };
 
 /** Every code file and env declaration file of a checkout, as repo-relative paths with "/". Tests are listed apart. */
-export function walk(root, rel = "", out = { code: [], tests: [], env: [] }) {
+const listing = () => ({ code: [], tests: [], env: [] });
+
+export function walk(root, rel = "", out = listing()) {
   for (const entry of readdirSync(join(root, rel), { withFileTypes: true })) {
     const path = rel ? `${rel}/${entry.name}` : entry.name;
     if (entry.isDirectory()) {
@@ -73,11 +77,11 @@ export function workspaceDirs(root) {
   const declared = Array.isArray(pkg?.workspaces) ? pkg.workspaces : (pkg?.workspaces?.packages ?? []);
   const patterns = [...declared, ...yamlPackages(readText(join(root, "pnpm-workspace.yaml")))];
   const excluded = new Set(patterns.filter((p) => p.startsWith("!")).flatMap((p) => expand(root, p.slice(1))));
-  return [...new Set(patterns.filter((p) => !p.startsWith("!")).flatMap((p) => expand(root, p)))].filter((d) => !excluded.has(d)).sort();
+  return [...new Set(patterns.filter((p) => !p.startsWith("!")).flatMap((p) => expand(root, p)))].filter((d) => !excluded.has(d)).sort(asc);
 }
 
 /** The Maven modules listed by the root pom (one level), as repo-relative directories. */
 export function mavenModules(root) {
   const pom = readText(join(root, "pom.xml"));
-  return [...pom.matchAll(/<module>\s*([^<\s]+)\s*<\/module>/g)].map((m) => posix.normalize(m[1])).filter((d) => existsSync(join(root, d, "pom.xml"))).sort();
+  return [...pom.matchAll(/<module>\s*([^<\s]+)\s*<\/module>/g)].map((m) => posix.normalize(m[1])).filter((d) => existsSync(join(root, d, "pom.xml"))).sort(asc);
 }

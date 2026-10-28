@@ -20,7 +20,7 @@ const mavenContainer = (root, dir) => {
   const pom = readText(join(root, dir, "pom.xml"));
   const own = artifactIds(pom.replace(/<parent>[\s\S]*?<\/parent>/, "").replace(/<dependencies>[\s\S]*?<\/dependencies>/g, ""))[0];
   const deps = [...pom.matchAll(/<dependency>([\s\S]*?)<\/dependency>/g)].flatMap((m) => artifactIds(m[1]).slice(0, 1));
-  return { dir, name: own ?? posix.basename(dir), description: /<description>\s*([^<]*?)\s*<\/description>/.exec(pom)?.[1] ?? "", kind: "module", technology: "Maven", deps, manifest: posix.join(dir, "pom.xml") };
+  return { dir, name: own ?? posix.basename(dir), description: (/<description>([^<]*)<\/description>/.exec(pom)?.[1] ?? "").trim(), kind: "module", technology: "Maven", deps, manifest: posix.join(dir, "pom.xml") };
 };
 
 /** The containers of a checkout: workspace packages, else Maven modules, else the root package itself. */

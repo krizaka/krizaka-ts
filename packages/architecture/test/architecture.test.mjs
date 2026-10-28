@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 
 import { envNamesOf, localTarget, packageOf, specifiersOf } from "../src/imports.mjs";
 import { buildC4, toText } from "../src/index.mjs";
+import { asc } from "../src/order.mjs";
 
 const cli = join(dirname(fileURLToPath(import.meta.url)), "../src/cli.mjs");
 const dirs = [];
@@ -121,6 +122,14 @@ describe("other layouts", () => {
   it("an empty folder gives an empty view, not a crash", () => {
     const c4 = buildC4(fixture({ "README.md": "x" }));
     assert.deepEqual(c4.levels.containers.nodes, []);
+  });
+});
+
+describe("order", () => {
+  it("asc is code-point order, the one Array#sort uses by default", () => {
+    const words = ["b", "B", "a", "é", "_"];
+    assert.deepEqual([...words].sort(asc), [...words].sort());
+    assert.equal(asc("a", "a"), 0);
   });
 });
 
