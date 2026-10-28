@@ -1,5 +1,11 @@
 # @krizaka/storage
 
+## 0.4.0
+
+### Minor Changes
+
+- 9e54d74: `sweepOrphans(store, prefix, isReferenced, { dryRun, limit })`: deletes the files under a prefix that nothing references (leftovers of a rolled-back upload or an interrupted purge), reports scanned / orphans / deleted / failed, never stops on one failing delete.
+
 ## 0.3.1
 
 ### Patch Changes
