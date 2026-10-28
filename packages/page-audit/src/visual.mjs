@@ -74,8 +74,10 @@ export async function prepareVisualPage(page, { theme, themeKey = "kz-theme", no
 
 /** Waits until what is on screen is final: the faces, the images, the transitions. */
 export async function settleForShot(page, { javaScript = true } = {}) {
-  await page.addStyleTag({ content: FREEZE_CSS });
+  // With JavaScript off, Playwright cannot run a script in the page: addStyleTag never returns (the first paint hung for the whole test timeout).
+  // Nothing moves without scripts, and `animations: "disabled"` of the screenshot still freezes CSS animations.
   if (!javaScript) return;
+  await page.addStyleTag({ content: FREEZE_CSS });
   await page.evaluate(() => document.fonts.ready);
   await settled(page);
   await page.evaluate(() =>
