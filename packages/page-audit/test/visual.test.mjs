@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { FROZEN_TIME, shotOptions, VIEWPORTS,visualContextOptions, visualMatrix } from "../src/visual.mjs";
+import { FROZEN_TIME, settleForShot, shotOptions, VIEWPORTS,visualContextOptions, visualMatrix } from "../src/visual.mjs";
 
 describe("visualMatrix", () => {
   it("gives a name to every viewport × theme cell", () => {
@@ -34,5 +34,20 @@ describe("shotOptions", () => {
   });
   it("freezes time on a fixed instant", () => {
     expect(new Date(FROZEN_TIME).toISOString()).toBe(FROZEN_TIME);
+  });
+});
+
+describe("settleForShot", () => {
+  it("never runs a script in a page whose JavaScript is off (it would hang)", async () => {
+    const calls = [];
+    const page = { addStyleTag: async () => calls.push("style"), evaluate: async () => calls.push("evaluate") };
+    await settleForShot(page, { javaScript: false });
+    expect(calls).toEqual([]);
+  });
+  it("freezes the page and waits for the faces when scripts run", async () => {
+    const calls = [];
+    const page = { addStyleTag: async () => calls.push("style"), evaluate: async () => calls.push("evaluate"), waitForFunction: async () => calls.push("settled") };
+    await settleForShot(page);
+    expect(calls).toEqual(["style", "evaluate", "settled", "evaluate"]);
   });
 });
