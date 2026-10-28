@@ -49,7 +49,7 @@
   "scripts": {
     "lint": "eslint . --max-warnings 0",
     "typecheck": "node --check src/index.mjs",
-    "test": "vitest run",
+    "test": "vitest run --coverage --coverage.provider=v8 --coverage.reporter=lcov --coverage.reporter=text-summary \"--coverage.include=src/**/*.ts\"",
     "check": "pnpm run lint && pnpm run test",
     "prepublishOnly": "pnpm run check"
   },

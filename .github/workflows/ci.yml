@@ -23,7 +23,7 @@ jobs:
       contents: read
     with:
       duplication: true      # jscpd + dup-ratchet.json: duplicated lines may only go down
-      sonar-coverage-paths: coverage/lcov.inf[o]   # no coverage report yet; a literal path that is missing breaks the collect step (a glob with a wildcard does not)
+      sonar-coverage-paths: packages/*/coverage/lcov.info   # each package writes its own report (vitest run --coverage); the collect step rebases the SF: paths to the repository root
       package-manager: pnpm
       sonar: true            # CI analysis: the merge queue's branch (gh-readonly-queue/...) is analysed too; automatic analysis never does
       parallel: true
