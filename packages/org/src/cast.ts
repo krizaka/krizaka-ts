@@ -26,6 +26,7 @@ export interface CastPersona {
 }
 
 /** The versioned cast. Change it here, then re-run each app's `seed --cast`: every environment gets the same people. */
+// @fixed: a schema version of the cast, bumped by hand when its shape changes
 export const CAST_VERSION = 1;
 
 export const CAST: readonly CastPersona[] = [
