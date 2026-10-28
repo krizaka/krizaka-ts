@@ -80,6 +80,14 @@ const externalNodes = (use) => {
 const workspaceByName = (containers) => new Map(containers.map((c) => [c.name, c]));
 const isLibrary = (name, byName) => name.startsWith("@krizaka/") && !byName.has(name);
 
+/** The workspace containers a file imports by package name, with the container the file belongs to. */
+function importedContainers(facts, byName, file) {
+  const from = facts.containers.find((c) => c.dir === file.container);
+  return file.imports
+    .filter((i) => i.kind === "package" && byName.has(i.name) && i.name !== from.name)
+    .map((i) => ({ from, target: byName.get(i.name) }));
+}
+
 /** Container -> container edges (declared dependency or import) and container -> library/external edges. */
 function containerEdges(facts, use) {
   const edges = new Edges();
@@ -90,12 +98,7 @@ function containerEdges(facts, use) {
       else if (isLibrary(dep, byName)) edges.add(containerId(c), LIBRARIES, "uses", [c.manifest]);
     }
   }
-  for (const f of facts.files) {
-    const from = facts.containers.find((c) => c.dir === f.container);
-    for (const imp of f.imports.filter((i) => i.kind === "package")) {
-      if (byName.has(imp.name) && imp.name !== from.name) edges.add(containerId(from), containerId(byName.get(imp.name)), "uses", [f.path]);
-    }
-  }
+  for (const f of facts.files) importedContainers(facts, byName, f).forEach((to) => edges.add(containerId(to.from), containerId(to.target), "uses", [f.path]));
   for (const [dir, byCtx] of use) {
     const from = facts.containers.find((c) => c.dir === dir);
     for (const [ctx, { files }] of byCtx) edges.add(containerId(from), externalId(ctx), "reads", [...files]);

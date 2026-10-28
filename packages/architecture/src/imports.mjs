@@ -26,7 +26,7 @@ export function packageOf(specifier) {
 /** The repo path a relative (`./x`, `../x`) or root-alias (`@/x`, `~/x`) specifier points to, extension-less. */
 export function localTarget(specifier, fromFile, containerDir) {
   if (specifier.startsWith(".")) return posix.normalize(posix.join(posix.dirname(fromFile), specifier));
-  if (/^(?:@|~)\//.test(specifier)) return posix.join(containerDir === "." ? "" : containerDir, specifier.slice(2));
+  if (/^[@~]\//.test(specifier)) return posix.join(containerDir === "." ? "" : containerDir, specifier.slice(2));
   return undefined;
 }
 
