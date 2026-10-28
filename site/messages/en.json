@@ -76,6 +76,9 @@
     "org": {
       "hook": "The public facts about Krizaka in one validated JSON that every footer, site and app reads: legal identity, marks, live products, sites, footer line."
     },
+    "architecture": {
+      "hook": "The C4 view of a repository generated from its code: containers, components, the imports between them and the external services, as JSON and text, on a local checkout."
+    },
     "page-audit": {
       "hook": "The page audit of every app: overflow, a card out of its panel, overlaps and cut columns, over routes, widths and themes, with a self-test."
     },

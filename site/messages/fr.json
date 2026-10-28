@@ -76,6 +76,9 @@
     "org": {
       "hook": "Les faits publics de Krizaka dans un seul JSON validé que lisent tous les pieds de page, sites et applications : identité légale, marques, produits en ligne, sites, ligne de pied de page."
     },
+    "architecture": {
+      "hook": "La vue C4 d’un dépôt générée depuis son code : conteneurs, composants, imports entre eux et services externes, en JSON et en texte, sur une copie locale."
+    },
     "page-audit": {
       "hook": "L’audit de page de toutes les apps : débordement, carte hors de son panneau, chevauchements et colonnes coupées, sur des routes, largeurs et thèmes, avec un auto-test."
     },
