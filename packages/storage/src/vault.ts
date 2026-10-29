@@ -30,10 +30,45 @@ export function open(sealed: string, key: Uint8Array): string {
   }
 }
 
-/** The key-encryption keys the vault can use: by `key_id` for `v2.` values, and the old single key (`legacy`) that still opens `v1.` values. */
-export interface Keyring {
+/** The key-encryption keys held in this process: by `key_id` for `v2.` values, and the old single key (`legacy`) that still opens `v1.` values. */
+export interface LocalKeys {
   keys: Readonly<Record<string, Uint8Array>>;
   legacy?: Uint8Array;
+}
+
+type Maybe<T> = T | Promise<T>;
+
+/**
+ * The key port (ADR-005 amendment, krizaka-ts#239): all the vault asks of the key-encryption key is to wrap and unwrap a 32-byte data
+ * key. `localKeyring` does it in this process (the default); a KMS (AWS KMS ca-central-1, OVHcloud KMS, Vault transit) implements the
+ * same three members and the key never reaches the app. The stored `v2.<key_id>.<wrapped data key>.<sealed secret>` format is the
+ * same either way, so moving to a KMS is a re-wrap, not a re-entry.
+ */
+export interface Keyring {
+  /** The `key_id` new values are wrapped under. */
+  readonly keyId: string;
+  /** The data key wrapped under `keyId`, as base64url text. */
+  wrap(dataKey: Uint8Array, keyId: string): Maybe<string>;
+  /** @throws StorageError `STORAGE_UNREADABLE` when `keyId` is unknown here or the wrapped key fails its check */
+  unwrap(wrapped: string, keyId: string): Maybe<Uint8Array>;
+  /** Opens a `v1.` value (the single old key), when this ring still has it. */
+  openLegacy?(sealed: string): string;
+}
+
+/** The in-process keyring: `key` is the current key-encryption key (named `keyId`), `ring` the older ones still needed to open values. */
+export function localKeyring(input: { keyId: string; key: Uint8Array; ring: LocalKeys }): Keyring {
+  const keyFor = (keyId: string): Uint8Array => {
+    const kek = keyId === input.keyId ? input.key : input.ring.keys[keyId];
+    if (!kek) throw unreadable(`No vault key ${keyId}`);
+    return kek;
+  };
+  const legacy = input.ring.legacy;
+  return {
+    keyId: input.keyId,
+    wrap: (dataKey, keyId) => gcm(dataKey, keyFor(keyId), keyId),
+    unwrap: (wrapped, keyId) => ungcm(wrapped, keyFor(keyId), keyId),
+    ...(legacy ? { openLegacy: (sealed: string) => open(sealed, legacy) } : {}),
+  };
 }
 
 const BODY_AAD = "body";
@@ -77,7 +112,7 @@ export function keyIdOf(sealed: string): string | null {
   return version === "v2" && keyId && KEY_ID.test(keyId) ? keyId : null;
 }
 
-function unwrap(sealed: string, ring: Keyring): { dataKey: Buffer; keyId: string; body: string } {
+function unwrap(sealed: string, ring: LocalKeys): { dataKey: Buffer; keyId: string; body: string } {
   const [version, keyId, wrapped, body] = sealed.split(".");
   if (version !== "v2" || !keyId || !wrapped || !body) throw unreadable("Unreadable sealed value");
   const kek = ring.keys[keyId];
@@ -86,7 +121,7 @@ function unwrap(sealed: string, ring: Keyring): { dataKey: Buffer; keyId: string
 }
 
 /** Opens a `v2.` value with the key named in it, or a `v1.` value with the legacy key. @throws StorageError `STORAGE_UNREADABLE` */
-export function openEnvelope(sealed: string, ring: Keyring): string {
+export function openEnvelope(sealed: string, ring: LocalKeys): string {
   if (sealed.startsWith("v1.")) {
     if (!ring.legacy) throw unreadable("No legacy vault key for a v1 value");
     return open(sealed, ring.legacy);
@@ -96,9 +131,45 @@ export function openEnvelope(sealed: string, ring: Keyring): string {
 }
 
 /** Re-wraps the data key under `to` (the rotation): the sealed secret is untouched. A `v1.` value is opened and sealed as `v2.`. */
-export function rewrapEnvelope(sealed: string, ring: Keyring, to: { keyId: string; key: Uint8Array }): string {
+export function rewrapEnvelope(sealed: string, ring: LocalKeys, to: { keyId: string; key: Uint8Array }): string {
   if (sealed.startsWith("v1.")) return sealEnvelope(openEnvelope(sealed, ring), to.key, to.keyId);
   if (!KEY_ID.test(to.keyId)) throw new StorageError(STORAGE_CODE.badConfig, "The vault key id is 1 to 32 letters, digits, - or _");
   const { dataKey, body } = unwrap(sealed, ring);
   return `v2.${to.keyId}.${gcm(dataKey, to.key, to.keyId)}.${body}`;
+}
+
+function parts(sealed: string): { keyId: string; wrapped: string; body: string } {
+  const [version, keyId, wrapped, body] = sealed.split(".");
+  if (version !== "v2" || !keyId || !wrapped || !body) throw unreadable("Unreadable sealed value");
+  return { keyId, wrapped, body };
+}
+
+const assertKeyId = (keyId: string) => {
+  if (!KEY_ID.test(keyId)) throw new StorageError(STORAGE_CODE.badConfig, "The vault key id is 1 to 32 letters, digits, - or _");
+};
+
+/** `sealEnvelope` through a keyring (a KMS can wrap the data key): `v2.<ring.keyId>…`. */
+export async function sealWith(ring: Keyring, secret: string): Promise<string> {
+  assertKeyId(ring.keyId);
+  const dataKey = randomBytes(32);
+  return `v2.${ring.keyId}.${await ring.wrap(dataKey, ring.keyId)}.${gcm(Buffer.from(secret, "utf8"), dataKey, BODY_AAD)}`;
+}
+
+/** `openEnvelope` through a keyring. @throws StorageError `STORAGE_UNREADABLE` */
+export async function openWith(ring: Keyring, sealed: string): Promise<string> {
+  if (sealed.startsWith("v1.")) {
+    if (!ring.openLegacy) throw unreadable("No legacy vault key for a v1 value");
+    return ring.openLegacy(sealed);
+  }
+  const { keyId, wrapped, body } = parts(sealed);
+  return ungcm(body, Buffer.from(await ring.unwrap(wrapped, keyId)), BODY_AAD).toString("utf8");
+}
+
+/** `rewrapEnvelope` through a keyring: the data key is re-wrapped under `ring.keyId`; the sealed secret is untouched. */
+export async function rewrapWith(ring: Keyring, sealed: string): Promise<string> {
+  if (sealed.startsWith("v1.")) return sealWith(ring, await openWith(ring, sealed));
+  assertKeyId(ring.keyId);
+  const { keyId, wrapped, body } = parts(sealed);
+  const dataKey = await ring.unwrap(wrapped, keyId);
+  return `v2.${ring.keyId}.${await ring.wrap(dataKey, ring.keyId)}.${body}`;
 }

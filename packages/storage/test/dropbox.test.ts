@@ -119,8 +119,8 @@ describe("Dropbox OAuth 2 with PKCE", () => {
     await expect(refreshDropboxToken(fakeDropbox({ revoked: true }).call, { clientId: "cid", refreshToken: "RT" })).rejects.toMatchObject({ code: "STORAGE_DISCONNECTED" });
   });
 
-  it("opens as a registered kind with no claim about where the files are", () => {
-    const opened = openProvider("dropbox", { clientId: "cid" }, { refreshToken: "RT" }, { runtime: "server", environment: "prod", fetch: fakeDropbox().call, clock });
+  it("opens as a registered kind with no claim about where the files are", async () => {
+    const opened = await openProvider("dropbox", { clientId: "cid" }, { refreshToken: "RT" }, { runtime: "server", environment: "prod", fetch: fakeDropbox().call, clock });
     expect(opened.residency.key).toBe("user-cloud");
   });
 });
