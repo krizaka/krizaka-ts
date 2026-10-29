@@ -33,6 +33,7 @@ const LABELS = {
   routeStateSelection: "selections in local state (not the URL)",
   cognitiveComplexity: "functions over complexity 15 (S3776)",
   sonar: "Sonar rules (sonarjs, total)",
+  codeRules: "Code rules (braces, depth, nested callbacks, console; total)",
 };
 
 let args;
@@ -75,7 +76,7 @@ try {
   } else {
     console.log(`krizaka-ratchet — ${result.files} files for the UI, ${result.stackFiles} for the stack`);
     // the named counters, then one line per Sonar rule that has a violation or a recorded count
-    const lines = [...COUNTERS, ...Object.keys(result.counters).filter((name) => name.startsWith("sonarjs/"))];
+    const lines = [...COUNTERS, ...Object.keys(result.counters).filter((name) => name.startsWith("sonarjs/") || name.startsWith("code/"))];
     for (const name of lines) {
       const { recorded, current, delta } = result.counters[name];
       const mark = delta > 0 ? "✗" : delta < 0 ? "↓" : "=";

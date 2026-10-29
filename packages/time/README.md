@@ -14,3 +14,7 @@ const retryAfter = differenceInSeconds(resetAt, clock.now());
 - **Not the calendar.** The day a law, a deadline or a receipt means, in a person's zone, is not arithmetic on an instant: use `localDay` of `@krizaka/intl`. For that reason there is no `addDays` here.
 - **Missing function?** Add it here first (with its test), never import the library beside it.
 - Pure: no clock of its own (take a `Clock` from `@krizaka/db`), no environment, no I/O.
+
+## Validation shapes
+
+`isIsoDate` (`YYYY-MM-DD`), `isEmail`, `isHttpUrl`, `isSlug`, `isE164Phone`, `isCanadianPostalCode`: type guards on `unknown`, pure, no I/O. The `no-hand-written-validation-regex` rule of `@krizaka/config` refuses a hand-written pattern for these shapes and points here. An email check says the shape is right, never that the mailbox exists. Missing a fact? Add it here first, with its test.

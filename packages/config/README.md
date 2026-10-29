@@ -301,11 +301,22 @@ In a pnpm workspace, a dependency that names another package of the same workspa
 
 [Apache-2.0](https://github.com/krizaka/krizaka-ts/blob/main/LICENSE)
 
+## Code rules (krizaka/.github#422)
+
+Readable shapes, enforced by lint and frozen by the ratchet. `krizakaStack` carries them (option `codeRules`: `"error"` by default, `"warn"` for a repository with debt, `"off"`), or alone: `import { krizakaCodeRules } from "@krizaka/config/eslint/code-rules"`.
+
+- **`curly: all`**: `if`, `for`, `while`, `else` always take `{}` (`eslint --fix` adds them).
+- **`max-depth: 2`** and **`max-nested-callbacks: 3`**: above that, extract a named function, or write a `flatMap` / `filter` / `map` pipeline that returns the result.
+- **`no-console` in runtime code** (`app`, `src`, `lib`, `components`, a package's `src`; not scripts, tools, configs, tests): logs go through the shared logger.
+- **ast-grep `core`**: `no-sync-fs-in-runtime` (`fs/promises` and `Promise.all` instead of `readFileSync` and friends; sync stays fine in scripts, tools, configs, tests) and `no-hand-written-validation-regex` (a date, email, URL, slug, phone or postal code is `isIsoDate` of `@krizaka/time`, `isEmail`, `isHttpUrl`, `isSlug`, `isE164Phone`, `isCanadianPostalCode` of @krizaka/time).
+- **`krizaka-ratchet`** counts them per rule (`code/curly`, `code/max-depth`, `code/max-nested-callbacks`, `code/no-console`; total `codeRules`); `krizaka-sg-ratchet` counts the two ast-grep rules. Both only go down.
+- Constants out of the logic: `no-unjustified-numeric-export` (core) already refuses an unjustified numeric export; words belong in messages, numbers in the domain's settings module.
+
 ## ast-grep pack and the SEO check
 
 One source for the code rules (ADR-013, `docs/standards/guards.md`): the repositories carry no copy of `sg-ratchet.mjs`, of the rules or of `check-seo-family.mjs`.
 
-- **Rules by set**, files in `node_modules/@krizaka/config/ast-grep/<set>`: `core` (hand-written time arithmetic, ambient clock, env and db in domain code, enum compare, `enum`, numeric exports, `types.ts` at a package root), `web` (hand-made nav, hand-made language switch, hard-coded default media), `html` (raw `innerHTML`). The domain rules read `packages/*/src`, `apps/*/lib`, `src` and `lib`.
+- **Rules by set**, files in `node_modules/@krizaka/config/ast-grep/<set>`: `core` (sync fs in runtime code, hand-written validation regex, hand-written time arithmetic, ambient clock, env and db in domain code, enum compare, `enum`, numeric exports, `types.ts` at a package root), `web` (hand-made nav, hand-made language switch, hard-coded default media), `html` (raw `innerHTML`). The domain rules read `packages/*/src`, `apps/*/lib`, `src` and `lib`.
 - **A repository's `sgconfig.yml`** names the sets it adopts and its own rules (each local rule is a file in `rules/` with its test in `rule-tests/`, and a comment saying why it is not shared):
 
   ```yaml

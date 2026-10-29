@@ -1,0 +1,15 @@
+id: no-sync-fs-in-runtime
+valid:
+  - |
+    const text = await readFile(path, "utf8");
+  - |
+    const [a, b] = await Promise.all([fs.readFile(x), fs.readFile(y)]);
+  - |
+    const values = items.map((item) => item.name);
+invalid:
+  - |
+    const text = readFileSync(path, "utf8");
+  - |
+    if (fs.existsSync(path)) { run(); }
+  - |
+    const names = fs.readdirSync(dir);

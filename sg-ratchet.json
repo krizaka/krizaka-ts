@@ -10,7 +10,9 @@
     "no-hand-ms-hours": 0,
     "no-hand-ms-minutes": 0,
     "no-hand-ms-one-hour": 0,
+    "no-hand-written-validation-regex": 5,
     "no-math-random-in-src": 0,
+    "no-sync-fs-in-runtime": 0,
     "no-ts-enum": 0,
     "no-types-at-package-root": 0,
     "no-unjustified-numeric-export": 0

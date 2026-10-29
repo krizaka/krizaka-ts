@@ -31,6 +31,7 @@
     "./eslint/krizaka-ui": "./eslint/krizaka-ui.js",
     "./eslint/no-locale-ternary": "./eslint/no-locale-ternary.js",
     "./eslint/stack": "./eslint/stack.js",
+    "./eslint/code-rules": "./eslint/code-rules.js",
     "./eslint/ui-warnings": "./eslint/ui-warnings.js",
     "./eslint/env-names": "./eslint/env-names.js",
     "./eslint/plugin": "./eslint/plugin.js",

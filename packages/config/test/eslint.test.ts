@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { ESLint, type Linter } from "eslint";
 import tseslint from "typescript-eslint";
 
+import { krizakaCodeRules } from "../eslint/code-rules.js";
 import { envNamePrefixProblem, envNames, ownProductPrefix } from "../eslint/env-names.js";
 import { KRIZAKA_IGNORES, krizakaBase } from "../eslint/index.js";
 import { krizakaUi, krizakaUiRestrictedSyntax, krizakaUiRules } from "../eslint/krizaka-ui.js";
@@ -254,7 +255,7 @@ describe("krizakaStack — the three stack rules (S1–S3, S11)", () => {
 
   it("names exactly the stack rules (fetch, the two effect rules, table and form, the family switcher ban, the route state, Sonar's cognitive complexity)", () => {
     expect(STACK_RULES).toHaveLength(7);
-    expect(krizakaStack({ sonar: "off" }).flatMap((config) => Object.keys(config.rules!))).toEqual([...STACK_RULES]);
+    expect(krizakaStack({ sonar: "off", codeRules: "off" }).flatMap((config) => Object.keys(config.rules!))).toEqual([...STACK_RULES]);
   });
 });
 
@@ -453,5 +454,25 @@ describe("KRIZAKA_IGNORES — tsup's temporary config", () => {
     const eslint = new ESLint({ overrideConfigFile: true, overrideConfig: [{ ignores: [...KRIZAKA_IGNORES] }], cwd: process.cwd() });
     expect(KRIZAKA_IGNORES).toContain("**/tsup.config.bundled_*");
     expect(await eslint.isPathIgnored(join(process.cwd(), "packages/time/tsup.config.bundled_0whpqqdtbqs.mjs"))).toBe(true);
+  });
+});
+
+describe("krizakaCodeRules (krizaka/.github#422)", () => {
+  const rules = krizakaCodeRules();
+  it("refuses a braceless if, a third level of nesting and a third nested callback layer", async () => {
+    expect(ids(await lint(rules, "export const f = (a: boolean) => { if (a) return 1; return 2; };", "lib/x.ts"))).toEqual(["curly"]);
+    const deep = "export function f(a: number[]) { for (const x of a) { if (x) { for (const y of a) { use(y); } } } }";
+    expect(ids(await lint(rules, deep, "lib/x.ts"))).toEqual(["max-depth"]);
+  });
+  it("refuses console in runtime code only", async () => {
+    const code = "export function f() { console.log(1); }";
+    expect(ids(await lint(rules, code, "lib/x.ts"))).toEqual(["no-console"]);
+    expect(await lint(rules, code, "scripts/x.mjs")).toEqual([]);
+    expect(await lint(rules, code, "lib/x.test.ts")).toEqual([]);
+  });
+  it("is part of krizakaStack and can be turned off", async () => {
+    const code = "export const f = (a: boolean) => { if (a) return 1; return 2; };";
+    expect(ids(await lint(krizakaStack(), code, "lib/x.ts"))).toContain("curly");
+    expect(ids(await lint(krizakaStack({ codeRules: "off" }), code, "lib/x.ts"))).not.toContain("curly");
   });
 });
