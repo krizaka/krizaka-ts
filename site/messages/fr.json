@@ -112,6 +112,9 @@
     "payments": {
       "hook": "Les paiements derrière un port : paiement avec rabais, webhooks vérifiés et appliqués une fois, remboursements et expiration, montants entiers."
     },
+    "email-verification": {
+      "hook": "La preuve d’une adresse courriel pour les formulaires publics : un code à 6 chiffres valable 15 minutes, à usage unique, cinq essais, gardé sous forme de hachage salé ; le message n’est libéré qu’après le code."
+    },
     "rate-limit": {
       "hook": "Des limites par action : des fenêtres fixes par adresse et par sujet, réglées par l’admin, comptées exactement en concurrence."
     },
