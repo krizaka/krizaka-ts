@@ -82,7 +82,12 @@ export function checksumOf(schema: ModuleSchema, version: number, context: Modul
   return createHash("sha256").update(migrationOf(schema, version).sql(resolve(schema, context))).digest("hex");
 }
 
-const markerTableSql = `CREATE TABLE IF NOT EXISTS ${MARKER_TABLE} (\n  module     text NOT NULL,\n  version    integer NOT NULL,\n  checksum   text NOT NULL,\n  applied_at timestamptz NOT NULL DEFAULT now(),\n  PRIMARY KEY (module, version)\n);`;
+/**
+ * `CREATE TABLE IF NOT EXISTS` is not atomic in PostgreSQL: two sessions creating the same table at once can both pass the check and
+ * one fails with 23505 on `pg_type` (krizaka-ts#241). Migrations of different packages run under different `lockKey`s, so the DDL
+ * takes one fixed transaction-scoped advisory lock of its own (released at COMMIT) before it.
+ */
+const markerTableSql = `SELECT pg_advisory_xact_lock(hashtextextended('${MARKER_TABLE}', 0));\nCREATE TABLE IF NOT EXISTS ${MARKER_TABLE} (\n  module     text NOT NULL,\n  version    integer NOT NULL,\n  checksum   text NOT NULL,\n  applied_at timestamptz NOT NULL DEFAULT now(),\n  PRIMARY KEY (module, version)\n);`;
 
 function markerSql(schema: ModuleSchema, versions: readonly number[], context: ModuleContext): string {
   const rows = versions.map((v) => `('${schema.module}', ${v}, '${checksumOf(schema, v, context)}')`).join(",\n  ");
