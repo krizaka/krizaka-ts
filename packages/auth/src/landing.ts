@@ -23,6 +23,12 @@ export interface LandingRule {
   landing: readonly string[];
   /** The signed-in start page, or a function of the request (the language of the address). */
   home: string | ((request: Request) => string);
+  /**
+   * The product's own public origin (`https://dev.yomizaka.com`), from its declared environment (APP_URL), NEVER from the
+   * request: `Host` and `x-forwarded-*` are client-controlled. With it the Location is absolute on that origin (what a
+   * Next.js proxy accepts); without it the Location is relative. Only the origin of the value is used.
+   */
+  origin?: string;
 }
 
 // Linear on any input (a loop, not a `/\/+$/` regular expression: CodeQL js/polynomial-redos on the request path).
@@ -42,10 +48,13 @@ export function landingRedirect(request: Request, rule: LandingRule): Response |
   const url = new URL(request.url);
   if (!rule.landing.some((path) => trimmed(path) === trimmed(url.pathname))) return null;
   const home = typeof rule.home === "function" ? rule.home(request) : rule.home;
-  // Relative on purpose: behind a proxy or in CI `request.url` carries an internal scheme/host (https://localhost), and an absolute
-  // Location would send the browser there. A relative Location keeps the origin the browser asked for.
+  // Never built from the request's Host or scheme (client-controlled: host-header injection, open redirect). Relative by
+  // default; absolute only on the origin the app configured, and a `home` that leaves that origin falls back to relative.
   const target = new URL(home, url);
-  return new Response(null, { status: 307, headers: { Location: `${target.pathname}${target.search}${target.hash}`, "Cache-Control": "private, no-store", Vary: "Cookie" } });
+  const path = `${target.pathname}${target.search}${target.hash}`;
+  const base = rule.origin ? new URL(rule.origin).origin : null;
+  const location = base && new URL(home, base).origin === base ? new URL(home, base).href : path;
+  return new Response(null, { status: 307, headers: { Location: location, "Cache-Control": "private, no-store", Vary: "Cookie" } });
 }
 
 /**
