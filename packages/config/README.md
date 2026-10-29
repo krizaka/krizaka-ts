@@ -293,6 +293,10 @@ The CI step, after the install:
 - run: npx krizaka-ratchet --json
 ```
 
+## The workspace guard (`krizaka-workspace-guard`)
+
+In a pnpm workspace, a dependency that names another package of the same workspace is written `workspace:`, never a registry range: a range goes stale once the dependency is versioned (`^0.1.0` against 0.4.0), `changeset version` fails and no Version Packages pull request is opened. Run `npx --yes -p @krizaka/config krizaka-workspace-guard` from the repository root (it reads `pnpm-workspace.yaml`); it exits 1 and lists each offending dependency. Peer ranges are a published contract and stay. Rule `workspace-guard` of the org registry (krizaka/.github#388).
+
 ## License
 
 [Apache-2.0](https://github.com/krizaka/krizaka-ts/blob/main/LICENSE)

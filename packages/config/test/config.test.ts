@@ -67,6 +67,7 @@ describe("package surface", () => {
       "krizaka-sg-ratchet": "./bin/krizaka-sg-ratchet.mjs",
       "krizaka-seo-family": "./bin/krizaka-seo-family.mjs",
       "krizaka-edit-check": "./bin/krizaka-edit-check.mjs",
+      "krizaka-workspace-guard": "./bin/krizaka-workspace-guard.mjs",
     });
     expect(pkg.peerDependencies).toMatchObject({ eslint: "^9 || ^10", typescript: "^5" });
   });
