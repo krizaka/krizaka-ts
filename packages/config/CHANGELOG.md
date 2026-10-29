@@ -1,5 +1,11 @@
 # @krizaka/config
 
+## 0.16.0
+
+### Minor Changes
+
+- 44ab6c5: `krizaka-workspace-guard`: a bin that fails when a package of a pnpm workspace depends on another package of the same workspace through a registry range instead of `workspace:` (the guard that lived in krizaka-ts `scripts/workspace-ranges.test.mjs`, extracted for every pnpm workspace; krizaka/.github#388).
+
 ## 0.15.0
 
 ### Minor Changes

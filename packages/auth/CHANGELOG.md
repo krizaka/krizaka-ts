@@ -1,5 +1,11 @@
 # @krizaka/auth
 
+## 0.12.0
+
+### Minor Changes
+
+- db3fab1: `landingRedirect` takes an optional `origin` (the app's declared public origin, never the request's Host): the Location is then absolute on it, which a Next.js proxy accepts; without it the Location stays relative. Spoofed `Host` / `x-forwarded-*` never reach the Location (host-header injection).
+
 ## 0.11.2
 
 ### Patch Changes
