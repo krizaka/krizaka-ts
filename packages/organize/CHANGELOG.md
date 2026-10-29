@@ -1,5 +1,12 @@
 # @krizaka/organize
 
+## 0.5.1
+
+### Patch Changes
+
+- Updated dependencies [0d19b64]
+  - @krizaka/db@0.3.0
+
 ## 0.5.0
 
 ### Minor Changes

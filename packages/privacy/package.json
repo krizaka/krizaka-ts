@@ -1,6 +1,6 @@
 {
   "name": "@krizaka/privacy",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Privacy for every Krizaka product (Loi 25): consents by purpose written once with the notice version shown, an export assembled from every module that holds the person's data, an erasure that runs in one transaction and leaves a record without personal data, and retention per purpose set by the admin. A port each module implements; no database client, no wall clock.",
   "keywords": [
     "krizaka",
