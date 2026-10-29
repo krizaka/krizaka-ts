@@ -1,5 +1,14 @@
 # @krizaka/payments
 
+## 0.4.2
+
+### Patch Changes
+
+- Updated dependencies [2a7898c]
+- Updated dependencies [2272b57]
+  - @krizaka/time@0.2.0
+  - @krizaka/settings@0.5.2
+
 ## 0.4.1
 
 ### Patch Changes

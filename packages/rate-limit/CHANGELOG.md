@@ -1,5 +1,15 @@
 # @krizaka/rate-limit
 
+## 0.2.1
+
+### Patch Changes
+
+- 2272b57: The READMEs, comments and published declarations no longer name the products that left the organisation (krizaka/.github#413, rule `no-departed-published`). The sources were cleaned in #262 with an empty changeset, so the published tarballs still carried the old text; this release replaces them. No behaviour change.
+- Updated dependencies [2a7898c]
+- Updated dependencies [2272b57]
+  - @krizaka/time@0.2.0
+  - @krizaka/settings@0.5.2
+
 ## 0.2.0
 
 ### Minor Changes
