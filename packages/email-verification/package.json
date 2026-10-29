@@ -1,6 +1,6 @@
 {
   "name": "@krizaka/email-verification",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Proof that a person controls an e-mail address, for every Krizaka public form: a 6-digit code mailed to the address, valid 15 minutes, single use, a few attempts, kept only as a salted hash; the action it protects (a contact message, a subscription) is held and released only after the code is confirmed. EN and FR mail texts. No environment variable, no wall clock, no vendor.",
   "keywords": [
     "krizaka",
