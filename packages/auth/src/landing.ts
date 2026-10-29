@@ -26,7 +26,8 @@ export interface LandingRule {
   /**
    * The product's own public origin (`https://dev.yomizaka.com`), from its declared environment (APP_URL), NEVER from the
    * request: `Host` and `x-forwarded-*` are client-controlled. With it the Location is absolute on that origin (what a
-   * Next.js proxy accepts); without it the Location is relative. Only the origin of the value is used.
+   * Next.js proxy accepts). Only the origin of the value is used. Optional outside production (the Location is then
+   * relative); REQUIRED in production, where a missing origin throws instead of falling back to the request's headers.
    */
   origin?: string;
 }
@@ -43,6 +44,10 @@ const trimmed = (path: string) => {
  * cookie. `null` for everything else (a signed-out visitor, another page, a write).
  */
 export function landingRedirect(request: Request, rule: LandingRule): Response | null {
+  // Fail loudly at the first request of a misconfigured deployment, signed in or not: never a silent fallback.
+  if (!rule.origin && globalThis.process?.env?.NODE_ENV === "production") {
+    throw new Error("landingRedirect: `origin` (the app's declared public URL) is required in production");
+  }
   if (request.method !== "GET" && request.method !== "HEAD") return null;
   if (!cookieValue(request.headers, rule.cookie)) return null;
   const url = new URL(request.url);
