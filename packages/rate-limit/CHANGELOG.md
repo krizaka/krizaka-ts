@@ -1,5 +1,11 @@
 # @krizaka/rate-limit
 
+## 0.2.0
+
+### Minor Changes
+
+- 2f05dfc: `@krizaka/rate-limit/turnstile`: `createTurnstileVerifier` checks a Cloudflare Turnstile token server-side (siteverify) and fails closed: no secret, no token, a refusal, a wrong hostname or action, a replayed token, a timeout or an unreachable service all refuse. Single-use, injected clock and fetch (krizaka-com#464).
+
 ## 0.1.2
 
 ### Patch Changes
