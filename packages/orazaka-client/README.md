@@ -1,6 +1,6 @@
 # @krizaka/orazaka-client
 
-One client of Orazaka's edge for every Krizaka TypeScript product, instead of one copy per product (Yomizaka, Orochia, soon Akinaza): start a Studio run, read its status and its outputs, wait for it. The base URL, the key and the clock are **parameters** — this package reads no environment and no wall clock.
+One client of Orazaka's edge for every Krizaka TypeScript product, instead of one copy per product (Yomizaka, soon Akinaza): start a Studio run, read its status and its outputs, wait for it. The base URL, the key and the clock are **parameters** — this package reads no environment and no wall clock.
 
 ```ts
 import { createOrazakaClient, outputOf } from "@krizaka/orazaka-client";

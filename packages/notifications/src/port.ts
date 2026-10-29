@@ -6,7 +6,7 @@
 export type { Clock, Query } from "@krizaka/db";
 
 /**
- * The channels an account switches. `app` is the bell and the live event of the open pages (one switch, like Orochia's matrix);
+ * The channels an account switches. `app` is the bell and the live event of the open pages (one switch);
  * `push` goes to the account's registered phones; `email` to its address.
  */
 export const CHANNEL = { app: "app", push: "push", email: "email" } as const;

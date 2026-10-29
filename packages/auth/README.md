@@ -48,7 +48,7 @@ In the product's `proxy.ts` (Web `Request`/`Response`, no framework): `landingRe
 
 ## Sessions, passwords, addresses and the administration's locks
 
-What Yomizaka, Akinaza, Kachizaka and Yororis each copied (`password.ts`, `client-ip.ts`, `session.ts`, the admin gate of `access.ts`) is here once. Each piece is a function of its inputs: the product reads its environment and its framework, and passes values.
+What Yomizaka and Akinaza each copied (`password.ts`, `client-ip.ts`, `session.ts`, the admin gate of `access.ts`) is here once. Each piece is a function of its inputs: the product reads its environment and its framework, and passes values.
 
 ```ts
 import { allowedIps, clientIp, createSessions, dbSessionStore, hashPassword, requireAdmin, sessionCookie, sessionTokenOf, verifyPassword } from "@krizaka/auth";

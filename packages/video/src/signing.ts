@@ -27,7 +27,7 @@ export function mobileViewToken(input: { libraryKey: string; videoId: string; ex
 
 /**
  * CDN token authentication for ONE FILE (a poster, a preview): SHA-256 of `key + path + expires`, URL-safe base64, sent as
- * `?token=…&expires=…`. As run in production by Orochia against Bunny's pull zones.
+ * `?token=…&expires=…`. As run in production against Bunny's pull zones.
  */
 export function signedFileUrl(input: { hostname: string; path: string; tokenKey: string; expires: number }): string {
   const token = urlSafe(sha256(`${input.tokenKey}${input.path}${input.expires}`).digest("base64"));
@@ -38,7 +38,7 @@ export function signedFileUrl(input: { hostname: string; path: string; tokenKey:
  * CDN token authentication for a DIRECTORY (a video's playlist, renditions and segments): SHA-256 of
  * `key + path + expires + [ip] + "token_path=" + path`, URL-safe base64. The token sits in the PATH
  * (`/bcdn_token=…&expires=…&token_path=…/<path>file`), because an HLS player asks for renditions and segments by relative URL, which keeps
- * the path and drops a query string. As run in production by Orochia.
+ * the path and drops a query string. As run in production.
  */
 export function signedDirectoryUrl(input: { hostname: string; directory: string; file: string; tokenKey: string; expires: number; ip?: string }): string {
   const token = urlSafe(sha256(`${input.tokenKey}${input.directory}${input.expires}${input.ip ?? ""}token_path=${input.directory}`).digest("base64"));

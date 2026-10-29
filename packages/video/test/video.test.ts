@@ -35,7 +35,7 @@ describe("the signatures, from the documented formulas", () => {
     const sig = createHmac("sha256", "k").update("kabc1231710000000").digest("hex");
     expect(Buffer.from(token, "base64").toString()).toBe(`${sig}:1710000000`);
   });
-  it("CDN: one file by query token, a directory by a token in the path (the form Orochia runs in production)", () => {
+  it("CDN: one file by query token, a directory by a token in the path (the form run in production)", () => {
     const file = new URL(signedFileUrl({ hostname: "h.b-cdn.net", path: "/g/thumbnail.jpg", tokenKey: "k", expires: 99 }));
     expect(file.searchParams.get("token")).toBe(createHash("sha256").update("k/g/thumbnail.jpg99").digest("base64url"));
     const dir = signedDirectoryUrl({ hostname: "h.b-cdn.net", directory: "/g/", file: "playlist.m3u8", tokenKey: "k", expires: 99 });

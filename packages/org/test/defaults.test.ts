@@ -133,8 +133,4 @@ describe("withdrawn pictures", () => {
     expect(listDefaults("banner").some((b) => b.id === "the-neon-flamingo")).toBe(false);
     for (let seed = 0; seed < 500; seed++) expect(defaultFor("banner", seed)?.id).not.toBe("the-neon-flamingo");
   });
-  it("offers no default that names a paused product (Orochia, Kachizaka, Yasakia, Yororis): in its id or its alt text", () => {
-    const paused = /orochia|kachizaka|yasakia|yazakia|yororis/i;
-    for (const kind of DEFAULT_KINDS) for (const entry of listDefaults(kind)) expect(`${entry.id} ${entry.alt.en} ${entry.alt.fr}`, `${kind}/${entry.id}`).not.toMatch(paused);
-  });
 });

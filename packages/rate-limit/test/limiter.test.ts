@@ -13,7 +13,7 @@ function setup(limits: Parameters<typeof createLimiter>[0]["limits"], over: { ma
   return { limiter, store, at: (date: Date) => void (now = date) };
 }
 
-/** The copies' tests (Yomizaka, Akinaza and Kachizaka `rate-limit`, byte-identical), carried over: same numbers, same answers. */
+/** The copies' tests (Yomizaka and Akinaza `rate-limit`, byte-identical), carried over: same numbers, same answers. */
 describe("the copies' behaviour", () => {
   it("allows the limit, then refuses with Retry-After until the window ends", async () => {
     const { limiter, at } = setup({ k: { perIp: 2, windowSeconds: 60 } });
