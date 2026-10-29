@@ -106,4 +106,22 @@ describe.runIf(enabled)("@krizaka/db on PostgreSQL", () => {
       await legacy.drop();
     }
   });
+
+  it("creates the marker table once when several modules migrate at the same moment under different lock keys (#241)", async () => {
+    // Several packages of one product migrate concurrently on a shared database: `CREATE TABLE IF NOT EXISTS` alone is not atomic
+    // in PostgreSQL (23505 on pg_type). The emitted SQL serialises the marker table's creation itself.
+    const modules = Array.from({ length: 8 }, (_, i) => defineModule({ module: `race${i}`, tables: [], migrations: [{ version: 1, name: "t", sql: (c) => `CREATE TABLE ${c.schema}.t (id int);` }] }));
+    for (let round = 0; round < 6; round += 1) {
+      const fresh = await createTestDatabase({ connect: (database) => connectTo(database)(), migrate: async () => {}, prefix: "kzrace" });
+      try {
+        const run = (index: number) => migrate(connectTo(fresh.name), [{ version: `0001_race${index}`, sql: emitMigration(modules[index]!, 1, { tables: {} }) }], { lockKey: 9000 + index });
+        await Promise.all(modules.map((_, index) => run(index)));
+        const connection = await connectTo(fresh.name)();
+        expect((await queryOf(connection)("SELECT count(*)::int AS n FROM krizaka_module_versions"))[0]).toEqual({ n: 8 });
+        await connection.release();
+      } finally {
+        await fresh.drop();
+      }
+    }
+  });
 });
