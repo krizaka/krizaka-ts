@@ -33,3 +33,7 @@ await limiter.forget("signIn", keys); // a successful sign-in clears its failure
 - **A store that fails lets the request through** (the limiter must not take the site down) and tells `onStoreError`; `failOpen: false` rethrows instead.
 - **Orochia's extras** are in the port: `peek` (read without counting), `set` (a lock-out) and `reset`.
 - `limitStoreContract` (from `@krizaka/rate-limit/testkit`) is the contract every store runs.
+
+## Turnstile (`@krizaka/rate-limit/turnstile`)
+
+A Cloudflare Turnstile widget protects nothing until the server asks Cloudflare about the token it produced. `createTurnstileVerifier({ secret, hostnames, now })` returns `verify({ token, remoteIp, action })` → `{ ok: true }` or `{ ok: false, reason, errorCodes }`. It **fails closed**: no secret (`not-configured`), no or oversized token (`missing-token`), a refusal (`rejected`), a token solved on another hostname or for another form's `action`, a replayed token (single-use, remembered for Cloudflare's 300 s), a timeout or an unreachable service (`unavailable`) all refuse. The secret is `ABUSE_CAPTCHA_SECRET_KEY` with `ABUSE_CAPTCHA_PROVIDER=turnstile` (the provider is a value; never in the browser); the site key is the public `NEXT_PUBLIC_ABUSE_CAPTCHA_SITE_KEY`. Answer a refusal with a 4xx and send nothing; log the `reason` only (no address, no message). Rule `turnstile-server-side` of the org registry.
