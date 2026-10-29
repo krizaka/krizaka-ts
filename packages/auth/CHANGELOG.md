@@ -1,5 +1,13 @@
 # @krizaka/auth
 
+## 0.13.1
+
+### Patch Changes
+
+- 2272b57: The READMEs, comments and published declarations no longer name the products that left the organisation (krizaka/.github#413, rule `no-departed-published`). The sources were cleaned in #262 with an empty changeset, so the published tarballs still carried the old text; this release replaces them. No behaviour change.
+- Updated dependencies [2272b57]
+  - @krizaka/settings@0.5.2
+
 ## 0.13.0
 
 ### Minor Changes

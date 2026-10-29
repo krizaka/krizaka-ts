@@ -1,6 +1,6 @@
 {
   "name": "@krizaka/storage",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Files behind one port for every Krizaka product: put with a content-hashed name, get, head, delete, list, signed and public URLs; adapters over an injected fetch for an HTTP object store and any S3-compatible bucket (Signature V4, no SDK), and a local folder; layout as data, bytes checked by magic number, limits passed in. The admin chooses the provider through settings.",
   "keywords": [
     "krizaka",

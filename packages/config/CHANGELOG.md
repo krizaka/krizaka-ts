@@ -1,5 +1,15 @@
 # @krizaka/config
 
+## 0.17.0
+
+### Minor Changes
+
+- 2a7898c: Code rules (krizaka/.github#422): `krizakaCodeRules` (curly all, max-depth 2, max-nested-callbacks 3, no-console in runtime code; also in `krizakaStack` as `codeRules`), per-rule `code/<rule>` counters in `krizaka-ratchet`, and two ast-grep `core` rules: `no-sync-fs-in-runtime` and `no-hand-written-validation-regex`.
+
+### Patch Changes
+
+- 2272b57: The READMEs, comments and published declarations no longer name the products that left the organisation (krizaka/.github#413, rule `no-departed-published`). The sources were cleaned in #262 with an empty changeset, so the published tarballs still carried the old text; this release replaces them. No behaviour change.
+
 ## 0.16.0
 
 ### Minor Changes

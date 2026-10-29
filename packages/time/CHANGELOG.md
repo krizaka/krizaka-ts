@@ -1,5 +1,11 @@
 # @krizaka/time
 
+## 0.2.0
+
+### Minor Changes
+
+- 2a7898c: `isIsoDate`, `isEmail`, `isHttpUrl`, `isSlug`, `isE164Phone`, `isCanadianPostalCode`: the helpers the new no-hand-written-validation-regex rule points to (krizaka/.github#422).
+
 ## 0.1.0
 
 ### Minor Changes

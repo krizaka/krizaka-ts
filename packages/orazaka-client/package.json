@@ -1,6 +1,6 @@
 {
   "name": "@krizaka/orazaka-client",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "One Orazaka client for the TypeScript products: start a Studio run (safe to retry with an idempotency key), read its status and outputs, wait for it, with typed errors with stable codes, a time limit and a circuit breaker. Base URL, key and clock are parameters; no environment, no framework.",
   "keywords": [
     "krizaka",
