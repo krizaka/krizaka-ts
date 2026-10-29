@@ -69,7 +69,7 @@ describe("package surface", () => {
       "krizaka-edit-check": "./bin/krizaka-edit-check.mjs",
       "krizaka-workspace-guard": "./bin/krizaka-workspace-guard.mjs",
     });
-    expect(pkg.peerDependencies).toMatchObject({ eslint: "^9 || ^10", typescript: "^5" });
+    expect(pkg.peerDependencies).toMatchObject({ eslint: "^9 || ^10", typescript: "^5 || ^6" });
   });
 
   it("carries no product word", () => {

@@ -1,4 +1,4 @@
-import { chmodSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -9,6 +9,7 @@ import {
   classify,
   editedFile,
   findUp,
+  formatWithPrettier,
   insideProject,
   matchesDigest,
   PMD,
@@ -137,5 +138,40 @@ describe("the pinned download", () => {
   it("accepts only the archive of the pinned digest", () => {
     expect(PMD.digest).toMatch(/^[0-9a-f]{64}$/);
     expect(matchesDigest(Buffer.from("not pmd"), PMD.digest)).toBe(false);
+  });
+});
+
+describe("Prettier on one file", () => {
+  /** A project folder holding a fake Prettier that appends a marker, and optionally the config. */
+  function projectWithPrettier(config: boolean): string {
+    const root = mkdtempSync(join(tmpdir(), "edit-format-"));
+    mkdirSync(join(root, "node_modules/.bin"), { recursive: true });
+    const prettier = join(root, "node_modules/.bin/prettier");
+    writeFileSync(prettier, '#!/bin/sh\nfor last; do :; done\necho "// formatted" >> "$last"\n');
+    chmodSync(prettier, 0o755);
+    if (config) writeFileSync(join(root, "prettier.config.js"), "export default {};\n");
+    writeFileSync(join(root, "a.ts"), "export const a = 1;\n");
+    writeFileSync(join(root, "README.md"), "# a\n");
+    return root;
+  }
+
+  it("formats a TypeScript file in place when the repository has Prettier and its config", () => {
+    const root = projectWithPrettier(true);
+    expect(formatWithPrettier(join(root, "a.ts"))).toBe(true);
+    expect(readFileSync(join(root, "a.ts"), "utf8")).toContain("// formatted");
+  });
+
+  it("formats before the check, so an agent writes formatted code", () => {
+    const root = projectWithPrettier(true);
+    expect(checkFile(join(root, "a.ts"), { cwd: root })).toEqual({ code: 0, message: "" });
+    expect(readFileSync(join(root, "a.ts"), "utf8")).toContain("// formatted");
+  });
+
+  it("leaves a repository without a Prettier config, and files Prettier does not own, alone", () => {
+    const bare = projectWithPrettier(false);
+    expect(formatWithPrettier(join(bare, "a.ts"))).toBe(false);
+    const root = projectWithPrettier(true);
+    expect(formatWithPrettier(join(root, "README.md"))).toBe(false);
+    expect(readFileSync(join(root, "README.md"), "utf8")).toBe("# a\n");
   });
 });

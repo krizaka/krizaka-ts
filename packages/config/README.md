@@ -34,9 +34,11 @@ module.exports = { extends: "@krizaka/config/dependency-cruiser", forbidden: [] 
 ```
 
 Prettier: `export { default } from "@krizaka/config/prettier";` in `prettier.config.js` (120 columns, double quotes,
-trailing commas). EditorConfig: `cp node_modules/@krizaka/config/.editorconfig .`.
+trailing commas), with the scripts `"format": "prettier --write \"**/*.{ts,tsx,js,jsx,mjs,cjs,json,css}\""` and
+`"format:check"` (the same with `--check`) and a `.prettierignore` for generated files, lockfiles and vendored code. The
+`krizaka-edit-check` hook formats the edited file when the repository has Prettier and this config. EditorConfig: `cp node_modules/@krizaka/config/.editorconfig .`.
 
-`eslint` ^9 and `typescript` ^5 are peer dependencies; `eslint-config-next` (Next.js apps) and `prettier` are optional
+`eslint` ^9 and `typescript` ^5 or ^6 are peer dependencies; `eslint-config-next` (Next.js apps) and `prettier` are optional
 peers. The plugins (`typescript-eslint`, `eslint-plugin-react-hooks`, `eslint-plugin-simple-import-sort`) come with
 the package.
 

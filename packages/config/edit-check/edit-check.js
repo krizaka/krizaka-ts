@@ -19,6 +19,9 @@ export const BUDGET_MS = 10_000;
 
 const ESLINT_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"]);
 const NO_FINDING = { code: 0, message: "" };
+/** What Prettier formats in a Krizaka repository (the `format:check` glob of the formatter rule, krizaka/.github#427). */
+const PRETTIER_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".json", ".css"]);
+const PRETTIER_CONFIGS = ["prettier.config.js", "prettier.config.mjs", "prettier.config.cjs", ".prettierrc", ".prettierrc.json"];
 
 /**
  * Which tool checks a file.
@@ -99,6 +102,21 @@ export function checkWithEslint(file, budgetMs = BUDGET_MS) {
   const run = runBudgeted(join(root, "node_modules/.bin/eslint"), args, root, budgetMs);
   // 1 = findings; 2 = ESLint itself could not run (a config in progress): the agent is not told.
   return run.status === 1 && !run.timedOut ? { code: 2, message: run.output } : NO_FINDING;
+}
+
+/**
+ * Formats a file with the repository's Prettier, in place, when the repository has adopted it (the binary and a config).
+ * Silent: formatting is never a finding, the agent just writes formatted code.
+ * @param {string} file The edited file.
+ * @param {number} budgetMs The time budget.
+ * @returns {boolean} True when Prettier ran and succeeded.
+ */
+export function formatWithPrettier(file, budgetMs = BUDGET_MS) {
+  if (!PRETTIER_EXTENSIONS.has(extname(file))) return false;
+  const root = findUp(file, "node_modules/.bin/prettier");
+  if (!root || !PRETTIER_CONFIGS.some((name) => existsSync(join(root, name)))) return false;
+  const run = runBudgeted(join(root, "node_modules/.bin/prettier"), ["--write", "--log-level", "silent", resolve(file)], root, budgetMs);
+  return run.status === 0 && !run.timedOut;
 }
 
 /**
@@ -201,15 +219,17 @@ function fromListing(base, segments) {
 }
 
 /**
- * Checks one edited file.
+ * Formats then checks one edited file.
  * @param {string} file The edited file.
  * @param {{ cwd?: string, cache?: string, budgetMs?: number, script?: string }} options The project folder, passed on to the PMD check.
  * @returns {{ code: number, message: string }} 2 and the findings for the agent, else 0 and nothing.
  */
 export function checkFile(file, options = {}) {
   const inside = insideProject(file, options.cwd);
-  const tool = inside && classify(inside);
-  if (!inside || !tool) return NO_FINDING;
+  if (!inside) return NO_FINDING;
+  formatWithPrettier(inside, options.budgetMs);
+  const tool = classify(inside);
+  if (!tool) return NO_FINDING;
   return tool === "eslint" ? checkWithEslint(inside, options.budgetMs) : checkWithPmd(inside, options);
 }
 
