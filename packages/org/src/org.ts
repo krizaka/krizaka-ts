@@ -68,7 +68,7 @@ export const org: Org = {
   },
   defaults: centralDefaults,
   products: [
-    { id: "orazaka", name: "Orazaka", status: "devPreview", url: "https://dev.orazaka.com", repo: "https://github.com/krizaka/orazaka" },
+    { id: "orazaka", name: "Orazaka", status: "development", url: "https://dev.orazaka.com", repo: "https://github.com/krizaka/orazaka" },
     { id: "yomizaka", name: "Yomizaka", status: "development", url: "https://dev.yomizaka.com", repo: "https://github.com/krizaka/yomizaka" },
     { id: "akinaza", name: "Akinaza", status: "development", url: "https://dev.akinaza.com", repo: "https://github.com/krizaka/akinaza" },
   ],

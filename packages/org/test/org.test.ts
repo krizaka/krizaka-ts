@@ -12,6 +12,14 @@ describe("the org JSON", () => {
     expect(validate(org), JSON.stringify(validate.errors)).toBe(true);
   });
 
+  it("says every product is in development (krizaka-com#468)", () => {
+    expect(org.products.map((p) => [p.id, p.status])).toEqual([
+      ["orazaka", "development"],
+      ["yomizaka", "development"],
+      ["akinaza", "development"],
+    ]);
+  });
+
   it("refuses a fact the schema does not know", () => {
     const validate = ajv.compile(orgSchema);
     expect(validate({ ...org, address: "1 rue Exemple" })).toBe(false);
