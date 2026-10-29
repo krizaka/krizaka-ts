@@ -100,3 +100,9 @@ test("a plain-JavaScript package (no build, subpath exports only) has a page: it
   assert.deepEqual(exportsOf(join(dir, "missing.json")), []);
   assert.deepEqual(exportsOf(null), []);
 });
+
+test("a version range with `<` (a peer such as `>=0.49.13 <0.50`) is code on the page, never MDX markup", () => {
+  const page = renderPage({ ...pkg, peerDependencies: { opendal: ">=0.49.13 <0.50" }, dependencies: { a: "<2" } }, "en", messages());
+  assert.match(page, /`opendal` `>=0\.49\.13 <0\.50`/);
+  assert.match(page, /`a` `<2`/);
+});
