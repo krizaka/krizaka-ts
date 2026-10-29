@@ -6,7 +6,7 @@ import { afterAll, describe, expect, it } from "vitest";
 
 import { assertKey, bucketStore, checkEndpoint, createStorage, defineLayout, type FetchLike, folderStore, hashedName, memoryObjectStore, remoteStore, sniffType, STORAGE_CODE,trimSlashes } from "../src/node";
 import { EMPTY_SHA256, presignGet, signRequest } from "../src/request-signing";
-import { limitsOf, readStorageSettings, storageSettings, storeFromSettings } from "../src/settings";
+import { limitsOf, readStorageSettings, storageSettings, storeFromSettings, userConnectorsAllowed } from "../src/settings";
 import { objectStoreContract } from "../src/testkit";
 
 const clock = { now: () => new Date("2026-10-26T12:00:00Z") };
@@ -208,6 +208,13 @@ describe("the settings fragment: the admin chooses the provider", () => {
   it("declares the provider and its coordinates, no key", () => {
     expect(Object.keys(storageSettings)).toEqual(expect.arrayContaining(["storage.provider", "storage.maxMegabytes", "storage.endpoint", "storage.bucket"]));
     expect(Object.keys(storageSettings).some((k) => /key|secret|password/i.test(k))).toBe(false);
+  });
+  it("lets a person connect their own cloud only when the admin says so: off by default, and only an explicit true opens it", async () => {
+    expect(storageSettings["storage.userConnectors"]).toMatchObject({ kind: "flag", default: false });
+    expect(await userConnectorsAllowed(() => undefined)).toBe(false);
+    expect(await userConnectorsAllowed(() => "true")).toBe(false);
+    expect(await userConnectorsAllowed(() => storageSettings["storage.userConnectors"].default)).toBe(false);
+    expect(await userConnectorsAllowed(() => true)).toBe(true);
   });
   it("reads the settings with defaults, and turns megabytes into bytes", async () => {
     const s = await readStorageSettings((k) => ({ "storage.provider": "s3", "storage.maxMegabytes": 2 })[k as string]);
