@@ -1,7 +1,7 @@
 // krizaka-edit-check: the one-file check a coding agent runs after each edit (ADR-015 §7). Never Maven, never a compile.
 import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, realpathSync, renameSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, extname, join, resolve, sep } from "node:path";
 
@@ -175,11 +175,29 @@ export function insideProject(file, cwd = process.cwd()) {
     return null;
   }
   if (!real.startsWith(base + sep)) return null;
+  const rebuilt = fromListing(base, real.slice(base.length + 1).split(sep));
   try {
-    return statSync(real).isFile() ? real : null;
+    return rebuilt && statSync(rebuilt).isFile() ? rebuilt : null;
   } catch {
     return null;
   }
+}
+
+/**
+ * A path rebuilt from the folder listings themselves, one segment at a time: what comes out was read from the disk, never copied
+ * from the hook's input, so nothing the agent typed reaches a tool as a path.
+ * @param {string} base The project folder (real path).
+ * @param {string[]} segments The path below it.
+ * @returns {string | null} The path, or null when a segment is not listed.
+ */
+function fromListing(base, segments) {
+  let current = base;
+  for (const segment of segments) {
+    const listed = readdirSync(current).find((name) => name === segment);
+    if (listed === undefined) return null;
+    current = join(current, listed);
+  }
+  return current;
 }
 
 /**
