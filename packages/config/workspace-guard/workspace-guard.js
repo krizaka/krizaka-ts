@@ -6,8 +6,13 @@ import { join } from "node:path";
 
 const FIELDS = ["dependencies", "devDependencies", "optionalDependencies"];
 
-/** The `packages:` globs of a pnpm-workspace.yaml (the list under the key, `!` exclusions skipped). */
+/**
+ * The `packages:` globs of a pnpm-workspace.yaml (the list under the key, `!` exclusions skipped).
+ * @param {string} yaml
+ * @returns {string[]}
+ */
 export function workspaceGlobs(yaml) {
+  /** @type {string[]} */
   const globs = [];
   let inPackages = false;
   for (const line of yaml.split("\n")) {
@@ -21,7 +26,12 @@ export function workspaceGlobs(yaml) {
   return globs;
 }
 
-/** The folders a glob names: `apps/*`, `packages/**` (one level, as pnpm resolves them) or a plain folder. */
+/**
+ * The folders a glob names: `apps/*`, `packages/**` (one level, as pnpm resolves them) or a plain folder.
+ * @param {string} root
+ * @param {string} glob
+ * @returns {string[]}
+ */
 function foldersOf(root, glob) {
   const parts = glob.replace(/\/\*{1,2}$/, "");
   if (parts === glob) return existsSync(join(root, glob, "package.json")) ? [glob] : [];
@@ -32,7 +42,11 @@ function foldersOf(root, glob) {
     .map((e) => `${parts}/${e.name}`);
 }
 
-/** The manifests of the workspace: the root and every package folder. */
+/**
+ * The manifests of the workspace: every package folder.
+ * @param {string} root
+ * @returns {Array<Record<string, any>>}
+ */
 export function readManifests(root) {
   const yamlPath = join(root, "pnpm-workspace.yaml");
   const globs = existsSync(yamlPath) ? workspaceGlobs(readFileSync(yamlPath, "utf8")) : [];
@@ -43,6 +57,7 @@ export function readManifests(root) {
 /** Every dependency that names a package of the workspace without `workspace:` (peer ranges are a published contract and stay). */
 export function checkWorkspaceRanges(manifests) {
   const own = new Set(manifests.map((m) => m.name).filter(Boolean));
+  /** @type {string[]} */
   const bad = [];
   for (const m of manifests) {
     for (const field of FIELDS) {
