@@ -42,7 +42,10 @@ export function landingRedirect(request: Request, rule: LandingRule): Response |
   const url = new URL(request.url);
   if (!rule.landing.some((path) => trimmed(path) === trimmed(url.pathname))) return null;
   const home = typeof rule.home === "function" ? rule.home(request) : rule.home;
-  return new Response(null, { status: 307, headers: { Location: new URL(home, url).toString(), "Cache-Control": "private, no-store", Vary: "Cookie" } });
+  // Relative on purpose: behind a proxy or in CI `request.url` carries an internal scheme/host (https://localhost), and an absolute
+  // Location would send the browser there. A relative Location keeps the origin the browser asked for.
+  const target = new URL(home, url);
+  return new Response(null, { status: 307, headers: { Location: `${target.pathname}${target.search}${target.hash}`, "Cache-Control": "private, no-store", Vary: "Cookie" } });
 }
 
 /**

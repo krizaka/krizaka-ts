@@ -9,9 +9,13 @@ describe("landingRedirect: a signed-in visitor never sees the public landing pag
   it("307 to the home, private and varying with the cookie, when the session cookie is there", () => {
     const res = landingRedirect(at("/", "a=1; yomizaka_session=ys1.x"), rule);
     expect(res?.status).toBe(307);
-    expect(res?.headers.get("location")).toBe("https://www.example.com/app");
+    expect(res?.headers.get("location")).toBe("/app");
     expect(res?.headers.get("cache-control")).toBe("private, no-store");
     expect(res?.headers.get("vary")).toBe("Cookie");
+  });
+  it("the Location is relative: the browser keeps the origin it asked for, whatever scheme the proxy saw", () => {
+    const internal = new Request("https://localhost:3000/fr?x=1", { headers: { cookie: "yomizaka_session=t" } });
+    expect(landingRedirect(internal, { ...rule, home: "/fr/app?from=landing" })?.headers.get("location")).toBe("/fr/app?from=landing");
   });
   it("covers each landing route, with or without a trailing slash", () => {
     for (const path of ["/fr", "/fr/", "/en"]) expect(landingRedirect(at(path, "yomizaka_session=t"), rule)?.status).toBe(307);
@@ -28,7 +32,7 @@ describe("landingRedirect: a signed-in visitor never sees the public landing pag
   });
   it("the home may depend on the request (the language of the address)", () => {
     const res = landingRedirect(at("/fr", "yomizaka_session=t"), { ...rule, home: (r) => `${new URL(r.url).pathname}/app` });
-    expect(res?.headers.get("location")).toBe("https://www.example.com/fr/app");
+    expect(res?.headers.get("location")).toBe("/fr/app");
   });
 });
 
