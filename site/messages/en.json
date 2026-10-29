@@ -112,6 +112,9 @@
     "payments": {
       "hook": "Payments behind a port: checkout with discount terms, verified webhooks applied once, refunds and expiry, integer money."
     },
+    "email-verification": {
+      "hook": "Proof of an e-mail address for public forms: a 6-digit code valid 15 minutes, single use, five tries, kept as a salted hash; the message is released only after the code."
+    },
     "rate-limit": {
       "hook": "Limits per action: fixed windows per address and subject, set by the admin, counted exactly under concurrency."
     },
