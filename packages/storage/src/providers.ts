@@ -2,7 +2,8 @@
  * The registry of provider kinds, as data (ADR-005): one entry per kind, never a branch in a factory. A new kind is a line here
  * (and an adapter in `open-provider.ts`); the admin screen, the validation and the guards all read this table. Edge-safe.
  */
-export type ProviderKindName = "bunny" | "s3" | "dropbox" | "google-drive" | "onedrive" | "folder" | "device";
+/** The kinds this package ships. A private package registers more with `createProviderRegistry(…).with(…)`: its names are any other string. */
+export type ProviderKindName = "bunny" | "s3" | "dropbox" | "google-drive" | "onedrive" | "azblob" | "gcs" | "b2" | "webdav" | "folder" | "device";
 export type ProviderScope = "admin" | "user";
 /** `server` = a deployed web BFF, `dev` = a developer's machine or CI, `device` = a mobile or macOS client. */
 export type ProviderRuntime = "server" | "dev" | "device";
@@ -22,7 +23,8 @@ export interface Preset {
 }
 
 export interface ProviderKind {
-  kind: ProviderKindName;
+  /** A built-in name (`ProviderKindName`) or the name of a private kind. */
+  kind: string;
   scopes: readonly ProviderScope[];
   runtimes: readonly ProviderRuntime[];
   /** Fictional data only: refused when the environment is `prod`. */
@@ -86,8 +88,76 @@ export const PROVIDER_KINDS: readonly ProviderKind[] = [
     coordinates: [text("clientId", true), text("prefix", false)],
     credentials: [secret("refreshToken", true)],
   },
-  { kind: "google-drive", scopes: ["user"], runtimes: ["server"], devOnly: false, implemented: false, capabilities: { private: true, signedUrls: false, publicUrls: false, maxObjectBytes: 5 * 1024 * GIB, serverSideEncryption: "provider" }, residency: "user-cloud", coordinates: [], credentials: [secret("refreshToken", true)] },
-  { kind: "onedrive", scopes: ["user"], runtimes: ["server"], devOnly: false, implemented: false, capabilities: { private: true, signedUrls: false, publicUrls: false, maxObjectBytes: 250 * GIB, serverSideEncryption: "provider" }, residency: "user-cloud", coordinates: [], credentials: [secret("refreshToken", true)] },
+  {
+    kind: "google-drive",
+    scopes: ["user"],
+    runtimes: ["server"],
+    devOnly: false,
+    implemented: true,
+    // The narrowest scope (`drive.file`): only the files the app created. Signed links: none; the app streams the file.
+    capabilities: { private: true, signedUrls: false, publicUrls: false, maxObjectBytes: 5 * 1024 * GIB, serverSideEncryption: "provider" },
+    residency: "user-cloud",
+    coordinates: [text("clientId", true), text("prefix", false)],
+    credentials: [secret("refreshToken", true), secret("clientSecret", false)],
+  },
+  {
+    kind: "onedrive",
+    scopes: ["user"],
+    runtimes: ["server"],
+    devOnly: false,
+    implemented: true,
+    // `Files.ReadWrite.AppFolder`: the app's own folder only.
+    capabilities: { private: true, signedUrls: false, publicUrls: false, maxObjectBytes: 250 * GIB, serverSideEncryption: "provider" },
+    residency: "user-cloud",
+    coordinates: [text("clientId", true), text("prefix", false)],
+    credentials: [secret("refreshToken", true), secret("clientSecret", false)],
+  },
+  // The admin-scope clouds opened by OpenDAL. Field names are OpenDAL's own options (`opendal-kinds.ts`): one table, no per-kind code.
+  {
+    kind: "azblob",
+    scopes: ["admin"],
+    runtimes: ["server", "dev"],
+    devOnly: false,
+    implemented: true,
+    capabilities: { private: true, signedUrls: false, publicUrls: false, maxObjectBytes: 190 * GIB, serverSideEncryption: "provider" },
+    residency: "fixed-elsewhere",
+    coordinates: [text("endpoint", true, "url"), text("container", true), text("account_name", true), text("prefix", false)],
+    credentials: [secret("account_key", true)],
+  },
+  {
+    kind: "gcs",
+    scopes: ["admin"],
+    runtimes: ["server", "dev"],
+    devOnly: false,
+    implemented: true,
+    capabilities: { private: true, signedUrls: true, publicUrls: false, maxObjectBytes: 5 * 1024 * GIB, serverSideEncryption: "provider" },
+    residency: "fixed-elsewhere",
+    coordinates: [text("bucket", true), text("prefix", false)],
+    // The service-account key file, base64 (OpenDAL's `credential`).
+    credentials: [secret("credential", true)],
+  },
+  {
+    kind: "b2",
+    scopes: ["admin"],
+    runtimes: ["server", "dev"],
+    devOnly: false,
+    implemented: true,
+    capabilities: { private: true, signedUrls: false, publicUrls: false, maxObjectBytes: 5 * GIB, serverSideEncryption: "provider" },
+    residency: "fixed-elsewhere",
+    coordinates: [text("bucket", true), text("bucket_id", true), text("prefix", false)],
+    credentials: [secret("application_key_id", true), secret("application_key", true)],
+  },
+  {
+    kind: "webdav",
+    scopes: ["admin"],
+    runtimes: ["server", "dev"],
+    devOnly: false,
+    implemented: true,
+    capabilities: { private: true, signedUrls: false, publicUrls: false, maxObjectBytes: 5 * GIB, serverSideEncryption: "none" },
+    residency: "fixed-elsewhere",
+    coordinates: [text("endpoint", true, "url"), text("prefix", false)],
+    credentials: [secret("username", true), secret("password", true)],
+  },
   {
     kind: "folder",
     scopes: [],

@@ -8,9 +8,9 @@ const fetchNever = (() => Promise.reject(new Error("no network"))) as OpenContex
 const ctx = (over: Partial<OpenContext> = {}): OpenContext => ({ runtime: "server", environment: "dev", fetch: fetchNever, clock: { now: () => new Date("2026-10-28T12:00:00Z") }, ...over });
 const s3 = { endpoint: "https://tor1.digitaloceanspaces.com", region: "tor1", bucket: "docs" };
 const keys = { accessKeyId: "AK", secretAccessKey: "SK" };
-const code = (fn: () => unknown) => {
+const code = async (fn: () => unknown) => {
   try {
-    fn();
+    await fn();
   } catch (e) {
     return (e as StorageError).code;
   }
@@ -19,7 +19,7 @@ const code = (fn: () => unknown) => {
 
 describe("the registry", () => {
   it("has one entry per kind, with the rules as data", () => {
-    expect(PROVIDER_KINDS.map((k) => k.kind)).toEqual(["bunny", "s3", "dropbox", "google-drive", "onedrive", "folder", "device"]);
+    expect(PROVIDER_KINDS.map((k) => k.kind)).toEqual(["bunny", "s3", "dropbox", "google-drive", "onedrive", "azblob", "gcs", "b2", "webdav", "folder", "device"]);
     expect(PROVIDER_KINDS.find((k) => k.kind === "bunny")).toMatchObject({ devOnly: true, scopes: ["admin"] });
     expect(PROVIDER_KINDS.find((k) => k.kind === "dropbox")?.capabilities.signedUrls).toBe(false);
     expect(PROVIDER_KINDS.find((k) => k.kind === "folder")?.runtimes).toEqual(["dev"]);
@@ -32,26 +32,27 @@ describe("the registry", () => {
 });
 
 describe("openProvider guards", () => {
-  it("opens an S3 provider and says where it lives", () => {
-    const opened = openProvider("s3", s3, keys, ctx());
+  it("opens an S3 provider and says where it lives", async () => {
+    const opened = await openProvider("s3", s3, keys, ctx());
     expect(opened.residency).toEqual({ key: "canada-on", country: "CA", province: "ON", text: "Canada (Ontario)" });
   });
-  it("refuses bunny in production, never falling back", () => {
-    expect(code(() => openProvider("bunny", { endpoint: "ny.storage.bunnycdn.com", zone: "z" }, { accessKey: "k" }, ctx({ environment: "prod" })))).toBe("STORAGE_BAD_CONFIG");
-    expect(openProvider("bunny", { endpoint: "ny.storage.bunnycdn.com", zone: "z" }, { accessKey: "k" }, ctx()).residency.key).toBe("elsewhere");
+  it("refuses bunny in production, never falling back", async () => {
+    expect(await code(() => openProvider("bunny", { endpoint: "ny.storage.bunnycdn.com", zone: "z" }, { accessKey: "k" }, ctx({ environment: "prod" })))).toBe("STORAGE_BAD_CONFIG");
+    expect((await openProvider("bunny", { endpoint: "ny.storage.bunnycdn.com", zone: "z" }, { accessKey: "k" }, ctx())).residency.key).toBe("elsewhere");
   });
-  it("refuses the folder outside dev: the web never writes the server's disk", () => {
-    expect(code(() => openProvider("folder", { root: "/tmp/x" }, {}, ctx({ runtime: "server" })))).toBe("STORAGE_BAD_CONFIG");
-    expect(code(() => openProvider("folder", { root: "/tmp/x" }, {}, ctx({ runtime: "device" })))).toBe("STORAGE_BAD_CONFIG");
-    expect(code(() => openProvider("folder", { root: "/tmp/x" }, {}, ctx({ runtime: "dev" })))).toBeNull();
+  it("refuses the folder outside dev: the web never writes the server's disk", async () => {
+    expect(await code(() => openProvider("folder", { root: "/tmp/x" }, {}, ctx({ runtime: "server" })))).toBe("STORAGE_BAD_CONFIG");
+    expect(await code(() => openProvider("folder", { root: "/tmp/x" }, {}, ctx({ runtime: "device" })))).toBe("STORAGE_BAD_CONFIG");
+    expect(await code(() => openProvider("folder", { root: "/tmp/x" }, {}, ctx({ runtime: "dev" })))).toBeNull();
   });
-  it("refuses an unknown or unimplemented kind, a missing field, and a private endpoint", () => {
-    expect(code(() => openProvider("ftp", {}, {}, ctx()))).toBe("STORAGE_BAD_CONFIG");
-    expect(code(() => openProvider("google-drive", {}, { refreshToken: "t" }, ctx()))).toBe("STORAGE_BAD_CONFIG");
-    expect(code(() => openProvider("dropbox", {}, { refreshToken: "t" }, ctx()))).toBe("STORAGE_BAD_CONFIG");
-    expect(code(() => openProvider("device", {}, {}, ctx({ runtime: "server" })))).toBe("STORAGE_BAD_CONFIG");
-    expect(code(() => openProvider("s3", { ...s3, bucket: "" }, keys, ctx()))).toBe("STORAGE_BAD_CONFIG");
-    expect(code(() => openProvider("s3", { ...s3, endpoint: "https://10.0.0.1" }, keys, ctx()))).toBe("STORAGE_BAD_ENDPOINT");
+  it("refuses an unknown or unimplemented kind, a missing field, and a private endpoint", async () => {
+    expect(await code(() => openProvider("ftp", {}, {}, ctx()))).toBe("STORAGE_BAD_CONFIG");
+    expect(await code(() => openProvider("google-drive", {}, { refreshToken: "t" }, ctx()))).toBe("STORAGE_BAD_CONFIG");
+    expect(await code(() => openProvider("google-drive", { clientId: "cid" }, {}, ctx()))).toBe("STORAGE_BAD_CONFIG");
+    expect(await code(() => openProvider("dropbox", {}, { refreshToken: "t" }, ctx()))).toBe("STORAGE_BAD_CONFIG");
+    expect(await code(() => openProvider("device", {}, {}, ctx({ runtime: "server" })))).toBe("STORAGE_BAD_CONFIG");
+    expect(await code(() => openProvider("s3", { ...s3, bucket: "" }, keys, ctx()))).toBe("STORAGE_BAD_CONFIG");
+    expect(await code(() => openProvider("s3", { ...s3, endpoint: "https://10.0.0.1" }, keys, ctx()))).toBe("STORAGE_BAD_ENDPOINT");
   });
 });
 
@@ -122,7 +123,7 @@ describe("envelope vault", () => {
     expect(() => openEnvelope(sealed, { keys: { k1: k2 } })).toThrow(/integrity/);
     expect(() => openEnvelope(sealed, { keys: { other: k1 } })).toThrow(/No vault key k1/);
     expect(() => openEnvelope(sealed.slice(0, -2) + "AA", { keys: { k1 } })).toThrow(StorageError);
-    expect(code(() => sealEnvelope("s", k1, "bad.id"))).toBe("STORAGE_BAD_CONFIG");
+    expect(() => sealEnvelope("s", k1, "bad.id")).toThrow(StorageError);
   });
   it("rotates the key-encryption key by re-wrapping only: the secret body is untouched", () => {
     const sealed = sealEnvelope("s3cret", k1, "k1");
