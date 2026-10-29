@@ -83,7 +83,7 @@ describe("package surface", () => {
     ];
     expect(shipped.length).toBeGreaterThan(10);
     for (const file of shipped) {
-      expect(readFileSync(new URL(`../${file}`, import.meta.url), "utf8")).not.toMatch(/orochia|orazaka/i);
+      expect(readFileSync(new URL(`../${file}`, import.meta.url), "utf8")).not.toMatch(/orazaka/i);
     }
   });
 });

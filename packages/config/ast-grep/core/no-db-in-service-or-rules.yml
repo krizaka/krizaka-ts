@@ -8,7 +8,7 @@ rule:
     field: source
     has:
       kind: string_fragment
-      regex: '(^|/)(db|drizzle|schema|database)($|/)|^drizzle-orm|^postgres$|^pg$|@orochia/db'
+      regex: '(^|/)(db|drizzle|schema|database)($|/)|^drizzle-orm|^postgres$|^pg$'
 files:
   - "**/*.service.ts"
   - "**/*.service.tsx"

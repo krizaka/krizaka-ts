@@ -3,7 +3,7 @@ import crypto from "node:crypto";
 import type { Clock } from "@krizaka/db";
 
 /**
- * Web sessions (the copies each product carried: Yomizaka `ys1.`, Akinaza `as1.`, Kachizaka `ks1.`). The cookie holds a random token
+ * Web sessions (the copies each product carried: Yomizaka `ys1.`, Akinaza `as1.`). The cookie holds a random token
  * (`<prefix>1.` and 32 bytes); the store keeps only its keyed hash, so a leaked table opens nothing. The account is re-read on every
  * request (a suspension applies at once). The lifetime is the setting `auth.sessionDays`.
  */
