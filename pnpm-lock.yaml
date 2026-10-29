@@ -856,8 +856,8 @@ importers:
         specifier: workspace:^
         version: link:../db
       '@krizaka/payments':
-        specifier: ^0.1.0
-        version: 0.1.0
+        specifier: workspace:^
+        version: link:../payments
       date-fns:
         specifier: ^4.4.0
         version: 4.4.0
@@ -1660,11 +1660,6 @@ packages:
   '@krizaka/intl@0.4.1':
     resolution: {integrity: sha512-mxk3T8OBwdHYC2nJMUDqNzts3mu2gcvdcqZ7qBFRq64D8cfxqR1d3hTy6lYpMjyCnxmsuBBZ6ACrc1+tlnjB8g==}
     engines: {node: '>=22'}
-
-  '@krizaka/payments@0.1.0':
-    resolution: {integrity: sha512-Np3ZxEqNCr2Hup1GrrTf32ndlE49f+Ea2n4p8FZvgVvTpaY7iS0E2INkw3C4g1+qTMSC/GiZU/OXfG49eiMUig==}
-    engines: {node: '>=22'}
-    hasBin: true
 
   '@manypkg/find-root@3.1.0':
     resolution: {integrity: sha512-BcSqCyKhBVZ5YkSzOiheMCV41kqAFptW6xGqYSTjkVTl9XQpr+pqHhwgGCOHQtjDCv7Is6EFyA14Sm5GVbVABA==}
@@ -4781,8 +4776,6 @@ snapshots:
       axe-core: 4.11.0
 
   '@krizaka/intl@0.4.1': {}
-
-  '@krizaka/payments@0.1.0': {}
 
   '@manypkg/find-root@3.1.0':
     dependencies:
