@@ -50,6 +50,10 @@
     "./provider-admin": {
       "types": "./dist/provider-admin.d.ts",
       "import": "./dist/provider-admin.js"
+    },
+    "./opendal": {
+      "types": "./dist/opendal.d.ts",
+      "import": "./dist/opendal.js"
     }
   },
   "files": [
@@ -75,7 +79,9 @@
     "@types/pg": "^8.23.1",
     "esbuild": "^0.25.0",
     "eslint": "^9.39.0",
+    "opendal": "0.49.13",
     "pg": "^8.23.1",
+    "testcontainers": "^12.2.1",
     "tsup": "^8.5.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.11",
@@ -83,17 +89,22 @@
   },
   "dependencies": {
     "@krizaka/db": "workspace:^",
-    "@krizaka/settings": "workspace:^"
+    "@krizaka/settings": "workspace:^",
+    "arctic": "3.7.0"
   },
   "peerDependencies": {
     "vitest": ">=4",
-    "zod": ">=3.23"
+    "zod": ">=3.23",
+    "opendal": ">=0.49.13 <0.50"
   },
   "peerDependenciesMeta": {
     "vitest": {
       "optional": true
     },
     "zod": {
+      "optional": true
+    },
+    "opendal": {
       "optional": true
     }
   }

@@ -1,5 +1,6 @@
 /** The Node entry: the safe surface plus the adapters that hash, sign, encrypt or read the disk. */
 export { bucketStore, type BucketStoreOptions } from "./bucket-store";
+export { CLOUD_CONNECTORS, type CloudConnector, cloudConnector, type CloudConnectorName, connectionAccessToken, type ConnectionTokens, type ConnectorApp, type ConnectorOverride, finishConnection, refreshConnection, revokeConnection, startConnection } from "./cloud-connectors";
 export { checkEndpointDns, isPrivateAddress, type Resolver } from "./dns-check";
 export { dropboxAuthorizeUrl, exchangeDropboxCode, pkcePair, refreshDropboxToken, revokeDropbox } from "./dropbox-oauth";
 export { dropboxStore, type DropboxStoreOptions } from "./dropbox-store";
