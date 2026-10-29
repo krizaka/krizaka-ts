@@ -9,6 +9,7 @@ import {
   classify,
   editedFile,
   findUp,
+  insideProject,
   matchesDigest,
   PMD,
   pmdArguments,
@@ -59,31 +60,31 @@ describe("the edited file", () => {
 describe("ESLint on one file", () => {
   it("returns the findings with exit 2", () => {
     const root = projectWithEslint('echo "a.ts:1:1: no-var" >&2; exit 1');
-    const result = checkFile(join(root, "a.ts"));
+    const result = checkFile(join(root, "a.ts"), { cwd: root });
     expect(result.code).toBe(2);
     expect(result.message).toContain("no-var");
   });
 
   it("is silent when the file is clean", () => {
     const root = projectWithEslint("exit 0");
-    expect(checkFile(join(root, "a.ts"))).toEqual({ code: 0, message: "" });
+    expect(checkFile(join(root, "a.ts"), { cwd: root })).toEqual({ code: 0, message: "" });
   });
 
   it("is silent when ESLint cannot run (exit 2)", () => {
     const root = projectWithEslint('echo "config error" >&2; exit 2');
-    expect(checkFile(join(root, "a.ts")).code).toBe(0);
+    expect(checkFile(join(root, "a.ts"), { cwd: root }).code).toBe(0);
   });
 
   it("is silent on a timeout", () => {
     const root = projectWithEslint("sleep 5; exit 1");
-    expect(checkFile(join(root, "a.ts"), { budgetMs: 200 })).toEqual({ code: 0, message: "" });
+    expect(checkFile(join(root, "a.ts"), { cwd: root, budgetMs: 200 })).toEqual({ code: 0, message: "" });
   });
 
   it("is silent without an ESLint in the project", () => {
     const root = mkdtempSync(join(tmpdir(), "edit-check-none-"));
     writeFileSync(join(root, "a.ts"), "");
     expect(findUp(join(root, "a.ts"), "node_modules/.bin/eslint")).toBeNull();
-    expect(checkFile(join(root, "a.ts")).code).toBe(0);
+    expect(checkFile(join(root, "a.ts"), { cwd: root }).code).toBe(0);
   });
 });
 
@@ -98,7 +99,7 @@ describe("PMD on one file", () => {
     const cache = mkdtempSync(join(tmpdir(), "edit-check-cache-"));
     const file = join(cache, "A.java");
     writeFileSync(file, "class A {}");
-    expect(checkFile(file, { cache })).toEqual({ code: 0, message: "" });
+    expect(checkFile(file, { cache, cwd: cache })).toEqual({ code: 0, message: "" });
   });
 
   it("returns the findings of the cached PMD with exit 2", () => {
@@ -110,9 +111,25 @@ describe("PMD on one file", () => {
     writeFileSync(join(cache, "pmd-ruleset.xml"), "<ruleset/>");
     const file = join(cache, "A.java");
     writeFileSync(file, "class A {}");
-    const result = checkFile(file, { cache });
+    const result = checkFile(file, { cache, cwd: cache });
     expect(result.code).toBe(2);
     expect(result.message).toContain("CognitiveComplexity");
+  });
+});
+
+describe("only files of the project are checked", () => {
+  it("refuses a path outside the project and a traversal out of it", () => {
+    const root = projectWithEslint('echo "a.ts:1:1: no-var" >&2; exit 1');
+    const outside = projectWithEslint('echo "x" >&2; exit 1');
+    expect(insideProject(join(outside, "a.ts"), root)).toBeNull();
+    expect(insideProject(`../${join(outside, "a.ts")}`, root)).toBeNull();
+    expect(checkFile(join(outside, "a.ts"), { cwd: root })).toEqual({ code: 0, message: "" });
+  });
+
+  it("accepts a relative path inside the project, and refuses a directory", () => {
+    const root = projectWithEslint("exit 0");
+    expect(insideProject("a.ts", root)).toBe(insideProject(join(root, "a.ts"), root));
+    expect(insideProject("node_modules", root)).toBeNull();
   });
 });
 

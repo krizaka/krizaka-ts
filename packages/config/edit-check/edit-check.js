@@ -1,9 +1,9 @@
 // krizaka-edit-check: the one-file check a coding agent runs after each edit (ADR-015 §7). Never Maven, never a compile.
 import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, realpathSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, extname, join, resolve } from "node:path";
+import { dirname, extname, join, resolve, sep } from "node:path";
 
 /** The PMD distribution, pinned: the release asset and its digest (the PMD of krizaka-build's maven-pmd-plugin 3.28). */
 export const PMD = {
@@ -133,7 +133,7 @@ export async function installPmd(cache) {
   const zip = join(cache, `pmd-${PMD.version}.zip`);
   writeFileSync(zip, bytes);
   const staging = join(cache, `.pmd-${process.pid}`);
-  spawnSync("unzip", ["-q", "-o", zip, "-d", staging], { stdio: "ignore" });
+  spawnSync("/usr/bin/unzip", ["-q", "-o", zip, "-d", staging], { stdio: "ignore" });
   renameSync(join(staging, `pmd-bin-${PMD.version}`), join(cache, `pmd-bin-${PMD.version}`));
   const rules = await fetch(RULES_URL);
   if (rules.ok) writeFileSync(join(cache, "pmd-ruleset.xml"), await rules.text());
@@ -159,15 +159,32 @@ export function checkWithPmd(file, options = {}) {
 }
 
 /**
+ * The real path of a file that is a regular file inside the project (the working directory), else null. The path comes from a
+ * hook's input: nothing outside the project is ever handed to a tool.
+ * @param {string} file The path as the hook gave it.
+ * @param {string} cwd The project folder.
+ * @returns {string | null} The real path, or null.
+ */
+export function insideProject(file, cwd = process.cwd()) {
+  try {
+    const real = realpathSync(resolve(cwd, file));
+    return real.startsWith(realpathSync(cwd) + sep) && statSync(real).isFile() ? real : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Checks one edited file.
  * @param {string} file The edited file.
- * @param {{ cache?: string, budgetMs?: number, script?: string }} options Passed to the PMD check.
+ * @param {{ cwd?: string, cache?: string, budgetMs?: number, script?: string }} options The project folder, passed on to the PMD check.
  * @returns {{ code: number, message: string }} 2 and the findings for the agent, else 0 and nothing.
  */
 export function checkFile(file, options = {}) {
-  const tool = classify(file);
-  if (tool === null || !existsSync(file)) return NO_FINDING;
-  return tool === "eslint" ? checkWithEslint(file, options.budgetMs) : checkWithPmd(file, options);
+  const inside = insideProject(file, options.cwd);
+  const tool = inside && classify(inside);
+  if (!inside || !tool) return NO_FINDING;
+  return tool === "eslint" ? checkWithEslint(inside, options.budgetMs) : checkWithPmd(inside, options);
 }
 
 /**
