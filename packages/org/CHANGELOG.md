@@ -1,5 +1,15 @@
 # @krizaka/org
 
+## 0.5.0
+
+### Minor Changes
+
+- 32c80b5: Orazaka is "development" like every product of the family (krizaka-com#468): no product wears "devPreview" any more.
+
+### Patch Changes
+
+- d9f91aa: The family's open-source list names the lab Krizaka Lab, at lab.krizaka.com.
+
 ## 0.4.0
 
 ### Minor Changes
