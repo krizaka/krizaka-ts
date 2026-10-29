@@ -133,7 +133,8 @@ function exportsTable(items, t) {
   return [`| ${t.exports.name} | ${t.exports.kind} | ${t.exports.summary} |`, "| :-- | :-- | :-- |", ...rows].join("\n");
 }
 
-const list = (record) => Object.entries(record ?? {}).map(([name, range]) => `\`${name}\` ${range}`);
+// A range is code: `<0.50` as text would open an MDX tag.
+const list = (record) => Object.entries(record ?? {}).map(([name, range]) => `\`${name}\` \`${range}\``);
 
 /**
  * The MDX page of one package in one language.

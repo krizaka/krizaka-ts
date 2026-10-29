@@ -28,7 +28,9 @@
       ],
       "passThroughEnv": [
         "DATABASE_URL",
-        "ORGANIZE_DB_IT"
+        "ORGANIZE_DB_IT",
+        "STORAGE_DB_IT",
+        "STORAGE_S3_IT"
       ]
     },
     "check": {

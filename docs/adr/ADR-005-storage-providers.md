@@ -1,6 +1,7 @@
 # ADR-005: Storage providers are chosen by the admin, in the database; users may connect their own clouds
 
 - **Status:** accepted (2026-10-28) as the direction. The slices are separate work, filed as sub-issues of krizaka/krizaka-ts#216.
+- **Amended** (2026-10-28, krizaka/krizaka-ts#235): the classic clouds through libraries, not hand-written adapters. See [Amendment: libraries, not one adapter per provider](#amendment-2026-10-28-libraries-not-one-adapter-per-provider).
 - **Issue:** krizaka/krizaka-ts#216.
 - **Builds on:** [ADR-001](ADR-001-modular-architecture.md) (ports and adapters, settings as data), [ADR-004](ADR-004-non-ui-packages-move-here.md) (server logic lives here). Amends Yomizaka ADR-0012 (« document bytes out of the database »), as already amended by krizaka/yomizaka#520.
 - **Packages:** `@krizaka/storage` (0.4.0 today), with `@krizaka/settings`, `@krizaka/audit`, `@krizaka/outbox` and `@krizaka/privacy`.
@@ -43,7 +44,7 @@ interface ProviderKind {
 | `bunny` | admin | server, dev | `remoteStore` (exists) | `devOnly: true`: no Canadian region, so it is refused when the environment is `prod` (the rule leaves Yomizaka's `storageFrom` for the package). Private zone, links signed by the pull zone's token key. |
 | `s3` | admin, user | server, dev | `bucketStore` (exists) | Presets: **DigitalOcean Spaces** (`<region>.digitaloceanspaces.com`), **AWS S3** (`s3.<region>.amazonaws.com`), **OVHcloud** (`s3.<region>.io.cloud.ovh.net`), and **generic** (any HTTPS endpoint, checked by `checkEndpoint` plus a DNS check). A preset only fills in fields: it adds no new code. |
 | `dropbox` | user | server | new `dropboxStore` | OAuth 2 with PKCE and an offline refresh token, **App folder** access only. `signedUrls: false`: Dropbox temporary links live 4 h, longer than our 900 s cap, so the app streams the file. Residency is `user-cloud`, so the app makes no claim about where it is. |
-| `google-drive`, `onedrive` | user | server | later | Reserved in the registry, not implemented. Each one gets its own slice when a real user asks for it. |
+| `google-drive`, `onedrive` | user | server | `opendalStore` + `cloud-connectors` (amendment) | Reserved in the registry until the registry opens the OpenDAL kinds. No per-provider adapter: a line of `CLOUD_CONNECTORS` and an OpenDAL service. |
 | `folder` | — | dev | `folderStore` (exists) | **Never on a deployed server.** `openProvider` refuses it unless the runtime is `dev`, so the web BFF cannot write to the server's disk. |
 | `device` | — | device | the client's own (yomizaka#154, #155) | Mobile sandbox, macOS folder. The server never opens a `device` store. |
 
@@ -151,3 +152,89 @@ We found no Québec-owned public S3 provider with a public offer and a published
 ## Needs Oussama
 
 - **The production provider contract** (yomizaka#524): opening the paid Spaces `tor1` bucket (or another provider from the table) and accepting its DPA. This is paid, and the data processing agreement is a legal commitment. Everything else is reversible and proceeds without waiting.
+
+## Amendment (2026-10-28): libraries, not one adapter per provider
+
+- **Issue:** krizaka/krizaka-ts#235. Oussama, 2026-10-28: « Dropbox c'est un exemple, il faut couvrir tous les providers classiques. À l'époque c'était Passport ; aujourd'hui il y a sûrement mieux. »
+- **Decided with a working proof** (this pull request): `@krizaka/storage/opendal` (`opendalStore`) and `cloud-connectors.ts` (`CLOUD_CONNECTORS`, `startConnection`, `finishConnection`, `refreshConnection`, `revokeConnection`, `connectionAccessToken`), with their tests.
+
+### What the spike found (OpenDAL `opendal` 0.49.13 on npm, Arctic 3.7.0)
+
+**What the published Node binding really ships.** We constructed an operator for each scheme (`new Operator(scheme, options)`):
+
+| Works | Not in the npm binding (`Unsupported`) |
+|---|---|
+| Object stores: `s3`, `gcs`, `azblob`, `azdls`, `azfile`, `b2`, `swift`, `oss`, `cos`, `obs`, `upyun`, `tos` | `ftp`, `sftp` |
+| Consumer clouds: `gdrive`, `onedrive`, `dropbox`, `webdav` (Nextcloud, ownCloud), `seafile`, `koofr`, `yandex-disk`, `aliyun-drive` | `pcloud`, `icloud` |
+| Others we do **not** allow: `fs`, `memory`, `http`, `postgresql`, `mysql`, `redis`, `mongodb`, `sqlite`, caches… | `hdfs` |
+
+- **The proof.** The package's `objectStoreContract` passes on OpenDAL `fs` (with and without a prefix) and on a real S3-compatible server in a container (SeaweedFS through Testcontainers, `STORAGE_S3_IT=1` in CI). MinIO's public images are gone from Docker Hub and Quay, so we could not use them. A presigned read link is served. Wrong keys give `STORAGE_PROVIDER_FAILED`, never a silent `null`. A 6 MiB file streams back in several chunks (`readStream`).
+- **Error mapping.** OpenDAL errors carry their kind as the first word of the message (`NotFound (permanent) at read…`). `NotFound` gives `null`. `PermissionDenied` on an OAuth cloud gives `STORAGE_DISCONNECTED`, and on keys it gives `STORAGE_PROVIDER_FAILED`. `ConfigInvalid` and `Unsupported` give `STORAGE_BAD_CONFIG`. Anything else gives `STORAGE_PROVIDER_FAILED`. The message is never passed on, because it may quote a path or the provider's answer.
+- **SSRF guards kept.** `OPENDAL_SERVICES` is an allow-list: a typed coordinate cannot open `postgresql`, `redis` or `http`. `fs` and `memory` need `allowLocal` (dev and tests only). A typed endpoint (`s3`, `webdav`, `swift`, `azblob`, `gcs`) passes `checkEndpoint` (https only, no credentials in the URL, no local name, no private, loopback or link-local literal such as `169.254.169.254`). It also passes `checkEndpointDns` before OpenDAL is called. **A limit:** OpenDAL makes its HTTP calls from Rust, with its own resolver. We cannot inject `fetch` or pin the checked address, so DNS rebinding stays possible between the check and the call. The product's network egress rules remain the second guard, as ADR-005 already says for names.
+- **OAuth.** OpenDAL refreshes Dropbox tokens itself only for a confidential client (`client_secret must be set when refresh_token is set`). So **Arctic owns the tokens and OpenDAL only receives a short-lived access token** (`accessToken: () => Promise<string>`; the operator is rebuilt when the token changes).
+  - We do not use Arctic's per-provider classes. Its `Dropbox` class sends no PKCE, and it revokes in the RFC 7009 style, which Dropbox does not speak. Its `MicrosoftEntraId` class has no revocation. We use Arctic's generic `OAuth2Client` (code + PKCE S256, refresh, RFC 7009 revoke) over **one table of endpoints**: `CLOUD_CONNECTORS` (Dropbox, Google Drive, OneDrive). Each line gives the narrowest file scope (`drive.file`, `Files.ReadWrite.AppFolder`, Dropbox's App folder), the provider's extra parameters and its revocation style (`rfc7009`, `bearer` or none).
+  - The tests run the whole flow against a fake OAuth server: the S256 challenge is checked against the verifier, and a wrong verifier is refused. The refresh token is sealed with `sealEnvelope` and opened again. A refresh rotates the token, and the old one is refused with `STORAGE_DISCONNECTED`. Revocation is tested in both styles. `connectionAccessToken` caches the token until a minute before it expires, hands a rotated token to `onRotate` to be resealed, and reports the disconnect. An unreachable provider gives `STORAGE_PROVIDER_FAILED`, not a disconnect.
+- **Native module.** The binary is chosen per platform (`optionalDependencies`):
+  - **macOS arm64:** 70 MB. Works.
+  - **linux-x64-musl:** 59 MB. Works on Yomizaka's production image (`node:22-alpine`, the pinned digest, checked in a container).
+  - **linux-x64-gnu:** 82 MB. It needs **glibc ≥ 2.38**. It **fails** on Debian 12 (`node:22-bookworm`, glibc 2.36) and on Ubuntu 22.04 (DigitalOcean's buildpack stack). It works on Ubuntu 24.04 (the CI runners).
+  - So a product that opens an OpenDAL provider deploys an Alpine or glibc ≥ 2.38 image, as Yomizaka and Akinaza already do through their Dockerfiles. A Next.js app lists `opendal` in `serverExternalPackages`. `opendal` is an **optional peer**, loaded on first use, and in its own entry: a product that opens no OpenDAL provider never installs or loads 60–80 MB.
+- **Licence.** OpenDAL is an Apache top-level project, under Apache-2.0. The binary also ships an MPL-2.0 notice for a bundled component; that is file-level copyleft, and it does not bind our code. Arctic is MIT. Neither phones home.
+
+### Comparison
+
+| Option | Coverage of the classic clouds | Ops cost | Residency | Maturity | Licence | Size |
+|---|---|---|---|---|---|---|
+| **Apache OpenDAL (npm binding)** — chosen for files | S3 family, GCS, Azure, B2, Swift; Google Drive, OneDrive, Dropbox, WebDAV/Nextcloud, Seafile. No FTP/SFTP, pCloud or iCloud in the npm build | none: in process | in process, no third party | Apache top-level project; the Node binding is still 0.x and releases about every two weeks (0.49.10 to 0.49.13 between 2026-09-15 and 2026-10-18); a Java binding exists too | Apache-2.0 (+ a bundled MPL-2.0 component) | native, 59–82 MB per platform; glibc ≥ 2.38 or musl |
+| rclone as a sidecar (`rclone rcd` / `serve s3`) | the widest (~70 backends, with SFTP, FTP, pCloud, iCloud) | a second process or container per deployment (on App Platform, one more component, billed), its own config, health checks and upgrades. Credentials must be passed on every call to stay in our vault | self-hosted | very mature (since 2012) | MIT | a ~60 MB Go binary plus its container |
+| unstorage (UnJS) | key-value drivers (fs, S3, Azure, Redis, Vercel, Cloudflare, GitHub). No Google Drive, OneDrive or Dropbox | none | in process | active, made for caches and KV | MIT | small, pure JS |
+| flystorage (Flysystem for TS) | local, S3, GCS, Azure. No consumer clouds | none | in process | young, small community | MIT | small, pure JS |
+| Nango, self-hosted | an OAuth broker and API proxy for hundreds of APIs; files only through each API's own calls | a server with PostgreSQL and Redis, which also stores the tokens itself (outside our vault) | self-hosted | mature product, but self-hosting is a reduced edition | source-available (to check before any use), not OSI | a service |
+
+**Why OpenDAL.** It is the only option that covers the consumer clouds **and** runs in process with nothing to operate, under an OSI licence. rclone covers more, but it is a service to run, and it would hold secrets outside the vault. FTP, SFTP, pCloud and iCloud would justify rclone or another library the day a real customer asks; they are not in the first wave.
+
+### Decision
+
+1. **One OpenDAL-backed adapter behind the port** (`opendalStore`, `@krizaka/storage/opendal`) for every provider that has no adapter of its own. These are the user clouds (Google Drive, OneDrive, Dropbox) and the long tail of admin object stores (Azure Blob, GCS, B2, Swift, WebDAV). A new provider is a line of `OPENDAL_SERVICES` (and, for OAuth, a line of `CLOUD_CONNECTORS`). It is never a new adapter.
+2. **We keep the existing adapters where OpenDAL is worse:**
+   - **`bucketStore` (S3).** It passes the same contract with no native module and no SDK. Its HTTP goes through our injected `fetch`, so tests fake it and a product can pin egress. It is edge-safe, and it adds 0 MB against 60–80 MB. OpenDAL's `s3` passes the same contract, so it is the fallback the day `bucketStore` lacks something (multipart above the single-call size, for example).
+   - **`remoteStore` (Bunny).** OpenDAL has no Bunny service.
+   - **`folderStore`.** It is dev only, and has no reason to change.
+3. **The hand-written `dropboxStore` and `dropbox-oauth.ts` (krizaka-ts#221) are superseded** by OpenDAL `dropbox` with `CLOUD_CONNECTORS.dropbox`. They stay exported until Yomizaka's connection screen ships on the new path, then a major release removes them.
+4. **Arctic for user connectors.** We use its generic `OAuth2Client` over the `CLOUD_CONNECTORS` table, with PKCE S256 for every provider (even with a client secret), and refresh tokens sealed with the vault. A provider's rotated refresh token is resealed (`onRotate`). Revocation is tried at the provider where it exists; the sealed token is always deleted. The PKCE verifier rides sealed in the OAuth `state` record (no table), as noted on yomizaka#530.
+5. **Login providers are a separate concern.**
+   - **Java services sign people in through Spring Security OAuth2 Client.** Each provider is one `ClientRegistration` (from `spring.security.oauth2.client.registration.<id>`, `CommonOAuth2Provider` for Google, GitHub and Facebook, Apple declared as its own registration). The user mapping is a map from `registrationId` to a mapper. There is **no if-ladder on the provider name** (the code audit, krizaka/.github#384).
+   - TS apps keep `@krizaka/auth`, and identity lives in krizaka-users ([.github ADR-001](https://github.com/krizaka/.github/blob/main/docs/adr/ADR-001-krizaka-accounts.md)).
+   - A storage connection never signs anyone in, and a sign-in never grants file access.
+
+### Provider credentials and krizaka/.github ADR-001 (accounts)
+
+.github ADR-001 takes **passwords** out of the products' PostgreSQL: identity lives in krizaka-users. ADR-005 keeps **provider credentials** in the product's database. The two align, for these reasons:
+
+- **They are not identity.** No login password, session or identity token is ever stored by `@krizaka/storage`. What it stores is an integration secret: the S3 keys an admin typed, or the refresh token a person granted for an app folder. Each one belongs to a provider row, with the row's audit trail.
+- **A database dump alone opens nothing.** Each value is an envelope (`v2.<key_id>.<wrapped data key>.<sealed secret>`, AES-256-GCM). The key-encryption key is **never in PostgreSQL**: `MEDIA_VAULT_KEY` lives in the deployment's secret store (App Platform secrets), with a backup copy outside the deployment. A dump, a replica or a backup of the database holds ciphertext and wrapped keys only.
+- **Rotation.**
+  - The key-encryption key rotates with `rewrapEnvelope`: the keyring holds the old and the new `key_id`, the data keys are re-wrapped, and nobody retypes a credential.
+  - A provider's own rotation (Microsoft and Google rotate refresh tokens) is resealed at once through `onRotate`.
+  - A person or an admin can revoke at any time, and the sealed value is then deleted.
+- **The path to an external secret manager.** The `Keyring` is the seam. Today it is in-process keys by `key_id`. The next step turns it into a port, `{ wrap(dataKey) → { keyId, wrapped }, unwrap(keyId, wrapped) → dataKey }`, so that a KMS (AWS KMS `ca-central-1`, OVHcloud KMS, or Vault's transit engine) holds the key-encryption key and the process never sees it.
+  - The stored format does not change: the `key_id` names the KMS key.
+  - The migration is a re-wrap, which the move tooling already does.
+  - Once a KMS holds the key-encryption key, `MEDIA_VAULT_KEY` disappears from the environment.
+
+### Private providers register without touching the open-source core
+
+Enterprise integrations (a customer's document management system, a sovereign provider under contract) live in **private repositories**. The port lets them in like this:
+
+- **The registry becomes a value, not a constant.** `createProviderRegistry({ kinds, adapters })` starts from the public `PROVIDER_KINDS` and the public adapters (`bucketStore`, `remoteStore`, `opendalStore`…). A private package exports `{ kind: ProviderKind, open: (coordinates, credentials, ctx) => ObjectStore }`. The product composes them at its edge (Yomizaka's `app/storage-providers.ts`): `createProviderRegistry(...).with(acmeDms)`.
+- **One registry for everything.** `openProvider`, `createProviderService` and the admin API receive that registry, so the admin screen lists the private kind with its fields like any other.
+- **The rules apply to every kind, private ones included.** The registry applies the scopes, runtimes, `devOnly`, the endpoint and DNS checks of `url` fields, the sealing of `secret` fields and the audit.
+  - A private kind cannot widen them, and it cannot reuse a public kind's name (the registry refuses duplicates).
+  - It proves itself with the public `objectStoreContract`, in its own repository's CI.
+- **No code is loaded from settings.** The product's build decides which kinds exist, and the admin only chooses among them. The open-source core never names a private package.
+
+### Slices (amended)
+
+- **krizaka-ts (new, after this pull request):** the registry opens the OpenDAL kinds (`google-drive`, `onedrive`, then `azblob`, `gcs`, `b2` and `webdav` at admin scope, through `opendalStore`); `createProviderRegistry` with private-kind registration; the `Keyring` port. Each one comes with its tests.
+- **yomizaka#530 rewritten: « user cloud connection, provider-agnostic ».** It is one connect screen and one flow over `CLOUD_CONNECTORS`: Dropbox, Google Drive and OneDrive in the first wave, then any line the table gains. Next come Box (an Arctic line, but no OpenDAL service: it waits) and S3 keys at user scope (`bucketStore`, already done). pCloud, iCloud and SFTP are not in OpenDAL's npm build, so they wait for a real request. The flow covers: the admin's `storage.userConnectors` policy, connect (PKCE, sealed refresh token), « Kept: your <cloud> », disconnect and revoke, and `STORAGE_DISCONNECTED` handling in reads, export and erasure. The app registration steps per provider are written for Oussama in the pull request.
+- Google Drive and OneDrive leave « later »: they are lines of data now, not slices of their own.

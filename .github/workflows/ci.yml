@@ -34,5 +34,6 @@ jobs:
       env: |
         DATABASE_URL=postgresql://organize_db:ci-only-password@localhost:5432/organize_db
         ORGANIZE_DB_IT=1
+        STORAGE_S3_IT=1
     secrets:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
