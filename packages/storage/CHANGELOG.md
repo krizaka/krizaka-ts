@@ -1,5 +1,17 @@
 # @krizaka/storage
 
+## 0.7.0
+
+### Minor Changes
+
+- e8f4ec7: `storageSettings` has `storage.userConnectors` (flag, **off by default**): the admin's policy on whether people may connect their own cloud (Dropbox, an S3 of their own). `userConnectorsAllowed(read)` reads it; anything but an explicit `true` is off.
+
+### Patch Changes
+
+- Updated dependencies [0d19b64]
+  - @krizaka/db@0.3.0
+  - @krizaka/settings@0.5.1
+
 ## 0.6.0
 
 ### Minor Changes

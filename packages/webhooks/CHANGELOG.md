@@ -1,5 +1,14 @@
 # @krizaka/webhooks
 
+## 0.3.1
+
+### Patch Changes
+
+- 97106c5: Depends on `@krizaka/payments` through `workspace:^` (it was `^0.1.0`, which stopped matching the repository when payments reached 0.4.0 and stopped `changeset version`).
+- Updated dependencies [0d19b64]
+  - @krizaka/db@0.3.0
+  - @krizaka/payments@0.4.1
+
 ## 0.3.0
 
 ### Minor Changes

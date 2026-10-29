@@ -1,6 +1,6 @@
 {
   "name": "@krizaka/video",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Video behind one port: server-signed TUS uploads, embed and CDN playback tokens, HLS and poster URLs, webhook statuses with signature check; Bunny Stream as the first adapter. The client never holds a library key. No network in the package's own code beyond an injected fetch.",
   "keywords": [
     "krizaka",

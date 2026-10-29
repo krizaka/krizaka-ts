@@ -1,5 +1,13 @@
 # @krizaka/privacy
 
+## 0.2.1
+
+### Patch Changes
+
+- Updated dependencies [0d19b64]
+  - @krizaka/db@0.3.0
+  - @krizaka/settings@0.5.1
+
 ## 0.2.0
 
 ### Minor Changes
