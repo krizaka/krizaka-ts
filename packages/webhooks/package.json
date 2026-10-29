@@ -1,6 +1,6 @@
 {
   "name": "@krizaka/webhooks",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Signed and idempotent webhooks, both ways, for every Krizaka product. Out: an owner registers endpoints, events are queued once per endpoint and delivered signed with retries and a delivery log. In: a body is verified (HMAC, timestamp tolerance) and applied exactly once. PostgreSQL adapter and migration; the HTTP call, the secret sealing and the clock are the product's.",
   "keywords": [
     "krizaka",
