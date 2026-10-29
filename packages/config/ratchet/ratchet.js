@@ -241,6 +241,34 @@ const SONAR_CONFIG = [
 ];
 
 /**
+ * Adds the stack, code-rule and Sonar counters of one file to `counters`.
+ * @param {Counters} counters
+ * @param {string} file
+ * @param {string} root
+ * @param {{ retire: readonly string[], maxFormFields: number }} options
+ */
+function addStackFile(counters, file, root, options) {
+  const source = readFileSync(file, "utf8");
+  const isTest = TEST_FILE.test(file);
+  const found = /** @type {Partial<Counters>} */ (countStackSource(source, options));
+  for (const name of STACK_COUNTERS) counters[name] += found[name] ?? 0;
+  // the code rules: tests are held to the braces rule only
+  for (const [rule, n] of Object.entries(countCodeRules(source, relative(root, file)))) {
+    if (!isTest || rule === `${CODE_PREFIX}curly`) {
+      counters[rule] = (counters[rule] ?? 0) + n;
+      counters.codeRules += n;
+    }
+  }
+  // Sonar scans the product code, not its tests
+  if (isTest) return;
+  counters.cognitiveComplexity += countCognitiveComplexity(source, file);
+  for (const [rule, n] of Object.entries(countSonar(source, file))) {
+    counters[rule] = (counters[rule] ?? 0) + n;
+    counters.sonar += n;
+  }
+}
+
+/**
  * Counts the debts under `root`: the UI counters in the files of `globs`, the stack counters in those of `stackGlobs`.
  * @param {{ root: string, globs?: readonly string[], stackGlobs?: readonly string[], allow?: string[],
  *   retire?: readonly string[], maxFormFields?: number }} options
@@ -261,25 +289,7 @@ export async function countRepository({
     const found = countSource(readFileSync(file, "utf8"), allow);
     for (const name of UI_COUNTERS) counters[name] += found[name];
   }
-  for (const file of stackFiles) {
-    const found = /** @type {Partial<Counters>} */ (countStackSource(readFileSync(file, "utf8"), { retire, maxFormFields }));
-    for (const name of STACK_COUNTERS) counters[name] += found[name] ?? 0;
-    // the code rules: tests are held to the braces rule only
-    for (const [rule, n] of Object.entries(countCodeRules(readFileSync(file, "utf8"), relative(root, file)))) {
-      if (!TEST_FILE.test(file) || rule === `${CODE_PREFIX}curly`) {
-        counters[rule] = (counters[rule] ?? 0) + n;
-        counters.codeRules += n;
-      }
-    }
-    // Sonar scans the product code, not its tests
-    if (!TEST_FILE.test(file)) {
-      counters.cognitiveComplexity += countCognitiveComplexity(readFileSync(file, "utf8"), file);
-      for (const [rule, n] of Object.entries(countSonar(readFileSync(file, "utf8"), file))) {
-        counters[rule] = (counters[rule] ?? 0) + n;
-        counters.sonar += n;
-      }
-    }
-  }
+  for (const file of stackFiles) addStackFile(counters, file, root, { retire, maxFormFields });
   return { counters, files: files.length, stackFiles: stackFiles.length };
 }
 
