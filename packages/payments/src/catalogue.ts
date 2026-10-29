@@ -18,11 +18,11 @@ export interface Catalogue {
   portal: { headline: string; cancel: "at_period_end" | "immediately" };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- the processor's JSON, read field by field below
 export type StripeCall = (
   method: "GET" | "POST",
   path: string,
   params?: Record<string, unknown>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the processor's JSON, read field by field below
 ) => Promise<Record<string, any>>;
 
 /** The processor's API as one function (errors say which call failed), and the mode its key is in. */
