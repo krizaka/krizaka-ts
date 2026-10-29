@@ -6,7 +6,7 @@
   "packageManager": "pnpm@10.34.6",
   "scripts": {
     "build": "turbo run build",
-    "lint": "turbo run lint && ast-grep test --skip-snapshot-tests && krizaka-sg-ratchet && node scripts/check-file-names.mjs && node scripts/deps.mjs && node packages/config/bin/krizaka-workspace-guard.mjs",
+    "lint": "turbo run lint && ast-grep test --skip-snapshot-tests && krizaka-sg-ratchet && node scripts/check-file-names.mjs && node scripts/deps.mjs && node packages/config/bin/krizaka-workspace-guard.mjs && pnpm run format:check",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test && vitest run",
     "check": "pnpm run lint && pnpm run typecheck && pnpm run test",
