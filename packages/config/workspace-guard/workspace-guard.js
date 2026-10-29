@@ -54,7 +54,11 @@ export function readManifests(root) {
   return folders.map((f) => JSON.parse(readFileSync(join(root, f, "package.json"), "utf8")));
 }
 
-/** Every dependency that names a package of the workspace without `workspace:` (peer ranges are a published contract and stay). */
+/**
+ * Every dependency that names a package of the workspace without `workspace:` (peer ranges are a published contract and stay).
+ * @param {Array<Record<string, any>>} manifests
+ * @returns {string[]}
+ */
 export function checkWorkspaceRanges(manifests) {
   const own = new Set(manifests.map((m) => m.name).filter(Boolean));
   /** @type {string[]} */
