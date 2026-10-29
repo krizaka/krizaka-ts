@@ -1,6 +1,6 @@
 # @krizaka/outbox
 
-The transactional outbox of every Krizaka product. An event is **written in the caller's transaction**, so it exists exactly when the work committed, and is **delivered after the commit, at least once**, by workers that lease a batch. No broker: PostgreSQL and `FOR UPDATE SKIP LOCKED` share the work between instances. It replaces Akinaza's `mail_outbox` (whose `flushOutbox` nobody called), Orochia's `reco_outbox` and analytics outbox and Yasakia's `analytics_outbox`; it is the TypeScript twin of `krizaka-messaging`'s `krizaka_outbox` (the envelope is `id`, `type`, `occurredAt`, `payload`).
+The transactional outbox of every Krizaka product. An event is **written in the caller's transaction**, so it exists exactly when the work committed, and is **delivered after the commit, at least once**, by workers that lease a batch. No broker: PostgreSQL and `FOR UPDATE SKIP LOCKED` share the work between instances. It replaces Akinaza's `mail_outbox` (whose `flushOutbox` nobody called) and the analytics outboxes the products carried; it is the TypeScript twin of `krizaka-messaging`'s `krizaka_outbox` (the envelope is `id`, `type`, `occurredAt`, `payload`).
 
 > **The guarantee is *at least once*. Consumers must be idempotent on the message id.** A claim is exclusive while its lease is valid. A worker that delivers and then crashes before `complete` lets the lease expire, and the message is delivered **again**. The outbox never promises « exactly once ».
 

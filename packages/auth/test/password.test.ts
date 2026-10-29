@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { decoyHash, hashPassword, PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, passwordProblem, verifyPassword } from "../src";
 
-/** Made by the copy of `password.ts` that Yomizaka, Akinaza, Kachizaka and Yororis carried (recorded 2026-10-26 from that code). */
+/** Made by the copy of `password.ts` that Yomizaka and Akinaza carried (recorded 2026-10-26 from that code). */
 const FROM_A_PRODUCT = "scrypt$32768$8$1$tB8PYjKQjpGaU0F--n265A$pcYd8V_rsq7tMXfRX1cPH5iWLSJVOzq5oz0vQLc2d3I";
 
 describe("passwords", () => {

@@ -8,7 +8,7 @@ const scrypt = (password: string, salt: Buffer, keylen: number, options: crypto.
 
 /**
  * scrypt (N=2^15, r=8, p=1), a 16-byte salt, stored as `scrypt$N$r$p$salt$hash` (base64url). These are the parameters of the copies
- * the products carried (Yomizaka, Akinaza, Kachizaka, Yororis): a hash they stored verifies here, and one made here verifies there.
+ * the products carried (Yomizaka, Akinaza): a hash they stored verifies here, and one made here verifies there.
  */
 // @fixed: the cost of the algorithm is part of the stored format; changing it is a new scheme, not a setting
 const N = 32768;

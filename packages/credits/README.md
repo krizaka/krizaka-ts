@@ -1,6 +1,6 @@
 # @krizaka/credits
 
-**One credits ledger for every Krizaka product.** It replaces three models: Yomizaka's `audit_credits` and `free_audit_used_at` columns on `accounts` (`reserveAudit` / `releaseAudit` / `refundFailedAudit`), Orochia's `wallet_ledger` with holds, and the Java kit's `credit_wallet` / `credit_ledger_entry` / `credit_hold` (`krizaka-billing`, whose names and events it follows). The coupons module (#46) grants capped credits through it.
+**One credits ledger for every Krizaka product.** It replaces three models: Yomizaka's `audit_credits` and `free_audit_used_at` columns on `accounts` (`reserveAudit` / `releaseAudit` / `refundFailedAudit`), and the Java kit's `credit_wallet` / `credit_ledger_entry` / `credit_hold` (`krizaka-billing`, whose names and events it follows). The coupons module (#46) grants capped credits through it.
 
 > **The ledger is append-only and the balance is derived.** Nothing stores a balance that could drift: what is left of a pot is the sum of its lines. A database trigger refuses any `UPDATE` or `DELETE` of a line. Credits are integers, never floats.
 

@@ -4,7 +4,7 @@ import { defineModule } from "@krizaka/db";
  * The tables of the settings, declared as modules (ADR-001 §3). They existed before the module schemas, so they stay in `public`,
  * un-qualified: a product that has them adopts version 1 (`adoptMigration`, markers only), one that does not emits it. Version 1 of
  * each is frozen once released: a change is version 2. (`settings` moves to its own schema in its next major, because of the
- * `app_settings` collision with Orochia.)
+ * `app_settings` collision with another product.)
  */
 
 /** The overrides (global, for a workspace, for one user: the most specific wins) and the audit of every change (who, what, when, before, after). Idempotent. */
