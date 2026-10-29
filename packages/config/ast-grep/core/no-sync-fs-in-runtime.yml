@@ -1,0 +1,41 @@
+id: no-sync-fs-in-runtime
+language: Tsx
+severity: error
+message: "No synchronous fs call (`readFileSync`, `existsSync`, `readdirSync`…) in runtime code: it stalls the event loop for every user. Use `fs/promises` (`Promise.all` for independent reads). Sync is fine in scripts/, tools/, *.config.* and tests."
+rule:
+  kind: call_expression
+  has:
+    field: function
+    any:
+      - kind: identifier
+        regex: "^(readFileSync|writeFileSync|appendFileSync|existsSync|readdirSync|statSync|lstatSync|mkdirSync|rmSync|rmdirSync|unlinkSync|copyFileSync|renameSync|accessSync|realpathSync|openSync|readSync|writeSync|closeSync)$"
+      - kind: member_expression
+        has:
+          field: property
+          regex: "^(readFileSync|writeFileSync|appendFileSync|existsSync|readdirSync|statSync|lstatSync|mkdirSync|rmSync|rmdirSync|unlinkSync|copyFileSync|renameSync|accessSync|realpathSync|openSync|readSync|writeSync|closeSync)$"
+files:
+  - "app/**/*.ts"
+  - "app/**/*.tsx"
+  - "src/**/*.ts"
+  - "src/**/*.tsx"
+  - "lib/**/*.ts"
+  - "lib/**/*.tsx"
+  - "components/**/*.ts"
+  - "components/**/*.tsx"
+  - "server/**/*.ts"
+  - "packages/*/src/**/*.ts"
+  - "packages/*/src/**/*.tsx"
+  - "apps/*/src/**/*.ts"
+  - "apps/*/src/**/*.tsx"
+  - "apps/*/lib/**/*.ts"
+  - "apps/*/app/**/*.ts"
+  - "apps/*/app/**/*.tsx"
+ignores:
+  - "**/node_modules/**"
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+  - "**/__tests__/**"
+  - "**/tests/**"
+  - "**/scripts/**"
+  - "**/tools/**"
+  - "**/*.config.ts"

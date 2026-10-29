@@ -1,0 +1,17 @@
+id: no-hand-written-validation-regex
+language: Tsx
+severity: error
+message: "No hand-written pattern for a common fact (date `YYYY-MM-DD`, email, URL, slug, phone, postal code). Use the shared helpers: `isIsoDate` of @krizaka/time, `isEmail`, `isHttpUrl`, `isSlug`, `isE164Phone`, `isCanadianPostalCode` of @krizaka/validate. A missing helper is added to the lib first."
+rule:
+  kind: regex
+  regex: '(\\d\{4\}-\\d\{2\}-\\d\{2\})|(\[0-9\]\{4\}-\[0-9\]\{2\}-\[0-9\]\{2\})|(@)|(https\??:)|(\[a-z0-9\]\+\(\?:-\[a-z0-9\]\+\)\*)|(\\d\{3\}-\\d\{3\}-\\d\{4\})|(\\\+\?\\d\{7)|(\[A-Z\]\\d\[A-Z\])'
+ignores:
+  - "**/node_modules/**"
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+  - "**/__tests__/**"
+  - "**/tests/**"
+  - "**/scripts/**"
+  - "**/tools/**"
+  - "packages/validate/**"
+  - "packages/time/**"

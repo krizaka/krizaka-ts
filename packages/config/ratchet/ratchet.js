@@ -9,6 +9,7 @@ import sonarjs from "eslint-plugin-sonarjs";
 import { glob } from "tinyglobby";
 import tseslint from "typescript-eslint";
 
+import { CODE_PREFIX, CODE_RULES, CODE_RUNTIME_RULES, isRuntimeFile } from "../eslint/code-rules.js";
 import { SONAR_RULES } from "../eslint/sonar.js";
 import {
   ARBITRARY_VAR_SOURCE,
@@ -38,7 +39,7 @@ export const DEFAULT_STACK_GLOBS = Object.freeze(
 const IGNORE = ["**/node_modules/**", "**/dist/**", "**/.next/**", "**/storybook-static/**", "**/coverage/**"];
 
 /** @typedef {"palette" | "light" | "arbitraryVar" | "classNameTemplate"} UiCounterName */
-/** @typedef {"fetchInClientEffect" | "asyncInEffect" | "derivedStateInEffect" | "directTanstackImport" | "localTableOrForm" | "retiredImport" | "routeStateSelection" | "cognitiveComplexity" | "sonar"} StackCounterName */
+/** @typedef {"fetchInClientEffect" | "asyncInEffect" | "derivedStateInEffect" | "directTanstackImport" | "localTableOrForm" | "retiredImport" | "routeStateSelection" | "cognitiveComplexity" | "sonar" | "codeRules"} StackCounterName */
 /** @typedef {UiCounterName | StackCounterName} CounterName */
 /** @typedef {Record<CounterName, number> & Record<string, number>} Counters (plus one `sonarjs/<rule>` counter per Sonar rule with a violation) */
 /**
@@ -64,6 +65,7 @@ export const STACK_COUNTERS = /** @type {const} */ ([
   "routeStateSelection",
   "cognitiveComplexity",
   "sonar",
+  "codeRules",
 ]);
 /** Every counter, in report order. */
 export const COUNTERS = /** @type {const} */ ([...UI_COUNTERS, ...STACK_COUNTERS]);
@@ -72,7 +74,8 @@ const COMPLEXITY_MAX = 15;
 const TEST_FILE = /(\.(test|spec)\.[cm]?[jt]sx?$)|(\/__tests__\/)/;
 /** Prefix of the per-rule Sonar counters (ADR-013): `sonarjs/no-nested-conditional`. */
 export const SONAR_PREFIX = "sonarjs/";
-const isSonarCounter = (/** @type {string} */ name) => name.startsWith(SONAR_PREFIX);
+/** A per-rule counter: `sonarjs/<rule>` (Sonar layer) or `code/<rule>` (code rules, krizaka/.github#422). */
+const isSonarCounter = (/** @type {string} */ name) => name.startsWith(SONAR_PREFIX) || name.startsWith(CODE_PREFIX);
 const zero = () => /** @type {Counters} */ (Object.fromEntries(COUNTERS.map((name) => [name, 0])));
 
 /**
@@ -107,7 +110,7 @@ export function countSource(source, allow = []) {
  * `@tanstack/*`, hand-written tables and forms of more than `maxFormFields` fields, imports of the retired dependencies.
  * @param {string} source
  * @param {{ retire?: readonly string[], maxFormFields?: number }} [options]
- * @returns {Record<Exclude<StackCounterName, "cognitiveComplexity" | "sonar">, number>} (cognitiveComplexity and sonar: countCognitiveComplexity and countSonar, they need the file name)
+ * @returns {Record<Exclude<StackCounterName, "cognitiveComplexity" | "sonar" | "codeRules">, number>} (cognitiveComplexity and sonar: countCognitiveComplexity and countSonar, they need the file name)
  */
 export function countStackSource(source, { retire = [], maxFormFields = 1 } = {}) {
   let fetchInClientEffect = 0;
@@ -179,6 +182,31 @@ export function countSonar(source, filename = "file.tsx") {
   return found;
 }
 
+/**
+ * Counts the violations of the code rules (eslint/code-rules.js) in one source text, per rule:
+ * `{ "code/max-depth": 2 }`. `no-console` counts only in runtime files (`path` is relative to the repository root).
+ * @param {string} source
+ * @param {string} [path]
+ * @returns {Record<string, number>}
+ */
+export function countCodeRules(source, path = "file.tsx") {
+  /** @type {Record<string, number>} */
+  const found = {};
+  const runtime = isRuntimeFile(path);
+  let messages;
+  try {
+    messages = complexityLinter().verify(source, CODE_CONFIG, { filename: `file${extname(path)}` });
+  } catch {
+    return found;
+  }
+  for (const { ruleId } of /** @type {{ ruleId: string | null }[]} */ (messages)) {
+    if (ruleId && (ruleId in CODE_RULES || (runtime && ruleId in CODE_RUNTIME_RULES))) {
+      found[`${CODE_PREFIX}${ruleId}`] = (found[`${CODE_PREFIX}${ruleId}`] ?? 0) + 1;
+    }
+  }
+  return found;
+}
+
 /** One Linter for the whole run: building it (and the parser) per file made the CLI 10x slower in CI. */
 /** @type {Linter | undefined} */
 let sharedLinter;
@@ -190,6 +218,15 @@ const COMPLEXITY_CONFIG = [
     languageOptions: { parser: /** @type {any} */ (tseslint.parser) },
     plugins: { sonarjs },
     rules: { "sonarjs/cognitive-complexity": ["error", COMPLEXITY_MAX] },
+  },
+];
+
+/** @type {any} */
+const CODE_CONFIG = [
+  {
+    files: ["**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"],
+    languageOptions: { parser: /** @type {any} */ (tseslint.parser) },
+    rules: Object.fromEntries(Object.entries({ ...CODE_RULES, ...CODE_RUNTIME_RULES }).map(([name, options]) => [name, ["error", ...options]])),
   },
 ];
 
@@ -227,6 +264,13 @@ export async function countRepository({
   for (const file of stackFiles) {
     const found = /** @type {Partial<Counters>} */ (countStackSource(readFileSync(file, "utf8"), { retire, maxFormFields }));
     for (const name of STACK_COUNTERS) counters[name] += found[name] ?? 0;
+    // the code rules: tests are held to the braces rule only
+    for (const [rule, n] of Object.entries(countCodeRules(readFileSync(file, "utf8"), relative(root, file)))) {
+      if (!TEST_FILE.test(file) || rule === `${CODE_PREFIX}curly`) {
+        counters[rule] = (counters[rule] ?? 0) + n;
+        counters.codeRules += n;
+      }
+    }
     // Sonar scans the product code, not its tests
     if (!TEST_FILE.test(file)) {
       counters.cognitiveComplexity += countCognitiveComplexity(readFileSync(file, "utf8"), file);
@@ -341,8 +385,10 @@ export async function runRatchet({ root, mode = "check", globs, file = RATCHET_F
   /** @type {string[]} */ const added = recordedFile ? COUNTERS.filter((n) => recordedFile.counters[n] === undefined) : [];
   const recorded = /** @type {Counters} */ ({ ...current, ...recordedFile?.counters });
   // once the Sonar layer is recorded (`sonar`), a rule with no recorded counter is recorded at 0: a first violation fails
-  if (recordedFile?.counters.sonar !== undefined) {
-    for (const name of Object.keys(current)) if (isSonarCounter(name) && recordedFile.counters[name] === undefined) recorded[name] = 0;
+  for (const [layer, prefix] of [["sonar", SONAR_PREFIX], ["codeRules", CODE_PREFIX]]) {
+    if (recordedFile?.counters[/** @type {CounterName} */ (layer)] !== undefined) {
+      for (const name of Object.keys(current)) if (name.startsWith(prefix) && recordedFile.counters[name] === undefined) recorded[name] = 0;
+    }
   }
   /** @type {string[]} */
   const unmeasured = Object.keys(recordedFile?.counters ?? {}).filter((n) => !isSonarCounter(n) && !COUNTERS.includes(/** @type {CounterName} */ (n)));

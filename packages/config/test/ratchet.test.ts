@@ -4,13 +4,14 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { countRepository, countSource, countStackSource, runRatchet } from "../ratchet/ratchet.js";
+import { isRuntimeFile } from "../eslint/code-rules.js";
+import { countCodeRules, countRepository, countSource, countStackSource, runRatchet } from "../ratchet/ratchet.js";
 
 const FIXTURE = fileURLToPath(new URL("./fixtures/repo", import.meta.url));
 const BIN = fileURLToPath(new URL("../bin/krizaka-ratchet.mjs", import.meta.url));
 const UI = { palette: 6, light: 3, arbitraryVar: 2, classNameTemplate: 2 };
 // lib/use-data.ts (fetch in a client effect ×2, data loaded in an effect ×1, + lib/server-data.ts ×1, @tanstack ×2) · features/forms.tsx (a table, a form of two fields)
-const STACK = { fetchInClientEffect: 2, asyncInEffect: 2, derivedStateInEffect: 0, directTanstackImport: 2, localTableOrForm: 2, retiredImport: 0, routeStateSelection: 0, cognitiveComplexity: 0, sonar: 0 };
+const STACK = { fetchInClientEffect: 2, asyncInEffect: 2, derivedStateInEffect: 0, directTanstackImport: 2, localTableOrForm: 2, retiredImport: 0, routeStateSelection: 0, cognitiveComplexity: 0, sonar: 0, codeRules: 0 };
 const TOTAL = { ...UI, ...STACK };
 const STACK_GLOBS = ["app", "components", "src", "lib", "hooks", "features"].map((d) => `${d}/**/*.{js,jsx,mjs,ts,tsx,mts}`);
 
@@ -338,5 +339,27 @@ describe("sonar (eslint-plugin-sonarjs recommended, one counter per rule)", () =
     expect(cli().status).toBe(0);
     expect(cli("--update").status).toBe(0);
     expect(ratchetFile().counters["sonarjs/no-nested-conditional"]).toBe(1);
+  });
+});
+
+describe("code rules (braces, depth, nested callbacks, console; krizaka/.github#422)", () => {
+  const DEEP = "export function f(a: number[]) {\n  for (const x of a) {\n    if (x) {\n      for (const y of a) {\n        if (y) { return y; }\n      }\n    }\n  }\n}\n";
+  it("counts a function nested three levels deep", () => {
+    expect(countCodeRules(DEEP, "lib/x.ts")).toEqual({ "code/max-depth": 2 });
+  });
+  it("counts a statement without braces", () => {
+    expect(countCodeRules("export const f = (a: boolean) => { if (a) return 1; return 2; };\n", "lib/x.ts")).toEqual({ "code/curly": 1 });
+  });
+  it("counts console only in runtime code", () => {
+    const source = "export function f() { console.log(1); }\n";
+    expect(countCodeRules(source, "lib/x.ts")).toEqual({ "code/no-console": 1 });
+    expect(countCodeRules(source, "scripts/x.mjs")).toEqual({});
+    expect(countCodeRules(source, "packages/db/src/x.ts")).toEqual({ "code/no-console": 1 });
+    expect(countCodeRules(source, "lib/x.test.ts")).toEqual({});
+  });
+  it("isRuntimeFile", () => {
+    expect(isRuntimeFile("app/api/x/route.ts")).toBe(true);
+    expect(isRuntimeFile("scripts/lexicon.mjs")).toBe(false);
+    expect(isRuntimeFile("eslint.config.mjs")).toBe(false);
   });
 });
