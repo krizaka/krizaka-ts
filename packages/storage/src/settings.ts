@@ -1,4 +1,4 @@
-import { choice, integer, type Registry, text } from "@krizaka/settings";
+import { choice, flag, integer, type Registry, text } from "@krizaka/settings";
 
 import { bucketStore } from "./bucket-store";
 import { checkEndpoint } from "./endpoint";
@@ -27,7 +27,17 @@ export const storageSettings = {
   "storage.prefix": text("storage", "", { empty: true }),
   "storage.pullHostname": text("storage", "", { empty: true }),
   "storage.publicBaseUrl": text("storage", "", { empty: true }),
+  /** Whether a person may connect their own cloud (a Dropbox, an S3 of their own) for their documents. The admin's policy: off until it is switched on. */
+  "storage.userConnectors": flag("storage", false),
 } as const satisfies Registry;
+
+/**
+ * The admin's policy on user-connected clouds, from the product's accessor. Anything but an explicit `true` is off (a missing or malformed
+ * value never opens the door): the product refuses a connection with `STORAGE_CODE.forbidden`-style 403 when this is false.
+ */
+export async function userConnectorsAllowed(read: (key: "storage.userConnectors") => unknown): Promise<boolean> {
+  return (await read("storage.userConnectors")) === true;
+}
 
 export interface StorageSettings {
   provider: (typeof STORAGE_PROVIDERS)[number];
