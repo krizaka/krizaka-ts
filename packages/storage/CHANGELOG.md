@@ -1,5 +1,17 @@
 # @krizaka/storage
 
+## 0.8.0
+
+### Minor Changes
+
+- 9254bd2: Every classic cloud through libraries (ADR-005 amendment, #235): `opendalStore` (`@krizaka/storage/opendal`, Apache OpenDAL as an optional peer) behind the port, with an allow-list of services, the endpoint and DNS checks kept, error mapping onto `STORAGE_*` and `readStream`; `CLOUD_CONNECTORS` and the Arctic-based connection flow (authorization code + PKCE S256, refresh with rotation, revocation) for Dropbox, Google Drive and OneDrive.
+- 894e097: The registry opens the OpenDAL kinds and takes private kinds (ADR-005 amendment, #239): `google-drive` and `onedrive` implemented at user scope, `azblob`, `gcs`, `b2` and `webdav` at admin scope, each kind mapped to its adapter through a table; `createProviderRegistry({ kinds, adapters }).with({ kind, open })` registers a private provider without touching the core (every rule applies: scopes, runtimes, `devOnly`, url fields checked, secrets sealed); `Keyring` becomes a port (`{ keyId, wrap, unwrap }`, `localKeyring` the default, `sealWith`/`openWith`/`rewrapWith`), ready for a KMS with the stored `v2.<key_id>` format unchanged. Breaking for 0.x consumers: `openProvider` is asynchronous, and the old `Keyring` type (`{ keys, legacy }`) is renamed `LocalKeys`.
+
+### Patch Changes
+
+- Updated dependencies [ce40b60]
+  - @krizaka/db@0.3.1
+
 ## 0.7.0
 
 ### Minor Changes
