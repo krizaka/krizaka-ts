@@ -166,9 +166,17 @@ export function checkWithPmd(file, options = {}) {
  * @returns {string | null} The real path, or null.
  */
 export function insideProject(file, cwd = process.cwd()) {
+  let base;
+  let real;
   try {
-    const real = realpathSync(resolve(cwd, file));
-    return real.startsWith(realpathSync(cwd) + sep) && statSync(real).isFile() ? real : null;
+    base = realpathSync(cwd);
+    real = realpathSync(resolve(base, file));
+  } catch {
+    return null;
+  }
+  if (!real.startsWith(base + sep)) return null;
+  try {
+    return statSync(real).isFile() ? real : null;
   } catch {
     return null;
   }
