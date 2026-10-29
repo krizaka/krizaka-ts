@@ -17,6 +17,19 @@ describe("landingRedirect: a signed-in visitor never sees the public landing pag
     const internal = new Request("https://localhost:3000/fr?x=1", { headers: { cookie: "yomizaka_session=t" } });
     expect(landingRedirect(internal, { ...rule, home: "/fr/app?from=landing" })?.headers.get("location")).toBe("/fr/app?from=landing");
   });
+  it("with a configured origin the Location is absolute on it, and a spoofed Host or forwarded header never changes it", () => {
+    const spoof = new Request("https://evil.example/fr", { headers: { cookie: "yomizaka_session=t", host: "evil.example", "x-forwarded-host": "evil.example", "x-forwarded-proto": "http" } });
+    const res = landingRedirect(spoof, { ...rule, home: "/fr/app?from=landing", origin: "https://dev.yomizaka.com/ignored/path" });
+    expect(res?.headers.get("location")).toBe("https://dev.yomizaka.com/fr/app?from=landing");
+  });
+  it("a home that would leave the configured origin falls back to a relative path", () => {
+    const res = landingRedirect(at("/", "yomizaka_session=t"), { ...rule, home: "//evil.example/x", origin: "https://dev.yomizaka.com" });
+    expect(res?.headers.get("location")).toBe("/x");
+  });
+  it("the absolute Location is accepted by the URL parser of a Next.js proxy", () => {
+    const res = landingRedirect(at("/", "yomizaka_session=t"), { ...rule, origin: "https://dev.yomizaka.com" });
+    expect(() => new URL(res?.headers.get("location") ?? "")).not.toThrow();
+  });
   it("covers each landing route, with or without a trailing slash", () => {
     for (const path of ["/fr", "/fr/", "/en"]) expect(landingRedirect(at(path, "yomizaka_session=t"), rule)?.status).toBe(307);
   });

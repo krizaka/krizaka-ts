@@ -44,7 +44,7 @@ An external identity attaches to an existing account **only when the address is 
 
 ## A signed-in visitor never sees the public side
 
-In the product's `proxy.ts` (Web `Request`/`Response`, no framework): `landingRedirect(request, { cookie, landing: ["/", "/fr", "/en"], home })` answers 307 to the home with `Cache-Control: private, no-store` and `Vary: Cookie` when the session cookie exists on a landing route, else `null`. `sessionHint(response, request, { cookie, secure })` keeps the readable `kz-session=1` flag in step with the cookie (never the token), so the static pages stay the same for everyone and `NavBarSession` of `@krizaka/ui` draws the signed-in placeholder on its first paint. Both read the cookie as a hint only: the page and the API still resolve the session.
+In the product's `proxy.ts` (Web `Request`/`Response`, no framework): `landingRedirect(request, { cookie, landing: ["/", "/fr", "/en"], home, origin })` (`origin`: the app's declared public origin, never read from the request; absolute Location on it, relative without) answers 307 to the home with `Cache-Control: private, no-store` and `Vary: Cookie` when the session cookie exists on a landing route, else `null`. `sessionHint(response, request, { cookie, secure })` keeps the readable `kz-session=1` flag in step with the cookie (never the token), so the static pages stay the same for everyone and `NavBarSession` of `@krizaka/ui` draws the signed-in placeholder on its first paint. Both read the cookie as a hint only: the page and the API still resolve the session.
 
 ## Sessions, passwords, addresses and the administration's locks
 
