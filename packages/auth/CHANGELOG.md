@@ -1,5 +1,11 @@
 # @krizaka/auth
 
+## 0.13.0
+
+### Minor Changes
+
+- e3f2596: `landingRedirect` throws in production (`NODE_ENV=production`) when `origin` is missing or empty: a deployment that forgot its declared public URL fails at the first request instead of redirecting to a Location built from client-controlled headers. Optional outside production.
+
 ## 0.12.0
 
 ### Minor Changes
