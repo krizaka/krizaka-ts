@@ -308,7 +308,7 @@ Readable shapes, enforced by lint and frozen by the ratchet. `krizakaStack` carr
 - **`curly: all`**: `if`, `for`, `while`, `else` always take `{}` (`eslint --fix` adds them).
 - **`max-depth: 2`** and **`max-nested-callbacks: 3`**: above that, extract a named function, or write a `flatMap` / `filter` / `map` pipeline that returns the result.
 - **`no-console` in runtime code** (`app`, `src`, `lib`, `components`, a package's `src`; not scripts, tools, configs, tests): logs go through the shared logger.
-- **ast-grep `core`**: `no-sync-fs-in-runtime` (`fs/promises` and `Promise.all` instead of `readFileSync` and friends; sync stays fine in scripts, tools, configs, tests) and `no-hand-written-validation-regex` (a date, email, URL, slug, phone or postal code is `isIsoDate` of `@krizaka/time`, or `isEmail`, `isHttpUrl`, `isSlug`, `isE164Phone`, `isCanadianPostalCode` of `@krizaka/validate`).
+- **ast-grep `core`**: `no-sync-fs-in-runtime` (`fs/promises` and `Promise.all` instead of `readFileSync` and friends; sync stays fine in scripts, tools, configs, tests) and `no-hand-written-validation-regex` (a date, email, URL, slug, phone or postal code is `isIsoDate` of `@krizaka/time`, `isEmail`, `isHttpUrl`, `isSlug`, `isE164Phone`, `isCanadianPostalCode` of @krizaka/time).
 - **`krizaka-ratchet`** counts them per rule (`code/curly`, `code/max-depth`, `code/max-nested-callbacks`, `code/no-console`; total `codeRules`); `krizaka-sg-ratchet` counts the two ast-grep rules. Both only go down.
 - Constants out of the logic: `no-unjustified-numeric-export` (core) already refuses an unjustified numeric export; words belong in messages, numbers in the domain's settings module.
 

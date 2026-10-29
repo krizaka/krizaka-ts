@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isCanadianPostalCode, isE164Phone, isEmail, isHttpUrl, isSlug } from "../src";
+import { isCanadianPostalCode, isE164Phone, isEmail, isHttpUrl, isSlug } from "../src/index";
 
 describe("validate", () => {
   it("emails", () => {
