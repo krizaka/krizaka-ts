@@ -76,3 +76,30 @@ describe("landingRedirect on hostile paths", () => {
     expect(landingRedirect(at("/fr///", "yomizaka_session=t"), rule)?.status).toBe(307);
   });
 });
+
+describe("landingRedirect in production without a configured origin fails loudly", () => {
+  const inProduction = async (run: () => void) => {
+    const { vi } = await import("vitest");
+    vi.stubEnv("NODE_ENV", "production");
+    try {
+      run();
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  };
+  it("throws on every request (even a signed-out one) rather than falling back to the request's headers", async () => {
+    await inProduction(() => {
+      expect(() => landingRedirect(at("/", "yomizaka_session=t"), rule)).toThrow(/origin/);
+      expect(() => landingRedirect(at("/pricing"), rule)).toThrow(/origin/);
+      expect(() => landingRedirect(at("/", "yomizaka_session=t"), { ...rule, origin: "" })).toThrow(/origin/);
+    });
+  });
+  it("works with an origin in production", async () => {
+    await inProduction(() => {
+      expect(landingRedirect(at("/", "yomizaka_session=t"), { ...rule, origin: "https://dev.example.com" })?.headers.get("location")).toBe("https://dev.example.com/app");
+    });
+  });
+  it("stays optional outside production (tests, local dev)", () => {
+    expect(landingRedirect(at("/", "yomizaka_session=t"), rule)?.headers.get("location")).toBe("/app");
+  });
+});
