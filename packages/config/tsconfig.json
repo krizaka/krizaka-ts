@@ -10,6 +10,7 @@
   "include": [
     "bin",
     "eslint",
+    "edit-check",
     "ratchet",
     "test/*.ts",
     "patterns.js",

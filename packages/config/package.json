@@ -1,7 +1,7 @@
 {
   "name": "@krizaka/config",
   "version": "0.14.1",
-  "description": "The shared configuration of every Krizaka JavaScript repository: ESLint flat configs (base, Next.js, the four UI rules, the stack rules, no locale ternary), the « Krizaka first » covered-domains map and the dependency-cruiser preset generated from it (refused imports, cycles, unresolvable imports, dev dependencies), tsconfig bases, Prettier, EditorConfig, the shared ast-grep rule pack (sets core, web, html) with the krizaka-sg-ratchet bin, the krizaka-seo-family check, and the krizaka-ratchet and krizaka-known-violations debt counters.",
+  "description": "The shared configuration of every Krizaka JavaScript repository: ESLint flat configs (base, Next.js, the four UI rules, the stack rules, no locale ternary), the « Krizaka first » covered-domains map and the dependency-cruiser preset generated from it (refused imports, cycles, unresolvable imports, dev dependencies), tsconfig bases, Prettier, EditorConfig, the shared ast-grep rule pack (sets core, web, html) with the krizaka-sg-ratchet bin, the krizaka-seo-family check, the krizaka-edit-check hook for coding agents, and the krizaka-ratchet and krizaka-known-violations debt counters.",
   "keywords": [
     "krizaka",
     "eslint-config",
@@ -54,10 +54,12 @@
     "krizaka-known-violations": "./bin/krizaka-known-violations.mjs",
     "krizaka-server-client-boundary": "./bin/krizaka-server-client-boundary.mjs",
     "krizaka-sg-ratchet": "./bin/krizaka-sg-ratchet.mjs",
-    "krizaka-seo-family": "./bin/krizaka-seo-family.mjs"
+    "krizaka-seo-family": "./bin/krizaka-seo-family.mjs",
+    "krizaka-edit-check": "./bin/krizaka-edit-check.mjs"
   },
   "files": [
     "bin",
+    "edit-check",
     "ast-grep",
     "eslint",
     "ratchet",
