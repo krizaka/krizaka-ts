@@ -77,7 +77,7 @@ export const org: Org = {
     { id: "ui", name: "Krizaka UI", url: "https://ui.krizaka.com" },
     { id: "java", name: "Krizaka Java", url: "https://java.krizaka.com" },
     { id: "ts", name: "Krizaka TS", url: "https://ts.krizaka.com" },
-    { id: "motion", name: "Krizaka Motion", url: "https://motion.krizaka.com" },
+    { id: "motion", name: "Krizaka Lab", url: "https://lab.krizaka.com" },
     { id: "blog", name: "Blog", url: "https://blog.krizaka.com" },
   ],
   contact: {
