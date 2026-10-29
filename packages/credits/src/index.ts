@@ -1,4 +1,13 @@
-export { type Balance, type Consumed, type ConsumeInput, createCredits, type Credits, type CreditsDeps, type GrantInput, type PurchaseInput } from "./credits";
+export {
+  type Balance,
+  type Consumed,
+  type ConsumeInput,
+  createCredits,
+  type Credits,
+  type CreditsDeps,
+  type GrantInput,
+  type PurchaseInput,
+} from "./credits";
 export { CREDIT_EVENT, CREDIT_EVENT_SCHEMAS, CREDITS_TOPIC, type OutboxPort, uuidOf } from "./events";
 export { memoryCreditStore } from "./memory";
 export { dbCreditStore } from "./persistence";

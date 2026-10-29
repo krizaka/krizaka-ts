@@ -1,7 +1,16 @@
 // krizaka-edit-check: the one-file check a coding agent runs after each edit (ADR-015 §7). Never Maven, never a compile.
 import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, renameSync, statSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  renameSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { homedir } from "node:os";
 import { dirname, extname, join, resolve, sep } from "node:path";
 
@@ -21,7 +30,13 @@ const ESLINT_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"]
 const NO_FINDING = { code: 0, message: "" };
 /** What Prettier formats in a Krizaka repository (the `format:check` glob of the formatter rule, krizaka/.github#427). */
 const PRETTIER_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".json", ".css"]);
-const PRETTIER_CONFIGS = ["prettier.config.js", "prettier.config.mjs", "prettier.config.cjs", ".prettierrc", ".prettierrc.json"];
+const PRETTIER_CONFIGS = [
+  "prettier.config.js",
+  "prettier.config.mjs",
+  "prettier.config.cjs",
+  ".prettierrc",
+  ".prettierrc.json",
+];
 
 /**
  * Which tool checks a file.
@@ -85,7 +100,9 @@ export function pmdArguments(rules, file) {
  */
 export function runBudgeted(command, args, cwd, budgetMs) {
   const result = spawnSync(command, args, { cwd, encoding: "utf8", timeout: budgetMs, killSignal: "SIGKILL" });
-  const timedOut = /** @type {NodeJS.ErrnoException | undefined} */ (result.error)?.code === "ETIMEDOUT" || result.signal === "SIGKILL";
+  const timedOut =
+    /** @type {NodeJS.ErrnoException | undefined} */ (result.error)?.code === "ETIMEDOUT" ||
+    result.signal === "SIGKILL";
   return { status: result.status, output: `${result.stdout ?? ""}${result.stderr ?? ""}`.trim(), timedOut };
 }
 
@@ -115,7 +132,12 @@ export function formatWithPrettier(file, budgetMs = BUDGET_MS) {
   if (!PRETTIER_EXTENSIONS.has(extname(file))) return false;
   const root = findUp(file, "node_modules/.bin/prettier");
   if (!root || !PRETTIER_CONFIGS.some((name) => existsSync(join(root, name)))) return false;
-  const run = runBudgeted(join(root, "node_modules/.bin/prettier"), ["--write", "--log-level", "silent", resolve(file)], root, budgetMs);
+  const run = runBudgeted(
+    join(root, "node_modules/.bin/prettier"),
+    ["--write", "--log-level", "silent", resolve(file)],
+    root,
+    budgetMs,
+  );
   return run.status === 0 && !run.timedOut;
 }
 
@@ -168,10 +190,16 @@ export function checkWithPmd(file, options = {}) {
   const pmd = join(cache, `pmd-bin-${PMD.version}`, "bin", "pmd");
   const rules = process.env.OPERATOR_PMD_RULES ?? join(cache, "pmd-ruleset.xml");
   if (!existsSync(pmd) || !existsSync(rules)) {
-    if (options.script) spawn(process.execPath, [options.script, "--install"], { detached: true, stdio: "ignore" }).unref();
+    if (options.script)
+      spawn(process.execPath, [options.script, "--install"], { detached: true, stdio: "ignore" }).unref();
     return NO_FINDING;
   }
-  const run = runBudgeted(pmd, pmdArguments(rules, resolve(file)), dirname(resolve(file)), options.budgetMs ?? BUDGET_MS);
+  const run = runBudgeted(
+    pmd,
+    pmdArguments(rules, resolve(file)),
+    dirname(resolve(file)),
+    options.budgetMs ?? BUDGET_MS,
+  );
   const findings = run.output.split("\n").filter((line) => /\.java:\d+:/.test(line));
   return findings.length > 0 && !run.timedOut ? { code: 2, message: findings.join("\n") } : NO_FINDING;
 }

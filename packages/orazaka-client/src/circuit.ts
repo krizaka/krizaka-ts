@@ -52,4 +52,8 @@ export function createCircuit(options: CircuitOptions, clock: Clock) {
 
 export type Circuit = ReturnType<typeof createCircuit>;
 
-const open = (retryAfterSeconds: number) => new OrazakaError(ORAZAKA_CODE.circuitOpen, "Orazaka failed several times in a row: not calling it for a moment", { retryAfterSeconds, status: 502 });
+const open = (retryAfterSeconds: number) =>
+  new OrazakaError(ORAZAKA_CODE.circuitOpen, "Orazaka failed several times in a row: not calling it for a moment", {
+    retryAfterSeconds,
+    status: 502,
+  });

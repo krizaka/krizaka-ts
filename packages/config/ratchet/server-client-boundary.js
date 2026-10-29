@@ -7,7 +7,8 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 
 export const DEFAULT_SCOPE = "@krizaka";
-const ENTRY = /(?:^|[\\/])(?:page|layout|route|error|global-error|loading|not-found|default|template)\.(?:ts|tsx|js|jsx|mjs)$/;
+const ENTRY =
+  /(?:^|[\\/])(?:page|layout|route|error|global-error|loading|not-found|default|template)\.(?:ts|tsx|js|jsx|mjs)$/;
 // `import … from "x"` / `export … from "x"`: the clause is everything up to the first quote (no nested quantifier: linear).
 const STATEMENT = /(?:^|\n)[ \t]*(import|export)\b([^"';]*)["']([^"']+)["']/g;
 const EXTENSIONS = ["", ".ts", ".tsx", ".js", ".jsx", ".mjs"];
@@ -103,7 +104,7 @@ export const packageIsClient = (root, spec) => {
   try {
     const manifest = JSON.parse(readFileSync(join(dir, "package.json"), "utf8"));
     const key = rest.length ? `./${rest.join("/")}` : ".";
-    file = pick(manifest.exports?.[key]) ?? (rest.length ? null : manifest.module ?? manifest.main);
+    file = pick(manifest.exports?.[key]) ?? (rest.length ? null : (manifest.module ?? manifest.main));
   } catch {
     return false;
   }
@@ -175,7 +176,8 @@ export const checkBoundary = ({ root = process.cwd(), appDir, alias, scope = DEF
       if (!clause.trimEnd().endsWith("from")) continue; // `import "x"`, or a string in some other statement
       if (spec.startsWith(`${scope}/`)) {
         const names = functionNames(clause);
-        if (names.length && isClient(spec)) offences.push(`${relative(root, file)} imports ${names.join(", ")} from ${spec} ("use client")`);
+        if (names.length && isClient(spec))
+          offences.push(`${relative(root, file)} imports ${names.join(", ")} from ${spec} ("use client")`);
         continue;
       }
       const local = resolveLocal(root, aliasDir, file, spec);

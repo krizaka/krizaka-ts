@@ -76,17 +76,25 @@ try {
   } else {
     console.log(`krizaka-ratchet — ${result.files} files for the UI, ${result.stackFiles} for the stack`);
     // the named counters, then one line per Sonar rule that has a violation or a recorded count
-    const lines = [...COUNTERS, ...Object.keys(result.counters).filter((name) => name.startsWith("sonarjs/") || name.startsWith("code/"))];
+    const lines = [
+      ...COUNTERS,
+      ...Object.keys(result.counters).filter((name) => name.startsWith("sonarjs/") || name.startsWith("code/")),
+    ];
     for (const name of lines) {
       const { recorded, current, delta } = result.counters[name];
       const mark = delta > 0 ? "✗" : delta < 0 ? "↓" : "=";
       const sign = delta > 0 ? `+${delta}` : `${delta}`;
-      console.log(`  ${mark} ${(LABELS[name] ?? name).padEnd(28)} ${String(current).padStart(6)}  (recorded ${recorded}, ${sign})`);
+      console.log(
+        `  ${mark} ${(LABELS[name] ?? name).padEnd(28)} ${String(current).padStart(6)}  (recorded ${recorded}, ${sign})`,
+      );
     }
     if (result.mode === "init") console.log(`Created ${result.file}.`);
-    else if (result.written) console.log(`${result.decreased.length > 0 ? "Lowered" : "Completed"} ${result.file}: commit it.`);
-    else if (result.decreased.length > 0) console.log(`Debt went down: run krizaka-ratchet --update and commit ${result.file}.`);
-    else if (result.added.length > 0) console.log(`New counters (${result.added.join(", ")}): run krizaka-ratchet --update and commit ${result.file}.`);
+    else if (result.written)
+      console.log(`${result.decreased.length > 0 ? "Lowered" : "Completed"} ${result.file}: commit it.`);
+    else if (result.decreased.length > 0)
+      console.log(`Debt went down: run krizaka-ratchet --update and commit ${result.file}.`);
+    else if (result.added.length > 0)
+      console.log(`New counters (${result.added.join(", ")}): run krizaka-ratchet --update and commit ${result.file}.`);
     if (result.unmeasured.length > 0) {
       console.log(`  ! not measured by this version, kept as recorded: ${result.unmeasured.join(", ")}`);
     }

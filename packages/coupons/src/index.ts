@@ -1,10 +1,31 @@
 export { type CouponAdmin, type PartnerInput } from "./admin";
-export { type Coupons,createCoupons } from "./coupons";
+export { type Coupons, createCoupons } from "./coupons";
 export { COUPON_EVENT, COUPON_EVENT_SCHEMAS, COUPONS_TOPIC, uuidOf } from "./events";
-export { type Applied, type ApplyInput, type CouponView, type CreditRedemption, type RedeemInput, type Validation } from "./flows";
+export {
+  type Applied,
+  type ApplyInput,
+  type CouponView,
+  type CreditRedemption,
+  type RedeemInput,
+  type Validation,
+} from "./flows";
 export { type CouponsDeps, SYSTEM } from "./kernel";
 export { memoryCouponStore } from "./memory";
 export { dbCouponStore } from "./persistence";
 export * from "./port";
-export { type CheckoutContext, countsAsUse, COUPON_ATTEMPT_ACTION, COUPON_BOUNDS, COUPON_DEFAULTS, type CreditEffect, type DiscountEffect, effectOf, generateCode, type NewCoupon, normalizeCode, refusalOf, termsOf } from "./rules";
+export {
+  type CheckoutContext,
+  countsAsUse,
+  COUPON_ATTEMPT_ACTION,
+  COUPON_BOUNDS,
+  COUPON_DEFAULTS,
+  type CreditEffect,
+  type DiscountEffect,
+  effectOf,
+  generateCode,
+  type NewCoupon,
+  normalizeCode,
+  refusalOf,
+  termsOf,
+} from "./rules";
 export { couponsSchema } from "./schema";

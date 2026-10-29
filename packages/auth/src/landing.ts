@@ -59,18 +59,26 @@ export function landingRedirect(request: Request, rule: LandingRule): Response |
   const path = `${target.pathname}${target.search}${target.hash}`;
   const base = rule.origin ? new URL(rule.origin).origin : null;
   const location = base && new URL(home, base).origin === base ? new URL(home, base).href : path;
-  return new Response(null, { status: 307, headers: { Location: location, "Cache-Control": "private, no-store", Vary: "Cookie" } });
+  return new Response(null, {
+    status: 307,
+    headers: { Location: location, "Cache-Control": "private, no-store", Vary: "Cookie" },
+  });
 }
 
 /**
  * Keeps the hint flag in step with the session cookie on any response (pages stay static: the proxy runs on every request,
  * the HTML is the same for everyone). Sets it when the session cookie exists, clears it when it is gone, else touches nothing.
  */
-export function sessionHint<T extends Response>(response: T, request: Request, options: { cookie: string; secure: boolean }): T {
+export function sessionHint<T extends Response>(
+  response: T,
+  request: Request,
+  options: { cookie: string; secure: boolean },
+): T {
   const session = Boolean(cookieValue(request.headers, options.cookie));
   const flagged = cookieValue(request.headers, SESSION_HINT_COOKIE) === "1";
   const base = `${SESSION_HINT_COOKIE}=${session ? "1" : ""}; Path=/; SameSite=Lax${options.secure ? "; Secure" : ""}`;
   if (session && !flagged) response.headers.append("Set-Cookie", base);
-  else if (!session && cookieValue(request.headers, SESSION_HINT_COOKIE) !== undefined) response.headers.append("Set-Cookie", `${base}; Max-Age=0`);
+  else if (!session && cookieValue(request.headers, SESSION_HINT_COOKIE) !== undefined)
+    response.headers.append("Set-Cookie", `${base}; Max-Age=0`);
   return response;
 }

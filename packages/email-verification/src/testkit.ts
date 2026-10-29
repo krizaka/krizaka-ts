@@ -3,7 +3,13 @@ import { expect, it } from "vitest";
 import type { CodeStore } from "./port";
 
 const T0 = new Date("2026-10-29T12:00:00.000Z");
-const challenge = (id: string, expiresAt = new Date(T0.valueOf() + 900_000)) => ({ id, proof: `p-${id}`, attempts: 0, expiresAt, payload: "{}" });
+const challenge = (id: string, expiresAt = new Date(T0.valueOf() + 900_000)) => ({
+  id,
+  proof: `p-${id}`,
+  attempts: 0,
+  expiresAt,
+  payload: "{}",
+});
 
 /** What every `CodeStore` adapter must do: the same behaviour behind the same port. `make` gives an empty store. */
 export function codeStoreContract(name: string, make: () => CodeStore | Promise<CodeStore>) {

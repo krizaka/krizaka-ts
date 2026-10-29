@@ -13,7 +13,11 @@ export const mailSettings = {
   "mail.provider": choice("mail", PROVIDERS, MAIL_DEFAULTS.provider),
   "mail.from": text("mail", MAIL_DEFAULTS.from),
   "mail.replyTo": text("mail", MAIL_DEFAULTS.replyTo, { empty: true }),
-  "mail.retentionDays": integer("mail", MAIL_DEFAULTS.retentionDays, { min: MAIL_BOUNDS.retentionDays[0], max: MAIL_BOUNDS.retentionDays[1], unit: "days" }),
+  "mail.retentionDays": integer("mail", MAIL_DEFAULTS.retentionDays, {
+    min: MAIL_BOUNDS.retentionDays[0],
+    max: MAIL_BOUNDS.retentionDays[1],
+    unit: "days",
+  }),
 } as const satisfies Registry;
 
 type Reader = (key: keyof typeof mailSettings) => string | number | undefined | Promise<string | number | undefined>;

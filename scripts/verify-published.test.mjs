@@ -2,7 +2,9 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { parsePublished, waitForPackages } from "./verify-published.mjs";
 
-const pkgs = parsePublished('[{"name":"@krizaka/storage","version":"0.3.1"},{"name":"@krizaka/settings","version":"0.5.0"}]');
+const pkgs = parsePublished(
+  '[{"name":"@krizaka/storage","version":"0.3.1"},{"name":"@krizaka/settings","version":"0.5.0"}]',
+);
 const noSleep = { sleep: async () => {} };
 
 describe("verify-published", () => {

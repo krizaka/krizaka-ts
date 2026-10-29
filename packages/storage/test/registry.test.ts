@@ -2,12 +2,33 @@ import { randomBytes } from "node:crypto";
 
 import { describe, expect, it } from "vitest";
 
-import { createProviderRegistry, defaultProviderRegistry, localKeyring, memoryObjectStore, type OpenContext, openEnvelope, openProvider, openWith, PROVIDER_KINDS, type ProviderKind, rewrapWith, sealEnvelope, sealWith, StorageError } from "../src/node";
+import {
+  createProviderRegistry,
+  defaultProviderRegistry,
+  localKeyring,
+  memoryObjectStore,
+  type OpenContext,
+  openEnvelope,
+  openProvider,
+  openWith,
+  PROVIDER_KINDS,
+  type ProviderKind,
+  rewrapWith,
+  sealEnvelope,
+  sealWith,
+  StorageError,
+} from "../src/node";
 import { type AuditNote, createProviderService, memoryProviderStore } from "../src/provider-admin";
 import type { Keyring } from "../src/vault";
 
 const clock = { now: () => new Date("2026-10-28T12:00:00Z") };
-const ctx = (over: Partial<OpenContext> = {}): OpenContext => ({ runtime: "server", environment: "prod", fetch: (() => Promise.reject(new Error("no network"))) as OpenContext["fetch"], clock, ...over });
+const ctx = (over: Partial<OpenContext> = {}): OpenContext => ({
+  runtime: "server",
+  environment: "prod",
+  fetch: (() => Promise.reject(new Error("no network"))) as OpenContext["fetch"],
+  clock,
+  ...over,
+});
 const code = async (fn: () => unknown) => {
   try {
     await fn();
@@ -24,7 +45,13 @@ const privateKind = (over: Partial<ProviderKind> = {}): ProviderKind => ({
   runtimes: ["server", "dev"],
   devOnly: false,
   implemented: true,
-  capabilities: { private: true, signedUrls: false, publicUrls: false, maxObjectBytes: 1024, serverSideEncryption: "provider" },
+  capabilities: {
+    private: true,
+    signedUrls: false,
+    publicUrls: false,
+    maxObjectBytes: 1024,
+    serverSideEncryption: "provider",
+  },
   residency: "fixed-elsewhere",
   coordinates: [field("endpoint", "url"), field("space")],
   credentials: [field("token", "secret")],
@@ -34,15 +61,20 @@ const acme = (seen: Array<Record<string, string | undefined>> = []) => ({
   kind: privateKind(),
   open: ({ coordinates }: { coordinates: Record<string, string | undefined> }) => {
     seen.push(coordinates);
-    return { store: memoryObjectStore(), residency: { key: "elsewhere" as const, country: null, province: null, text: "Acme" } };
+    return {
+      store: memoryObjectStore(),
+      residency: { key: "elsewhere" as const, country: null, province: null, text: "Acme" },
+    };
   },
 });
 
 describe("OpenDAL kinds in the registry", () => {
   it("google-drive and onedrive are implemented at user scope; azblob, gcs, b2 and webdav at admin scope", () => {
     const byName = (n: string) => PROVIDER_KINDS.find((k) => k.kind === n)!;
-    for (const n of ["google-drive", "onedrive"]) expect(byName(n)).toMatchObject({ implemented: true, scopes: ["user"], residency: "user-cloud" });
-    for (const n of ["azblob", "gcs", "b2", "webdav"]) expect(byName(n)).toMatchObject({ implemented: true, scopes: ["admin"] });
+    for (const n of ["google-drive", "onedrive"])
+      expect(byName(n)).toMatchObject({ implemented: true, scopes: ["user"], residency: "user-cloud" });
+    for (const n of ["azblob", "gcs", "b2", "webdav"])
+      expect(byName(n)).toMatchObject({ implemented: true, scopes: ["admin"] });
   });
   it("every implemented kind has an adapter, and a kind holds secrets only in credentials", () => {
     expect(() => createProviderRegistry({ kinds: PROVIDER_KINDS, adapters: {} })).toThrow(/no adapter/);
@@ -55,9 +87,22 @@ describe("OpenDAL kinds in the registry", () => {
   });
   it("checks the typed endpoint of an OpenDAL kind before OpenDAL is called", async () => {
     const webdav = { endpoint: "https://10.0.0.5/dav" };
-    expect(await code(() => openProvider("webdav", webdav, { username: "u", password: "p" }, ctx()))).toBe("STORAGE_BAD_ENDPOINT");
-    expect(await code(() => openProvider("azblob", { endpoint: "http://blob.example.com", container: "c", account_name: "a" }, { account_key: "k" }, ctx()))).toBe("STORAGE_BAD_ENDPOINT");
-    expect(await code(() => openProvider("b2", { bucket: "b" }, { application_key_id: "i", application_key: "k" }, ctx()))).toBe("STORAGE_BAD_CONFIG");
+    expect(await code(() => openProvider("webdav", webdav, { username: "u", password: "p" }, ctx()))).toBe(
+      "STORAGE_BAD_ENDPOINT",
+    );
+    expect(
+      await code(() =>
+        openProvider(
+          "azblob",
+          { endpoint: "http://blob.example.com", container: "c", account_name: "a" },
+          { account_key: "k" },
+          ctx(),
+        ),
+      ),
+    ).toBe("STORAGE_BAD_ENDPOINT");
+    expect(
+      await code(() => openProvider("b2", { bucket: "b" }, { application_key_id: "i", application_key: "k" }, ctx())),
+    ).toBe("STORAGE_BAD_CONFIG");
   });
 });
 
@@ -65,7 +110,13 @@ describe("private provider plugins", () => {
   it("registers a kind without touching the core: the default registry is unchanged", async () => {
     const seen: Array<Record<string, string | undefined>> = [];
     const registry = defaultProviderRegistry.with(acme(seen));
-    const opened = await openProvider("acme-vault", { endpoint: "https://vault.acme.example", space: "s1" }, { token: "t" }, ctx(), registry);
+    const opened = await openProvider(
+      "acme-vault",
+      { endpoint: "https://vault.acme.example", space: "s1" },
+      { token: "t" },
+      ctx(),
+      registry,
+    );
     expect(opened.kind.kind).toBe("acme-vault");
     expect(seen[0]?.endpoint).toBe("https://vault.acme.example");
     expect(defaultProviderRegistry.kind("acme-vault")).toBeUndefined();
@@ -73,11 +124,20 @@ describe("private provider plugins", () => {
     expect(await code(() => openProvider("acme-vault", {}, {}, ctx()))).toBe("STORAGE_BAD_CONFIG");
   });
   it("refuses a duplicate name, built-in or private", () => {
-    expect(() => defaultProviderRegistry.with({ kind: privateKind({ kind: "s3" }), open: acme().open })).toThrow(/twice/);
+    expect(() => defaultProviderRegistry.with({ kind: privateKind({ kind: "s3" }), open: acme().open })).toThrow(
+      /twice/,
+    );
     expect(() => defaultProviderRegistry.with(acme()).with(acme())).toThrow(/twice/);
   });
   it("applies the rules to private kinds: runtime, devOnly, required fields, url fields", async () => {
-    const run = (kind: Partial<ProviderKind>, c: Record<string, string>, cx: Partial<OpenContext> = {}) => openProvider("acme-vault", c, { token: "t" }, ctx(cx), defaultProviderRegistry.with({ ...acme(), kind: privateKind(kind) }));
+    const run = (kind: Partial<ProviderKind>, c: Record<string, string>, cx: Partial<OpenContext> = {}) =>
+      openProvider(
+        "acme-vault",
+        c,
+        { token: "t" },
+        ctx(cx),
+        defaultProviderRegistry.with({ ...acme(), kind: privateKind(kind) }),
+      );
     const good = { endpoint: "https://vault.acme.example", space: "s1" };
     expect(await code(() => run({ runtimes: ["dev"] }, good))).toBe("STORAGE_BAD_CONFIG");
     expect(await code(() => run({ devOnly: true }, good))).toBe("STORAGE_BAD_CONFIG");
@@ -87,9 +147,15 @@ describe("private provider plugins", () => {
     expect(await code(() => run({}, good))).toBeNull();
   });
   it("refuses a private kind whose secret would be shown or whose credential would not be sealed", () => {
-    expect(() => defaultProviderRegistry.with({ ...acme(), kind: privateKind({ coordinates: [field("apiKey", "secret")] }) })).toThrow(/would be shown/);
-    expect(() => defaultProviderRegistry.with({ ...acme(), kind: privateKind({ credentials: [field("token", "text")] }) })).toThrow(/sealed/);
-    expect(() => defaultProviderRegistry.with({ ...acme(), kind: privateKind({ kind: "Bad Name" }) })).toThrow(/lowercase/);
+    expect(() =>
+      defaultProviderRegistry.with({ ...acme(), kind: privateKind({ coordinates: [field("apiKey", "secret")] }) }),
+    ).toThrow(/would be shown/);
+    expect(() =>
+      defaultProviderRegistry.with({ ...acme(), kind: privateKind({ credentials: [field("token", "text")] }) }),
+    ).toThrow(/sealed/);
+    expect(() => defaultProviderRegistry.with({ ...acme(), kind: privateKind({ kind: "Bad Name" }) })).toThrow(
+      /lowercase/,
+    );
   });
   it("runs through the service: scope, sealing and audit apply to the private kind", async () => {
     const kek = randomBytes(32);
@@ -107,10 +173,18 @@ describe("private provider plugins", () => {
       references: async () => 0,
     });
     const admin = { id: "a1", label: "Eric" };
-    const made = await service.create(admin, { scope: "org", kind: "acme-vault", label: "Acme", coordinates: { endpoint: "https://vault.acme.example", space: "s1" }, credentials: { token: "TOP-SECRET" } });
+    const made = await service.create(admin, {
+      scope: "org",
+      kind: "acme-vault",
+      label: "Acme",
+      coordinates: { endpoint: "https://vault.acme.example", space: "s1" },
+      credentials: { token: "TOP-SECRET" },
+    });
     expect(JSON.stringify(made)).not.toContain("TOP-SECRET");
     expect(made.credentials).toMatchObject({ token: "set" });
-    await expect(service.create(admin, { scope: "user:u1", kind: "acme-vault", label: "x", coordinates: {}, credentials: {} })).rejects.toMatchObject({ code: "STORAGE_BAD_CONFIG" });
+    await expect(
+      service.create(admin, { scope: "user:u1", kind: "acme-vault", label: "x", coordinates: {}, credentials: {} }),
+    ).rejects.toMatchObject({ code: "STORAGE_BAD_CONFIG" });
     expect(JSON.stringify(notes)).not.toContain("TOP-SECRET");
     expect((await service.test(admin, made.id)).lastTest?.ok).toBe(true);
   });
@@ -179,11 +253,36 @@ describe("the Keyring port", () => {
     const store = memoryProviderStore();
     const kek = randomBytes(32);
     let n = 0;
-    const deps = (vault: Keyring) => ({ store, vault, clock, newId: () => `00000000-0000-4000-8000-${String(++n).padStart(12, "0")}`, audit: async () => undefined, open: ctx(), probeId: () => "probe", references: async () => 0, registry: defaultProviderRegistry.with(acme()) });
+    const deps = (vault: Keyring) => ({
+      store,
+      vault,
+      clock,
+      newId: () => `00000000-0000-4000-8000-${String(++n).padStart(12, "0")}`,
+      audit: async () => undefined,
+      open: ctx(),
+      probeId: () => "probe",
+      references: async () => 0,
+      registry: defaultProviderRegistry.with(acme()),
+    });
     const before = createProviderService(deps(localKeyring({ keyId: "k1", key: kek, ring: { keys: {} } })));
     const admin = { id: "a1", label: "Eric" };
-    const made = await before.create(admin, { scope: "org", kind: "acme-vault", label: "A", coordinates: { endpoint: "https://vault.acme.example", space: "s" }, credentials: { token: "T" } });
-    const after = createProviderService(deps({ ...kms.ring, async unwrap(w, id) { return id === "k1" ? (localKeyring({ keyId: "k1", key: kek, ring: { keys: {} } }).unwrap(w, id) as Uint8Array) : kms.ring.unwrap(w, id); } }));
+    const made = await before.create(admin, {
+      scope: "org",
+      kind: "acme-vault",
+      label: "A",
+      coordinates: { endpoint: "https://vault.acme.example", space: "s" },
+      credentials: { token: "T" },
+    });
+    const after = createProviderService(
+      deps({
+        ...kms.ring,
+        async unwrap(w, id) {
+          return id === "k1"
+            ? (localKeyring({ keyId: "k1", key: kek, ring: { keys: {} } }).unwrap(w, id) as Uint8Array)
+            : kms.ring.unwrap(w, id);
+        },
+      }),
+    );
     expect(await after.rotateVaultKey(admin)).toBe(1);
     expect((await store.get(made.id))?.keyId).toBe("kms-1");
     expect((await after.list("org"))[0]?.credentials).toMatchObject({ token: "set" });

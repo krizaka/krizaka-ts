@@ -8,11 +8,16 @@ import { webhooksMigration, webhooksSchema } from "../src";
 const sha = (text: string) => createHash("sha256").update(text).digest("hex");
 
 /** SHA-256 of what `webhooksMigration(…)` returned before the module schema existed (recorded from that code). */
-const BEFORE = { default: "f7850a9284262b6daffebc41540647ccae5cc6ea7842fdd765fbf3b483d751e9", users: "b0268a0228482081200f133208560a52ce0dfac232985104d5fc6429e5a17746" };
+const BEFORE = {
+  default: "f7850a9284262b6daffebc41540647ccae5cc6ea7842fdd765fbf3b483d751e9",
+  users: "b0268a0228482081200f133208560a52ce0dfac232985104d5fc6429e5a17746",
+};
 
 describe("the webhooks schema", () => {
   it("version 1 is byte-identical to the SQL shipped before the module schema", () => {
-    expect(sha(webhooksSchema.migrations[0]!.sql({ schema: "public", tables: { owner: "accounts" } }))).toBe(BEFORE.default);
+    expect(sha(webhooksSchema.migrations[0]!.sql({ schema: "public", tables: { owner: "accounts" } }))).toBe(
+      BEFORE.default,
+    );
     expect(sha(webhooksSchema.migrations[0]!.sql({ schema: "public", tables: { owner: "users" } }))).toBe(BEFORE.users);
   });
 

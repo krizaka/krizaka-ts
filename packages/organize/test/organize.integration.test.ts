@@ -1,12 +1,31 @@
 import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { AvatarImageError, type AvatarProcessor, createOrganize, type ObjectStore, organizeMigration, type OrganizeSchema, type Query } from "../src";
+import {
+  AvatarImageError,
+  type AvatarProcessor,
+  createOrganize,
+  type ObjectStore,
+  organizeMigration,
+  type OrganizeSchema,
+  type Query,
+} from "../src";
 
 /** « organize » against a real PostgreSQL (CI's service; locally ORGANIZE_DB_IT=1 DATABASE_URL=…), in a schema of its own per run. */
 const enabled = process.env.ORGANIZE_DB_IT === "1" && !!process.env.DATABASE_URL;
 
-const SCHEMA: OrganizeSchema = { defaultName: { fr: "Mes boutiques", en: "My shops" }, kinds: { shop: { table: "shops" }, note: { table: "notes", inCollection: false }, room: { table: "rooms", inCollection: false, owns: "EXISTS (SELECT 1 FROM shops s WHERE s.id = e.shop_id AND s.owner_id = $1)" } } };
+const SCHEMA: OrganizeSchema = {
+  defaultName: { fr: "Mes boutiques", en: "My shops" },
+  kinds: {
+    shop: { table: "shops" },
+    note: { table: "notes", inCollection: false },
+    room: {
+      table: "rooms",
+      inCollection: false,
+      owns: "EXISTS (SELECT 1 FROM shops s WHERE s.id = e.shop_id AND s.owner_id = $1)",
+    },
+  },
+};
 const schemaName = `org_${Math.random().toString(36).slice(2, 10)}`;
 
 class MemoryStore implements ObjectStore {
@@ -34,8 +53,17 @@ describe.runIf(enabled)("organize on PostgreSQL", () => {
   let query: Query;
   const store = new MemoryStore();
   const organize = () => createOrganize({ query, schema: SCHEMA, images: { processor, store } });
-  const owner = async (locale = "fr") => (await query<{ id: string }>("INSERT INTO accounts (email, locale) VALUES ($1, $2) RETURNING id", [`o-${Math.random().toString(36).slice(2)}@test`, locale]))[0]!.id;
-  const shop = async (ownerId: string, name = `S${Math.random().toString(36).slice(2, 6)}`) => (await query<{ id: string }>("INSERT INTO shops (owner_id, name) VALUES ($1, $2) RETURNING id", [ownerId, name]))[0]!.id;
+  const owner = async (locale = "fr") =>
+    (
+      await query<{ id: string }>("INSERT INTO accounts (email, locale) VALUES ($1, $2) RETURNING id", [
+        `o-${Math.random().toString(36).slice(2)}@test`,
+        locale,
+      ])
+    )[0]!.id;
+  const shop = async (ownerId: string, name = `S${Math.random().toString(36).slice(2, 6)}`) =>
+    (
+      await query<{ id: string }>("INSERT INTO shops (owner_id, name) VALUES ($1, $2) RETURNING id", [ownerId, name])
+    )[0]!.id;
   const jpeg = (n = 10) => ({ name: "a.jpg", type: "image/jpeg", bytes: new Uint8Array(n) });
   const keysOf = (id: string) => [...store.objects.keys()].filter((k) => k.includes(id));
 
@@ -44,12 +72,22 @@ describe.runIf(enabled)("organize on PostgreSQL", () => {
     await client.connect();
     await client.query(`CREATE SCHEMA ${schemaName}; SET search_path TO ${schemaName}`);
     query = async (sql, params) => (await client.query(sql, params as unknown[])).rows as never;
-    await client.query("CREATE TABLE accounts (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), email text UNIQUE NOT NULL, locale text NOT NULL DEFAULT 'en')");
-    await client.query("CREATE TABLE shops (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), owner_id uuid NOT NULL REFERENCES accounts(id) ON DELETE CASCADE, name text NOT NULL)");
-    await client.query("CREATE TABLE notes (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), owner_id uuid NOT NULL REFERENCES accounts(id) ON DELETE CASCADE, name text NOT NULL)");
-    await client.query("CREATE TABLE rooms (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), shop_id uuid NOT NULL REFERENCES shops(id) ON DELETE CASCADE, name text NOT NULL)");
+    await client.query(
+      "CREATE TABLE accounts (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), email text UNIQUE NOT NULL, locale text NOT NULL DEFAULT 'en')",
+    );
+    await client.query(
+      "CREATE TABLE shops (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), owner_id uuid NOT NULL REFERENCES accounts(id) ON DELETE CASCADE, name text NOT NULL)",
+    );
+    await client.query(
+      "CREATE TABLE notes (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), owner_id uuid NOT NULL REFERENCES accounts(id) ON DELETE CASCADE, name text NOT NULL)",
+    );
+    await client.query(
+      "CREATE TABLE rooms (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), shop_id uuid NOT NULL REFERENCES shops(id) ON DELETE CASCADE, name text NOT NULL)",
+    );
     // a shop that exists before the migration: it must end up in its owner's default collection
-    const early = (await query<{ id: string }>("INSERT INTO accounts (email, locale) VALUES ('early@test', 'fr') RETURNING id"))[0]!.id;
+    const early = (
+      await query<{ id: string }>("INSERT INTO accounts (email, locale) VALUES ('early@test', 'fr') RETURNING id")
+    )[0]!.id;
     await query("INSERT INTO shops (owner_id, name) VALUES ($1, 'Avant')", [early]);
     await client.query(organizeMigration(SCHEMA));
   });
@@ -62,7 +100,9 @@ describe.runIf(enabled)("organize on PostgreSQL", () => {
     const [early] = await query<{ id: string }>("SELECT id FROM accounts WHERE email = 'early@test'");
     const list = await organize().collections.list(early!.id);
     expect(list).toEqual([expect.objectContaining({ name: "Mes boutiques", isDefault: true })]);
-    const [row] = await query<{ collection_id: string }>("SELECT collection_id FROM shops WHERE owner_id = $1", [early!.id]);
+    const [row] = await query<{ collection_id: string }>("SELECT collection_id FROM shops WHERE owner_id = $1", [
+      early!.id,
+    ]);
     expect(row?.collection_id).toBe(list[0]!.id);
   });
 
@@ -84,8 +124,12 @@ describe.runIf(enabled)("organize on PostgreSQL", () => {
     await expect(query("UPDATE collections SET is_default = true WHERE id = $1", [other.id])).rejects.toThrow();
     await org.collections.setDefault(o, other.id);
     expect((await org.collections.list(o)).filter((c) => c.isDefault).map((c) => c.id)).toEqual([other.id]);
-    await expect(query("UPDATE collections SET is_default = false WHERE id = $1", [other.id])).rejects.toThrow(/DEFAULT_COLLECTION/);
-    await expect(org.collections.setDefault(o, "00000000-0000-4000-8000-000000000000")).rejects.toMatchObject({ code: "NOT_FOUND" });
+    await expect(query("UPDATE collections SET is_default = false WHERE id = $1", [other.id])).rejects.toThrow(
+      /DEFAULT_COLLECTION/,
+    );
+    await expect(org.collections.setDefault(o, "00000000-0000-4000-8000-000000000000")).rejects.toMatchObject({
+      code: "NOT_FOUND",
+    });
     // the old default is an ordinary collection now
     const s = await shop(o);
     await org.profile("shop").setCollection(o, s, home);
@@ -113,7 +157,9 @@ describe.runIf(enabled)("organize on PostgreSQL", () => {
     const s = await shop(o);
     await org.profile("shop").setCollection(o, s, a.id);
     await org.collections.remove(o, a.id, { moveTo: b.id });
-    expect((await query<{ collection_id: string }>("SELECT collection_id FROM shops WHERE id = $1", [s]))[0]!.collection_id).toBe(b.id);
+    expect(
+      (await query<{ collection_id: string }>("SELECT collection_id FROM shops WHERE id = $1", [s]))[0]!.collection_id,
+    ).toBe(b.id);
     await expect(org.collections.remove(o, b.id, { moveTo: b.id })).rejects.toMatchObject({ code: "BAD_REQUEST" });
     const stranger = await owner();
     await expect(org.collections.rename(stranger, b.id, "x")).rejects.toMatchObject({ code: "NOT_FOUND" });
@@ -144,8 +190,14 @@ describe.runIf(enabled)("organize on PostgreSQL", () => {
     expect((await org.collections.readAvatar(o, c))?.contentType).toBe("image/jpeg");
     expect(await org.collections.uploadAvatar(o, c, jpeg(20), RULES)).toEqual({ kind: "image", version: 2 });
     expect(keysOf(c)).toEqual([`collection/${o}/${c}/2`]);
-    await expect(org.collections.uploadAvatar(o, c, jpeg(5000), RULES)).rejects.toMatchObject({ code: "AVATAR_TOO_LARGE", status: 413 });
-    await expect(org.collections.uploadAvatar(o, c, { ...jpeg(), type: "image/gif" }, RULES)).rejects.toMatchObject({ code: "AVATAR_UNREADABLE", status: 415 });
+    await expect(org.collections.uploadAvatar(o, c, jpeg(5000), RULES)).rejects.toMatchObject({
+      code: "AVATAR_TOO_LARGE",
+      status: 413,
+    });
+    await expect(org.collections.uploadAvatar(o, c, { ...jpeg(), type: "image/gif" }, RULES)).rejects.toMatchObject({
+      code: "AVATAR_UNREADABLE",
+      status: 415,
+    });
     await org.collections.setAvatar(o, c, "v1", RULES);
     expect(keysOf(c)).toEqual([]);
     await org.collections.uploadAvatar(o, c, jpeg(), RULES);
@@ -153,7 +205,10 @@ describe.runIf(enabled)("organize on PostgreSQL", () => {
     expect((await org.collections.get(o, c)).avatar).toBeNull();
     expect(keysOf(c)).toEqual([]);
     const noImages = createOrganize({ query, schema: SCHEMA });
-    await expect(noImages.collections.uploadAvatar(o, c, jpeg(), RULES)).rejects.toMatchObject({ code: "AVATAR_STORAGE_OFF", status: 503 });
+    await expect(noImages.collections.uploadAvatar(o, c, jpeg(), RULES)).rejects.toMatchObject({
+      code: "AVATAR_STORAGE_OFF",
+      status: 503,
+    });
   });
 
   it("reads both key formats (the product's old keys and the package's), writes only the package's, and deletes both", async () => {
@@ -181,10 +236,16 @@ describe.runIf(enabled)("organize on PostgreSQL", () => {
     const org = organize();
     await client.query("ALTER TABLE collections ADD COLUMN IF NOT EXISTS position int");
     const c = await org.collections.create(o, { name: "Rangée", extra: { position: 3 } });
-    expect((await query<{ position: number }>("SELECT position FROM collections WHERE id = $1", [c.id]))[0]!.position).toBe(3);
-    await expect(org.collections.create(o, { name: "Mauvais", extra: { "position; DROP TABLE x": 1 } })).rejects.toThrow(/safe SQL identifier/);
+    expect(
+      (await query<{ position: number }>("SELECT position FROM collections WHERE id = $1", [c.id]))[0]!.position,
+    ).toBe(3);
+    await expect(
+      org.collections.create(o, { name: "Mauvais", extra: { "position; DROP TABLE x": 1 } }),
+    ).rejects.toThrow(/safe SQL identifier/);
     const s = await shop(o);
-    const room = (await query<{ id: string }>("INSERT INTO rooms (shop_id, name) VALUES ($1, 'Salle') RETURNING id", [s]))[0]!.id;
+    const room = (
+      await query<{ id: string }>("INSERT INTO rooms (shop_id, name) VALUES ($1, 'Salle') RETURNING id", [s])
+    )[0]!.id;
     const t = await org.tags.create(o, { name: "Calme", color: "blue" });
     await org.tags.assign(o, "room", room, [t.id]);
     expect((await org.tags.of(o, "room", [room])).get(room)?.[0]?.name).toBe("Calme");
@@ -196,7 +257,9 @@ describe.runIf(enabled)("organize on PostgreSQL", () => {
     const org = organize();
     const salon = await org.tags.create(o, { name: "Salon", color: "green" });
     await expect(org.tags.create(o, { name: "salon", color: "blue" })).rejects.toMatchObject({ code: "NAME_TAKEN" });
-    await expect(org.tags.create(o, { name: "X", color: "#fff" as never })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(org.tags.create(o, { name: "X", color: "#fff" as never })).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+    });
     const vip = await org.tags.create(o, { name: "VIP", color: "amber" });
     const s = await shop(o);
     await org.tags.assign(o, "shop", s, [salon.id, vip.id]);
@@ -206,7 +269,10 @@ describe.runIf(enabled)("organize on PostgreSQL", () => {
     const c = await org.collections.defaultId(o);
     await org.tags.assign(o, "collection", c, [salon.id]);
     expect((await org.tags.of(o, "collection", [c])).get(c)?.[0]?.color).toBe("green");
-    expect(await org.tags.update(o, salon.id, { name: "Coiffure", color: "violet" })).toMatchObject({ name: "Coiffure", color: "violet" });
+    expect(await org.tags.update(o, salon.id, { name: "Coiffure", color: "violet" })).toMatchObject({
+      name: "Coiffure",
+      color: "violet",
+    });
     const other = await owner();
     const theirs = await org.tags.create(other, { name: "Leur tag", color: "red" });
     await expect(org.tags.assign(o, "shop", s, [theirs.id])).rejects.toMatchObject({ code: "NOT_FOUND" });

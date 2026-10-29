@@ -11,7 +11,8 @@ export function memoryNotificationStore(): NotificationStore {
   return {
     async record(item, burst) {
       const mine = [...items.values()].filter((i) => i.accountId === item.accountId);
-      if (item.dedupeKey !== null && mine.some((i) => i.dedupeKey === item.dedupeKey)) return { duplicate: true, capped: false };
+      if (item.dedupeKey !== null && mine.some((i) => i.dedupeKey === item.dedupeKey))
+        return { duplicate: true, capped: false };
       const recent = mine.filter((i) => i.category === item.category && i.createdAt >= burst.since).length;
       items.set(item.id, copy(item));
       return { duplicate: false, capped: recent >= burst.max };
@@ -26,7 +27,12 @@ export function memoryNotificationStore(): NotificationStore {
       return [...items.values()]
         .filter((i) => i.accountId === accountId && i.inBell && (!unreadOnly || i.readAt === null))
         .sort(newestFirst)
-        .filter((i) => !before || i.createdAt < before.createdAt || (i.createdAt.valueOf() === before.createdAt.valueOf() && i.id < before.id))
+        .filter(
+          (i) =>
+            !before ||
+            i.createdAt < before.createdAt ||
+            (i.createdAt.valueOf() === before.createdAt.valueOf() && i.id < before.id),
+        )
         .slice(0, limit)
         .map(copy);
     },
@@ -36,7 +42,13 @@ export function memoryNotificationStore(): NotificationStore {
     async markRead(accountId, ids, now) {
       let n = 0;
       for (const item of items.values()) {
-        if (item.accountId !== accountId || !item.inBell || item.readAt !== null || (ids !== null && !ids.includes(item.id))) continue;
+        if (
+          item.accountId !== accountId ||
+          !item.inBell ||
+          item.readAt !== null ||
+          (ids !== null && !ids.includes(item.id))
+        )
+          continue;
         item.readAt = now;
         n += 1;
       }
@@ -44,10 +56,17 @@ export function memoryNotificationStore(): NotificationStore {
     },
     async upsertDevice(device) {
       const known = devices.get(device.token);
-      devices.set(device.token, { ...device, id: known?.id ?? device.id, createdAt: known?.createdAt ?? device.createdAt, revokedAt: null });
+      devices.set(device.token, {
+        ...device,
+        id: known?.id ?? device.id,
+        createdAt: known?.createdAt ?? device.createdAt,
+        revokedAt: null,
+      });
     },
     async devices(accountId) {
-      return [...devices.values()].filter((d) => d.accountId === accountId && d.revokedAt === null).map(({ revokedAt: _revoked, ...d }) => d);
+      return [...devices.values()]
+        .filter((d) => d.accountId === accountId && d.revokedAt === null)
+        .map(({ revokedAt: _revoked, ...d }) => d);
     },
     async revokeDevice(token, now) {
       const d = devices.get(token);

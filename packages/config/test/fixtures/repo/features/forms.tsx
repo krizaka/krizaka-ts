@@ -12,7 +12,11 @@ export function Forms() {
         <textarea name="message" />
       </form>
       <table>
-        <thead><tr><th scope="col">A</th></tr></thead>
+        <thead>
+          <tr>
+            <th scope="col">A</th>
+          </tr>
+        </thead>
         <tbody />
       </table>
     </>

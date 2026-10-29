@@ -5,7 +5,13 @@
 import { krizakaPlugin } from "./plugin.js";
 
 export { krizakaPlugin } from "./plugin.js";
-export { ENV_PLATFORM_NAMES, ENV_PRODUCT_PREFIXES, ENV_VENDOR_PREFIXES, envNamePrefixProblem, ownProductPrefix } from "./rules.js";
+export {
+  ENV_PLATFORM_NAMES,
+  ENV_PRODUCT_PREFIXES,
+  ENV_VENDOR_PREFIXES,
+  envNamePrefixProblem,
+  ownProductPrefix,
+} from "./rules.js";
 
 /**
  * Flat config: `krizaka/env-name` on the given files.
@@ -13,7 +19,12 @@ export { ENV_PLATFORM_NAMES, ENV_PRODUCT_PREFIXES, ENV_VENDOR_PREFIXES, envNameP
  *   `products`, `vendors`: extra refused prefixes; `allow`: extra names a platform sets.
  * @returns {import("eslint").Linter.Config[]}
  */
-export function envNames({ files = ["**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"], products = [], vendors = [], allow = [] } = {}) {
+export function envNames({
+  files = ["**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"],
+  products = [],
+  vendors = [],
+  allow = [],
+} = {}) {
   return [
     {
       name: "krizaka/env-name",

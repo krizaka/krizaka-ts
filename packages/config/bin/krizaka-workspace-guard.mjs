@@ -8,7 +8,11 @@ const manifests = readManifests(process.cwd());
 const bad = checkWorkspaceRanges(manifests);
 if (bad.length > 0) {
   const lines = bad.map((b) => "  " + b).join("\n");
-  console.error("krizaka-workspace-guard: " + bad.length + " dependency(ies) of the workspace without `workspace:`:\n" + lines);
+  console.error(
+    "krizaka-workspace-guard: " + bad.length + " dependency(ies) of the workspace without `workspace:`:\n" + lines,
+  );
   process.exit(1);
 }
-console.log("krizaka-workspace-guard: " + manifests.length + " workspace package(s), every internal dependency uses workspace:");
+console.log(
+  "krizaka-workspace-guard: " + manifests.length + " workspace package(s), every internal dependency uses workspace:",
+);

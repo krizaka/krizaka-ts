@@ -26,10 +26,14 @@ export function memoryPrivacyStore(): PrivacyStore {
     },
     async finishRequest(id, outcome) {
       const found = requests.get(id);
-      if (found) Object.assign(found, { status: outcome.status, completedAt: outcome.at, failure: outcome.failure ?? null });
+      if (found)
+        Object.assign(found, { status: outcome.status, completedAt: outcome.at, failure: outcome.failure ?? null });
     },
     async requestsOf(subject) {
-      return [...requests.values()].filter((r) => sameSubject(r.subject, subject)).sort((a, b) => b.requestedAt.valueOf() - a.requestedAt.valueOf()).map((r) => structuredClone(r));
+      return [...requests.values()]
+        .filter((r) => sameSubject(r.subject, subject))
+        .sort((a, b) => b.requestedAt.valueOf() - a.requestedAt.valueOf())
+        .map((r) => structuredClone(r));
     },
   };
 }

@@ -3,7 +3,15 @@ import { createHash } from "node:crypto";
 import { adoptMigration, checksumOf, emitMigration } from "@krizaka/db";
 import { describe, expect, it } from "vitest";
 
-import { accountsMigration, accountsSchema, identityLinksMigration, identityLinksSchema, rolesMigration, rolesSchema, sessionsSchema } from "../src";
+import {
+  accountsMigration,
+  accountsSchema,
+  identityLinksMigration,
+  identityLinksSchema,
+  rolesMigration,
+  rolesSchema,
+  sessionsSchema,
+} from "../src";
 
 const sha = (text: string) => createHash("sha256").update(text).digest("hex");
 
@@ -21,8 +29,17 @@ describe("the auth schemas", () => {
   it("version 1 of each is byte-identical to the SQL shipped before the module schemas", () => {
     expect(sha(accountsSchema().migrations[0]!.sql(accounts))).toBe(BEFORE.accounts);
     expect(sha(accountsSchema({ backfillVerified: true }).migrations[0]!.sql(accounts))).toBe(BEFORE.accountsBackfill);
-    expect(sha(rolesSchema(["owner", "member"]).migrations[0]!.sql({ schema: "public", tables: { owner: "accounts" } }))).toBe(BEFORE.roles);
-    expect(sha(rolesSchema(["owner", "manager", "staff"], { scoped: true }).migrations[0]!.sql({ schema: "public", tables: { owner: "users", scope: "shops" } }))).toBe(BEFORE.rolesScoped);
+    expect(
+      sha(rolesSchema(["owner", "member"]).migrations[0]!.sql({ schema: "public", tables: { owner: "accounts" } })),
+    ).toBe(BEFORE.roles);
+    expect(
+      sha(
+        rolesSchema(["owner", "manager", "staff"], { scoped: true }).migrations[0]!.sql({
+          schema: "public",
+          tables: { owner: "users", scope: "shops" },
+        }),
+      ),
+    ).toBe(BEFORE.rolesScoped);
     expect(sha(identityLinksSchema.migrations[0]!.sql(accounts))).toBe(BEFORE.links);
   });
 
@@ -30,7 +47,9 @@ describe("the auth schemas", () => {
     expect(sha(accountsMigration())).toBe(BEFORE.accounts);
     expect(sha(accountsMigration({ backfillVerified: true }))).toBe(BEFORE.accountsBackfill);
     expect(sha(rolesMigration(["owner", "member"]))).toBe(BEFORE.roles);
-    expect(sha(rolesMigration(["owner", "manager", "staff"], { ownerTable: "users", scopeTable: "shops" }))).toBe(BEFORE.rolesScoped);
+    expect(sha(rolesMigration(["owner", "manager", "staff"], { ownerTable: "users", scopeTable: "shops" }))).toBe(
+      BEFORE.rolesScoped,
+    );
     expect(sha(identityLinksMigration())).toBe(BEFORE.links);
     expect(() => rolesMigration(["owner'; DROP TABLE x; --"])).toThrow("not a safe SQL identifier");
   });
@@ -40,17 +59,30 @@ describe("the auth schemas", () => {
     const adopted = adoptMigration(accountsSchema(), 1, { tables: { accounts: "accounts" } });
     expect(adopted).not.toContain("ALTER TABLE");
     expect(adopted).toContain(`('auth', 1, '${BEFORE.accounts}')`);
-    expect(emitMigration(identityLinksSchema, 1, { tables: { accounts: "accounts" } })).toContain("CREATE TABLE IF NOT EXISTS external_identities");
+    expect(emitMigration(identityLinksSchema, 1, { tables: { accounts: "accounts" } })).toContain(
+      "CREATE TABLE IF NOT EXISTS external_identities",
+    );
   });
 
   it("the scoped roles declare the scope table, and the unscoped ones do not need it", () => {
-    expect(() => emitMigration(rolesSchema(["owner"], { scoped: true }), 1, { tables: { owner: "accounts" } })).toThrow(/scope/);
-    expect(emitMigration(rolesSchema(["owner"]), 1, { tables: { owner: "accounts" } })).not.toContain("REFERENCES undefined");
+    expect(() => emitMigration(rolesSchema(["owner"], { scoped: true }), 1, { tables: { owner: "accounts" } })).toThrow(
+      /scope/,
+    );
+    expect(emitMigration(rolesSchema(["owner"]), 1, { tables: { owner: "accounts" } })).not.toContain(
+      "REFERENCES undefined",
+    );
   });
 
   it("the sessions table is a module in `public`, with the shape the products' own table has", () => {
     const sql = emitMigration(sessionsSchema, 1, { tables: { accounts: "accounts" } });
-    for (const needle of ["CREATE TABLE IF NOT EXISTS sessions", "token_hash   text NOT NULL UNIQUE", "REFERENCES accounts(id) ON DELETE CASCADE", "CREATE INDEX IF NOT EXISTS sessions_account", "('auth_sessions', 1, "]) expect(sql).toContain(needle);
+    for (const needle of [
+      "CREATE TABLE IF NOT EXISTS sessions",
+      "token_hash   text NOT NULL UNIQUE",
+      "REFERENCES accounts(id) ON DELETE CASCADE",
+      "CREATE INDEX IF NOT EXISTS sessions_account",
+      "('auth_sessions', 1, ",
+    ])
+      expect(sql).toContain(needle);
     expect(adoptMigration(sessionsSchema, 1, { tables: { accounts: "accounts" } })).not.toContain("sessions (");
   });
 });

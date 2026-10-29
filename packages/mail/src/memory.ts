@@ -12,7 +12,10 @@ export function memoryMailStore(): MailStore {
       log.push({ ...entry, id: seq, at: at.toISOString(), when: at });
     },
     async recent(limit) {
-      return log.slice(-limit).reverse().map(({ when: _when, ...row }) => row);
+      return log
+        .slice(-limit)
+        .reverse()
+        .map(({ when: _when, ...row }) => row);
     },
     async isSuppressed(hash) {
       return suppressed.has(hash);

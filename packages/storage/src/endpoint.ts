@@ -22,8 +22,17 @@ export function checkEndpoint(endpoint: string, options: { allowLocal?: boolean 
   if (options.allowLocal) return url.origin;
   if (url.protocol !== "https:") throw bad("must be https");
   const host = url.hostname.toLowerCase();
-  if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".internal") || host.endsWith(".local")) throw bad("must not be a local name");
+  if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".internal") || host.endsWith(".local"))
+    throw bad("must not be a local name");
   if (PRIVATE_V4.some((re) => re.test(host))) throw bad("must not be a private address");
-  if (host.startsWith("[") && (host === "[::1]" || host.startsWith("[fc") || host.startsWith("[fd") || host.startsWith("[fe80") || host.startsWith("[::ffff:"))) throw bad("must not be a private address");
+  if (
+    host.startsWith("[") &&
+    (host === "[::1]" ||
+      host.startsWith("[fc") ||
+      host.startsWith("[fd") ||
+      host.startsWith("[fe80") ||
+      host.startsWith("[::ffff:"))
+  )
+    throw bad("must not be a private address");
   return url.origin;
 }

@@ -9,7 +9,8 @@ export const WIDTHS = [360, 390, 430, 768, 1024, 1440];
 export const THEMES = ["dark", "light"];
 
 /** A blocked third-party resource is not a page error; a script error and a hydration mismatch are. `ignore`: the messages the app tolerates. */
-export const isPageError = (message, ignore = [/Failed to load resource/]) => message.type() === "error" && !ignore.some((re) => re.test(message.text()));
+export const isPageError = (message, ignore = [/Failed to load resource/]) =>
+  message.type() === "error" && !ignore.some((re) => re.test(message.text()));
 
 async function chromiumOf(launch) {
   if (launch) return launch();
@@ -55,7 +56,10 @@ const nameOfRoute = (r) => r.name ?? r.url;
  */
 export async function routesFromSitemap(base, { first = ["/"], limit = 14, fetcher = fetch } = {}) {
   const origin = base.replace(/\/$/, "");
-  const xml = await fetcher(`${origin}/sitemap.xml`).then((r) => (r.ok ? r.text() : null), () => null);
+  const xml = await fetcher(`${origin}/sitemap.xml`).then(
+    (r) => (r.ok ? r.text() : null),
+    () => null,
+  );
   if (xml === null) return null;
   const paths = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => new URL(m[1]).pathname || "/");
   return [...new Set([...first, ...paths])].slice(0, limit);
@@ -66,8 +70,18 @@ async function a11yOf(a11y) {
   if (!a11y) return null;
   const lib = await import("@krizaka/a11y-audit");
   const kinds = { public: { collector: new lib.A11yCollector(a11y.app), baseline: a11y.baseline } };
-  if (a11y.session) kinds.session = { collector: new lib.A11yCollector(a11y.session.app), baseline: a11y.session.baseline, optional: true };
-  return { lib, kinds, widths: a11y.widths ?? [390, 1440], log: a11y.log ?? ((line) => process.stdout.write(`${line}\n`)) };
+  if (a11y.session)
+    kinds.session = {
+      collector: new lib.A11yCollector(a11y.session.app),
+      baseline: a11y.session.baseline,
+      optional: true,
+    };
+  return {
+    lib,
+    kinds,
+    widths: a11y.widths ?? [390, 1440],
+    log: a11y.log ?? ((line) => process.stdout.write(`${line}\n`)),
+  };
 }
 
 /** The ratchet's verdict, per kind. A baseline not recorded yet (`optional`) is counted, not enforced, until `--a11y-init`. */
@@ -75,7 +89,9 @@ function a11yProblems(state) {
   const problems = [];
   for (const { collector, baseline, optional } of Object.values(state.kinds)) {
     if (optional && !existsSync(baseline) && !process.argv.includes("--a11y-init")) {
-      state.log(`· a11y baseline missing: counted, not enforced (${collector.summary().join("; ") || "no violation"}); record it with --a11y-init`);
+      state.log(
+        `· a11y baseline missing: counted, not enforced (${collector.summary().join("; ") || "no violation"}); record it with --a11y-init`,
+      );
       continue;
     }
     const guard = state.lib.finish(collector, { baseline });
@@ -92,7 +108,10 @@ function statusOf(response, checks) {
 }
 
 /** One route at one width: load, settle, measure, screenshot. */
-async function measure(page, { base, spec, viewport, settleMs, prepare, checks, errors, where, shots, a11y, kind, theme }) {
+async function measure(
+  page,
+  { base, spec, viewport, settleMs, prepare, checks, errors, where, shots, a11y, kind, theme },
+) {
   await resizeSettled(page, viewport);
   // « load » and the faces, not « networkidle »: router prefetches can keep the page from ever going idle.
   const response = await loadSettled(page, `${base}${spec.url}`);
@@ -131,7 +150,9 @@ async function auditPageRoutes(page, routes, o) {
   for (const spec of routes) {
     for (const w of o.widths) {
       const viewport = viewportOf(w, o.height);
-      problems.push(...(await measureWithRetries(page, o, spec, viewport, `${nameOfRoute(spec)} @${viewport.width} ${o.theme}`)));
+      problems.push(
+        ...(await measureWithRetries(page, o, spec, viewport, `${nameOfRoute(spec)} @${viewport.width} ${o.theme}`)),
+      );
     }
   }
   return problems;
@@ -146,7 +167,11 @@ async function newPage(browser, o, extra = {}) {
 
 /** The signed-in pages of one theme: a context with the session (a stored state, or `signIn` on the context), the routes the session names, then the flagged ones. */
 async function auditSession(browser, session, flagged, o) {
-  const { context, page, errors } = await newPage(browser, o, session.storageState ? { storageState: session.storageState } : {});
+  const { context, page, errors } = await newPage(
+    browser,
+    o,
+    session.storageState ? { storageState: session.storageState } : {},
+  );
   try {
     if (session.signIn) await session.signIn(context, { base: o.base, theme: o.theme, page });
     const own = session.routes ? await session.routes(page, { base: o.base, theme: o.theme }) : [];
@@ -175,7 +200,23 @@ async function auditSession(browser, session, flagged, o) {
  * @param {() => Promise<object>} [o.launch]  returns a Playwright browser (default: chromium of playwright-core)
  * @returns {Promise<string[]>} the problems, empty when the pages are fine
  */
-export async function auditRoutes({ base, routes, widths = WIDTHS, themes = THEMES, height = 900, themeKey = "kz-theme", shots, settleMs = 300, checks = {}, ignoreConsole, attempts = 1, a11y, session, prepare, launch }) {
+export async function auditRoutes({
+  base,
+  routes,
+  widths = WIDTHS,
+  themes = THEMES,
+  height = 900,
+  themeKey = "kz-theme",
+  shots,
+  settleMs = 300,
+  checks = {},
+  ignoreConsole,
+  attempts = 1,
+  a11y,
+  session,
+  prepare,
+  launch,
+}) {
   const browser = await chromiumOf(launch);
   const state = await a11yOf(a11y);
   const specs = routes.map(specOf);
@@ -184,11 +225,25 @@ export async function auditRoutes({ base, routes, widths = WIDTHS, themes = THEM
   const problems = [];
   try {
     for (const theme of themes) {
-      const o = { base, widths, height, theme, themeKey, shots, settleMs, checks, ignoreConsole, attempts, prepare, a11y: state };
+      const o = {
+        base,
+        widths,
+        height,
+        theme,
+        themeKey,
+        shots,
+        settleMs,
+        checks,
+        ignoreConsole,
+        attempts,
+        prepare,
+        a11y: state,
+      };
       const { context, page, errors } = await newPage(browser, o);
       problems.push(...(await auditPageRoutes(page, plain, { ...o, errors, kind: "public" })));
       await context.close();
-      if (session && (session.routes || flagged.length)) problems.push(...(await auditSession(browser, session, flagged, o)));
+      if (session && (session.routes || flagged.length))
+        problems.push(...(await auditSession(browser, session, flagged, o)));
     }
   } finally {
     await browser.close();

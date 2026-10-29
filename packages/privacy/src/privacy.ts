@@ -61,7 +61,11 @@ export interface Privacy {
    */
   requestExport(tx: Query, subject: Subject): Promise<{ requestId: string }>;
   /** Assembles the export of a recorded request and hands it to `deliver` (store the file, mail a link); the request is completed after `deliver` returns. */
-  fulfilExport(query: Query, requestId: string, deliver: (document: ExportDocument, request: PrivacyRequest) => Promise<void>): Promise<void>;
+  fulfilExport(
+    query: Query,
+    requestId: string,
+    deliver: (document: ExportDocument, request: PrivacyRequest) => Promise<void>,
+  ): Promise<void>;
   /**
    * Erases the subject from every contributor in ONE transaction, withdraws their live consents, and records the request and an
    * audit entry that names no one. If a contributor fails nothing is erased, the request is recorded as failed, and the error is thrown.
@@ -86,7 +90,8 @@ export function createPrivacy(deps: PrivacyDeps): Privacy {
   const storeFor = deps.storeFor ?? ((query: Query) => dbPrivacyStore(query, schema));
   for (const purpose of deps.purposes) checkPurpose(purpose);
   const names = deps.contributors.map((c) => c.name);
-  if (new Set(names).size !== names.length) throw new PrivacyError(PRIVACY_CODE.contributorFailed, `two contributors have the same name: ${names.join(", ")}`);
+  if (new Set(names).size !== names.length)
+    throw new PrivacyError(PRIVACY_CODE.contributorFailed, `two contributors have the same name: ${names.join(", ")}`);
   const known = new Set(deps.purposes);
 
   async function assemble(query: Query, subject: Subject): Promise<ExportDocument> {
@@ -95,20 +100,40 @@ export function createPrivacy(deps: PrivacyDeps): Privacy {
       try {
         modules[contributor.name] = await contributor.exportFor(query, subject);
       } catch (cause) {
-        throw new PrivacyError(PRIVACY_CODE.contributorFailed, `the export of « ${contributor.name} » failed`, { cause });
+        throw new PrivacyError(PRIVACY_CODE.contributorFailed, `the export of « ${contributor.name} » failed`, {
+          cause,
+        });
       }
     }
     return { format: 1, subject, generatedAt: deps.clock.now().toISOString(), modules };
   }
 
-  const newRequest = (subject: Subject, kind: PrivacyRequest["kind"]): PrivacyRequest => ({ id: randomUUID(), subject, kind, status: REQUEST_STATUS.requested, requestedAt: deps.clock.now(), completedAt: null, failure: null });
+  const newRequest = (subject: Subject, kind: PrivacyRequest["kind"]): PrivacyRequest => ({
+    id: randomUUID(),
+    subject,
+    kind,
+    status: REQUEST_STATUS.requested,
+    requestedAt: deps.clock.now(),
+    completedAt: null,
+    failure: null,
+  });
 
   async function recordConsent(query: Query, input: ConsentInput): Promise<ConsentRecord> {
     checkSubject(input.subject);
     checkPurpose(input.purpose);
-    if (!known.has(input.purpose)) throw new PrivacyError(PRIVACY_CODE.badPurpose, `purpose « ${input.purpose} » is not one the product declared`);
-    if (input.version.length < 1 || input.version.length > 100) throw new PrivacyError(PRIVACY_CODE.badConsent, "the notice version is 1 to 100 characters");
-    const record: ConsentRecord = { id: randomUUID(), subject: input.subject, purpose: input.purpose, version: input.version, granted: input.granted, means: input.means ?? null, at: deps.clock.now() };
+    if (!known.has(input.purpose))
+      throw new PrivacyError(PRIVACY_CODE.badPurpose, `purpose « ${input.purpose} » is not one the product declared`);
+    if (input.version.length < 1 || input.version.length > 100)
+      throw new PrivacyError(PRIVACY_CODE.badConsent, "the notice version is 1 to 100 characters");
+    const record: ConsentRecord = {
+      id: randomUUID(),
+      subject: input.subject,
+      purpose: input.purpose,
+      version: input.version,
+      granted: input.granted,
+      means: input.means ?? null,
+      at: deps.clock.now(),
+    };
     await storeFor(query).insertConsent(record);
     return record;
   }
@@ -134,7 +159,11 @@ export function createPrivacy(deps: PrivacyDeps): Privacy {
         await store.finishRequest(request.id, { status: REQUEST_STATUS.completed, at: deps.clock.now() });
         return document;
       } catch (error) {
-        await store.finishRequest(request.id, { status: REQUEST_STATUS.failed, at: deps.clock.now(), failure: FAILURE_CODE });
+        await store.finishRequest(request.id, {
+          status: REQUEST_STATUS.failed,
+          at: deps.clock.now(),
+          failure: FAILURE_CODE,
+        });
         throw error;
       }
     },
@@ -143,19 +172,30 @@ export function createPrivacy(deps: PrivacyDeps): Privacy {
       if (!deps.outbox) throw new PrivacyError(PRIVACY_CODE.noOutbox, "an asynchronous export needs the outbox");
       const request = newRequest(subject, REQUEST_KIND.export);
       await storeFor(tx).insertRequest(request);
-      await deps.outbox.append(tx, { topic: "privacy", type: "evt.privacy.export_requested.v1", payload: { requestId: request.id }, id: request.id });
+      await deps.outbox.append(tx, {
+        topic: "privacy",
+        type: "evt.privacy.export_requested.v1",
+        payload: { requestId: request.id },
+        id: request.id,
+      });
       return { requestId: request.id };
     },
     async fulfilExport(query, requestId, deliver) {
       const store = storeFor(query);
       const request = await store.getRequest(requestId);
       if (!request) throw new PrivacyError(PRIVACY_CODE.unknownRequest, `no request ${requestId}`);
-      if (request.kind !== REQUEST_KIND.export) throw new PrivacyError(PRIVACY_CODE.notAnExport, `request ${requestId} is not an export`);
-      if (request.status === REQUEST_STATUS.completed) throw new PrivacyError(PRIVACY_CODE.alreadyDone, `request ${requestId} is already completed`);
+      if (request.kind !== REQUEST_KIND.export)
+        throw new PrivacyError(PRIVACY_CODE.notAnExport, `request ${requestId} is not an export`);
+      if (request.status === REQUEST_STATUS.completed)
+        throw new PrivacyError(PRIVACY_CODE.alreadyDone, `request ${requestId} is already completed`);
       try {
         await deliver(await assemble(query, request.subject), request);
       } catch (error) {
-        await store.finishRequest(requestId, { status: REQUEST_STATUS.failed, at: deps.clock.now(), failure: FAILURE_CODE });
+        await store.finishRequest(requestId, {
+          status: REQUEST_STATUS.failed,
+          at: deps.clock.now(),
+          failure: FAILURE_CODE,
+        });
         throw error;
       }
       await store.finishRequest(requestId, { status: REQUEST_STATUS.completed, at: deps.clock.now() });
@@ -171,24 +211,48 @@ export function createPrivacy(deps: PrivacyDeps): Privacy {
             try {
               await contributor.eraseFor(tx, subject);
             } catch (cause) {
-              throw new PrivacyError(PRIVACY_CODE.contributorFailed, `the erasure of « ${contributor.name} » failed`, { cause });
+              throw new PrivacyError(PRIVACY_CODE.contributorFailed, `the erasure of « ${contributor.name} » failed`, {
+                cause,
+              });
             }
           }
           for (const purpose of deps.purposes) {
-            if ((await store.latestConsent(subject, purpose))?.granted) await recordConsent(tx, { subject, purpose, version: options.noticeVersion ?? ERASURE_VERSION, granted: false, means: ERASURE_VERSION });
+            if ((await store.latestConsent(subject, purpose))?.granted)
+              await recordConsent(tx, {
+                subject,
+                purpose,
+                version: options.noticeVersion ?? ERASURE_VERSION,
+                granted: false,
+                means: ERASURE_VERSION,
+              });
           }
           const completedAt = deps.clock.now();
           await store.finishRequest(request.id, { status: REQUEST_STATUS.completed, at: completedAt });
           // the entry names the request and the modules, never the person
-          await deps.audit?.record(tx, { actorId: null, actorLabel: "privacy", action: "privacy.erasure_completed", target: { type: "privacy_request", id: request.id }, detail: { contributors: names } });
+          await deps.audit?.record(tx, {
+            actorId: null,
+            actorLabel: "privacy",
+            action: "privacy.erasure_completed",
+            target: { type: "privacy_request", id: request.id },
+            detail: { contributors: names },
+          });
           return { ...request, status: REQUEST_STATUS.completed, completedAt };
         });
       } catch (error) {
         // the transaction rolled back, request row included: record the failure beside it, and never mask the original error
         try {
-          await deps.transaction((tx) => storeFor(tx).insertRequest({ ...request, status: REQUEST_STATUS.failed, completedAt: deps.clock.now(), failure: FAILURE_CODE }));
+          await deps.transaction((tx) =>
+            storeFor(tx).insertRequest({
+              ...request,
+              status: REQUEST_STATUS.failed,
+              completedAt: deps.clock.now(),
+              failure: FAILURE_CODE,
+            }),
+          );
         } catch (recordFailure) {
-          throw new AggregateError([error, recordFailure], "the erasure failed, and so did recording its failure", { cause: recordFailure });
+          throw new AggregateError([error, recordFailure], "the erasure failed, and so did recording its failure", {
+            cause: recordFailure,
+          });
         }
         throw error;
       }
@@ -198,10 +262,12 @@ export function createPrivacy(deps: PrivacyDeps): Privacy {
       for (const purpose of deps.purposes) {
         const days = await deps.retentionDays?.(purpose);
         if (days === undefined) continue;
-        if (!Number.isInteger(days) || days < 1) throw new RangeError(`the retention of « ${purpose} » must be a whole number of days from 1, got ${days}`);
+        if (!Number.isInteger(days) || days < 1)
+          throw new RangeError(`the retention of « ${purpose} » must be a whole number of days from 1, got ${days}`);
         const before = subHours(deps.clock.now(), days * 24);
         let total = 0;
-        for (const contributor of deps.contributors) total += (await contributor.purgeExpired?.(query, { purpose, before })) ?? 0;
+        for (const contributor of deps.contributors)
+          total += (await contributor.purgeExpired?.(query, { purpose, before })) ?? 0;
         removed[purpose] = total;
       }
       return removed;

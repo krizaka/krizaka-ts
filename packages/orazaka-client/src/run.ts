@@ -37,9 +37,11 @@ export interface OrazakaRun {
 export const isTerminal = (run: Pick<OrazakaRun, "status">): boolean => TERMINAL.includes(run.status);
 
 /** The value of one output, or null when the run did not produce it (yet). */
-export const outputOf = (run: Pick<OrazakaRun, "outputs">, key: string): string | null => run.outputs.find((o) => o.key === key)?.value ?? null;
+export const outputOf = (run: Pick<OrazakaRun, "outputs">, key: string): string | null =>
+  run.outputs.find((o) => o.key === key)?.value ?? null;
 
-const shape = (what: string) => new OrazakaError(ORAZAKA_CODE.shape, `Orazaka's answer has an unexpected shape: ${what}`);
+const shape = (what: string) =>
+  new OrazakaError(ORAZAKA_CODE.shape, `Orazaka's answer has an unexpected shape: ${what}`);
 const text = (v: unknown): string | null => (typeof v === "string" ? v : null);
 
 const parseOutput = (raw: unknown): RunOutput => {
@@ -51,7 +53,8 @@ const parseOutput = (raw: unknown): RunOutput => {
 /** Reads a run from the edge's JSON; anything else is `ORAZAKA_SHAPE`. */
 export function parseRun(body: unknown): OrazakaRun {
   const o = (body ?? {}) as Record<string, unknown>;
-  if (typeof o.id !== "string" || typeof o.studioKey !== "string" || typeof o.status !== "string") throw shape("a run needs id, studioKey and status");
+  if (typeof o.id !== "string" || typeof o.studioKey !== "string" || typeof o.status !== "string")
+    throw shape("a run needs id, studioKey and status");
   if (o.outputs !== undefined && o.outputs !== null && !Array.isArray(o.outputs)) throw shape("outputs is not a list");
   return {
     id: o.id,

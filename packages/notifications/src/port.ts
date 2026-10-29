@@ -73,7 +73,10 @@ export interface NotificationStore {
   preferences(accountId: string): Promise<{ category: string; channel: Channel; enabled: boolean }[]>;
   setPreference(accountId: string, category: string, channel: Channel, enabled: boolean, now: Date): Promise<void>;
   /** Items shown in the bell, newest first; `before` is the cursor (the last item of the previous page). */
-  list(accountId: string, options: { unreadOnly: boolean; limit: number; before?: { createdAt: Date; id: string } }): Promise<Item[]>;
+  list(
+    accountId: string,
+    options: { unreadOnly: boolean; limit: number; before?: { createdAt: Date; id: string } },
+  ): Promise<Item[]>;
   unreadCount(accountId: string): Promise<number>;
   /** Marks read the account's own unread items among `ids` (all of them when `ids` is null). The first `read_at` stays. Returns how many. */
   markRead(accountId: string, ids: readonly string[] | null, now: Date): Promise<number>;

@@ -23,7 +23,10 @@ describe.runIf(enabled)("storage providers on PostgreSQL", () => {
   beforeAll(async () => {
     test = await createTestDatabase({
       connect: (database) => connectTo(database)(),
-      migrate: (connect) => migrate(connect, [{ version: "0001_storage_1", sql: emitMigration(storageSchema, 1, { tables: {} }) }], { lockKey: 7402 }).then(() => undefined),
+      migrate: (connect) =>
+        migrate(connect, [{ version: "0001_storage_1", sql: emitMigration(storageSchema, 1, { tables: {} }) }], {
+          lockKey: 7402,
+        }).then(() => undefined),
       prefix: "kzstorage",
     });
     connection = await connectTo(test.name)();
@@ -33,7 +36,9 @@ describe.runIf(enabled)("storage providers on PostgreSQL", () => {
     await test?.drop();
   });
   it("embeds the two tables in the product's database, in their own schema", async () => {
-    const rows = await queryOf(connection)<{ table_name: string }>("SELECT table_name FROM information_schema.tables WHERE table_schema = 'storage' ORDER BY table_name");
+    const rows = await queryOf(connection)<{ table_name: string }>(
+      "SELECT table_name FROM information_schema.tables WHERE table_schema = 'storage' ORDER BY table_name",
+    );
     expect(rows.map((r) => r.table_name)).toEqual(["default_provider", "provider"]);
   });
   providerStoreContract("pg", async () => {

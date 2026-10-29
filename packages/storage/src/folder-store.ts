@@ -44,7 +44,8 @@ export function folderStore(options: FolderOptions): ObjectStore {
       try {
         return { bytes: new Uint8Array(await readFile(pathOf(key))), contentType: typeOfName(key) };
       } catch (error) {
-        if ((error as NodeJS.ErrnoException).code === "ENOENT" || (error as NodeJS.ErrnoException).code === "EISDIR") return null;
+        if ((error as NodeJS.ErrnoException).code === "ENOENT" || (error as NodeJS.ErrnoException).code === "EISDIR")
+          return null;
         throw error;
       }
     },
@@ -69,6 +70,7 @@ export function folderStore(options: FolderOptions): ObjectStore {
     async signedUrl() {
       return null;
     },
-    publicUrl: (key) => (options.publicBaseUrl ? `${trimSlashes(options.publicBaseUrl, "end")}/${assertKey(key)}` : null),
+    publicUrl: (key) =>
+      options.publicBaseUrl ? `${trimSlashes(options.publicBaseUrl, "end")}/${assertKey(key)}` : null,
   };
 }

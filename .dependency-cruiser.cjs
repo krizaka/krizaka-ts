@@ -4,7 +4,8 @@
 // from the package's own folder; each keeps a .dependency-cruiser-known-violations.json, which only shrinks).
 
 /** The Krizaka packages that render or carry the design: krizaka-ui's. A krizaka-ui package may depend on krizaka-ts, never the reverse. */
-const RENDERING = "^(node_modules/)?@krizaka/(ui|tokens|fonts|icons|tailwind|charts|email)(/|$)|(^|/)node_modules/@krizaka/(ui|tokens|fonts|icons|tailwind|charts|email)(/|$)";
+const RENDERING =
+  "^(node_modules/)?@krizaka/(ui|tokens|fonts|icons|tailwind|charts|email)(/|$)|(^|/)node_modules/@krizaka/(ui|tokens|fonts|icons|tailwind|charts|email)(/|$)";
 
 // `packages/time` is the dates facade (krizaka-ts#76): the one package that may import the date library. Each package is cruised
 // from its own folder (scripts/deps.mjs), so the facade is the run whose folder is `time`.
@@ -17,7 +18,8 @@ module.exports = {
     {
       name: "krizaka-ts-not-from-ui",
       severity: "error",
-      comment: "Krizaka TS never imports what renders (@krizaka/ui, tokens, fonts, icons, tailwind, charts, email): the dependency goes one way, from krizaka-ui to krizaka-ts (ADR-004). Move the shared logic here, or the rendering part to krizaka-ui.",
+      comment:
+        "Krizaka TS never imports what renders (@krizaka/ui, tokens, fonts, icons, tailwind, charts, email): the dependency goes one way, from krizaka-ui to krizaka-ts (ADR-004). Move the shared logic here, or the rendering part to krizaka-ui.",
       from: {},
       to: { path: RENDERING },
     },

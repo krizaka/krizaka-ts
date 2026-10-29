@@ -20,11 +20,19 @@ const ROOT = "org/v1";
 
 /** The files to send: [{ path, body }], the stable name and its hashed copy for each source file. */
 export function plan(dist) {
-  const sources = ["org.json", "org.schema.json", "app.schema.json", ...readdirSync(join(dist, "apps")).map((name) => `apps/${name}`)];
+  const sources = [
+    "org.json",
+    "org.schema.json",
+    "app.schema.json",
+    ...readdirSync(join(dist, "apps")).map((name) => `apps/${name}`),
+  ];
   return sources.flatMap((name) => {
     const body = readFileSync(join(dist, name));
     const hash = createHash("sha256").update(body).digest("hex").slice(0, 10);
-    return [{ path: `${ROOT}/${name}`, body }, { path: `${ROOT}/${name.replace(/\.json$/, `.${hash}.json`)}`, body }];
+    return [
+      { path: `${ROOT}/${name}`, body },
+      { path: `${ROOT}/${name.replace(/\.json$/, `.${hash}.json`)}`, body },
+    ];
   });
 }
 
@@ -33,7 +41,12 @@ export function config(env) {
   const apiKey = env.MEDIA_STORAGE_API_KEY;
   const zone = env.MEDIA_STORAGE_ZONE;
   if (!apiKey || !zone) return null;
-  return { apiKey, zone, endpoint: env.MEDIA_STORAGE_ENDPOINT || "storage.bunnycdn.com", host: env.MEDIA_CDN_HOSTNAME || "krizaka-assets.b-cdn.net" };
+  return {
+    apiKey,
+    zone,
+    endpoint: env.MEDIA_STORAGE_ENDPOINT || "storage.bunnycdn.com",
+    host: env.MEDIA_CDN_HOSTNAME || "krizaka-assets.b-cdn.net",
+  };
 }
 
 export async function publish({ dist, env, dryRun = false, fetchImpl = globalThis.fetch, log = console.log }) {
@@ -49,7 +62,11 @@ export async function publish({ dist, env, dryRun = false, fetchImpl = globalThi
   }
   for (const f of files) {
     const url = `https://${cfg.endpoint}/${encodeURIComponent(cfg.zone)}/${f.path.split("/").map(encodeURIComponent).join("/")}`;
-    const res = await fetchImpl(url, { method: "PUT", headers: { AccessKey: cfg.apiKey, "Content-Type": "application/json; charset=utf-8" }, body: f.body });
+    const res = await fetchImpl(url, {
+      method: "PUT",
+      headers: { AccessKey: cfg.apiKey, "Content-Type": "application/json; charset=utf-8" },
+      body: f.body,
+    });
     if (!res.ok) throw new Error(`${f.path}: storage answered ${res.status}`);
     log(`sent ${f.path}`);
   }

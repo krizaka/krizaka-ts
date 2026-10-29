@@ -19,7 +19,12 @@ export interface WorkspaceFixture {
 }
 
 /** A configuration the contract writes (the store keeps it as given; checking it is the service's). */
-export const contractConfig = (kind: string): KindConfig => ({ kind, tags: { writers: ["owner"], userTags: true, max: 20, presets: {} }, status: null, views: [] });
+export const contractConfig = (kind: string): KindConfig => ({
+  kind,
+  tags: { writers: ["owner"], userTags: true, max: 20, presets: {} },
+  status: null,
+  views: [],
+});
 
 /**
  * @param name the adapter's name, shown in the test titles
@@ -57,10 +62,15 @@ export function workspaceStoreContract(name: string, kind: string, make: () => P
     const zinc = await f.store.addTag(a, kind, { name: "Zinc", marker: "gray", origin: "user" }, at);
     await f.store.addTag(a, kind, { name: "argent", marker: "blue", origin: "preset" }, at);
     expect(zinc).toMatchObject({ kind, name: "Zinc", marker: "gray", origin: "user" });
-    await expect(f.store.addTag(a, kind, { name: "zinc", marker: "red", origin: "user" }, at)).rejects.toMatchObject(nameTaken);
+    await expect(f.store.addTag(a, kind, { name: "zinc", marker: "red", origin: "user" }, at)).rejects.toMatchObject(
+      nameTaken,
+    );
     await f.store.addTag(b, kind, { name: "Zinc", marker: "red", origin: "user" }, at);
     expect((await f.store.tags(a, kind)).map((t) => t.name)).toEqual(["argent", "Zinc"]);
-    expect(await f.store.updateTag(a, kind, zinc.id, { marker: "violet" })).toMatchObject({ name: "Zinc", marker: "violet" });
+    expect(await f.store.updateTag(a, kind, zinc.id, { marker: "violet" })).toMatchObject({
+      name: "Zinc",
+      marker: "violet",
+    });
     await expect(f.store.updateTag(a, kind, zinc.id, { name: "ARGENT" })).rejects.toMatchObject(nameTaken);
     expect(await f.store.updateTag(b, kind, zinc.id, { name: "Ailleurs" })).toBeNull();
     expect(await f.store.removeTag(b, kind, zinc.id)).toBe(false);
@@ -72,8 +82,15 @@ export function workspaceStoreContract(name: string, kind: string, make: () => P
     const f = await make();
     const scope = await f.scope();
     const [x, y] = [await f.entity(scope), await f.entity(scope)];
-    const [t1, t2] = [await f.store.addTag(scope, kind, { name: "Un", marker: "blue", origin: "user" }, at), await f.store.addTag(scope, kind, { name: "Deux", marker: "green", origin: "user" }, at)];
-    await f.store.link(kind, [{ entityId: x, tagId: t1.id }, { entityId: x, tagId: t2.id }, { entityId: y, tagId: t1.id }]);
+    const [t1, t2] = [
+      await f.store.addTag(scope, kind, { name: "Un", marker: "blue", origin: "user" }, at),
+      await f.store.addTag(scope, kind, { name: "Deux", marker: "green", origin: "user" }, at),
+    ];
+    await f.store.link(kind, [
+      { entityId: x, tagId: t1.id },
+      { entityId: x, tagId: t2.id },
+      { entityId: y, tagId: t1.id },
+    ]);
     await f.store.link(kind, [{ entityId: x, tagId: t1.id }]);
     const worn = await f.store.tagsOf(kind, [x, y]);
     const byText = (a: string, b: string) => a.localeCompare(b);
@@ -97,7 +114,9 @@ export function workspaceStoreContract(name: string, kind: string, make: () => P
     await f.store.setState(kind, y, "retenu", at, by);
     const states = await f.store.states(kind, [x, y]);
     expect(states.get(x)).toEqual({ state: "non_retenu", changedAt: new Date("2026-10-25T10:00:00Z") });
-    expect(await f.store.statesInUse(kind, ["retenu", "a_decider", "non_retenu"])).toEqual(expect.arrayContaining(["non_retenu", "retenu"]));
+    expect(await f.store.statesInUse(kind, ["retenu", "a_decider", "non_retenu"])).toEqual(
+      expect.arrayContaining(["non_retenu", "retenu"]),
+    );
     expect(await f.store.statesInUse(kind, ["jamais_vu"])).toEqual([]);
   });
 
@@ -105,14 +124,28 @@ export function workspaceStoreContract(name: string, kind: string, make: () => P
     const f = await make();
     const [scope, other] = [await f.scope(), await f.scope()];
     const [eric, lea] = [await f.user(), await f.user()];
-    const mine = await f.store.addView(scope, { kind, authorId: eric, name: "À rappeler", filters: { status: ["a_decider"] }, shared: false }, at);
-    const team = await f.store.addView(scope, { kind, authorId: lea, name: "Équipe", filters: { q: "Tremblay" }, shared: true }, at);
+    const mine = await f.store.addView(
+      scope,
+      { kind, authorId: eric, name: "À rappeler", filters: { status: ["a_decider"] }, shared: false },
+      at,
+    );
+    const team = await f.store.addView(
+      scope,
+      { kind, authorId: lea, name: "Équipe", filters: { q: "Tremblay" }, shared: true },
+      at,
+    );
     await f.store.addView(scope, { kind, authorId: lea, name: "Privée", filters: {}, shared: false }, at);
-    await expect(f.store.addView(scope, { kind, authorId: eric, name: "à rappeler", filters: {}, shared: false }, at)).rejects.toMatchObject(nameTaken);
+    await expect(
+      f.store.addView(scope, { kind, authorId: eric, name: "à rappeler", filters: {}, shared: false }, at),
+    ).rejects.toMatchObject(nameTaken);
     expect((await f.store.views(scope, kind, eric)).map((v) => v.name)).toEqual(["À rappeler", "Équipe"]);
     expect(mine).toMatchObject({ kind, authorId: eric, filters: { status: ["a_decider"] }, shared: false });
     expect(await f.store.view(other, team.id)).toBeNull();
-    expect(await f.store.updateView(scope, mine.id, { shared: true, filters: { tags: [] } })).toMatchObject({ name: "À rappeler", shared: true, filters: { tags: [] } });
+    expect(await f.store.updateView(scope, mine.id, { shared: true, filters: { tags: [] } })).toMatchObject({
+      name: "À rappeler",
+      shared: true,
+      filters: { tags: [] },
+    });
     expect(await f.store.updateView(other, mine.id, { name: "x" })).toBeNull();
     expect(await f.store.removeView(other, mine.id)).toBe(false);
     expect(await f.store.removeView(scope, mine.id)).toBe(true);

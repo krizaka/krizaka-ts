@@ -61,7 +61,10 @@ export interface ClaimOptions {
 export const FAIL_STATE = { retry: "retry", dead: "dead", lost: "lost" } as const;
 
 /** The result of `fail`: the message will be retried, is dead, or was not this worker's any more. */
-export type FailOutcome = { state: typeof FAIL_STATE.retry; availableAt: Date } | { state: typeof FAIL_STATE.dead } | { state: typeof FAIL_STATE.lost };
+export type FailOutcome =
+  | { state: typeof FAIL_STATE.retry; availableAt: Date }
+  | { state: typeof FAIL_STATE.dead }
+  | { state: typeof FAIL_STATE.lost };
 
 export interface OutboxStats {
   /** Waiting for a worker (including retries). */
@@ -75,13 +78,27 @@ export interface OutboxStats {
 /** Where the messages live. Every adapter runs `outboxStoreContract` (`@krizaka/outbox/testkit`). Times come from the caller. */
 export interface OutboxStore {
   /** Writes the message. A second append of the same id writes nothing and answers `false`. */
-  append(message: { id: string; topic: string; type: string; payload: unknown; createdAt: Date; availableAt: Date }): Promise<boolean>;
+  append(message: {
+    id: string;
+    topic: string;
+    type: string;
+    payload: unknown;
+    createdAt: Date;
+    availableAt: Date;
+  }): Promise<boolean>;
   /** First marks dead the messages whose last attempt's lease expired with no answer, then leases up to `limit` due messages. */
-  claim(options: ClaimOptions & { limit: number; leaseSeconds: number; maxAttempts: number; now: Date }): Promise<OutboxMessage[]>;
+  claim(
+    options: ClaimOptions & { limit: number; leaseSeconds: number; maxAttempts: number; now: Date },
+  ): Promise<OutboxMessage[]>;
   /** Marks it delivered, when `owner` still holds it. `false` when the lease was lost: the other worker delivers. */
   complete(id: string, owner: string, now: Date): Promise<boolean>;
   /** Records the failure: back off, or dead after `maxAttempts`. */
-  fail(id: string, owner: string, error: string, options: { now: Date; maxAttempts: number; backoffSeconds: number; backoffMaxSeconds: number }): Promise<FailOutcome>;
+  fail(
+    id: string,
+    owner: string,
+    error: string,
+    options: { now: Date; maxAttempts: number; backoffSeconds: number; backoffMaxSeconds: number },
+  ): Promise<FailOutcome>;
   /** Gives a dead message another life: no attempts, due now. `false` when it is not dead. */
   retryDead(id: string, now: Date): Promise<boolean>;
   /** Removes the delivered and dead messages older than `before`. Returns how many. */

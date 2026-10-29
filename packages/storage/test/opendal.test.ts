@@ -20,8 +20,12 @@ const freshFolder = () => {
 };
 
 describe("opendalStore on the local disk (fs, development only)", () => {
-  objectStoreContract("opendal fs", () => opendalStore({ service: "fs", options: { root: freshFolder() }, allowLocal: true }));
-  objectStoreContract("opendal fs under a prefix", () => opendalStore({ service: "fs", options: { root: freshFolder() }, prefix: "tenant-1", allowLocal: true }));
+  objectStoreContract("opendal fs", () =>
+    opendalStore({ service: "fs", options: { root: freshFolder() }, allowLocal: true }),
+  );
+  objectStoreContract("opendal fs under a prefix", () =>
+    opendalStore({ service: "fs", options: { root: freshFolder() }, prefix: "tenant-1", allowLocal: true }),
+  );
 
   it("streams a large file back without reading it whole", async () => {
     const store = await opendalStore({ service: "fs", options: { root: freshFolder() }, allowLocal: true });
@@ -42,41 +46,92 @@ describe("opendalStore on the local disk (fs, development only)", () => {
 
 describe("opendalStore guards", () => {
   it("opens only the listed services: no database, cache or unknown scheme", async () => {
-    for (const service of ["postgresql", "redis", "http", "sqlite", "nope"]) await expect(opendalStore({ service, options: {} })).rejects.toMatchObject({ code: "STORAGE_BAD_CONFIG" });
+    for (const service of ["postgresql", "redis", "http", "sqlite", "nope"])
+      await expect(opendalStore({ service, options: {} })).rejects.toMatchObject({ code: "STORAGE_BAD_CONFIG" });
   });
 
   it("refuses the server's disk and memory without allowLocal", async () => {
-    await expect(opendalStore({ service: "fs", options: { root: "/tmp" } })).rejects.toMatchObject({ code: "STORAGE_BAD_CONFIG" });
-    await expect(opendalStore({ service: "memory", options: {} })).rejects.toMatchObject({ code: "STORAGE_BAD_CONFIG" });
+    await expect(opendalStore({ service: "fs", options: { root: "/tmp" } })).rejects.toMatchObject({
+      code: "STORAGE_BAD_CONFIG",
+    });
+    await expect(opendalStore({ service: "memory", options: {} })).rejects.toMatchObject({
+      code: "STORAGE_BAD_CONFIG",
+    });
   });
 
   it("refuses an OAuth cloud without a connected account", async () => {
-    await expect(opendalStore({ service: "gdrive", options: {} })).rejects.toMatchObject({ code: "STORAGE_BAD_CONFIG" });
+    await expect(opendalStore({ service: "gdrive", options: {} })).rejects.toMatchObject({
+      code: "STORAGE_BAD_CONFIG",
+    });
   });
 
   it("keeps the SSRF guards: http, link-local, private and a name resolving inside the network", async () => {
-    const s3 = (endpoint: string, resolve?: (host: string) => Promise<string[]>) => opendalStore({ service: "s3", options: { bucket: "b", region: "us-east-1", endpoint }, ...(resolve ? { resolve } : {}) });
-    for (const endpoint of ["http://s3.example.com", "https://169.254.169.254", "https://10.0.0.2", "https://localhost", "https://[fe80::1]", "https://user:pw@s3.example.com"]) await expect(s3(endpoint)).rejects.toMatchObject({ code: "STORAGE_BAD_ENDPOINT" });
-    await expect(s3("https://s3.example.com", async () => ["169.254.169.254"])).rejects.toMatchObject({ code: "STORAGE_BAD_ENDPOINT" });
-    await expect(opendalStore({ service: "webdav", options: { endpoint: "https://192.168.1.10/dav" } })).rejects.toMatchObject({ code: "STORAGE_BAD_ENDPOINT" });
+    const s3 = (endpoint: string, resolve?: (host: string) => Promise<string[]>) =>
+      opendalStore({
+        service: "s3",
+        options: { bucket: "b", region: "us-east-1", endpoint },
+        ...(resolve ? { resolve } : {}),
+      });
+    for (const endpoint of [
+      "http://s3.example.com",
+      "https://169.254.169.254",
+      "https://10.0.0.2",
+      "https://localhost",
+      "https://[fe80::1]",
+      "https://user:pw@s3.example.com",
+    ])
+      await expect(s3(endpoint)).rejects.toMatchObject({ code: "STORAGE_BAD_ENDPOINT" });
+    await expect(s3("https://s3.example.com", async () => ["169.254.169.254"])).rejects.toMatchObject({
+      code: "STORAGE_BAD_ENDPOINT",
+    });
+    await expect(
+      opendalStore({ service: "webdav", options: { endpoint: "https://192.168.1.10/dav" } }),
+    ).rejects.toMatchObject({ code: "STORAGE_BAD_ENDPOINT" });
   });
 
   it("opens a public endpoint once it passes the checks", async () => {
-    const store = await opendalStore({ service: "s3", options: { bucket: "b", region: "ca-central-1", endpoint: "https://s3.ca-central-1.amazonaws.com", access_key_id: "AKIDEXAMPLE", secret_access_key: "demo" }, resolve: async () => ["52.94.0.1"] });
-    expect(await store.signedUrl("a/b.pdf", 900)).toMatch(/^https:\/\/s3\.ca-central-1\.amazonaws\.com\/b\/a\/b\.pdf\?.*X-Amz-Expires=900/);
+    const store = await opendalStore({
+      service: "s3",
+      options: {
+        bucket: "b",
+        region: "ca-central-1",
+        endpoint: "https://s3.ca-central-1.amazonaws.com",
+        access_key_id: "AKIDEXAMPLE",
+        secret_access_key: "demo",
+      },
+      resolve: async () => ["52.94.0.1"],
+    });
+    expect(await store.signedUrl("a/b.pdf", 900)).toMatch(
+      /^https:\/\/s3\.ca-central-1\.amazonaws\.com\/b\/a\/b\.pdf\?.*X-Amz-Expires=900/,
+    );
   });
 
   it("maps OpenDAL's error kinds onto the package's codes, without quoting the provider", () => {
-    expect(storageErrorOf(new Error("PermissionDenied (permanent) at read => token expired"), "oauth", "download").code).toBe("STORAGE_DISCONNECTED");
-    expect(storageErrorOf(new Error("PermissionDenied (permanent) at read"), "keys", "download").code).toBe("STORAGE_PROVIDER_FAILED");
-    expect(storageErrorOf(new Error("ConfigInvalid (permanent) at  => bucket"), "keys", "connection").code).toBe("STORAGE_BAD_CONFIG");
-    const unexpected = storageErrorOf(new Error("Unexpected (temporary) at write => secret-ish detail"), "keys", "upload");
+    expect(
+      storageErrorOf(new Error("PermissionDenied (permanent) at read => token expired"), "oauth", "download").code,
+    ).toBe("STORAGE_DISCONNECTED");
+    expect(storageErrorOf(new Error("PermissionDenied (permanent) at read"), "keys", "download").code).toBe(
+      "STORAGE_PROVIDER_FAILED",
+    );
+    expect(storageErrorOf(new Error("ConfigInvalid (permanent) at  => bucket"), "keys", "connection").code).toBe(
+      "STORAGE_BAD_CONFIG",
+    );
+    const unexpected = storageErrorOf(
+      new Error("Unexpected (temporary) at write => secret-ish detail"),
+      "keys",
+      "upload",
+    );
     expect(unexpected.code).toBe("STORAGE_PROVIDER_FAILED");
     expect(unexpected.message).not.toContain("secret-ish");
   });
 
   it("an OAuth cloud whose token is refused answers STORAGE_DISCONNECTED (fake WebDAV-less run: the token source fails)", async () => {
-    const store = await opendalStore({ service: "dropbox", options: { root: "/" }, accessToken: async () => Promise.reject(storageErrorOf(new Error("PermissionDenied (permanent)"), "oauth", "token")) });
+    const store = await opendalStore({
+      service: "dropbox",
+      options: { root: "/" },
+      accessToken: async () =>
+        Promise.reject(storageErrorOf(new Error("PermissionDenied (permanent)"), "oauth", "token")),
+    });
     await expect(store.get("a/b.txt")).rejects.toMatchObject({ code: "STORAGE_DISCONNECTED" });
   });
 });
@@ -89,7 +144,15 @@ describe.runIf(process.env.STORAGE_S3_IT === "1")("opendalStore on an S3-compati
   let server: StartedTestContainer;
   let endpoint = "";
   const keys = { access_key_id: "s3-ci", secret_access_key: "s3-ci-only-demo" };
-  const identities = { identities: [{ name: "ci", credentials: [{ accessKey: keys.access_key_id, secretKey: keys.secret_access_key }], actions: ["Admin", "Read", "Write", "List", "Tagging"] }] };
+  const identities = {
+    identities: [
+      {
+        name: "ci",
+        credentials: [{ accessKey: keys.access_key_id, secretKey: keys.secret_access_key }],
+        actions: ["Admin", "Read", "Write", "List", "Tagging"],
+      },
+    ],
+  };
   let bucket = 0;
   beforeAll(async () => {
     server = await new GenericContainer("chrislusf/seaweedfs:3.97")
@@ -110,9 +173,17 @@ describe.runIf(process.env.STORAGE_S3_IT === "1")("opendalStore on an S3-compati
     // OpenDAL does not create buckets: a signed PUT on the bucket does (the admin creates it at the provider in real life).
     const res = await fetch(`${endpoint}/${name}`, { method: "PUT", headers: await signedPut(name) });
     expect(res.status).toBe(200);
-    return opendalStore({ service: "s3", options: { bucket: name, region: "us-east-1", endpoint, ...keys }, allowLocal: true });
+    return opendalStore({
+      service: "s3",
+      options: { bucket: name, region: "us-east-1", endpoint, ...keys },
+      allowLocal: true,
+    });
   };
-  const signedPut = async (name: string) => signRequest({ accessKeyId: keys.access_key_id, secretAccessKey: keys.secret_access_key, region: "us-east-1", service: "s3" }, { method: "PUT", url: `${endpoint}/${name}`, payloadHash: EMPTY_SHA256, now: new Date() });
+  const signedPut = async (name: string) =>
+    signRequest(
+      { accessKeyId: keys.access_key_id, secretAccessKey: keys.secret_access_key, region: "us-east-1", service: "s3" },
+      { method: "PUT", url: `${endpoint}/${name}`, payloadHash: EMPTY_SHA256, now: new Date() },
+    );
 
   objectStoreContract("opendal s3 (SeaweedFS)", fresh);
 
@@ -124,7 +195,13 @@ describe.runIf(process.env.STORAGE_S3_IT === "1")("opendalStore on an S3-compati
   });
 
   it("wrong keys are a provider failure, never a silent null", async () => {
-    const store = await opendalStore({ service: "s3", options: { bucket: "kz-1", region: "us-east-1", endpoint, access_key_id: "x", secret_access_key: "y" }, allowLocal: true });
-    await expect(store.put("a/b.txt", new Uint8Array([1]), { contentType: "text/plain" })).rejects.toMatchObject({ code: "STORAGE_PROVIDER_FAILED" });
+    const store = await opendalStore({
+      service: "s3",
+      options: { bucket: "kz-1", region: "us-east-1", endpoint, access_key_id: "x", secret_access_key: "y" },
+      allowLocal: true,
+    });
+    await expect(store.put("a/b.txt", new Uint8Array([1]), { contentType: "text/plain" })).rejects.toMatchObject({
+      code: "STORAGE_PROVIDER_FAILED",
+    });
   });
 });

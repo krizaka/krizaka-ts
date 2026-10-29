@@ -19,10 +19,17 @@ export interface Catalogue {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the processor's JSON, read field by field below
-export type StripeCall = (method: "GET" | "POST", path: string, params?: Record<string, unknown>) => Promise<Record<string, any>>;
+export type StripeCall = (
+  method: "GET" | "POST",
+  path: string,
+  params?: Record<string, unknown>,
+) => Promise<Record<string, any>>;
 
 /** The processor's API as one function (errors say which call failed), and the mode its key is in. */
-export function stripeCall(config: { secretKey: string; fetch?: typeof fetch; apiBase?: string }): { call: StripeCall; mode: "test" | "live" } {
+export function stripeCall(config: { secretKey: string; fetch?: typeof fetch; apiBase?: string }): {
+  call: StripeCall;
+  mode: "test" | "live";
+} {
   return {
     mode: config.secretKey.startsWith("sk_live_") ? "live" : "test",
     async call(method, path, params = {}) {
@@ -40,26 +47,64 @@ export interface SetupResult {
   tax: string;
 }
 
-const WEBHOOK_EVENTS = ["checkout.session.completed", "checkout.session.expired", "charge.refunded", "customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted"];
+const WEBHOOK_EVENTS = [
+  "checkout.session.completed",
+  "checkout.session.expired",
+  "charge.refunded",
+  "customer.subscription.created",
+  "customer.subscription.updated",
+  "customer.subscription.deleted",
+];
 
-type Registration = { country: string; status: string; country_options?: { ca?: { province_standard?: { province?: string } } } };
+type Registration = {
+  country: string;
+  status: string;
+  country_options?: { ca?: { province_standard?: { province?: string } } };
+};
 
 type Options = { mode: "test" | "live"; owner?: boolean; webhookUrl?: string };
 
 /** One plan's price: left alone when it is there with the same amount, else made (a changed amount takes over the lookup key). */
-async function ensurePrice(call: StripeCall, product: string, plan: CataloguePlan): Promise<SetupResult["prices"][number]> {
+async function ensurePrice(
+  call: StripeCall,
+  product: string,
+  plan: CataloguePlan,
+): Promise<SetupResult["prices"][number]> {
   const existing = await call("GET", "/v1/prices", { lookup_keys: [plan.lookupKey], active: true, limit: 1 });
   const current = existing.data[0];
-  if (current && current.unit_amount === plan.amount && current.currency === plan.currency) return { lookupKey: plan.lookupKey, status: "exists" };
+  if (current && current.unit_amount === plan.amount && current.currency === plan.currency)
+    return { lookupKey: plan.lookupKey, status: "exists" };
   // A price is immutable at the processor: a new amount is a new price that TAKES OVER the lookup key. Subscriptions already sold keep the old price.
-  const productId = current ? String(current.product) : (await call("POST", "/v1/products", { name: plan.name, ...(plan.taxCode ? { tax_code: plan.taxCode } : {}), metadata: { product } })).id;
-  await call("POST", "/v1/prices", { product: productId, currency: plan.currency, unit_amount: plan.amount, tax_behavior: "exclusive", lookup_key: plan.lookupKey, ...(current ? { transfer_lookup_key: true } : {}), ...(plan.interval ? { recurring: { interval: plan.interval } } : {}) });
+  const productId = current
+    ? String(current.product)
+    : (
+        await call("POST", "/v1/products", {
+          name: plan.name,
+          ...(plan.taxCode ? { tax_code: plan.taxCode } : {}),
+          metadata: { product },
+        })
+      ).id;
+  await call("POST", "/v1/prices", {
+    product: productId,
+    currency: plan.currency,
+    unit_amount: plan.amount,
+    tax_behavior: "exclusive",
+    lookup_key: plan.lookupKey,
+    ...(current ? { transfer_lookup_key: true } : {}),
+    ...(plan.interval ? { recurring: { interval: plan.interval } } : {}),
+  });
   return { lookupKey: plan.lookupKey, status: current ? "repriced" : "created" };
 }
 
 async function ensurePortal(call: StripeCall, catalogue: Catalogue): Promise<SetupResult["portal"]> {
   const configs = await call("GET", "/v1/billing_portal/configurations", { limit: 100 });
-  if (configs.data.some((c: { active: boolean; metadata?: { product?: string } }) => c.active && c.metadata?.product === catalogue.product)) return "exists";
+  if (
+    configs.data.some(
+      (c: { active: boolean; metadata?: { product?: string } }) =>
+        c.active && c.metadata?.product === catalogue.product,
+    )
+  )
+    return "exists";
   await call("POST", "/v1/billing_portal/configurations", {
     business_profile: { headline: catalogue.portal.headline },
     metadata: { product: catalogue.product },
@@ -74,20 +119,32 @@ async function ensurePortal(call: StripeCall, catalogue: Catalogue): Promise<Set
 }
 
 /** The webhook endpoint: made with the events the adapter translates, or updated when an older one lacks some. */
-async function ensureWebhook(call: StripeCall, product: string, url: string): Promise<NonNullable<SetupResult["webhook"]>> {
+async function ensureWebhook(
+  call: StripeCall,
+  product: string,
+  url: string,
+): Promise<NonNullable<SetupResult["webhook"]>> {
   const list = await call("GET", "/v1/webhook_endpoints", { limit: 100 });
-  const found = list.data.find((w: { url: string }) => w.url === url) as { id: string; enabled_events: string[] } | undefined;
+  const found = list.data.find((w: { url: string }) => w.url === url) as
+    { id: string; enabled_events: string[] } | undefined;
   if (!found) {
-    const created = await call("POST", "/v1/webhook_endpoints", { url, enabled_events: WEBHOOK_EVENTS, description: `${product} payments` });
+    const created = await call("POST", "/v1/webhook_endpoints", {
+      url,
+      enabled_events: WEBHOOK_EVENTS,
+      description: `${product} payments`,
+    });
     return { status: "created", secret: created.secret };
   }
-  const missing = WEBHOOK_EVENTS.filter((e) => !found.enabled_events.includes(e) && !found.enabled_events.includes("*"));
+  const missing = WEBHOOK_EVENTS.filter(
+    (e) => !found.enabled_events.includes(e) && !found.enabled_events.includes("*"),
+  );
   if (missing.length === 0) return { status: "exists" };
   await call("POST", `/v1/webhook_endpoints/${found.id}`, { enabled_events: [...found.enabled_events, ...missing] });
   return { status: "updated" };
 }
 
-const registrationLabel = (r: Registration) => `${r.country}${r.country_options?.ca?.province_standard?.province ? `-${r.country_options.ca.province_standard.province}` : ""}:${r.status}`;
+const registrationLabel = (r: Registration) =>
+  `${r.country}${r.country_options?.ca?.province_standard?.province ? `-${r.country_options.ca.province_standard.province}` : ""}:${r.status}`;
 
 /** What the tax setup looks like, as a line to print; a failure to read it is a line too, never an error. */
 async function describeTax(call: StripeCall): Promise<string> {
@@ -133,10 +190,21 @@ export interface PriceEntryLike {
  * @param names the display name per entry key (a message of the product)
  * @param taxCode the processor's tax code of the products
  */
-export function plansFromPrices(entries: readonly PriceEntryLike[], names: Readonly<Record<string, string>>, taxCode?: string): CataloguePlan[] {
+export function plansFromPrices(
+  entries: readonly PriceEntryLike[],
+  names: Readonly<Record<string, string>>,
+  taxCode?: string,
+): CataloguePlan[] {
   const onSale = new Set(["public", "founder-limited"]);
   const interval: Record<string, CataloguePlan["interval"]> = { month: "month", year: "year", once: undefined };
   return entries
     .filter((e) => e.amountCents !== null && onSale.has(e.availability) && e.unit in interval)
-    .map((e) => ({ lookupKey: e.key, name: names[e.key] ?? e.plan, amount: e.amountCents!, currency: e.currency.toLowerCase(), ...(interval[e.unit] ? { interval: interval[e.unit] } : {}), ...(taxCode ? { taxCode } : {}) }));
+    .map((e) => ({
+      lookupKey: e.key,
+      name: names[e.key] ?? e.plan,
+      amount: e.amountCents!,
+      currency: e.currency.toLowerCase(),
+      ...(interval[e.unit] ? { interval: interval[e.unit] } : {}),
+      ...(taxCode ? { taxCode } : {}),
+    }));
 }

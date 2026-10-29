@@ -1,6 +1,18 @@
 import { describe, expect, it } from "vitest";
 
-import { addHours, addMinutes, addSeconds, differenceInMilliseconds, differenceInSeconds, isAfter, isBefore, isIsoDate,subHours, subMinutes, subSeconds } from "../src";
+import {
+  addHours,
+  addMinutes,
+  addSeconds,
+  differenceInMilliseconds,
+  differenceInSeconds,
+  isAfter,
+  isBefore,
+  isIsoDate,
+  subHours,
+  subMinutes,
+  subSeconds,
+} from "../src";
 
 const NOON = new Date("2026-10-26T12:00:00.000Z");
 

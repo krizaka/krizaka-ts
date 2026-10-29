@@ -5,12 +5,25 @@ import { z } from "zod";
  * taxes, availability, named limits — whose seed is the product's former pricing module. An administrator changes an entry by
  * scheduling a new version from a date; a subscription keeps the version it was sold at. Public pages read the catalogue only.
  */
-export const UNIT = { month: "month", year: "year", once: "once", document: "document", order: "order", pack: "pack", hour: "hour" } as const;
+export const UNIT = {
+  month: "month",
+  year: "year",
+  once: "once",
+  document: "document",
+  order: "order",
+  pack: "pack",
+  hour: "hour",
+} as const;
 export type Unit = (typeof UNIT)[keyof typeof UNIT];
 const UNITS = Object.values(UNIT) as [Unit, ...Unit[]];
 
 /** Who may see an entry: everyone with its figure, nobody outside, the first customers only (a cap in `limits`), or « en préparation » (no figure). */
-export const AVAILABILITY = { public: "public", internal: "internal", founderLimited: "founder-limited", preparing: "preparing" } as const;
+export const AVAILABILITY = {
+  public: "public",
+  internal: "internal",
+  founderLimited: "founder-limited",
+  preparing: "preparing",
+} as const;
 export type Availability = (typeof AVAILABILITY)[keyof typeof AVAILABILITY];
 const AVAILABILITIES = Object.values(AVAILABILITY) as [Availability, ...Availability[]];
 
@@ -32,7 +45,12 @@ export const priceSchema = z
     limits: z.record(z.string().regex(LIMIT), z.number().int().min(0).max(MAX_CENTS)),
   })
   .strict()
-  .refine((p) => p.amountCents !== null || (p.availability !== AVAILABILITY.public && p.availability !== AVAILABILITY.founderLimited), { message: "An entry on sale has a figure" });
+  .refine(
+    (p) =>
+      p.amountCents !== null ||
+      (p.availability !== AVAILABILITY.public && p.availability !== AVAILABILITY.founderLimited),
+    { message: "An entry on sale has a figure" },
+  );
 export type Price = z.infer<typeof priceSchema>;
 
 export interface PriceSeed {
@@ -72,10 +90,18 @@ export const SEED_FROM = new Date(0);
 export function definePrices(seed: readonly PriceSeed[]) {
   const defaults = new Map<string, Price>();
   for (const s of seed) {
-    if (!ID.test(s.product) || !ID.test(s.plan)) throw new PriceError(400, "BAD_VALUE", `Not a product or plan id: ${s.product}.${s.plan}`);
+    if (!ID.test(s.product) || !ID.test(s.plan))
+      throw new PriceError(400, "BAD_VALUE", `Not a product or plan id: ${s.product}.${s.plan}`);
     const key = `${s.product}.${s.plan}`;
     if (defaults.has(key)) throw new PriceError(400, "BAD_VALUE", `Twice in the seed: ${key}`);
-    const parsed = priceSchema.safeParse({ unit: s.unit, amountCents: s.amountCents, currency: "CAD", taxes: "plus-taxes", availability: s.availability, limits: s.limits ?? {} });
+    const parsed = priceSchema.safeParse({
+      unit: s.unit,
+      amountCents: s.amountCents,
+      currency: "CAD",
+      taxes: "plus-taxes",
+      availability: s.availability,
+      limits: s.limits ?? {},
+    });
     if (!parsed.success) throw new PriceError(400, "BAD_VALUE", `Not a valid price for ${key}`);
     defaults.set(key, parsed.data);
   }
@@ -97,7 +123,11 @@ export interface PublicPrice extends Omit<PriceEntry, "effectiveFrom"> {
 export const publicCatalogue = (entries: readonly PriceEntry[]): PublicPrice[] =>
   entries
     .filter((e) => e.availability !== AVAILABILITY.internal)
-    .map((e) => ({ ...e, effectiveFrom: e.effectiveFrom.toISOString(), ...(e.availability === AVAILABILITY.preparing ? { amountCents: null, limits: {} } : {}) }));
+    .map((e) => ({
+      ...e,
+      effectiveFrom: e.effectiveFrom.toISOString(),
+      ...(e.availability === AVAILABILITY.preparing ? { amountCents: null, limits: {} } : {}),
+    }));
 
 /** An amount with a currency sign or code, before or after it (French and English writing, any thousands separator). */
 const TYPED_PRICE = /\d(?:[\d\s\u00a0\u202f.,]*\d)?\s?(?:\$|CAD\b|USD\b|€)|\$\s?\d/u;
@@ -106,6 +136,7 @@ const TYPED_PRICE = /\d(?:[\d\s\u00a0\u202f.,]*\d)?\s?(?:\$|CAD\b|USD\b|€)|\$\
 export function findTypedPrices(messages: unknown, path: string[] = []): string[] {
   if (typeof messages === "string") return TYPED_PRICE.test(messages) ? [path.join(".")] : [];
   if (Array.isArray(messages)) return messages.flatMap((m, i) => findTypedPrices(m, [...path, String(i)]));
-  if (messages && typeof messages === "object") return Object.entries(messages).flatMap(([k, v]) => findTypedPrices(v, [...path, k]));
+  if (messages && typeof messages === "object")
+    return Object.entries(messages).flatMap(([k, v]) => findTypedPrices(v, [...path, k]));
   return [];
 }

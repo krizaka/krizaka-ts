@@ -41,4 +41,5 @@ export function packages(): PackageInfo[] {
 export const npmVersion = (name: string): string | null => packages().find((p) => p.name === name)?.version ?? null;
 
 /** Every name a package exports, its subpaths included. */
-export const exportedNames = (p: PackageInfo): number => p.exports.length + p.subpaths.reduce((n, s) => n + s.exports.length, 0);
+export const exportedNames = (p: PackageInfo): number =>
+  p.exports.length + p.subpaths.reduce((n, s) => n + s.exports.length, 0);

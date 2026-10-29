@@ -3,7 +3,15 @@ import crypto from "node:crypto";
 import type { Query } from "@krizaka/db";
 import { addSeconds } from "date-fns";
 
-import { EVENT_ID_HEADER, EVENT_TYPE_HEADER, newEndpointSecret, SIGNATURE_HEADER, signBody, type VerifyResult,verifySignature } from "./signing";
+import {
+  EVENT_ID_HEADER,
+  EVENT_TYPE_HEADER,
+  newEndpointSecret,
+  SIGNATURE_HEADER,
+  signBody,
+  type VerifyResult,
+  verifySignature,
+} from "./signing";
 import { endpointUrlProblem } from "./url";
 
 /** A SQL executor: `@krizaka/db`'s `Query`, which the product passes (its pool, or its transaction's client). */
@@ -86,7 +94,13 @@ interface EndpointRow {
   active: boolean;
   created_at: Date;
 }
-const view = (r: EndpointRow): EndpointView => ({ id: r.id, url: r.url, events: r.events, active: r.active, createdAt: r.created_at });
+const view = (r: EndpointRow): EndpointView => ({
+  id: r.id,
+  url: r.url,
+  events: r.events,
+  active: r.active,
+  createdAt: r.created_at,
+});
 
 /** Outgoing webhooks over the product's PostgreSQL (see `webhooksMigration`): endpoints, one queued delivery per endpoint and event, signed retries, a log. */
 export function createWebhooks(deps: WebhookDeps) {
@@ -96,38 +110,62 @@ export function createWebhooks(deps: WebhookDeps) {
   const open = deps.secrets?.open ?? ((s: string) => s);
 
   function checkEvents(events: readonly string[]) {
-    if (events.length === 0 || events.some((e) => !rules.events.includes(e))) throw new WebhookError(WEBHOOK_CODE.events);
+    if (events.length === 0 || events.some((e) => !rules.events.includes(e)))
+      throw new WebhookError(WEBHOOK_CODE.events);
   }
   function checkUrl(url: string) {
     const problem = endpointUrlProblem(url);
     if (problem || url.length > 500) throw new WebhookError(WEBHOOK_CODE.url, problem ?? "TOO_LONG");
   }
   async function owned(owner: string, id: string): Promise<EndpointRow> {
-    const [row] = await query<EndpointRow>("SELECT * FROM webhook_endpoints WHERE id = $1 AND owner_id = $2", [id, owner]);
+    const [row] = await query<EndpointRow>("SELECT * FROM webhook_endpoints WHERE id = $1 AND owner_id = $2", [
+      id,
+      owner,
+    ]);
     if (!row) throw new WebhookError(WEBHOOK_CODE.notFound);
     return row;
   }
 
   return {
     /** Registers an endpoint: the secret is in the answer once, the product keeps it sealed. */
-    async registerEndpoint(owner: string, input: { url: string; events: readonly string[] }, options: { maxEndpoints: number }, now: Date): Promise<{ endpoint: EndpointView; secret: string }> {
+    async registerEndpoint(
+      owner: string,
+      input: { url: string; events: readonly string[] },
+      options: { maxEndpoints: number },
+      now: Date,
+    ): Promise<{ endpoint: EndpointView; secret: string }> {
       checkUrl(input.url);
       checkEvents(input.events);
-      const [{ n } = { n: 0 }] = await query<{ n: number }>("SELECT count(*)::int AS n FROM webhook_endpoints WHERE owner_id = $1", [owner]);
+      const [{ n } = { n: 0 }] = await query<{ n: number }>(
+        "SELECT count(*)::int AS n FROM webhook_endpoints WHERE owner_id = $1",
+        [owner],
+      );
       if (n >= options.maxEndpoints) throw new WebhookError(WEBHOOK_CODE.limit);
       const secret = newEndpointSecret();
-      const [row] = await query<EndpointRow>("INSERT INTO webhook_endpoints (id, owner_id, url, secret_sealed, events, created_at) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *", [newId(), owner, input.url, seal(secret), [...new Set(input.events)], now]);
+      const [row] = await query<EndpointRow>(
+        "INSERT INTO webhook_endpoints (id, owner_id, url, secret_sealed, events, created_at) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
+        [newId(), owner, input.url, seal(secret), [...new Set(input.events)], now],
+      );
       return { endpoint: view(row!), secret };
     },
 
     async listEndpoints(owner: string): Promise<EndpointView[]> {
-      return (await query<EndpointRow>("SELECT * FROM webhook_endpoints WHERE owner_id = $1 ORDER BY created_at", [owner])).map(view);
+      return (
+        await query<EndpointRow>("SELECT * FROM webhook_endpoints WHERE owner_id = $1 ORDER BY created_at", [owner])
+      ).map(view);
     },
 
-    async updateEndpoint(owner: string, id: string, patch: { events?: readonly string[]; active?: boolean }): Promise<EndpointView> {
+    async updateEndpoint(
+      owner: string,
+      id: string,
+      patch: { events?: readonly string[]; active?: boolean },
+    ): Promise<EndpointView> {
       const row = await owned(owner, id);
       if (patch.events) checkEvents(patch.events);
-      const [next] = await query<EndpointRow>("UPDATE webhook_endpoints SET events = $2, active = $3, disabled_why = CASE WHEN $3 THEN NULL ELSE disabled_why END WHERE id = $1 RETURNING *", [id, patch.events ? [...new Set(patch.events)] : row.events, patch.active ?? row.active]);
+      const [next] = await query<EndpointRow>(
+        "UPDATE webhook_endpoints SET events = $2, active = $3, disabled_why = CASE WHEN $3 THEN NULL ELSE disabled_why END WHERE id = $1 RETURNING *",
+        [id, patch.events ? [...new Set(patch.events)] : row.events, patch.active ?? row.active],
+      );
       return view(next!);
     },
 
@@ -157,9 +195,22 @@ export function createWebhooks(deps: WebhookDeps) {
     },
 
     /** Sends what is due, signed; a 2xx is delivered, anything else retries after the backoff until `maxAttempts`, then it is given up (and stays in the log). */
-    async deliverDue(now: Date, send: Send, options: { limit?: number } = {}): Promise<{ delivered: number; retried: number; failed: number }> {
+    async deliverDue(
+      now: Date,
+      send: Send,
+      options: { limit?: number } = {},
+    ): Promise<{ delivered: number; retried: number; failed: number }> {
       // Claimed by a lease: the rows are pushed out a minute in one statement, so two workers never send the same delivery at once.
-      const due = await query<{ id: string; endpoint_id: string; event_id: string; event_type: string; payload: unknown; attempts: number; url: string; secret_sealed: string }>(
+      const due = await query<{
+        id: string;
+        endpoint_id: string;
+        event_id: string;
+        event_type: string;
+        payload: unknown;
+        attempts: number;
+        url: string;
+        secret_sealed: string;
+      }>(
         `WITH c AS (SELECT d.id FROM webhook_deliveries d JOIN webhook_endpoints e ON e.id = d.endpoint_id
                      WHERE d.status = 'pending' AND d.next_attempt_at <= $1 AND e.active ORDER BY d.next_attempt_at LIMIT $2 FOR UPDATE OF d SKIP LOCKED)
          UPDATE webhook_deliveries d SET next_attempt_at = $3 FROM c, webhook_endpoints e WHERE d.id = c.id AND e.id = d.endpoint_id
@@ -168,24 +219,49 @@ export function createWebhooks(deps: WebhookDeps) {
       );
       const out = { delivered: 0, retried: 0, failed: 0 };
       for (const d of due) {
-        const body = JSON.stringify({ id: d.event_id, type: d.event_type, created: Math.floor(now.getTime() / 1000), data: d.payload });
+        const body = JSON.stringify({
+          id: d.event_id,
+          type: d.event_type,
+          created: Math.floor(now.getTime() / 1000),
+          data: d.payload,
+        });
         let status: number | null = null;
         let error: string | null = null;
         try {
-          status = (await send({ url: d.url, body, headers: { "content-type": "application/json", [SIGNATURE_HEADER]: signBody(open(d.secret_sealed), body, Math.floor(now.getTime() / 1000)), [EVENT_ID_HEADER]: d.event_id, [EVENT_TYPE_HEADER]: d.event_type } })).status;
+          status = (
+            await send({
+              url: d.url,
+              body,
+              headers: {
+                "content-type": "application/json",
+                [SIGNATURE_HEADER]: signBody(open(d.secret_sealed), body, Math.floor(now.getTime() / 1000)),
+                [EVENT_ID_HEADER]: d.event_id,
+                [EVENT_TYPE_HEADER]: d.event_type,
+              },
+            })
+          ).status;
         } catch (e) {
           error = (e instanceof Error ? e.message : "send failed").slice(0, 300);
         }
         const attempts = d.attempts + 1;
         if (status !== null && status >= 200 && status < 300) {
-          await query("UPDATE webhook_deliveries SET status = 'delivered', attempts = $2, last_status = $3, last_error = NULL, delivered_at = $4 WHERE id = $1", [d.id, attempts, status, now]);
+          await query(
+            "UPDATE webhook_deliveries SET status = 'delivered', attempts = $2, last_status = $3, last_error = NULL, delivered_at = $4 WHERE id = $1",
+            [d.id, attempts, status, now],
+          );
           out.delivered++;
         } else if (attempts >= rules.maxAttempts) {
-          await query("UPDATE webhook_deliveries SET status = 'failed', attempts = $2, last_status = $3, last_error = $4 WHERE id = $1", [d.id, attempts, status, error ?? `HTTP ${status}`]);
+          await query(
+            "UPDATE webhook_deliveries SET status = 'failed', attempts = $2, last_status = $3, last_error = $4 WHERE id = $1",
+            [d.id, attempts, status, error ?? `HTTP ${status}`],
+          );
           out.failed++;
         } else {
           const wait = rules.backoffSeconds[Math.min(attempts - 1, rules.backoffSeconds.length - 1)] ?? 60;
-          await query("UPDATE webhook_deliveries SET attempts = $2, last_status = $3, last_error = $4, next_attempt_at = $5 WHERE id = $1", [d.id, attempts, status, error ?? `HTTP ${status}`, addSeconds(now, wait)]);
+          await query(
+            "UPDATE webhook_deliveries SET attempts = $2, last_status = $3, last_error = $4, next_attempt_at = $5 WHERE id = $1",
+            [d.id, attempts, status, error ?? `HTTP ${status}`, addSeconds(now, wait)],
+          );
           out.retried++;
         }
       }
@@ -195,11 +271,31 @@ export function createWebhooks(deps: WebhookDeps) {
     /** The recent deliveries of one endpoint (the owner's own), newest first: what was sent, how it went. */
     async deliveries(owner: string, endpointId: string, limit = 50): Promise<DeliveryView[]> {
       await owned(owner, endpointId);
-      const rows = await query<{ id: string; event_id: string; event_type: string; status: DeliveryView["status"]; attempts: number; last_status: number | null; last_error: string | null; created_at: Date; delivered_at: Date | null }>(
+      const rows = await query<{
+        id: string;
+        event_id: string;
+        event_type: string;
+        status: DeliveryView["status"];
+        attempts: number;
+        last_status: number | null;
+        last_error: string | null;
+        created_at: Date;
+        delivered_at: Date | null;
+      }>(
         "SELECT id, event_id, event_type, status, attempts, last_status, last_error, created_at, delivered_at FROM webhook_deliveries WHERE endpoint_id = $1 ORDER BY created_at DESC LIMIT $2",
         [endpointId, limit],
       );
-      return rows.map((r) => ({ id: r.id, eventId: r.event_id, eventType: r.event_type, status: r.status, attempts: r.attempts, lastStatus: r.last_status, lastError: r.last_error, createdAt: r.created_at, deliveredAt: r.delivered_at }));
+      return rows.map((r) => ({
+        id: r.id,
+        eventId: r.event_id,
+        eventType: r.event_type,
+        status: r.status,
+        attempts: r.attempts,
+        lastStatus: r.last_status,
+        lastError: r.last_error,
+        createdAt: r.created_at,
+        deliveredAt: r.delivered_at,
+      }));
     },
   };
 }
@@ -210,10 +306,29 @@ export type Webhooks = ReturnType<typeof createWebhooks>;
  * is recorded first (a replay is `"duplicate"` and changes nothing), then `apply` runs; if it throws, the record is removed so the sender's
  * retry applies it.
  */
-export async function receiveWebhook(deps: { query: Query }, input: { source: string; secret: string; rawBody: string; signature: string | null | undefined; eventId: string; now: Date }, apply: () => Promise<void>): Promise<"applied" | "duplicate"> {
-  const checked: VerifyResult = verifySignature(input.secret, input.rawBody, input.signature, Math.floor(input.now.getTime() / 1000));
+export async function receiveWebhook(
+  deps: { query: Query },
+  input: {
+    source: string;
+    secret: string;
+    rawBody: string;
+    signature: string | null | undefined;
+    eventId: string;
+    now: Date;
+  },
+  apply: () => Promise<void>,
+): Promise<"applied" | "duplicate"> {
+  const checked: VerifyResult = verifySignature(
+    input.secret,
+    input.rawBody,
+    input.signature,
+    Math.floor(input.now.getTime() / 1000),
+  );
   if (!checked.ok) throw new WebhookError(WEBHOOK_CODE.signature, checked.reason);
-  const rows = await deps.query("INSERT INTO webhook_received (source, event_id, received_at) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING RETURNING event_id", [input.source, input.eventId, input.now]);
+  const rows = await deps.query(
+    "INSERT INTO webhook_received (source, event_id, received_at) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING RETURNING event_id",
+    [input.source, input.eventId, input.now],
+  );
   if (rows.length === 0) return "duplicate";
   try {
     await apply();

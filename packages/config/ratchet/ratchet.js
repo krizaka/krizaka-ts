@@ -157,7 +157,8 @@ export function countStackSource(source, { retire = [], maxFormFields = 1 } = {}
  */
 export function countCognitiveComplexity(source, filename = "file.tsx") {
   const messages = complexityLinter().verify(source, COMPLEXITY_CONFIG, { filename: `file${extname(filename)}` });
-  return messages.filter((/** @type {{ ruleId: string | null }} */ m) => m.ruleId === "sonarjs/cognitive-complexity").length;
+  return messages.filter((/** @type {{ ruleId: string | null }} */ m) => m.ruleId === "sonarjs/cognitive-complexity")
+    .length;
 }
 
 /**
@@ -226,7 +227,9 @@ const CODE_CONFIG = [
   {
     files: ["**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"],
     languageOptions: { parser: /** @type {any} */ (tseslint.parser) },
-    rules: Object.fromEntries(Object.entries({ ...CODE_RULES, ...CODE_RUNTIME_RULES }).map(([name, options]) => [name, ["error", ...options]])),
+    rules: Object.fromEntries(
+      Object.entries({ ...CODE_RULES, ...CODE_RUNTIME_RULES }).map(([name, options]) => [name, ["error", ...options]]),
+    ),
   },
 ];
 
@@ -376,7 +379,8 @@ export async function runRatchet({ root, mode = "check", globs, file = RATCHET_F
   }
   const exists = existsSync(path);
   if (mode === "init" && exists) throw new RatchetError(`${file} already exists: use --update to lower it.`);
-  if (mode !== "init" && !exists) throw new RatchetError(`${file} not found in ${root}: run krizaka-ratchet --init first.`);
+  if (mode !== "init" && !exists)
+    throw new RatchetError(`${file} not found in ${root}: run krizaka-ratchet --init first.`);
 
   const recordedFile = exists ? readRatchet(path) : undefined;
   const useGlobs = globs && globs.length > 0 ? globs : (recordedFile?.globs ?? [...DEFAULT_GLOBS]);
@@ -384,7 +388,11 @@ export async function runRatchet({ root, mode = "check", globs, file = RATCHET_F
   const allow = recordedFile?.allow ?? [];
   const retire = recordedFile?.retire ?? [];
   const maxFormFields = recordedFile?.maxFormFields ?? 1;
-  const { counters: current, files, stackFiles } = await countRepository({
+  const {
+    counters: current,
+    files,
+    stackFiles,
+  } = await countRepository({
     root,
     globs: useGlobs,
     stackGlobs,
@@ -392,16 +400,24 @@ export async function runRatchet({ root, mode = "check", globs, file = RATCHET_F
     retire,
     maxFormFields,
   });
-  /** @type {string[]} */ const added = recordedFile ? COUNTERS.filter((n) => recordedFile.counters[n] === undefined) : [];
+  /** @type {string[]} */ const added = recordedFile
+    ? COUNTERS.filter((n) => recordedFile.counters[n] === undefined)
+    : [];
   const recorded = /** @type {Counters} */ ({ ...current, ...recordedFile?.counters });
   // once the Sonar layer is recorded (`sonar`), a rule with no recorded counter is recorded at 0: a first violation fails
-  for (const [layer, prefix] of [["sonar", SONAR_PREFIX], ["codeRules", CODE_PREFIX]]) {
+  for (const [layer, prefix] of [
+    ["sonar", SONAR_PREFIX],
+    ["codeRules", CODE_PREFIX],
+  ]) {
     if (recordedFile?.counters[/** @type {CounterName} */ (layer)] !== undefined) {
-      for (const name of Object.keys(current)) if (name.startsWith(prefix) && recordedFile.counters[name] === undefined) recorded[name] = 0;
+      for (const name of Object.keys(current))
+        if (name.startsWith(prefix) && recordedFile.counters[name] === undefined) recorded[name] = 0;
     }
   }
   /** @type {string[]} */
-  const unmeasured = Object.keys(recordedFile?.counters ?? {}).filter((n) => !isSonarCounter(n) && !COUNTERS.includes(/** @type {CounterName} */ (n)));
+  const unmeasured = Object.keys(recordedFile?.counters ?? {}).filter(
+    (n) => !isSonarCounter(n) && !COUNTERS.includes(/** @type {CounterName} */ (n)),
+  );
 
   const { report, increased, decreased } = compareCounters(current, recorded);
 
@@ -418,7 +434,12 @@ export async function runRatchet({ root, mode = "check", globs, file = RATCHET_F
       if (value > 0) lowered[name] = value;
     }
     // a counter this version does not measure (a repository's own, or a newer preset's) is kept as recorded, never dropped
-    const counters = { ...lowered, ...Object.fromEntries(unmeasured.map((name) => [name, /** @type {Record<string, number>} */ (recordedFile?.counters)?.[name]])) };
+    const counters = {
+      ...lowered,
+      ...Object.fromEntries(
+        unmeasured.map((name) => [name, /** @type {Record<string, number>} */ (recordedFile?.counters)?.[name]]),
+      ),
+    };
     writeRatchet(path, { ...recordedFile, stackGlobs: recordedFile.stackGlobs ?? stackGlobs, counters });
     for (const name of decreased) report[name].recorded = lowered[name];
     written = true;

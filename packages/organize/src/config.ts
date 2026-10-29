@@ -44,7 +44,6 @@ export const TAGS_MAX = 200;
 // @fixed: the system views a list shows before « more »
 export const SYSTEM_VIEWS_MAX = 12;
 
-
 function presetProblems(presets: unknown, max: number): string[] {
   if (!isRecord(presets)) return ["tags.presets: an object of variants"];
   return Object.entries(presets).flatMap(([variant, list]): string[] => {
@@ -53,7 +52,8 @@ function presetProblems(presets: unknown, max: number): string[] {
     if (!Array.isArray(list) || list.length > max) return [`${at}: a list of at most tags.max tags`];
     const names = new Set<string>();
     return list.flatMap((p, i): string[] => {
-      if (!isRecord(p) || typeof p.name !== "string" || cleanName(p.name) !== p.name || !isMarker(p.marker)) return [`${at}[${i}]: a name (1 to 80 characters, trimmed) and a marker of ${MARKERS.join(", ")}`];
+      if (!isRecord(p) || typeof p.name !== "string" || cleanName(p.name) !== p.name || !isMarker(p.marker))
+        return [`${at}[${i}]: a name (1 to 80 characters, trimmed) and a marker of ${MARKERS.join(", ")}`];
       const lower = p.name.toLowerCase();
       if (names.has(lower)) return [`${at}[${i}]: « ${p.name} » twice`];
       names.add(lower);
@@ -92,13 +92,19 @@ export function kindConfigProblems(input: unknown): string[] {
   else {
     if (!Array.isArray(tags.writers) || !tags.writers.every(isKey)) out.push("tags.writers: a list of role keys");
     if (typeof tags.userTags !== "boolean") out.push("tags.userTags: true or false");
-    const max = Number.isInteger(tags.max) && (tags.max as number) >= 1 && (tags.max as number) <= TAGS_MAX ? (tags.max as number) : null;
+    const max =
+      Number.isInteger(tags.max) && (tags.max as number) >= 1 && (tags.max as number) <= TAGS_MAX
+        ? (tags.max as number)
+        : null;
     if (max === null) out.push(`tags.max: 1 to ${TAGS_MAX}`);
     out.push(...presetProblems(tags.presets, max ?? TAGS_MAX));
   }
   const status = input.status ?? null;
   const statusProblems = status === null ? [] : statusSetProblems(status);
-  out.push(...statusProblems.map((p) => `status: ${p}`), ...viewProblems(input.views, statusProblems.length === 0 ? (status as StatusSet | null) : null));
+  out.push(
+    ...statusProblems.map((p) => `status: ${p}`),
+    ...viewProblems(input.views, statusProblems.length === 0 ? (status as StatusSet | null) : null),
+  );
   return out;
 }
 

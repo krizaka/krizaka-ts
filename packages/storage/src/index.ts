@@ -8,8 +8,39 @@ export { checkEndpoint } from "./endpoint";
 export { assertKey, defineLayout, type Layout, trimSlashes, typeOfName } from "./keys";
 export { memoryObjectStore } from "./memory-store";
 export * from "./port";
-export { type FieldSchema, type Preset, presetEndpoint, PROVIDER_KINDS, type ProviderKind, providerKind, type ProviderKindName, type ProviderRuntime, type ProviderScope, S3_PRESETS } from "./providers";
-export { COUNTRY_OF_REGION, countryOf, type Province, PROVINCE_OF_REGION, provinceOf, type Residency, type ResidencyLabel, residencyLabel, residencyOf, residencyOfConfig } from "./regions";
+export {
+  type FieldSchema,
+  type Preset,
+  presetEndpoint,
+  PROVIDER_KINDS,
+  type ProviderKind,
+  providerKind,
+  type ProviderKindName,
+  type ProviderRuntime,
+  type ProviderScope,
+  S3_PRESETS,
+} from "./providers";
+export {
+  COUNTRY_OF_REGION,
+  countryOf,
+  type Province,
+  PROVINCE_OF_REGION,
+  provinceOf,
+  type Residency,
+  type ResidencyLabel,
+  residencyLabel,
+  residencyOf,
+  residencyOfConfig,
+} from "./regions";
 export { sniffType } from "./sniff";
 export { type SweepOptions, sweepOrphans, type SweepResult } from "./sweep";
-export { describeStore, type NoticeKey, storageNotice, STORE_KIND, type StoreDescriptor, type StoreOwner, where, type WhereOptions } from "./where";
+export {
+  describeStore,
+  type NoticeKey,
+  storageNotice,
+  STORE_KIND,
+  type StoreDescriptor,
+  type StoreOwner,
+  where,
+  type WhereOptions,
+} from "./where";

@@ -11,13 +11,15 @@ const TEXTS = {
   en: {
     subject: (code: string) => `Your Krizaka code: ${code}`,
     intro: "Here is your verification code:",
-    outro: (minutes: number) => `It is valid for ${minutes} minutes and works once. Enter it on the page to send your message.`,
+    outro: (minutes: number) =>
+      `It is valid for ${minutes} minutes and works once. Enter it on the page to send your message.`,
     ignore: "If you did not ask for it, ignore this e-mail: nothing was sent.",
   },
   fr: {
     subject: (code: string) => `Votre code Krizaka : ${code}`,
     intro: "Voici votre code de vérification :",
-    outro: (minutes: number) => `Il est valable ${minutes} minutes et ne sert qu'une fois. Saisissez-le sur la page pour envoyer votre message.`,
+    outro: (minutes: number) =>
+      `Il est valable ${minutes} minutes et ne sert qu'une fois. Saisissez-le sur la page pour envoyer votre message.`,
     ignore: "Si vous ne l'avez pas demandé, ignorez ce courriel : rien n'a été envoyé.",
   },
 } as const;

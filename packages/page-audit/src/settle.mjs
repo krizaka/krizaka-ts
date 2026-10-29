@@ -28,7 +28,11 @@ export async function auditContext(browser, options) {
 
 /** Resolves once no view transition is running (none starts under reduced motion; this makes the wait explicit). */
 export const settled = (page) =>
-  page.waitForFunction(() => !document.activeViewTransition && !document.documentElement.matches(":active-view-transition"), null, { timeout: 10_000 });
+  page.waitForFunction(
+    () => !document.activeViewTransition && !document.documentElement.matches(":active-view-transition"),
+    null,
+    { timeout: 10_000 },
+  );
 
 /**
  * Loads a page, then waits for the faces and for the transitions: what is read afterwards is final. Returns the response.

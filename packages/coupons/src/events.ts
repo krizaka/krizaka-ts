@@ -27,7 +27,18 @@ export const COUPON_EVENT_SCHEMAS = {
   [COUPON_EVENT.redeemed]: {
     type: "object",
     additionalProperties: false,
-    required: ["redemptionId", "couponId", "kind", "purpose", "partnerId", "amountPaidMinor", "amountDiscountMinor", "currency", "credits", "overLimit"],
+    required: [
+      "redemptionId",
+      "couponId",
+      "kind",
+      "purpose",
+      "partnerId",
+      "amountPaidMinor",
+      "amountDiscountMinor",
+      "currency",
+      "credits",
+      "overLimit",
+    ],
     properties: {
       redemptionId: { type: "string" },
       couponId: { type: "string" },
@@ -41,12 +52,29 @@ export const COUPON_EVENT_SCHEMAS = {
       overLimit: { type: "boolean" },
     },
   },
-  [COUPON_EVENT.released]: { type: "object", additionalProperties: false, required: ["redemptionId", "couponId"], properties: { redemptionId: { type: "string" }, couponId: { type: "string" } } },
+  [COUPON_EVENT.released]: {
+    type: "object",
+    additionalProperties: false,
+    required: ["redemptionId", "couponId"],
+    properties: { redemptionId: { type: "string" }, couponId: { type: "string" } },
+  },
   [COUPON_EVENT.refunded]: {
     type: "object",
     additionalProperties: false,
     required: ["redemptionId", "couponId", "partnerId", "amountRefundedMinor", "currency", "useRestored"],
-    properties: { redemptionId: { type: "string" }, couponId: { type: "string" }, partnerId: nullableString, amountRefundedMinor: { type: "integer", minimum: 0 }, currency: nullableString, useRestored: { type: "boolean" } },
+    properties: {
+      redemptionId: { type: "string" },
+      couponId: { type: "string" },
+      partnerId: nullableString,
+      amountRefundedMinor: { type: "integer", minimum: 0 },
+      currency: nullableString,
+      useRestored: { type: "boolean" },
+    },
   },
-  [COUPON_EVENT.exhausted]: { type: "object", additionalProperties: false, required: ["couponId", "partnerId"], properties: { couponId: { type: "string" }, partnerId: nullableString } },
+  [COUPON_EVENT.exhausted]: {
+    type: "object",
+    additionalProperties: false,
+    required: ["couponId", "partnerId"],
+    properties: { couponId: { type: "string" }, partnerId: nullableString },
+  },
 } as const;

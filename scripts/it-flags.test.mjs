@@ -20,8 +20,12 @@ function testFiles(dir) {
 describe("integration test flags", () => {
   it("every *_IT flag a package test reads is passed through by turbo", () => {
     const flags = new Set();
-    for (const file of testFiles(new URL("packages/", root))) for (const match of readFileSync(file, "utf8").matchAll(/process\.env\.([A-Z0-9_]+_IT)\b/g)) flags.add(match[1]);
+    for (const file of testFiles(new URL("packages/", root)))
+      for (const match of readFileSync(file, "utf8").matchAll(/process\.env\.([A-Z0-9_]+_IT)\b/g)) flags.add(match[1]);
     assert.ok(flags.size > 0);
-    assert.deepEqual([...flags].filter((flag) => !passed.has(flag)), []);
+    assert.deepEqual(
+      [...flags].filter((flag) => !passed.has(flag)),
+      [],
+    );
   });
 });

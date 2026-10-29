@@ -161,7 +161,8 @@ function auditLinks(links, host, path) {
   const problems = [];
   const canonical = links.filter((l) => /rel="canonical"/.test(l)).map((l) => attr(l, "href"));
   if (canonical.length !== 1) problems.push(`${canonical.length} canonical (expected 1)`);
-  else if (strip(canonical[0]) !== strip(`${host}${path}`)) problems.push(`canonical ${canonical[0]} is not ${host}${path}`);
+  else if (strip(canonical[0]) !== strip(`${host}${path}`))
+    problems.push(`canonical ${canonical[0]} is not ${host}${path}`);
   else if (!canonical[0].startsWith(host)) problems.push(`canonical ${canonical[0]} is off ${host}`);
   for (const l of links.filter((l) => /hreflang/i.test(l))) {
     const href = attr(l, "href");

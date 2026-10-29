@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { createIncidentRegister, type IncidentActor, IncidentError, memoryIncidentStore, registerToCsv, retainUntil, suggestSeriousInjury } from "../src";
+import {
+  createIncidentRegister,
+  type IncidentActor,
+  IncidentError,
+  memoryIncidentStore,
+  registerToCsv,
+  retainUntil,
+  suggestSeriousInjury,
+} from "../src";
 import { incidentStoreContract } from "../src/testkit";
 
 incidentStoreContract("memory incident store", () => memoryIncidentStore());
@@ -13,11 +21,27 @@ function setup() {
   let now = NOW;
   const store = memoryIncidentStore();
   const audited: { action: string; detail?: Record<string, unknown> }[] = [];
-  const register = createIncidentRegister({ clock: { now: () => now }, storeFor: () => store, audit: { record: async (_q, e) => void audited.push(e) } });
+  const register = createIncidentRegister({
+    clock: { now: () => now },
+    storeFor: () => store,
+    audit: { record: async (_q, e) => void audited.push(e) },
+  });
   return { register, audited, tick: (ms: number) => void (now = new Date(now.valueOf() + ms)) };
 }
-const input = { scope: "t1", kind: "access", description: "A staff account opened a lease.", information: ["lease"], personsConcerned: 2 } as const;
-const serious = { sensitivity: "high", consequences: "high", likelihood: "high", seriousInjury: true, rationale: "Leases are sensitive." } as const;
+const input = {
+  scope: "t1",
+  kind: "access",
+  description: "A staff account opened a lease.",
+  information: ["lease"],
+  personsConcerned: 2,
+} as const;
+const serious = {
+  sensitivity: "high",
+  consequences: "high",
+  likelihood: "high",
+  seriousInjury: true,
+  rationale: "Leases are sensitive.",
+} as const;
 const code = async (p: Promise<unknown>) => ((await p.catch((e: unknown) => e)) as IncidentError).code;
 
 describe("the incident register", () => {
@@ -34,14 +58,24 @@ describe("the incident register", () => {
 
   it("refuses a badly formed entry", async () => {
     const { register } = setup();
-    for (const bad of [{ ...input, description: " " }, { ...input, information: [] }, { ...input, scope: "" }, { ...input, personsConcerned: -1 }, { ...input, awareAt: new Date(NOW.valueOf() + 1000) }, { ...input, kind: "oops" as never }]) expect(await code(register.open(query, bad, ACTOR))).toBe("INCIDENT_BAD_INPUT");
+    for (const bad of [
+      { ...input, description: " " },
+      { ...input, information: [] },
+      { ...input, scope: "" },
+      { ...input, personsConcerned: -1 },
+      { ...input, awareAt: new Date(NOW.valueOf() + 1000) },
+      { ...input, kind: "oops" as never },
+    ])
+      expect(await code(register.open(query, bad, ACTOR))).toBe("INCIDENT_BAD_INPUT");
   });
 
   it("runs a serious incident end to end: assess, notify both, close", async () => {
     const { register, tick } = setup();
     const { id } = await register.open(query, input, ACTOR);
     expect(await code(register.close(query, "t1", id, ACTOR))).toBe("INCIDENT_NOT_ASSESSED");
-    expect(await code(register.recordNotice(query, "t1", id, "cai", { channel: "form" }, ACTOR))).toBe("INCIDENT_NOT_ASSESSED");
+    expect(await code(register.recordNotice(query, "t1", id, "cai", { channel: "form" }, ACTOR))).toBe(
+      "INCIDENT_NOT_ASSESSED",
+    );
     tick(1000);
     await register.recordMeasure(query, "t1", id, "Session revoked.", ACTOR);
     const assessed = await register.assess(query, "t1", id, serious, ACTOR);
@@ -51,7 +85,11 @@ describe("the incident register", () => {
     tick(1000);
     await register.recordNotice(query, "t1", id, "persons", { channel: "email" }, ACTOR);
     const closed = await register.close(query, "t1", id, ACTOR);
-    expect(closed).toMatchObject({ status: "closed", caiNotice: { reference: "CAI-9" }, personsNotice: { channel: "email" } });
+    expect(closed).toMatchObject({
+      status: "closed",
+      caiNotice: { reference: "CAI-9" },
+      personsNotice: { channel: "email" },
+    });
     expect(closed.closedAt?.toISOString()).toBe("2026-10-27T12:00:02.000Z");
     expect(closed.measures).toHaveLength(1);
     expect(await code(register.recordMeasure(query, "t1", id, "late", ACTOR))).toBe("INCIDENT_CLOSED");
@@ -60,8 +98,22 @@ describe("the incident register", () => {
   it("closes an incident without serious injury and refuses a notice nobody owes", async () => {
     const { register } = setup();
     const { id } = await register.open(query, input, ACTOR);
-    await register.assess(query, "t1", id, { sensitivity: "low", consequences: "low", likelihood: "low", seriousInjury: false, rationale: "Nothing left the house." }, ACTOR);
-    expect(await code(register.recordNotice(query, "t1", id, "persons", { channel: "email" }, ACTOR))).toBe("INCIDENT_NO_NOTICE_DUE");
+    await register.assess(
+      query,
+      "t1",
+      id,
+      {
+        sensitivity: "low",
+        consequences: "low",
+        likelihood: "low",
+        seriousInjury: false,
+        rationale: "Nothing left the house.",
+      },
+      ACTOR,
+    );
+    expect(await code(register.recordNotice(query, "t1", id, "persons", { channel: "email" }, ACTOR))).toBe(
+      "INCIDENT_NO_NOTICE_DUE",
+    );
     expect((await register.close(query, "t1", id, ACTOR)).status).toBe("closed");
   });
 
@@ -69,7 +121,13 @@ describe("the incident register", () => {
     const { register } = setup();
     const { id } = await register.open(query, input, ACTOR);
     await register.assess(query, "t1", id, serious, ACTOR);
-    const again = await register.assess(query, "t1", id, { ...serious, seriousInjury: false, rationale: "Revised." }, ACTOR);
+    const again = await register.assess(
+      query,
+      "t1",
+      id,
+      { ...serious, seriousInjury: false, rationale: "Revised." },
+      ACTOR,
+    );
     expect(again.assessment?.rationale).toBe("Revised.");
     expect((await register.markDrill(query, "t1", id, true, ACTOR)).drill).toBe(true);
   });

@@ -68,7 +68,9 @@ export function krizakaCodeRules({ severity = "error", files = ["**/*.{js,jsx,mj
     return [];
   }
   const entry = (/** @type {Record<string, unknown[]>} */ rules) =>
-    /** @type {any} */ (Object.fromEntries(Object.entries(rules).map(([name, options]) => [name, [severity, ...options]])));
+    /** @type {any} */ (
+      Object.fromEntries(Object.entries(rules).map(([name, options]) => [name, [severity, ...options]]))
+    );
   return [
     { name: "krizaka/code-rules", files, rules: entry(CODE_RULES) },
     {

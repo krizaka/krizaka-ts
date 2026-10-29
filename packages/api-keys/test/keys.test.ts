@@ -4,7 +4,14 @@ import { createApiKeys } from "../src/keys";
 import { memoryApiKeyStore } from "../src/memory";
 import type { ApiKeyRules } from "../src/port";
 
-const RULES: ApiKeyRules = { prefix: "yzk", scopes: ["checks:write", "reports:read"], secretBytes: 24, maxExpiryDays: 365, rotationGraceHours: 24, lastUsedEveryMinutes: 5 };
+const RULES: ApiKeyRules = {
+  prefix: "yzk",
+  scopes: ["checks:write", "reports:read"],
+  secretBytes: 24,
+  maxExpiryDays: 365,
+  rotationGraceHours: 24,
+  lastUsedEveryMinutes: 5,
+};
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
 
@@ -19,9 +26,19 @@ const bearer = (key: string) => `Bearer ${key}`;
 describe("creating a key", () => {
   it("shows the key once, in the form prefix_publicId_secret, and stores only a hash of the secret", async () => {
     const { keys, store } = setup();
-    const { key, record } = await keys.create("owner-1", { name: "Mon ERP", scopes: ["checks:write"], expiresInDays: 90 }, { maxActive: 5 });
+    const { key, record } = await keys.create(
+      "owner-1",
+      { name: "Mon ERP", scopes: ["checks:write"], expiresInDays: 90 },
+      { maxActive: 5 },
+    );
     expect(key).toMatch(/^yzk_[0-9a-f]{12}_[A-Za-z0-9_-]{32}$/);
-    expect(record).toMatchObject({ ownerId: "owner-1", name: "Mon ERP", scopes: ["checks:write"], lastUsedAt: null, revokedAt: null });
+    expect(record).toMatchObject({
+      ownerId: "owner-1",
+      name: "Mon ERP",
+      scopes: ["checks:write"],
+      lastUsedAt: null,
+      revokedAt: null,
+    });
     // The secret is base64url (it may hold « _ »): it is everything after `yzk_<12 hex>_`.
     const secret = key.slice("yzk_".length + 12 + 1);
     expect(secret).toHaveLength(32);
@@ -32,7 +49,8 @@ describe("creating a key", () => {
 
   it("refuses an unknown scope, an empty scope list, a name that is empty, an expiry beyond the cap, and more keys than the plan allows", async () => {
     const { keys } = setup();
-    const make = (o: Partial<{ name: string; scopes: string[]; expiresInDays: number | null }>, maxActive = 5) => keys.create("o", { name: "k", scopes: ["checks:write"], expiresInDays: 30, ...o }, { maxActive });
+    const make = (o: Partial<{ name: string; scopes: string[]; expiresInDays: number | null }>, maxActive = 5) =>
+      keys.create("o", { name: "k", scopes: ["checks:write"], expiresInDays: 30, ...o }, { maxActive });
     await expect(make({ scopes: ["admin:all"] })).rejects.toMatchObject({ code: "API_KEY_SCOPE_UNKNOWN" });
     await expect(make({ scopes: [] })).rejects.toMatchObject({ code: "API_KEY_SCOPE_UNKNOWN" });
     await expect(make({ name: "  " })).rejects.toMatchObject({ code: "API_KEY_NAME" });
@@ -48,13 +66,24 @@ describe("creating a key", () => {
 describe("authenticating a request", () => {
   it("accepts a valid key with the scope it needs, and says whose it is", async () => {
     const { keys } = setup();
-    const { key, record } = await keys.create("owner-1", { name: "k", scopes: ["checks:write", "reports:read"], expiresInDays: 30 }, { maxActive: 5 });
-    expect(await keys.authenticate(bearer(key), "checks:write")).toMatchObject({ ok: true, key: { id: record.id, ownerId: "owner-1" } });
+    const { key, record } = await keys.create(
+      "owner-1",
+      { name: "k", scopes: ["checks:write", "reports:read"], expiresInDays: 30 },
+      { maxActive: 5 },
+    );
+    expect(await keys.authenticate(bearer(key), "checks:write")).toMatchObject({
+      ok: true,
+      key: { id: record.id, ownerId: "owner-1" },
+    });
   });
 
   it("refuses with a stable code: missing, malformed, unknown, wrong secret, missing scope", async () => {
     const { keys } = setup();
-    const { key } = await keys.create("o", { name: "k", scopes: ["reports:read"], expiresInDays: 30 }, { maxActive: 5 });
+    const { key } = await keys.create(
+      "o",
+      { name: "k", scopes: ["reports:read"], expiresInDays: 30 },
+      { maxActive: 5 },
+    );
     const [, id, secret] = key.split("_");
     const code = async (header: string | null, scope = "reports:read" as const) => {
       const r = await keys.authenticate(header, scope);
@@ -74,15 +103,25 @@ describe("authenticating a request", () => {
     const a = await keys.create("o", { name: "a", scopes: ["reports:read"], expiresInDays: 1 }, { maxActive: 5 });
     const b = await keys.create("o", { name: "b", scopes: ["reports:read"], expiresInDays: 30 }, { maxActive: 5 });
     advance(2 * DAY);
-    expect(await keys.authenticate(bearer(a.key), "reports:read")).toMatchObject({ ok: false, code: "API_KEY_EXPIRED" });
+    expect(await keys.authenticate(bearer(a.key), "reports:read")).toMatchObject({
+      ok: false,
+      code: "API_KEY_EXPIRED",
+    });
     expect((await keys.authenticate(bearer(b.key), "reports:read")).ok).toBe(true);
     await keys.revoke("o", b.record.id);
-    expect(await keys.authenticate(bearer(b.key), "reports:read")).toMatchObject({ ok: false, code: "API_KEY_REVOKED" });
+    expect(await keys.authenticate(bearer(b.key), "reports:read")).toMatchObject({
+      ok: false,
+      code: "API_KEY_REVOKED",
+    });
   });
 
   it("records when it was last used, at most once per window", async () => {
     const { keys, store, advance } = setup();
-    const { key, record } = await keys.create("o", { name: "k", scopes: ["reports:read"], expiresInDays: 30 }, { maxActive: 5 });
+    const { key, record } = await keys.create(
+      "o",
+      { name: "k", scopes: ["reports:read"], expiresInDays: 30 },
+      { maxActive: 5 },
+    );
     await keys.authenticate(bearer(key), "reports:read");
     const first = (await store.get(record.id))!.lastUsedAt!;
     advance(60_000);
@@ -103,22 +142,35 @@ describe("rotation and revocation", () => {
     expect(next.key).not.toBe(old.key);
     expect((await keys.authenticate(bearer(old.key), "checks:write")).ok).toBe(true);
     advance(25 * HOUR);
-    expect(await keys.authenticate(bearer(old.key), "checks:write")).toMatchObject({ ok: false, code: "API_KEY_SUPERSEDED" });
+    expect(await keys.authenticate(bearer(old.key), "checks:write")).toMatchObject({
+      ok: false,
+      code: "API_KEY_SUPERSEDED",
+    });
     expect((await keys.authenticate(bearer(next.key), "checks:write")).ok).toBe(true);
   });
 
   it("only the owner can list, rotate or revoke a key; the others get « not found »", async () => {
     const { keys } = setup();
-    const { record } = await keys.create("owner-1", { name: "k", scopes: ["checks:write"], expiresInDays: 30 }, { maxActive: 5 });
+    const { record } = await keys.create(
+      "owner-1",
+      { name: "k", scopes: ["checks:write"], expiresInDays: 30 },
+      { maxActive: 5 },
+    );
     expect(await keys.list("owner-2")).toEqual([]);
     await expect(keys.revoke("owner-2", record.id)).rejects.toMatchObject({ code: "API_KEY_NOT_FOUND" });
-    await expect(keys.rotate("owner-2", record.id, { maxActive: 5 })).rejects.toMatchObject({ code: "API_KEY_NOT_FOUND" });
+    await expect(keys.rotate("owner-2", record.id, { maxActive: 5 })).rejects.toMatchObject({
+      code: "API_KEY_NOT_FOUND",
+    });
     expect((await keys.list("owner-1")).map((k) => k.id)).toEqual([record.id]);
   });
 
   it("a revoked key cannot be rotated, and revoking twice is fine", async () => {
     const { keys } = setup();
-    const { record } = await keys.create("o", { name: "k", scopes: ["checks:write"], expiresInDays: 30 }, { maxActive: 5 });
+    const { record } = await keys.create(
+      "o",
+      { name: "k", scopes: ["checks:write"], expiresInDays: 30 },
+      { maxActive: 5 },
+    );
     await keys.revoke("o", record.id);
     await keys.revoke("o", record.id);
     await expect(keys.rotate("o", record.id, { maxActive: 5 })).rejects.toMatchObject({ code: "API_KEY_REVOKED" });
@@ -128,6 +180,8 @@ describe("rotation and revocation", () => {
     const { keys } = setup();
     const a = await keys.create("o", { name: "a", scopes: ["checks:write"], expiresInDays: 30 }, { maxActive: 1 });
     await keys.revoke("o", a.record.id);
-    await expect(keys.create("o", { name: "b", scopes: ["checks:write"], expiresInDays: 30 }, { maxActive: 1 })).resolves.toBeTruthy();
+    await expect(
+      keys.create("o", { name: "b", scopes: ["checks:write"], expiresInDays: 30 }, { maxActive: 1 }),
+    ).resolves.toBeTruthy();
   });
 });

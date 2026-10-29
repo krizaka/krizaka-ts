@@ -17,7 +17,11 @@ function subscribe(onChange: () => void) {
 
 export function useSiteTheme() {
   const { mode, setMode } = useTheme();
-  const systemDark = useSyncExternalStore(subscribe, () => window.matchMedia(DARK_QUERY).matches, () => true);
+  const systemDark = useSyncExternalStore(
+    subscribe,
+    () => window.matchMedia(DARK_QUERY).matches,
+    () => true,
+  );
   const theme: "dark" | "light" = mode === "system" ? (systemDark ? "dark" : "light") : mode;
   const toggleTheme = useCallback(() => setMode(theme === "dark" ? "light" : "dark"), [theme, setMode]);
   return { theme, toggleTheme };

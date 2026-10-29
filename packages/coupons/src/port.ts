@@ -19,7 +19,12 @@ export type Purpose = (typeof PURPOSE)[keyof typeof PURPOSE];
 export const COUPON_STATUS = { active: "active", paused: "paused", archived: "archived" } as const;
 export type CouponStatus = (typeof COUPON_STATUS)[keyof typeof COUPON_STATUS];
 
-export const REDEMPTION_STATUS = { reserved: "reserved", confirmed: "confirmed", released: "released", revoked: "revoked" } as const;
+export const REDEMPTION_STATUS = {
+  reserved: "reserved",
+  confirmed: "confirmed",
+  released: "released",
+  revoked: "revoked",
+} as const;
 export type RedemptionStatus = (typeof REDEMPTION_STATUS)[keyof typeof REDEMPTION_STATUS];
 
 export const DURATION = { once: "once", repeating: "repeating", forever: "forever" } as const;
@@ -112,7 +117,24 @@ export interface Redemption {
 }
 
 /** What a guarded update may change. */
-export type RedemptionPatch = Partial<Pick<Redemption, "status" | "reservedUntil" | "checkoutRef" | "paymentRef" | "amountPaidMinor" | "amountDiscountMinor" | "amountRefundedMinor" | "useRestored" | "currency" | "creditGrantId" | "overLimit" | "confirmedAt" | "endedAt">>;
+export type RedemptionPatch = Partial<
+  Pick<
+    Redemption,
+    | "status"
+    | "reservedUntil"
+    | "checkoutRef"
+    | "paymentRef"
+    | "amountPaidMinor"
+    | "amountDiscountMinor"
+    | "amountRefundedMinor"
+    | "useRestored"
+    | "currency"
+    | "creditGrantId"
+    | "overLimit"
+    | "confirmedAt"
+    | "endedAt"
+  >
+>;
 
 /** What a coupon's terms and rules may be changed to (the admin's update). */
 export type CouponPatch = Partial<Omit<Coupon, "id" | "codeKey" | "createdAt" | "createdBy" | "updatedAt" | "kind">>;
@@ -167,7 +189,10 @@ export interface CouponStore {
   hasRedemptions(couponId: string): Promise<boolean>;
   insertPartner(partner: Partner): Promise<void>;
   partnerById(id: string): Promise<Partner | null>;
-  updatePartner(id: string, patch: Partial<Pick<Partner, "displayName" | "contactEmail" | "status" | "erasedAt">>): Promise<Partner | null>;
+  updatePartner(
+    id: string,
+    patch: Partial<Pick<Partner, "displayName" | "contactEmail" | "status" | "erasedAt">>,
+  ): Promise<Partner | null>;
   listPartners(options: { includeArchived: boolean; limit: number; offset: number }): Promise<Partner[]>;
   insertRedemption(redemption: Redemption): Promise<void>;
   redemptionById(id: string): Promise<Redemption | null>;
@@ -175,7 +200,11 @@ export interface CouponStore {
   redemptionByCheckoutRef(checkoutRef: string): Promise<Redemption | null>;
   redemptionByPaymentRef(paymentRef: string): Promise<Redemption | null>;
   /** The guarded transition: applies the patch only if the redemption is in one of `from`. Answers the new row, or null when the guard failed. */
-  updateRedemption(id: string, from: readonly RedemptionStatus[] | null, patch: RedemptionPatch): Promise<Redemption | null>;
+  updateRedemption(
+    id: string,
+    from: readonly RedemptionStatus[] | null,
+    patch: RedemptionPatch,
+  ): Promise<Redemption | null>;
   /** The uses that count (see `countsAsUse`), overall and for the account, at `now`. */
   usage(couponId: string, accountId: string | null, now: Date): Promise<Usage>;
   listRedemptions(filter: RedemptionFilter): Promise<Redemption[]>;
@@ -210,22 +239,49 @@ export interface Actor {
 
 /** The trail (`@krizaka/audit`'s `Audit`), structurally. */
 export interface AuditPort {
-  record(query: Query, entry: { actorId: string | null; actorLabel: string; action: string; target?: { type: string; id: string } | null; detail?: Record<string, unknown> }): Promise<void>;
+  record(
+    query: Query,
+    entry: {
+      actorId: string | null;
+      actorLabel: string;
+      action: string;
+      target?: { type: string; id: string } | null;
+      detail?: Record<string, unknown>;
+    },
+  ): Promise<void>;
 }
 
 /** The outbox (`@krizaka/outbox`'s `Outbox`), structurally. */
 export interface OutboxPort {
-  append(tx: Query, message: { topic: string; type: string; payload: unknown; id?: string }): Promise<{ id: string; appended: boolean }>;
+  append(
+    tx: Query,
+    message: { topic: string; type: string; payload: unknown; id?: string },
+  ): Promise<{ id: string; appended: boolean }>;
 }
 
 /** The limiter (`@krizaka/rate-limit`'s `Limiter`), structurally. */
 export interface RateLimitPort {
-  check(action: string, keys: { ip?: string | null | undefined; subject?: string | null | undefined }): Promise<{ ok: true } | { ok: false; retryAfterSeconds: number }>;
+  check(
+    action: string,
+    keys: { ip?: string | null | undefined; subject?: string | null | undefined },
+  ): Promise<{ ok: true } | { ok: false; retryAfterSeconds: number }>;
 }
 
 /** The credits ledger (`@krizaka/credits`' `Credits`), structurally. */
 export interface CreditsPort {
-  grant(tx: Query, input: { accountId: string; amount: number; expiresAt: Date; capPerDay?: number | null; capPerMonth?: number | null; onExhausted: OnExhausted; source: string; idempotencyKey: string }): Promise<{ grantId: string; replayed: boolean }>;
+  grant(
+    tx: Query,
+    input: {
+      accountId: string;
+      amount: number;
+      expiresAt: Date;
+      capPerDay?: number | null;
+      capPerMonth?: number | null;
+      onExhausted: OnExhausted;
+      source: string;
+      idempotencyKey: string;
+    },
+  ): Promise<{ grantId: string; replayed: boolean }>;
   expire(tx: Query, grantId: string): Promise<{ expired: number }>;
 }
 

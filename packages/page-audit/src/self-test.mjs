@@ -1,6 +1,27 @@
 // The audit proven on its own fixtures, in a real browser: each broken fixture must be reported, the fine ones must not.
 // A guard that stopped seeing is itself a red build.
-import { BOX_TOO_WIDE, BROKEN_PARTS, CARD_OVER_NEXT, CHROME_BAD, CHROME_FINE, COLUMN_CUT, EMPTY_MAIN, FINE, FOLDED_SECTION, FRAME_FITS, FRAME_FORCES_SCROLL, HIDDEN_CONTENT, MAP_COLLAPSED, MAP_FINE, MAP_HIDDEN, MAP_NO_CANVAS, SECTIONS_OVERLAP, SMALL_ACTION, TOKEN_IN_STRETCHED_ROW, TOKEN_WRAPPED } from "./fixtures.mjs";
+import {
+  BOX_TOO_WIDE,
+  BROKEN_PARTS,
+  CARD_OVER_NEXT,
+  CHROME_BAD,
+  CHROME_FINE,
+  COLUMN_CUT,
+  EMPTY_MAIN,
+  FINE,
+  FOLDED_SECTION,
+  FRAME_FITS,
+  FRAME_FORCES_SCROLL,
+  HIDDEN_CONTENT,
+  MAP_COLLAPSED,
+  MAP_FINE,
+  MAP_HIDDEN,
+  MAP_NO_CANVAS,
+  SECTIONS_OVERLAP,
+  SMALL_ACTION,
+  TOKEN_IN_STRETCHED_ROW,
+  TOKEN_WRAPPED,
+} from "./fixtures.mjs";
 import { auditPage, problemsOf } from "./page-audit.mjs";
 import { auditContext } from "./settle.mjs";
 
@@ -30,7 +51,17 @@ const FINES = [
   ["a short token in a row a taller neighbour stretches", TOKEN_IN_STRETCHED_ROW],
 ];
 /** Fixtures that must stay clean even with every opt-in check on. */
-const ALL = { emptyMain: true, frame: true, minAction: 36, boxes: true, pictures: true, emptyControls: true, hardColors: true, landmarks: "public", maps: true };
+const ALL = {
+  emptyMain: true,
+  frame: true,
+  minAction: 36,
+  boxes: true,
+  pictures: true,
+  emptyControls: true,
+  hardColors: true,
+  landmarks: "public",
+  maps: true,
+};
 const FINES_STRICT = [
   ["a frame that fits its screen", FRAME_FITS, { frame: true, emptyMain: false }],
   ["the family chrome", CHROME_FINE, ALL],
@@ -57,7 +88,8 @@ export async function selfTest({ launch } = {}) {
     const page = await (await auditContext(browser, { viewport: { width: 1280, height: 800 } })).newPage();
     for (const [name, html, pattern, checks] of EXPECT) {
       const problems = await problemsOn(page, html, checks);
-      if (!problems.some((p) => pattern.test(p))) failures.push(`the audit does not see ${String(name)}: ${problems.join(" | ") || "no problem reported"}`);
+      if (!problems.some((p) => pattern.test(p)))
+        failures.push(`the audit does not see ${String(name)}: ${problems.join(" | ") || "no problem reported"}`);
     }
     for (const [name, html] of FINES) failures.push(...(await reported(page, name, html)));
     await page.setViewportSize({ width: 1280, height: 700 });

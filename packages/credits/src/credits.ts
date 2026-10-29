@@ -84,7 +84,16 @@ export interface Balance {
   held: number;
   /** `total - held`, never negative. */
   available: number;
-  grants: { id: string; bucket: Grant["bucket"]; remaining: number; expiresAt: Date | null; source: string; capPerDay: number | null; capPerMonth: number | null; onExhausted: OnExhausted }[];
+  grants: {
+    id: string;
+    bucket: Grant["bucket"];
+    remaining: number;
+    expiresAt: Date | null;
+    source: string;
+    capPerDay: number | null;
+    capPerMonth: number | null;
+    onExhausted: OnExhausted;
+  }[];
 }
 
 /** The ledger as a product uses it. Every function takes the `Query` it works through: pass `tx` to join a unit of work. */
@@ -96,19 +105,28 @@ export interface Credits {
   /** Spends credits from the pots that lapse first, within their caps; refuses with `CREDITS_CAP_DAY`, `CREDITS_CAP_MONTH`, `CREDITS_EXHAUSTED` or `PAYWALL`. Nothing is partial. */
   consume(tx: Query, input: ConsumeInput): Promise<Consumed>;
   /** Keeps credits back for work that has not finished; the reserve counts against caps and balance. */
-  hold(tx: Query, input: { accountId: string; amount: number; ttlSeconds?: number; idempotencyKey: string }): Promise<{ holdId: string; expiresAt: Date; replayed: boolean }>;
+  hold(
+    tx: Query,
+    input: { accountId: string; amount: number; ttlSeconds?: number; idempotencyKey: string },
+  ): Promise<{ holdId: string; expiresAt: Date; replayed: boolean }>;
   /** Spends what the work cost (at most the hold's amount; default all of it) and frees the rest. Once. */
   settle(tx: Query, holdId: string, options?: { amount?: number; reason?: string }): Promise<Consumed>;
   /** Frees a hold without spending. Idempotent. */
   release(tx: Query, holdId: string): Promise<void>;
   /** Gives back what an earlier consume or settle spent, to the same pots, once. */
-  refund(tx: Query, input: { accountId: string; consumed?: string; settledHold?: string; reason: string }): Promise<{ refunded: number; replayed: boolean }>;
+  refund(
+    tx: Query,
+    input: { accountId: string; consumed?: string; settledHold?: string; reason: string },
+  ): Promise<{ refunded: number; replayed: boolean }>;
   /** Closes a pot: what is left is written off by an EXPIRY line. Credits already spent are never taken back. Idempotent. */
   expire(tx: Query, grantId: string): Promise<{ expired: number }>;
   /** Closes the granted pots past their date that still hold credits (a job's sweep). */
   expireDue(tx: Query, options?: { limit?: number }): Promise<number>;
   /** A signed correction by an administrator, never taking a pot below zero. */
-  adjust(tx: Query, input: { accountId: string; grantId: string; amount: number; reason: string; idempotencyKey: string }): Promise<{ replayed: boolean }>;
+  adjust(
+    tx: Query,
+    input: { accountId: string; grantId: string; amount: number; reason: string; idempotencyKey: string },
+  ): Promise<{ replayed: boolean }>;
   balance(query: Query, accountId: string): Promise<Balance>;
   history(query: Query, accountId: string, options?: { limit?: number; before?: Date }): Promise<Entry[]>;
 }
@@ -131,16 +149,23 @@ const sum = (xs: readonly number[]) => xs.reduce((a, b) => a + b, 0);
 export function createCredits(deps: CreditsDeps): Credits {
   const schema = deps.schema ?? "credits";
   const storeFor = deps.storeFor ?? ((query: Query) => dbCreditStore(query, schema));
-  const settings = async () => checkSettings(typeof deps.settings === "function" ? await deps.settings() : deps.settings);
+  const settings = async () =>
+    checkSettings(typeof deps.settings === "function" ? await deps.settings() : deps.settings);
   const newId = deps.newId ?? randomUUID;
 
   const calendarOf = (now: Date, timeZone: string): Calendar => {
     const day = localDay(now, timeZone);
     return { timeZone, day, month: day.slice(0, 7) };
   };
-  const statesOf = async (store: CreditStore, accountId: string, now: Date, timeZone: string): Promise<GrantState[]> => store.grantStates(accountId, calendarOf(now, timeZone));
+  const statesOf = async (store: CreditStore, accountId: string, now: Date, timeZone: string): Promise<GrantState[]> =>
+    store.grantStates(accountId, calendarOf(now, timeZone));
 
-  const entry = (over: Pick<Entry, "accountId" | "grantId" | "type" | "amount" | "reason" | "operation"> & Partial<Pick<Entry, "reverses" | "holdId">>, n: number, at: Date): Entry => ({
+  const entry = (
+    over: Pick<Entry, "accountId" | "grantId" | "type" | "amount" | "reason" | "operation"> &
+      Partial<Pick<Entry, "reverses" | "holdId">>,
+    n: number,
+    at: Date,
+  ): Entry => ({
     id: newId(),
     reverses: null,
     holdId: null,
@@ -152,25 +177,48 @@ export function createCredits(deps: CreditsDeps): Credits {
   /** A replay finds the lines of its operation. A key already used by another account is a bug of the caller, refused. */
   const replayOf = async (store: CreditStore, operation: string, accountId: string): Promise<Entry[]> => {
     const lines = await store.entriesOf(operation);
-    if (lines.some((l) => l.accountId !== accountId)) throw new CreditsError(CREDITS_CODE.keyReused, "This idempotency key was used for another account");
+    if (lines.some((l) => l.accountId !== accountId))
+      throw new CreditsError(CREDITS_CODE.keyReused, "This idempotency key was used for another account");
     return lines;
   };
 
   const announce = async (tx: Query, type: string, seed: string, payload: Record<string, unknown>) => {
     await deps.outbox?.append(tx, { topic: CREDITS_TOPIC, type, payload, id: uuidOf(seed) });
   };
-  const grantPayload = (g: Grant) => ({ accountId: g.accountId, grantId: g.id, bucket: g.bucket, amount: g.amount, expiresAt: g.expiresAt?.toISOString() ?? null, capPerDay: g.capPerDay, capPerMonth: g.capPerMonth, onExhausted: g.onExhausted, source: g.source });
+  const grantPayload = (g: Grant) => ({
+    accountId: g.accountId,
+    grantId: g.id,
+    bucket: g.bucket,
+    amount: g.amount,
+    expiresAt: g.expiresAt?.toISOString() ?? null,
+    capPerDay: g.capPerDay,
+    capPerMonth: g.capPerMonth,
+    onExhausted: g.onExhausted,
+    source: g.source,
+  });
   const announceExhausted = (tx: Query, states: readonly GrantState[], draws: readonly Draw[]) =>
     Promise.all(
       draws.flatMap((d) => {
         const s = states.find((x) => x.grant.id === d.grantId);
         if (!s || s.remaining - d.amount > 0) return [];
         const g = s.grant;
-        return [announce(tx, CREDIT_EVENT.exhausted, `exhausted:${g.id}`, { accountId: g.accountId, grantId: g.id, bucket: g.bucket, onExhausted: g.onExhausted, source: g.source })];
+        return [
+          announce(tx, CREDIT_EVENT.exhausted, `exhausted:${g.id}`, {
+            accountId: g.accountId,
+            grantId: g.id,
+            bucket: g.bucket,
+            onExhausted: g.onExhausted,
+            source: g.source,
+          }),
+        ];
       }),
     );
 
-  async function create(tx: Query, kind: "grant" | "purchase", input: GrantInput | PurchaseInput): Promise<{ grantId: string; replayed: boolean }> {
+  async function create(
+    tx: Query,
+    kind: "grant" | "purchase",
+    input: GrantInput | PurchaseInput,
+  ): Promise<{ grantId: string; replayed: boolean }> {
     const now = deps.clock.now();
     checkNewGrant(kind, input, now);
     const granted = kind === "grant";
@@ -193,15 +241,42 @@ export function createCredits(deps: CreditsDeps): Credits {
       createdAt: now,
     };
     await store.insertGrant(grant);
-    await store.insertEntries([entry({ accountId: grant.accountId, grantId: grant.id, type: granted ? ENTRY_TYPE.grant : ENTRY_TYPE.purchase, amount: input.amount, reason: input.source, operation }, 0, now)]);
+    await store.insertEntries([
+      entry(
+        {
+          accountId: grant.accountId,
+          grantId: grant.id,
+          type: granted ? ENTRY_TYPE.grant : ENTRY_TYPE.purchase,
+          amount: input.amount,
+          reason: input.source,
+          operation,
+        },
+        0,
+        now,
+      ),
+    ]);
     await announce(tx, CREDIT_EVENT.granted, `granted:${grant.id}`, grantPayload(grant));
     return { grantId: grant.id, replayed: false };
   }
 
-  const drawsOf = (lines: readonly Entry[]): Draw[] => lines.filter((l) => l.type === ENTRY_TYPE.debit && l.grantId).map((l) => ({ grantId: l.grantId!, amount: -l.amount }));
+  const drawsOf = (lines: readonly Entry[]): Draw[] =>
+    lines
+      .filter((l) => l.type === ENTRY_TYPE.debit && l.grantId)
+      .map((l) => ({ grantId: l.grantId!, amount: -l.amount }));
 
   /** Plans and writes the debits of one operation. The caller holds the account's lock and has checked the replay. */
-  async function spend(tx: Query, store: CreditStore, args: { accountId: string; amount: number; reason: string; operation: string; holdId?: string; exceptHoldId?: string }): Promise<Draw[]> {
+  async function spend(
+    tx: Query,
+    store: CreditStore,
+    args: {
+      accountId: string;
+      amount: number;
+      reason: string;
+      operation: string;
+      holdId?: string;
+      exceptHoldId?: string;
+    },
+  ): Promise<Draw[]> {
     const { timeZone } = await settings();
     const now = deps.clock.now();
     const held = await store.heldAmount(args.accountId, now, args.exceptHoldId);
@@ -209,7 +284,23 @@ export function createCredits(deps: CreditsDeps): Credits {
     const plan = planDraws(states, held + args.amount, now);
     if (!plan.ok) throw new CreditsError(plan.code, REFUSAL_TEXT[plan.code] ?? plan.code);
     const draws = skipFirst(plan.draws, held);
-    await store.insertEntries(draws.map((d, i) => entry({ accountId: args.accountId, grantId: d.grantId, type: ENTRY_TYPE.debit, amount: -d.amount, reason: args.reason, operation: args.operation, ...(args.holdId ? { holdId: args.holdId } : {}) }, i, now)));
+    await store.insertEntries(
+      draws.map((d, i) =>
+        entry(
+          {
+            accountId: args.accountId,
+            grantId: d.grantId,
+            type: ENTRY_TYPE.debit,
+            amount: -d.amount,
+            reason: args.reason,
+            operation: args.operation,
+            ...(args.holdId ? { holdId: args.holdId } : {}),
+          },
+          i,
+          now,
+        ),
+      ),
+    );
     await announceExhausted(tx, states, draws);
     return draws;
   }
@@ -223,10 +314,22 @@ export function createCredits(deps: CreditsDeps): Credits {
     const now = deps.clock.now();
     const state = (await statesOf(store, found.accountId, now, timeZone)).find((s) => s.grant.id === grantId)!;
     if (state.closed) return { expired: 0 };
-    await store.insertEntries([entry({ accountId: found.accountId, grantId, type: ENTRY_TYPE.expiry, amount: -state.remaining, reason: "expiry", operation: `expire.${grantId}` }, 0, now)]);
+    await store.insertEntries([
+      entry(
+        {
+          accountId: found.accountId,
+          grantId,
+          type: ENTRY_TYPE.expiry,
+          amount: -state.remaining,
+          reason: "expiry",
+          operation: `expire.${grantId}`,
+        },
+        0,
+        now,
+      ),
+    ]);
     return { expired: state.remaining };
   }
-
 
   return {
     grant: (tx, input) => create(tx, "grant", input),
@@ -235,13 +338,22 @@ export function createCredits(deps: CreditsDeps): Credits {
     async consume(tx, input) {
       checkAmount(input.amount, "a consumption");
       checkKey(input.idempotencyKey);
-      if (!input.reason || input.reason.length > MAX_REASON) throw new CreditsError(CREDITS_CODE.badGrant, `A reason is 1 to ${MAX_REASON} characters`);
+      if (!input.reason || input.reason.length > MAX_REASON)
+        throw new CreditsError(CREDITS_CODE.badGrant, `A reason is 1 to ${MAX_REASON} characters`);
       const store = storeFor(tx);
       await store.lock(input.accountId);
       const operation = `consume.${input.idempotencyKey}`;
       const before = await replayOf(store, operation, input.accountId);
       if (before.length > 0) return { draws: drawsOf(before), replayed: true };
-      return { draws: await spend(tx, store, { accountId: input.accountId, amount: input.amount, reason: input.reason, operation }), replayed: false };
+      return {
+        draws: await spend(tx, store, {
+          accountId: input.accountId,
+          amount: input.amount,
+          reason: input.reason,
+          operation,
+        }),
+        replayed: false,
+      };
     },
 
     async hold(tx, input) {
@@ -255,14 +367,25 @@ export function createCredits(deps: CreditsDeps): Credits {
       const operation = `hold.${input.idempotencyKey}`;
       const known = await store.holdByOperation(operation);
       if (known) {
-        if (known.accountId !== input.accountId) throw new CreditsError(CREDITS_CODE.keyReused, "This idempotency key was used for another account");
+        if (known.accountId !== input.accountId)
+          throw new CreditsError(CREDITS_CODE.keyReused, "This idempotency key was used for another account");
         return { holdId: known.id, expiresAt: known.expiresAt, replayed: true };
       }
       const now = deps.clock.now();
       const held = await store.heldAmount(input.accountId, now);
       const plan = planDraws(await statesOf(store, input.accountId, now, s.timeZone), held + input.amount, now);
       if (!plan.ok) throw new CreditsError(plan.code, REFUSAL_TEXT[plan.code] ?? plan.code);
-      const hold = { id: newId(), accountId: input.accountId, amount: input.amount, expiresAt: addSeconds(now, ttl), status: HOLD_STATUS.active, settledAmount: null, createdAt: now, closedAt: null, operation };
+      const hold = {
+        id: newId(),
+        accountId: input.accountId,
+        amount: input.amount,
+        expiresAt: addSeconds(now, ttl),
+        status: HOLD_STATUS.active,
+        settledAmount: null,
+        createdAt: now,
+        closedAt: null,
+        operation,
+      };
       await store.insertHold(hold);
       return { holdId: hold.id, expiresAt: hold.expiresAt, replayed: false };
     },
@@ -274,12 +397,28 @@ export function createCredits(deps: CreditsDeps): Credits {
       await store.lock(found.accountId);
       const hold = (await store.holdById(holdId))!;
       const operation = `settle.${holdId}`;
-      if (hold.status === HOLD_STATUS.settled) return { draws: drawsOf(await store.entriesOf(operation)), replayed: true };
-      if (hold.status === HOLD_STATUS.released) throw new CreditsError(CREDITS_CODE.holdClosed, "This hold was released");
+      if (hold.status === HOLD_STATUS.settled)
+        return { draws: drawsOf(await store.entriesOf(operation)), replayed: true };
+      if (hold.status === HOLD_STATUS.released)
+        throw new CreditsError(CREDITS_CODE.holdClosed, "This hold was released");
       const amount = options.amount ?? hold.amount;
-      if (!Number.isSafeInteger(amount) || amount < 0 || amount > hold.amount) throw new CreditsError(CREDITS_CODE.badAmount, `A hold of ${hold.amount} settles for 0 to ${hold.amount}, got ${amount}`);
+      if (!Number.isSafeInteger(amount) || amount < 0 || amount > hold.amount)
+        throw new CreditsError(
+          CREDITS_CODE.badAmount,
+          `A hold of ${hold.amount} settles for 0 to ${hold.amount}, got ${amount}`,
+        );
       const now = deps.clock.now();
-      const draws = amount === 0 ? [] : await spend(tx, store, { accountId: hold.accountId, amount, reason: options.reason ?? `hold:${holdId}`, operation, holdId, exceptHoldId: holdId });
+      const draws =
+        amount === 0
+          ? []
+          : await spend(tx, store, {
+              accountId: hold.accountId,
+              amount,
+              reason: options.reason ?? `hold:${holdId}`,
+              operation,
+              holdId,
+              exceptHoldId: holdId,
+            });
       await store.closeHold(holdId, amount === 0 ? HOLD_STATUS.released : HOLD_STATUS.settled, amount, now);
       return { draws, replayed: false };
     },
@@ -296,18 +435,42 @@ export function createCredits(deps: CreditsDeps): Credits {
     },
 
     async refund(tx, input) {
-      const original = input.consumed !== undefined ? `consume.${checkKey(input.consumed)}` : input.settledHold !== undefined ? `settle.${input.settledHold}` : null;
-      if (!original) throw new CreditsError(CREDITS_CODE.badKey, "Name what to refund: a consumed key or a settled hold");
-      if (!input.reason || input.reason.length > MAX_REASON) throw new CreditsError(CREDITS_CODE.badGrant, `A reason is 1 to ${MAX_REASON} characters`);
+      const original =
+        input.consumed !== undefined
+          ? `consume.${checkKey(input.consumed)}`
+          : input.settledHold !== undefined
+            ? `settle.${input.settledHold}`
+            : null;
+      if (!original)
+        throw new CreditsError(CREDITS_CODE.badKey, "Name what to refund: a consumed key or a settled hold");
+      if (!input.reason || input.reason.length > MAX_REASON)
+        throw new CreditsError(CREDITS_CODE.badGrant, `A reason is 1 to ${MAX_REASON} characters`);
       const store = storeFor(tx);
       await store.lock(input.accountId);
       const operation = `refund.${original}`;
       const done = await replayOf(store, operation, input.accountId);
       if (done.length > 0) return { refunded: sum(done.map((l) => l.amount)), replayed: true };
       const spent = (await replayOf(store, original, input.accountId)).filter((l) => l.type === ENTRY_TYPE.debit);
-      if (spent.length === 0) throw new CreditsError(CREDITS_CODE.nothingToRefund, "Nothing was spent under this key for this account");
+      if (spent.length === 0)
+        throw new CreditsError(CREDITS_CODE.nothingToRefund, "Nothing was spent under this key for this account");
       const now = deps.clock.now();
-      await store.insertEntries(spent.map((l, i) => entry({ accountId: l.accountId, grantId: l.grantId, type: ENTRY_TYPE.refund, amount: -l.amount, reason: input.reason, operation, reverses: original }, i, now)));
+      await store.insertEntries(
+        spent.map((l, i) =>
+          entry(
+            {
+              accountId: l.accountId,
+              grantId: l.grantId,
+              type: ENTRY_TYPE.refund,
+              amount: -l.amount,
+              reason: input.reason,
+              operation,
+              reverses: original,
+            },
+            i,
+            now,
+          ),
+        ),
+      );
       return { refunded: sum(spent.map((l) => -l.amount)), replayed: false };
     },
 
@@ -323,8 +486,10 @@ export function createCredits(deps: CreditsDeps): Credits {
 
     async adjust(tx, input) {
       checkKey(input.idempotencyKey);
-      if (!Number.isSafeInteger(input.amount) || input.amount === 0) throw new CreditsError(CREDITS_CODE.badAmount, "An adjustment is a non-zero integer");
-      if (!input.reason || input.reason.length > MAX_REASON) throw new CreditsError(CREDITS_CODE.badGrant, `A reason is 1 to ${MAX_REASON} characters`);
+      if (!Number.isSafeInteger(input.amount) || input.amount === 0)
+        throw new CreditsError(CREDITS_CODE.badAmount, "An adjustment is a non-zero integer");
+      if (!input.reason || input.reason.length > MAX_REASON)
+        throw new CreditsError(CREDITS_CODE.badGrant, `A reason is 1 to ${MAX_REASON} characters`);
       const store = storeFor(tx);
       await store.lock(input.accountId);
       const operation = `adjust.${input.idempotencyKey}`;
@@ -333,8 +498,22 @@ export function createCredits(deps: CreditsDeps): Credits {
       const now = deps.clock.now();
       const state = (await statesOf(store, input.accountId, now, timeZone)).find((s) => s.grant.id === input.grantId);
       if (!state) throw new CreditsError(CREDITS_CODE.unknownGrant, `No grant ${input.grantId} for this account`);
-      if (state.remaining + input.amount < 0) throw new CreditsError(CREDITS_CODE.badAmount, "An adjustment never takes a pot below zero");
-      await store.insertEntries([entry({ accountId: input.accountId, grantId: input.grantId, type: ENTRY_TYPE.adjustment, amount: input.amount, reason: input.reason, operation }, 0, now)]);
+      if (state.remaining + input.amount < 0)
+        throw new CreditsError(CREDITS_CODE.badAmount, "An adjustment never takes a pot below zero");
+      await store.insertEntries([
+        entry(
+          {
+            accountId: input.accountId,
+            grantId: input.grantId,
+            type: ENTRY_TYPE.adjustment,
+            amount: input.amount,
+            reason: input.reason,
+            operation,
+          },
+          0,
+          now,
+        ),
+      ]);
       return { replayed: false };
     },
 
@@ -342,8 +521,11 @@ export function createCredits(deps: CreditsDeps): Credits {
       const store = storeFor(query);
       const { timeZone } = await settings();
       const now = deps.clock.now();
-      const live = (await statesOf(store, accountId, now, timeZone)).filter((s) => !s.closed && (s.grant.expiresAt === null || s.grant.expiresAt > now) && s.remaining > 0);
-      const of = (bucket: Grant["bucket"]) => sum(live.filter((s) => s.grant.bucket === bucket).map((s) => s.remaining));
+      const live = (await statesOf(store, accountId, now, timeZone)).filter(
+        (s) => !s.closed && (s.grant.expiresAt === null || s.grant.expiresAt > now) && s.remaining > 0,
+      );
+      const of = (bucket: Grant["bucket"]) =>
+        sum(live.filter((s) => s.grant.bucket === bucket).map((s) => s.remaining));
       const total = of(BUCKET.granted) + of(BUCKET.purchased);
       const held = await store.heldAmount(accountId, now);
       return {
@@ -352,11 +534,24 @@ export function createCredits(deps: CreditsDeps): Credits {
         purchased: of(BUCKET.purchased),
         held,
         available: Math.max(0, total - held),
-        grants: live.map((s) => ({ id: s.grant.id, bucket: s.grant.bucket, remaining: s.remaining, expiresAt: s.grant.expiresAt, source: s.grant.source, capPerDay: s.grant.capPerDay, capPerMonth: s.grant.capPerMonth, onExhausted: s.grant.onExhausted })),
+        grants: live.map((s) => ({
+          id: s.grant.id,
+          bucket: s.grant.bucket,
+          remaining: s.remaining,
+          expiresAt: s.grant.expiresAt,
+          source: s.grant.source,
+          capPerDay: s.grant.capPerDay,
+          capPerMonth: s.grant.capPerMonth,
+          onExhausted: s.grant.onExhausted,
+        })),
       };
     },
 
-    history: (query, accountId, options = {}) => storeFor(query).history(accountId, { limit: Math.min(options.limit ?? DEFAULT_HISTORY, MAX_HISTORY), ...(options.before ? { before: options.before } : {}) }),
+    history: (query, accountId, options = {}) =>
+      storeFor(query).history(accountId, {
+        limit: Math.min(options.limit ?? DEFAULT_HISTORY, MAX_HISTORY),
+        ...(options.before ? { before: options.before } : {}),
+      }),
   };
 }
 

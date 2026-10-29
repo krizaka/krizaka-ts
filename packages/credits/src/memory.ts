@@ -26,7 +26,10 @@ export function memoryCreditStore(): CreditStore & { entries(): readonly Readonl
         .filter((g) => g.accountId === accountId)
         .map((g) => {
           const lines = entries.filter((e) => e.grantId === g.id);
-          const used = (match: (e: Entry) => boolean) => -lines.filter((e) => (e.type === ENTRY_TYPE.debit || e.type === ENTRY_TYPE.refund) && match(e)).reduce((a, e) => a + e.amount, 0);
+          const used = (match: (e: Entry) => boolean) =>
+            -lines
+              .filter((e) => (e.type === ENTRY_TYPE.debit || e.type === ENTRY_TYPE.refund) && match(e))
+              .reduce((a, e) => a + e.amount, 0);
           return {
             grant: { ...g },
             remaining: lines.reduce((a, e) => a + e.amount, 0),
@@ -38,7 +41,8 @@ export function memoryCreditStore(): CreditStore & { entries(): readonly Readonl
     },
     async insertEntries(batch) {
       for (const e of batch) {
-        if (entries.some((x) => x.idempotencyKey === e.idempotencyKey)) throw new Error(`duplicate idempotency key ${e.idempotencyKey}`);
+        if (entries.some((x) => x.idempotencyKey === e.idempotencyKey))
+          throw new Error(`duplicate idempotency key ${e.idempotencyKey}`);
       }
       entries.push(...batch.map((e) => ({ ...e })));
     },
@@ -64,7 +68,15 @@ export function memoryCreditStore(): CreditStore & { entries(): readonly Readonl
       return h ? { ...h } : null;
     },
     async heldAmount(accountId, now, exceptHoldId) {
-      return [...holds.values()].filter((h) => h.accountId === accountId && h.status === HOLD_STATUS.active && isAfter(h.expiresAt, now) && h.id !== exceptHoldId).reduce((a, h) => a + h.amount, 0);
+      return [...holds.values()]
+        .filter(
+          (h) =>
+            h.accountId === accountId &&
+            h.status === HOLD_STATUS.active &&
+            isAfter(h.expiresAt, now) &&
+            h.id !== exceptHoldId,
+        )
+        .reduce((a, h) => a + h.amount, 0);
     },
     async closeHold(id, status, settledAmount, at) {
       const h = holds.get(id);

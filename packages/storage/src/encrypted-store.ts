@@ -31,21 +31,27 @@ export function encryptedStore(inner: ObjectStore, key: Uint8Array): ObjectStore
       const head = Buffer.alloc(2);
       head.writeUInt16BE(type.length);
       const body = Buffer.concat([cipher.update(Buffer.concat([head, type, bytes])), cipher.final()]);
-      await inner.put(k, Buffer.concat([Buffer.from([VERSION]), iv, cipher.getAuthTag(), body]), { contentType: "application/octet-stream" });
+      await inner.put(k, Buffer.concat([Buffer.from([VERSION]), iv, cipher.getAuthTag(), body]), {
+        contentType: "application/octet-stream",
+      });
     },
     async get(k) {
       assertKey(k);
       const found = await inner.get(k);
       if (!found) return null;
       const raw = Buffer.from(found.bytes);
-      if (raw.length < HEADER_BYTES || raw[0] !== VERSION) throw new StorageError(STORAGE_CODE.unreadable, "Unreadable stored object");
+      if (raw.length < HEADER_BYTES || raw[0] !== VERSION)
+        throw new StorageError(STORAGE_CODE.unreadable, "Unreadable stored object");
       try {
         const decipher = createDecipheriv("aes-256-gcm", key, raw.subarray(1, 1 + IV_BYTES));
         decipher.setAAD(Buffer.from(k));
         decipher.setAuthTag(raw.subarray(1 + IV_BYTES, HEADER_BYTES));
         const plain = Buffer.concat([decipher.update(raw.subarray(HEADER_BYTES)), decipher.final()]);
         const typeLength = plain.readUInt16BE(0);
-        return { contentType: plain.subarray(2, 2 + typeLength).toString(), bytes: new Uint8Array(plain.subarray(2 + typeLength)) };
+        return {
+          contentType: plain.subarray(2, 2 + typeLength).toString(),
+          bytes: new Uint8Array(plain.subarray(2 + typeLength)),
+        };
       } catch {
         throw new StorageError(STORAGE_CODE.unreadable, "The stored object failed its integrity check");
       }

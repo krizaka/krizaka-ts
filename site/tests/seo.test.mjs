@@ -6,7 +6,16 @@ const read = (p) => readFileSync(new URL(`../${p}`, import.meta.url), "utf8");
 
 test("robots.ts welcomes the AI crawlers of the Krizaka family", () => {
   const robots = read("app/robots.ts");
-  for (const bot of ["GPTBot", "ClaudeBot", "PerplexityBot", "Google-Extended", "CCBot", "OAI-SearchBot", "Claude-SearchBot"]) assert.ok(robots.includes(`"${bot}"`), bot);
+  for (const bot of [
+    "GPTBot",
+    "ClaudeBot",
+    "PerplexityBot",
+    "Google-Extended",
+    "CCBot",
+    "OAI-SearchBot",
+    "Claude-SearchBot",
+  ])
+    assert.ok(robots.includes(`"${bot}"`), bot);
   assert.match(robots, /sitemap: `\$\{SITE_URL\}\/sitemap\.xml`/);
 });
 
@@ -26,5 +35,13 @@ test("every page names an Open Graph image, and the sitemap is dated by the buil
 
 test("llms.txt points back to the family", () => {
   const post = read("scripts/postbuild.mjs");
-  for (const url of ["https://www.krizaka.com", "https://ui.krizaka.com", "https://dev.orazaka.com", "https://dev.yomizaka.com", "https://dev.akinaza.com", "https://java.krizaka.com"]) assert.ok(post.includes(url), url);
+  for (const url of [
+    "https://www.krizaka.com",
+    "https://ui.krizaka.com",
+    "https://dev.orazaka.com",
+    "https://dev.yomizaka.com",
+    "https://dev.akinaza.com",
+    "https://java.krizaka.com",
+  ])
+    assert.ok(post.includes(url), url);
 });

@@ -1,7 +1,17 @@
 import { Ajv2020 } from "ajv/dist/2020.js";
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_KINDS, defaultFor, defaults, defaultUrl, fetchDefaults, listDefaults, org, orgSchema, seedHash } from "../src";
+import {
+  DEFAULT_KINDS,
+  defaultFor,
+  defaults,
+  defaultUrl,
+  fetchDefaults,
+  listDefaults,
+  org,
+  orgSchema,
+  seedHash,
+} from "../src";
 
 const ajv = new Ajv2020({ allErrors: true, strict: false });
 const section = JSON.stringify(defaults);
@@ -51,7 +61,8 @@ describe("the defaults section", () => {
   it("names every URL <base>/<kind>/<id>-<size>.<ext> under the versioned prefix", () => {
     for (const kind of DEFAULT_KINDS) {
       for (const i of listDefaults(kind)) {
-        for (const [size, url] of Object.entries(i.urls.webp)) expect(url).toBe(`${defaults.base}/${kind}/${i.id}-${size}.webp`);
+        for (const [size, url] of Object.entries(i.urls.webp))
+          expect(url).toBe(`${defaults.base}/${kind}/${i.id}-${size}.webp`);
         if (i.urls.svg) expect(i.urls.svg).toBe(`${defaults.base}/${kind}/${i.id}.svg`);
       }
     }
@@ -104,8 +115,12 @@ describe("defaultFor", () => {
   it("fetches the section from the published JSON, and says when it is missing", async () => {
     const ok = () => Promise.resolve(new Response(JSON.stringify({ defaults })));
     expect(await fetchDefaults("https://x/org.json", ok as typeof fetch)).toEqual(defaults);
-    await expect(fetchDefaults("https://x/org.json", (() => Promise.resolve(new Response("{}"))) as typeof fetch)).rejects.toThrow(/no `defaults`/);
-    await expect(fetchDefaults("https://x/org.json", (() => Promise.resolve(new Response("", { status: 503 }))) as typeof fetch)).rejects.toThrow(/503/);
+    await expect(
+      fetchDefaults("https://x/org.json", (() => Promise.resolve(new Response("{}"))) as typeof fetch),
+    ).rejects.toThrow(/no `defaults`/);
+    await expect(
+      fetchDefaults("https://x/org.json", (() => Promise.resolve(new Response("", { status: 503 }))) as typeof fetch),
+    ).rejects.toThrow(/503/);
   });
 });
 
@@ -121,7 +136,30 @@ describe("the section holds nothing private", () => {
     const urls = section.match(/https?:\/\/[^"]+/g) ?? [];
     expect(urls.length).toBeGreaterThan(150);
     for (const url of urls) expect(url.startsWith("https://krizaka-assets.b-cdn.net/defaults/v1")).toBe(true);
-    for (const key of section.match(/"[A-Za-z]+":/g) ?? []) expect(["version", "base", "rule", "pick", "description", "kinds", "person", "folder", "organisation", "shop", "banner", "id", "alt", "en", "fr", "urls", "svg", "webp", "disabled"].map((k) => `"${k}":`)).toContain(key);
+    for (const key of section.match(/"[A-Za-z]+":/g) ?? [])
+      expect(
+        [
+          "version",
+          "base",
+          "rule",
+          "pick",
+          "description",
+          "kinds",
+          "person",
+          "folder",
+          "organisation",
+          "shop",
+          "banner",
+          "id",
+          "alt",
+          "en",
+          "fr",
+          "urls",
+          "svg",
+          "webp",
+          "disabled",
+        ].map((k) => `"${k}":`),
+      ).toContain(key);
   });
 });
 
@@ -129,7 +167,9 @@ describe("withdrawn pictures", () => {
   it("keeps the neon flamingo in the JSON and its files served, but never picks it", () => {
     const flamingo = defaults.kinds.banner.find((b) => b.id === "the-neon-flamingo");
     expect(flamingo).toMatchObject({ disabled: true });
-    expect(flamingo?.urls.webp["1920"]).toBe("https://krizaka-assets.b-cdn.net/defaults/v1/banner/the-neon-flamingo-1920.webp");
+    expect(flamingo?.urls.webp["1920"]).toBe(
+      "https://krizaka-assets.b-cdn.net/defaults/v1/banner/the-neon-flamingo-1920.webp",
+    );
     expect(listDefaults("banner").some((b) => b.id === "the-neon-flamingo")).toBe(false);
     for (let seed = 0; seed < 500; seed++) expect(defaultFor("banner", seed)?.id).not.toBe("the-neon-flamingo");
   });

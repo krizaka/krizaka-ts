@@ -30,7 +30,11 @@ export async function rawCall(
   const form = formEncode(params);
   const res = await doFetch(`${base}${path}${method === "GET" && form.size ? `?${form}` : ""}`, {
     method,
-    headers: { authorization: `Bearer ${config.secretKey}`, ...(method === "POST" ? { "content-type": "application/x-www-form-urlencoded" } : {}), ...(idempotencyKey ? { "idempotency-key": idempotencyKey } : {}) },
+    headers: {
+      authorization: `Bearer ${config.secretKey}`,
+      ...(method === "POST" ? { "content-type": "application/x-www-form-urlencoded" } : {}),
+      ...(idempotencyKey ? { "idempotency-key": idempotencyKey } : {}),
+    },
     body: method === "POST" ? form : undefined,
   });
   return { ok: res.ok, status: res.status, json: (await res.json().catch(() => ({}))) as never };

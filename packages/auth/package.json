@@ -52,7 +52,10 @@
   ],
   "sideEffects": false,
   "krizaka": {
-    "browserSafe": ["./client", "./contract"]
+    "browserSafe": [
+      "./client",
+      "./contract"
+    ]
   },
   "scripts": {
     "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsup",

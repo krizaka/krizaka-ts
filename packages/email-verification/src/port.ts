@@ -47,7 +47,11 @@ export type VerifyFailure = (typeof VERIFY_FAILURE)[keyof typeof VERIFY_FAILURE]
 
 export type VerifyResult<T> = { ok: true; payload: T } | { ok: false; reason: VerifyFailure; attemptsLeft?: number };
 
-export const VERIFICATION_CODE = { badSecret: "VERIFICATION_BAD_SECRET", badSettings: "VERIFICATION_BAD_SETTINGS", badAddress: "VERIFICATION_BAD_ADDRESS" } as const;
+export const VERIFICATION_CODE = {
+  badSecret: "VERIFICATION_BAD_SECRET",
+  badSettings: "VERIFICATION_BAD_SETTINGS",
+  badAddress: "VERIFICATION_BAD_ADDRESS",
+} as const;
 export type VerificationCode = (typeof VERIFICATION_CODE)[keyof typeof VERIFICATION_CODE];
 
 export class VerificationError extends Error {

@@ -41,7 +41,14 @@ const read = (params: Params, name: string): string[] => {
   if (value === undefined) return [];
   return typeof value === "string" ? [value] : [...value];
 };
-const list = (params: Params, name: string) => [...new Set(read(params, name).flatMap((v) => v.split(",")).map((v) => v.trim()).filter(Boolean))];
+const list = (params: Params, name: string) => [
+  ...new Set(
+    read(params, name)
+      .flatMap((v) => v.split(","))
+      .map((v) => v.trim())
+      .filter(Boolean),
+  ),
+];
 const cleanQuery = (raw: string) => raw.replace(/\s+/g, " ").trim();
 
 /**
@@ -61,7 +68,8 @@ export function parseView(params: Params): { view: string | null; filters: ViewF
   const [to] = read(params, "to");
   const dayFrom = isDay(from) ? from : undefined;
   const dayTo = isDay(to) ? to : undefined;
-  if (!(dayFrom && dayTo && dayFrom > dayTo)) Object.assign(filters, dayFrom ? { from: dayFrom } : {}, dayTo ? { to: dayTo } : {});
+  if (!(dayFrom && dayTo && dayFrom > dayTo))
+    Object.assign(filters, dayFrom ? { from: dayFrom } : {}, dayTo ? { to: dayTo } : {});
   const q = cleanQuery(read(params, "q")[0] ?? "");
   if (q && q.length <= QUERY_MAX) filters.q = q;
   const [view] = read(params, "view");
@@ -92,14 +100,19 @@ export const viewHref = (path: string, filters: ViewFilters, view?: string | nul
 };
 
 /** Whether two sets of filters select the same list (the « modified » mark of a view). */
-export const sameFilters = (a: ViewFilters, b: ViewFilters): boolean => viewSearch(normalised(a)) === viewSearch(normalised(b));
+export const sameFilters = (a: ViewFilters, b: ViewFilters): boolean =>
+  viewSearch(normalised(a)) === viewSearch(normalised(b));
 const byText = (a: string, b: string) => a.localeCompare(b);
-const normalised = (f: ViewFilters): ViewFilters => ({ ...f, tags: f.tags ? [...f.tags].sort(byText) : undefined, status: f.status ? [...f.status].sort(byText) : undefined });
-
+const normalised = (f: ViewFilters): ViewFilters => ({
+  ...f,
+  tags: f.tags ? [...f.tags].sort(byText) : undefined,
+  status: f.status ? [...f.status].sort(byText) : undefined,
+});
 
 function valuesProblem(value: unknown, name: string, ok: (v: unknown) => boolean): string[] {
   if (value === undefined) return [];
-  if (!Array.isArray(value) || value.length > FILTER_VALUES_MAX || !value.every(ok)) return [`${name}: at most ${FILTER_VALUES_MAX} valid values`];
+  if (!Array.isArray(value) || value.length > FILTER_VALUES_MAX || !value.every(ok))
+    return [`${name}: at most ${FILTER_VALUES_MAX} valid values`];
   return [];
 }
 
@@ -114,14 +127,22 @@ export function checkViewFilters(input: unknown, status: StatusSet | null): View
   const known = new Set<string>(VIEW_PARAMS);
   const states = new Set(status?.states.map((s) => s.key) ?? []);
   const problems = [
-    ...Object.keys(input).filter((k) => !known.has(k) || k === "view").map((k) => `${k}: not a filter`),
+    ...Object.keys(input)
+      .filter((k) => !known.has(k) || k === "view")
+      .map((k) => `${k}: not a filter`),
     ...valuesProblem(input.tags, "tags", isId),
     ...valuesProblem(input.status, "status", (v) => typeof v === "string" && states.has(v)),
     ...(input.collection === undefined || isId(input.collection) ? [] : ["collection: an id"]),
     ...(input.from === undefined || isDay(input.from) ? [] : ["from: a day YYYY-MM-DD"]),
     ...(input.to === undefined || isDay(input.to) ? [] : ["to: a day YYYY-MM-DD"]),
     ...(isDay(input.from) && isDay(input.to) && input.from > input.to ? ["from: on or before to"] : []),
-    ...(input.q === undefined || (typeof input.q === "string" && input.q === cleanQuery(input.q) && input.q.length > 0 && input.q.length <= QUERY_MAX) ? [] : [`q: 1 to ${QUERY_MAX} characters, spaces collapsed`]),
+    ...(input.q === undefined ||
+    (typeof input.q === "string" &&
+      input.q === cleanQuery(input.q) &&
+      input.q.length > 0 &&
+      input.q.length <= QUERY_MAX)
+      ? []
+      : [`q: 1 to ${QUERY_MAX} characters, spaces collapsed`]),
   ];
   if (problems.length > 0) throw new OrganizeError(ORGANIZE_CODE.badRequest, problems.join("; "));
   return input as ViewFilters;

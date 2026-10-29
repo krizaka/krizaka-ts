@@ -1,6 +1,15 @@
 import { ident, type Query } from "@krizaka/db";
 
-import type { Incident, IncidentAssessment, IncidentKind, IncidentMeasure, IncidentNotice, IncidentStatus, IncidentStore, Level } from "./incident";
+import type {
+  Incident,
+  IncidentAssessment,
+  IncidentKind,
+  IncidentMeasure,
+  IncidentNotice,
+  IncidentStatus,
+  IncidentStore,
+  Level,
+} from "./incident";
 
 type Stamp = Date | string;
 interface IncidentRow {
@@ -14,7 +23,15 @@ interface IncidentRow {
   persons_concerned: number | null;
   measures: { at: string; text: string }[];
   status: IncidentStatus;
-  assessment: { sensitivity: Level; consequences: Level; likelihood: Level; seriousInjury: boolean; rationale: string; assessedAt: string; assessedBy: string } | null;
+  assessment: {
+    sensitivity: Level;
+    consequences: Level;
+    likelihood: Level;
+    seriousInjury: boolean;
+    rationale: string;
+    assessedAt: string;
+    assessedBy: string;
+  } | null;
   cai_notice: { sentAt: string; channel: string; reference: string | null } | null;
   persons_notice: { sentAt: string; channel: string; reference: string | null } | null;
   drill: boolean;
@@ -24,10 +41,13 @@ interface IncidentRow {
   retain_until: Stamp;
 }
 
-const COLUMNS = "id, scope, kind, aware_at, occurred_at, description, information, persons_concerned, measures, status, assessment, cai_notice, persons_notice, drill, opened_by, opened_at, closed_at, retain_until";
+const COLUMNS =
+  "id, scope, kind, aware_at, occurred_at, description, information, persons_concerned, measures, status, assessment, cai_notice, persons_notice, drill, opened_by, opened_at, closed_at, retain_until";
 const optional = (stamp: Stamp | null) => (stamp === null ? null : new Date(stamp));
-const toNotice = (n: IncidentRow["cai_notice"]): IncidentNotice | null => (n ? { sentAt: new Date(n.sentAt), channel: n.channel, reference: n.reference } : null);
-const toAssessment = (a: IncidentRow["assessment"]): IncidentAssessment | null => (a ? { ...a, assessedAt: new Date(a.assessedAt) } : null);
+const toNotice = (n: IncidentRow["cai_notice"]): IncidentNotice | null =>
+  n ? { sentAt: new Date(n.sentAt), channel: n.channel, reference: n.reference } : null;
+const toAssessment = (a: IncidentRow["assessment"]): IncidentAssessment | null =>
+  a ? { ...a, assessedAt: new Date(a.assessedAt) } : null;
 
 const toIncident = (r: IncidentRow): Incident => ({
   id: r.id,
@@ -55,10 +75,32 @@ const json = (value: unknown) => (value === null ? null : JSON.stringify(value))
 /** The PostgreSQL incident store, over the `Query` it is given (the caller's transaction). `schema`: default `privacy`. */
 export function dbIncidentStore(query: Query, schema = "privacy"): IncidentStore {
   const table = `${ident(schema)}.incident`;
-  const values = (i: Incident) => [i.id, i.scope, i.kind, i.awareAt, i.occurredAt, i.description, i.information, i.personsConcerned, JSON.stringify(i.measures), i.status, json(i.assessment), json(i.caiNotice), json(i.personsNotice), i.drill, i.openedBy, i.openedAt, i.closedAt, i.retainUntil];
+  const values = (i: Incident) => [
+    i.id,
+    i.scope,
+    i.kind,
+    i.awareAt,
+    i.occurredAt,
+    i.description,
+    i.information,
+    i.personsConcerned,
+    JSON.stringify(i.measures),
+    i.status,
+    json(i.assessment),
+    json(i.caiNotice),
+    json(i.personsNotice),
+    i.drill,
+    i.openedBy,
+    i.openedAt,
+    i.closedAt,
+    i.retainUntil,
+  ];
   return {
     async insert(i) {
-      await query(`INSERT INTO ${table} (${COLUMNS}) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10, $11::jsonb, $12::jsonb, $13::jsonb, $14, $15, $16, $17, $18)`, values(i));
+      await query(
+        `INSERT INTO ${table} (${COLUMNS}) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10, $11::jsonb, $12::jsonb, $13::jsonb, $14, $15, $16, $17, $18)`,
+        values(i),
+      );
     },
     async save(i) {
       await query(
@@ -67,11 +109,16 @@ export function dbIncidentStore(query: Query, schema = "privacy"): IncidentStore
       );
     },
     async get(scope, id, options) {
-      const [row] = await query<IncidentRow>(`SELECT ${COLUMNS} FROM ${table} WHERE scope = $1 AND id = $2${options?.lock ? " FOR UPDATE" : ""}`, [scope, id]);
+      const [row] = await query<IncidentRow>(
+        `SELECT ${COLUMNS} FROM ${table} WHERE scope = $1 AND id = $2${options?.lock ? " FOR UPDATE" : ""}`,
+        [scope, id],
+      );
       return row ? toIncident(row) : null;
     },
     async list(scope) {
-      return (await query<IncidentRow>(`SELECT ${COLUMNS} FROM ${table} WHERE scope = $1 ORDER BY aware_at, id`, [scope])).map(toIncident);
+      return (
+        await query<IncidentRow>(`SELECT ${COLUMNS} FROM ${table} WHERE scope = $1 ORDER BY aware_at, id`, [scope])
+      ).map(toIncident);
     },
   };
 }

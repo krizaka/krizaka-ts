@@ -8,7 +8,13 @@ export type { Clock } from "@krizaka/db";
 export type FetchLike = (
   url: string,
   init: { method: string; headers: Record<string, string>; body?: Uint8Array },
-) => Promise<{ ok: boolean; status: number; headers: { get(name: string): string | null }; arrayBuffer(): Promise<ArrayBuffer>; text(): Promise<string> }>;
+) => Promise<{
+  ok: boolean;
+  status: number;
+  headers: { get(name: string): string | null };
+  arrayBuffer(): Promise<ArrayBuffer>;
+  text(): Promise<string>;
+}>;
 
 export interface StoredObject {
   bytes: Uint8Array;

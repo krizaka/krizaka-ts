@@ -39,9 +39,19 @@ async function refusal(work: Promise<unknown>): Promise<CreditsCode> {
  */
 export function creditsLedgerContract(name: string, make: () => Promise<LedgerHarness>) {
   const grant = (h: LedgerHarness, accountId: string, over: Partial<Parameters<Credits["grant"]>[1]> = {}) =>
-    h.credits.grant(h.tx, { accountId, amount: 10, expiresAt: plus(T0, 30 * DAY), onExhausted: ON_EXHAUSTED.stop, source: "coupon:test", idempotencyKey: randomUUID(), ...over });
-  const buy = (h: LedgerHarness, accountId: string, amount: number) => h.credits.purchase(h.tx, { accountId, amount, source: "purchase:pi_1", idempotencyKey: randomUUID() });
-  const consume = (h: LedgerHarness, accountId: string, amount: number, idempotencyKey: string = randomUUID()) => h.credits.consume(h.tx, { accountId, amount, reason: "audit:1", idempotencyKey });
+    h.credits.grant(h.tx, {
+      accountId,
+      amount: 10,
+      expiresAt: plus(T0, 30 * DAY),
+      onExhausted: ON_EXHAUSTED.stop,
+      source: "coupon:test",
+      idempotencyKey: randomUUID(),
+      ...over,
+    });
+  const buy = (h: LedgerHarness, accountId: string, amount: number) =>
+    h.credits.purchase(h.tx, { accountId, amount, source: "purchase:pi_1", idempotencyKey: randomUUID() });
+  const consume = (h: LedgerHarness, accountId: string, amount: number, idempotencyKey: string = randomUUID()) =>
+    h.credits.consume(h.tx, { accountId, amount, reason: "audit:1", idempotencyKey });
 
   it(`${name}: derives the balance from the ledger: a grant and a purchase, the history newest first`, async () => {
     const h = await make();
@@ -49,9 +59,18 @@ export function creditsLedgerContract(name: string, make: () => Promise<LedgerHa
     expect(await h.credits.balance(h.tx, a)).toMatchObject({ total: 0, available: 0, grants: [] });
     await grant(h, a, { amount: 5 });
     await buy(h, a, 7);
-    expect(await h.credits.balance(h.tx, a)).toMatchObject({ total: 12, granted: 5, purchased: 7, held: 0, available: 12 });
+    expect(await h.credits.balance(h.tx, a)).toMatchObject({
+      total: 12,
+      granted: 5,
+      purchased: 7,
+      held: 0,
+      available: 12,
+    });
     const lines = await h.credits.history(h.tx, a);
-    expect(lines.map((l) => [l.type, l.amount])).toEqual([[ENTRY_TYPE.purchase, 7], [ENTRY_TYPE.grant, 5]]);
+    expect(lines.map((l) => [l.type, l.amount])).toEqual([
+      [ENTRY_TYPE.purchase, 7],
+      [ENTRY_TYPE.grant, 5],
+    ]);
   });
 
   it(`${name}: a grant or a purchase with a key seen before changes nothing`, async () => {
@@ -61,7 +80,10 @@ export function creditsLedgerContract(name: string, make: () => Promise<LedgerHa
     const again = await grant(h, a, { idempotencyKey: "g-1", amount: 4 });
     expect(again).toEqual({ grantId: first.grantId, replayed: true });
     const p = await h.credits.purchase(h.tx, { accountId: a, amount: 3, source: "purchase:x", idempotencyKey: "p-1" });
-    expect((await h.credits.purchase(h.tx, { accountId: a, amount: 3, source: "purchase:x", idempotencyKey: "p-1" })).grantId).toBe(p.grantId);
+    expect(
+      (await h.credits.purchase(h.tx, { accountId: a, amount: 3, source: "purchase:x", idempotencyKey: "p-1" }))
+        .grantId,
+    ).toBe(p.grantId);
     expect((await h.credits.balance(h.tx, a)).total).toBe(7);
     expect(await h.credits.history(h.tx, a)).toHaveLength(2);
   });
@@ -78,13 +100,23 @@ export function creditsLedgerContract(name: string, make: () => Promise<LedgerHa
   it(`${name}: spends from the pot that lapses first, then the next; purchased credits last`, async () => {
     const h = await make();
     const a = await h.newAccount();
-    const late = await grant(h, a, { amount: 5, expiresAt: plus(T0, 20 * DAY), onExhausted: ON_EXHAUSTED.fallbackPaid });
+    const late = await grant(h, a, {
+      amount: 5,
+      expiresAt: plus(T0, 20 * DAY),
+      onExhausted: ON_EXHAUSTED.fallbackPaid,
+    });
     const soon = await grant(h, a, { amount: 3, expiresAt: plus(T0, 5 * DAY), onExhausted: ON_EXHAUSTED.fallbackPaid });
     const paid = await buy(h, a, 10);
     const out = await consume(h, a, 4);
-    expect(out.draws).toEqual([{ grantId: soon.grantId, amount: 3 }, { grantId: late.grantId, amount: 1 }]);
+    expect(out.draws).toEqual([
+      { grantId: soon.grantId, amount: 3 },
+      { grantId: late.grantId, amount: 1 },
+    ]);
     const rest = await consume(h, a, 4 + 4 + 1);
-    expect(rest.draws).toEqual([{ grantId: late.grantId, amount: 4 }, { grantId: paid.grantId, amount: 5 }]);
+    expect(rest.draws).toEqual([
+      { grantId: late.grantId, amount: 4 },
+      { grantId: paid.grantId, amount: 5 },
+    ]);
   });
 
   it(`${name}: a consume with a key seen before answers the first answer and spends nothing more`, async () => {
@@ -164,7 +196,10 @@ export function creditsLedgerContract(name: string, make: () => Promise<LedgerHa
     const capped = await grant(h, a, { amount: 10, capPerDay: 2, expiresAt: plus(T0, 5 * DAY) });
     const open = await grant(h, a, { amount: 10, expiresAt: plus(T0, 9 * DAY) });
     const out = await consume(h, a, 5);
-    expect(out.draws).toEqual([{ grantId: capped.grantId, amount: 2 }, { grantId: open.grantId, amount: 3 }]);
+    expect(out.draws).toEqual([
+      { grantId: capped.grantId, amount: 2 },
+      { grantId: open.grantId, amount: 3 },
+    ]);
   });
 
   it(`${name}: a pot is not spendable after its date, and expire() writes off what is left once`, async () => {
@@ -177,7 +212,11 @@ export function creditsLedgerContract(name: string, make: () => Promise<LedgerHa
     expect(await refusal(consume(h, a, 1))).toBe("PAYWALL");
     expect(await h.credits.expire(h.tx, g.grantId)).toEqual({ expired: 4 });
     expect(await h.credits.expire(h.tx, g.grantId)).toEqual({ expired: 0 });
-    expect((await h.credits.history(h.tx, a)).map((l) => [l.type, l.amount])).toEqual([[ENTRY_TYPE.expiry, -4], [ENTRY_TYPE.debit, -2], [ENTRY_TYPE.grant, 6]]);
+    expect((await h.credits.history(h.tx, a)).map((l) => [l.type, l.amount])).toEqual([
+      [ENTRY_TYPE.expiry, -4],
+      [ENTRY_TYPE.debit, -2],
+      [ENTRY_TYPE.grant, 6],
+    ]);
   });
 
   it(`${name}: a revoked pot (expire before its date) gives nothing, and a stop pot closed this way does not block purchased credits`, async () => {
@@ -225,7 +264,9 @@ export function creditsLedgerContract(name: string, make: () => Promise<LedgerHa
     const a = await h.newAccount();
     await grant(h, a, { amount: 10, capPerDay: 3 });
     const hold = await h.credits.hold(h.tx, { accountId: a, amount: 3, idempotencyKey: "h-1" });
-    expect(await refusal(h.credits.hold(h.tx, { accountId: a, amount: 1, idempotencyKey: "h-2" }))).toBe("CREDITS_CAP_DAY");
+    expect(await refusal(h.credits.hold(h.tx, { accountId: a, amount: 1, idempotencyKey: "h-2" }))).toBe(
+      "CREDITS_CAP_DAY",
+    );
     await h.credits.release(h.tx, hold.holdId);
     await h.credits.release(h.tx, hold.holdId);
     expect(await refusal(h.credits.settle(h.tx, hold.holdId))).toBe("CREDITS_HOLD_CLOSED");
@@ -263,14 +304,24 @@ export function creditsLedgerContract(name: string, make: () => Promise<LedgerHa
     await buy(h, a, 5);
     const spent = await consume(h, a, 7, "job-7");
     expect(spent.draws).toHaveLength(2);
-    expect(await h.credits.refund(h.tx, { accountId: a, consumed: "job-7", reason: "the run failed" })).toEqual({ refunded: 7, replayed: false });
-    expect(await h.credits.refund(h.tx, { accountId: a, consumed: "job-7", reason: "the run failed" })).toEqual({ refunded: 7, replayed: true });
+    expect(await h.credits.refund(h.tx, { accountId: a, consumed: "job-7", reason: "the run failed" })).toEqual({
+      refunded: 7,
+      replayed: false,
+    });
+    expect(await h.credits.refund(h.tx, { accountId: a, consumed: "job-7", reason: "the run failed" })).toEqual({
+      refunded: 7,
+      replayed: true,
+    });
     const b = await h.credits.balance(h.tx, a);
     expect(b.total).toBe(10);
     expect(b.grants.find((x) => x.id === g.grantId)?.remaining).toBe(5);
-    expect(await refusal(h.credits.refund(h.tx, { accountId: a, consumed: "nope", reason: "x" }))).toBe("CREDITS_NOTHING_TO_REFUND");
+    expect(await refusal(h.credits.refund(h.tx, { accountId: a, consumed: "nope", reason: "x" }))).toBe(
+      "CREDITS_NOTHING_TO_REFUND",
+    );
     const other = await h.newAccount();
-    expect(await refusal(h.credits.refund(h.tx, { accountId: other, consumed: "job-7", reason: "x" }))).toBe("CREDITS_KEY_REUSED");
+    expect(await refusal(h.credits.refund(h.tx, { accountId: other, consumed: "job-7", reason: "x" }))).toBe(
+      "CREDITS_KEY_REUSED",
+    );
   });
 
   it(`${name}: a refund of a settled hold, and a refund counts back against the cap`, async () => {
@@ -288,13 +339,55 @@ export function creditsLedgerContract(name: string, make: () => Promise<LedgerHa
     const h = await make();
     const a = await h.newAccount();
     const g = await grant(h, a, { amount: 3 });
-    expect(await h.credits.adjust(h.tx, { accountId: a, grantId: g.grantId, amount: 2, reason: "goodwill", idempotencyKey: "adj-1" })).toEqual({ replayed: false });
-    expect(await h.credits.adjust(h.tx, { accountId: a, grantId: g.grantId, amount: 2, reason: "goodwill", idempotencyKey: "adj-1" })).toEqual({ replayed: true });
+    expect(
+      await h.credits.adjust(h.tx, {
+        accountId: a,
+        grantId: g.grantId,
+        amount: 2,
+        reason: "goodwill",
+        idempotencyKey: "adj-1",
+      }),
+    ).toEqual({ replayed: false });
+    expect(
+      await h.credits.adjust(h.tx, {
+        accountId: a,
+        grantId: g.grantId,
+        amount: 2,
+        reason: "goodwill",
+        idempotencyKey: "adj-1",
+      }),
+    ).toEqual({ replayed: true });
     expect((await h.credits.balance(h.tx, a)).total).toBe(5);
-    expect(await refusal(h.credits.adjust(h.tx, { accountId: a, grantId: g.grantId, amount: -6, reason: "oops", idempotencyKey: "adj-2" }))).toBe("CREDITS_BAD_AMOUNT");
-    await h.credits.adjust(h.tx, { accountId: a, grantId: g.grantId, amount: -5, reason: "revoked", idempotencyKey: "adj-3" });
+    expect(
+      await refusal(
+        h.credits.adjust(h.tx, {
+          accountId: a,
+          grantId: g.grantId,
+          amount: -6,
+          reason: "oops",
+          idempotencyKey: "adj-2",
+        }),
+      ),
+    ).toBe("CREDITS_BAD_AMOUNT");
+    await h.credits.adjust(h.tx, {
+      accountId: a,
+      grantId: g.grantId,
+      amount: -5,
+      reason: "revoked",
+      idempotencyKey: "adj-3",
+    });
     expect((await h.credits.balance(h.tx, a)).total).toBe(0);
-    expect(await refusal(h.credits.adjust(h.tx, { accountId: a, grantId: randomUUID(), amount: 1, reason: "x", idempotencyKey: "adj-4" }))).toBe("CREDITS_UNKNOWN_GRANT");
+    expect(
+      await refusal(
+        h.credits.adjust(h.tx, {
+          accountId: a,
+          grantId: randomUUID(),
+          amount: 1,
+          reason: "x",
+          idempotencyKey: "adj-4",
+        }),
+      ),
+    ).toBe("CREDITS_UNKNOWN_GRANT");
   });
 
   it(`${name}: announces a grant, and a pot running out, once each`, async () => {
@@ -307,7 +400,12 @@ export function creditsLedgerContract(name: string, make: () => Promise<LedgerHa
     const types = h.announced().map((m) => m.type);
     expect(types.filter((t) => t === "evt.credit.granted.v1")).toHaveLength(1);
     expect(types.filter((t) => t === "evt.credit.exhausted.v1")).toHaveLength(1);
-    expect(h.announced().find((m) => m.type === "evt.credit.exhausted.v1")?.payload).toMatchObject({ accountId: a, bucket: "granted", onExhausted: "stop", source: "coupon:test" });
+    expect(h.announced().find((m) => m.type === "evt.credit.exhausted.v1")?.payload).toMatchObject({
+      accountId: a,
+      bucket: "granted",
+      onExhausted: "stop",
+      source: "coupon:test",
+    });
   });
 
   it(`${name}: history pages back from a date`, async () => {

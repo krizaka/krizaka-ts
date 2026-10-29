@@ -14,7 +14,9 @@ describe("the demo cast", () => {
 
   it("has Eric, Mira and Camille in every product, as the deployed QA accounts do", () => {
     for (const product of ["orazaka", "yomizaka", "akinaza"] as const) {
-      expect(castOf(product).map((p) => p.id)).toEqual(expect.arrayContaining(product === "orazaka" ? ["eric", "mira", "krizaka"] : ["eric", "mira", "camille"]));
+      expect(castOf(product).map((p) => p.id)).toEqual(
+        expect.arrayContaining(product === "orazaka" ? ["eric", "mira", "krizaka"] : ["eric", "mira", "camille"]),
+      );
       expect(persona(product, "mira").role).toBe("admin");
     }
   });
@@ -24,8 +26,16 @@ describe("the demo cast", () => {
   });
 
   it("points every avatar and banner at an org default that exists and is enabled", () => {
-    const people = new Set(listDefaults("person").filter((d) => !d.disabled).map((d) => d.id));
-    const banners = new Set(listDefaults("banner").filter((d) => !d.disabled).map((d) => d.id));
+    const people = new Set(
+      listDefaults("person")
+        .filter((d) => !d.disabled)
+        .map((d) => d.id),
+    );
+    const banners = new Set(
+      listDefaults("banner")
+        .filter((d) => !d.disabled)
+        .map((d) => d.id),
+    );
     for (const p of CAST) {
       expect(people.has(p.avatar), `${p.id} avatar`).toBe(true);
       if (p.banner) expect(banners.has(p.banner), `${p.id} banner`).toBe(true);

@@ -16,7 +16,9 @@ const flag = (name) => {
 const repoPath = args.find((a, i) => !a.startsWith("--") && !(args[i - 1] ?? "").startsWith("--"));
 
 if (!repoPath || !existsSync(resolve(repoPath))) {
-  console.error("usage: krizaka-architecture <repo-path> [--out file.json] [--level context|containers|components] [--text [file.md]]");
+  console.error(
+    "usage: krizaka-architecture <repo-path> [--out file.json] [--level context|containers|components] [--text [file.md]]",
+  );
   process.exit(2);
 }
 
@@ -35,6 +37,8 @@ else if (text !== true) process.stdout.write(json);
 if (typeof text === "string") writeFileSync(resolve(text), toText(c4));
 else if (text === true) process.stdout.write(toText(c4));
 if (typeof out === "string") {
-  const counts = Object.values(c4.levels).map((l) => l.nodes.length + " " + l.level + " node(s)").join(", ");
+  const counts = Object.values(c4.levels)
+    .map((l) => l.nodes.length + " " + l.level + " node(s)")
+    .join(", ");
   console.log(`${c4.repo}: ${counts} -> ${out}`);
 }

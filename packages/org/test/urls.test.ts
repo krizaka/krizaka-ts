@@ -5,7 +5,8 @@ import { apps, org } from "../src";
 /** Every https URL in a value, with where it sits. */
 function urls(value: unknown, path = ""): [string, string][] {
   if (typeof value === "string") return value.startsWith("https://") ? [[path, value]] : [];
-  if (value && typeof value === "object") return Object.entries(value).flatMap(([k, v]) => urls(v, path ? `${path}.${k}` : k));
+  if (value && typeof value === "object")
+    return Object.entries(value).flatMap(([k, v]) => urls(v, path ? `${path}.${k}` : k));
   return [];
 }
 

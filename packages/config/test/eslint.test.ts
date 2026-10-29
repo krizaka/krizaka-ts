@@ -42,7 +42,8 @@ describe("krizakaUi — the four rules of §2.12", () => {
   });
 
   it("refuses a template literal in className, even inside a call", async () => {
-    const code = "export const A = ({ c }: { c: string }) => <><div className={`p-2 ${c}`} /><i className={cn(`a`, c)} /></>;";
+    const code =
+      "export const A = ({ c }: { c: string }) => <><div className={`p-2 ${c}`} /><i className={cn(`a`, c)} /></>;";
     const messages = await lint(krizakaUi(), code);
     expect(messages).toHaveLength(2);
     expect(messages.every((m) => /template string/.test(m.message))).toBe(true);
@@ -140,7 +141,11 @@ describe("krizakaNext", () => {
   it("carries eslint-config-next and the shared basics", async () => {
     const names = krizakaNext.map((c) => c.name);
     expect(names).toEqual(expect.arrayContaining(["krizaka/ignores", "krizaka/imports", "next", "next/typescript"]));
-    const messages = await lint(krizakaNext, `export default function P() { return <img src="/a.png" alt="" />; }\n`, "app/page.tsx");
+    const messages = await lint(
+      krizakaNext,
+      `export default function P() { return <img src="/a.png" alt="" />; }\n`,
+      "app/page.tsx",
+    );
     expect(ids(messages)).toContain("@next/next/no-img-element");
   });
 });
@@ -158,7 +163,9 @@ describe("krizakaStack — the three stack rules (S1–S3, S11)", () => {
   });
 
   it("no-fetch-in-client-effect: allows a fetch outside an effect, refetch, and server files", async () => {
-    const outside = client(`export function useX(u: string, refetch: () => void) { useEffect(() => { refetch(); }, [refetch]); return () => fetch(u); }`);
+    const outside = client(
+      `export function useX(u: string, refetch: () => void) { useEffect(() => { refetch(); }, [refetch]); return () => fetch(u); }`,
+    );
     expect(await lint(krizakaStack(), outside, "hooks/use-x.ts")).toEqual([]);
     const server = `import { useEffect } from "react";\nexport function useX(u: string) { useEffect(() => { void fetch(u); }, [u]); }`;
     // not a client file: the old rule is silent, the effects rule (any file) is not
@@ -242,9 +249,15 @@ describe("krizakaStack — the three stack rules (S1–S3, S11)", () => {
 
   it("takes files, ignores and severity; composes with noLocaleTernary (one plugin object)", async () => {
     const code = `export function A({ u }: { u: string }) { useEffect(() => { void fetch(u); }, [u]); }`;
-    expect(await lint(krizakaStack({ ignores: ["packages/**"] }), client(code), "packages/query/src/index.ts")).toEqual([]);
+    expect(await lint(krizakaStack({ ignores: ["packages/**"] }), client(code), "packages/query/src/index.ts")).toEqual(
+      [],
+    );
     expect(await lint(krizakaStack({ files: ["apps/**/*.ts"] }), client(code), "lib/x.ts")).toEqual([]);
-    expect((await lint(krizakaStack({ severity: "error" }), client(code), "lib/x.ts")).find((m) => m.ruleId === "krizaka/no-fetch-in-client-effect")!.severity).toBe(2);
+    expect(
+      (await lint(krizakaStack({ severity: "error" }), client(code), "lib/x.ts")).find(
+        (m) => m.ruleId === "krizaka/no-fetch-in-client-effect",
+      )!.severity,
+    ).toBe(2);
     const both = `${client(code)}\nexport const t = (locale: string) => (locale === "fr" ? "Oui" : "Yes");`;
     expect(ids(await lint([...krizakaStack(), ...noLocaleTernary()], both, "lib/x.ts")).sort()).toEqual([
       "krizaka/no-async-in-effect",
@@ -255,7 +268,9 @@ describe("krizakaStack — the three stack rules (S1–S3, S11)", () => {
 
   it("names exactly the stack rules (fetch, the two effect rules, table and form, the family switcher ban, the route state, Sonar's cognitive complexity)", () => {
     expect(STACK_RULES).toHaveLength(7);
-    expect(krizakaStack({ sonar: "off", codeRules: "off" }).flatMap((config) => Object.keys(config.rules!))).toEqual([...STACK_RULES]);
+    expect(krizakaStack({ sonar: "off", codeRules: "off" }).flatMap((config) => Object.keys(config.rules!))).toEqual([
+      ...STACK_RULES,
+    ]);
   });
 });
 
@@ -274,7 +289,9 @@ describe("krizaka/env-name — environment variables named by bounded context (k
       `export const d = process.env.EXPO_PUBLIC_ACME_URL;`,
       `export const e = import.meta.env.VITE_BUNNY_CDN;`,
     ].join("\n");
-    const messages = (await lint(envNames({ products: ["ACME"] }), code, "lib/env.ts")).filter((m) => m.ruleId === "krizaka/env-name");
+    const messages = (await lint(envNames({ products: ["ACME"] }), code, "lib/env.ts")).filter(
+      (m) => m.ruleId === "krizaka/env-name",
+    );
     expect(messages).toHaveLength(5);
     expect(messages[0]!.message).toMatch(/product \(KRIZAKA_\)/);
     expect(messages[1]!.message).toMatch(/vendor \(MAILGUN_\).*MAIL_API_KEY/);
@@ -300,7 +317,9 @@ describe("krizaka/env-name — environment variables named by bounded context (k
     writeFileSync(join(block, "package.json"), JSON.stringify({ name: "@acme/realtime" }));
     expect(ownProductPrefix(block)).toBeNull();
     const eslint = new ESLint({ cwd: dir, overrideConfigFile: true, overrideConfig: [TSX, ...envNames()] });
-    const [result] = await eslint.lintText(`export const t = process.env.ZEBRA_API_TOKEN;`, { filePath: join(dir, "lib/a.ts") });
+    const [result] = await eslint.lintText(`export const t = process.env.ZEBRA_API_TOKEN;`, {
+      filePath: join(dir, "lib/a.ts"),
+    });
     expect(result!.messages.map((m) => m.message)).toEqual([expect.stringMatching(/product \(ZEBRA_\)/)]);
   });
 
@@ -311,7 +330,10 @@ describe("krizaka/env-name — environment variables named by bounded context (k
   });
 
   it("names the refused prefix for scripts (envNamePrefixProblem)", () => {
-    expect(envNamePrefixProblem("ACME_RELEASE_APPROVAL", { products: ["ACME"] })).toEqual({ prefix: "ACME", kind: "product" });
+    expect(envNamePrefixProblem("ACME_RELEASE_APPROVAL", { products: ["ACME"] })).toEqual({
+      prefix: "ACME",
+      kind: "product",
+    });
     expect(envNamePrefixProblem("MAILGUN_DOMAIN")).toEqual({ prefix: "MAILGUN", kind: "vendor" });
     expect(envNamePrefixProblem("NEXT_PUBLIC_CDN_URL")).toBeNull();
     expect(envNamePrefixProblem("APP_RELEASE_APPROVAL")).toBeNull();
@@ -344,11 +366,19 @@ describe("krizakaUiWarnings — no-light-variant and no-raw-palette, named, as w
 
   it("only looks at className, and at the files given", async () => {
     expect(await lint(krizakaUiWarnings(), `export const a = "bg-zinc-900 light:x";`)).toEqual([]);
-    expect(await lint(krizakaUiWarnings({ files: ["**/*.nope"] }), `export const A = () => <div className="bg-zinc-900" />;`)).toEqual([]);
+    expect(
+      await lint(
+        krizakaUiWarnings({ files: ["**/*.nope"] }),
+        `export const A = () => <div className="bg-zinc-900" />;`,
+      ),
+    ).toEqual([]);
   });
 
   it("can be raised to errors", async () => {
-    const messages = await lint(krizakaUiWarnings({ severity: "error" }), `export const A = () => <div className="light:x bg-zinc-900" />;`);
+    const messages = await lint(
+      krizakaUiWarnings({ severity: "error" }),
+      `export const A = () => <div className="light:x bg-zinc-900" />;`,
+    );
     expect(messages.map((m) => m.severity)).toEqual([2, 2]);
   });
 });
@@ -393,9 +423,17 @@ describe("krizaka/route-state-selection — a selection of a page lives in the U
   });
 
   it("watches the view components of a route too (a CheckView under components/), and a segmented RadioGroup, but not a form radio group", async () => {
-    const segmented = await lint(krizakaStack(), page(`<RadioGroup.Root variant="segmented" value={t} onValueChange={setT} />`), "components/console/CheckView.tsx");
+    const segmented = await lint(
+      krizakaStack(),
+      page(`<RadioGroup.Root variant="segmented" value={t} onValueChange={setT} />`),
+      "components/console/CheckView.tsx",
+    );
     expect(segmented.filter((m) => m.ruleId === "krizaka/route-state-selection")).toHaveLength(1);
-    const form = await lint(krizakaStack(), page(`<RadioGroup.Root value={t} onValueChange={setT} />`), "components/Form.tsx");
+    const form = await lint(
+      krizakaStack(),
+      page(`<RadioGroup.Root value={t} onValueChange={setT} />`),
+      "components/Form.tsx",
+    );
     expect(form.filter((m) => m.ruleId === "krizaka/route-state-selection")).toEqual([]);
   });
 });
@@ -407,11 +445,20 @@ describe("krizakaStack: sonarjs/cognitive-complexity (S3776, 15)", () => {
 }`;
   it("is an error by default and a warning on request", async () => {
     expect(ids(await lint(krizakaStack(), complex, "lib/x.ts"))).toContain("sonarjs/cognitive-complexity");
-    expect((await lint(krizakaStack(), complex, "lib/x.ts")).find((m) => m.ruleId === "sonarjs/cognitive-complexity")!.severity).toBe(2);
-    expect((await lint(krizakaStack({ complexity: "warn" }), complex, "lib/x.ts")).find((m) => m.ruleId === "sonarjs/cognitive-complexity")!.severity).toBe(1);
+    expect(
+      (await lint(krizakaStack(), complex, "lib/x.ts")).find((m) => m.ruleId === "sonarjs/cognitive-complexity")!
+        .severity,
+    ).toBe(2);
+    expect(
+      (await lint(krizakaStack({ complexity: "warn" }), complex, "lib/x.ts")).find(
+        (m) => m.ruleId === "sonarjs/cognitive-complexity",
+      )!.severity,
+    ).toBe(1);
   });
   it("accepts a simple function and the threshold is 15", async () => {
-    expect(ids(await lint(krizakaStack(), "export const f = (a: number) => a + 1;", "lib/x.ts"))).not.toContain("sonarjs/cognitive-complexity");
+    expect(ids(await lint(krizakaStack(), "export const f = (a: number) => a + 1;", "lib/x.ts"))).not.toContain(
+      "sonarjs/cognitive-complexity",
+    );
     const { COGNITIVE_COMPLEXITY_MAX } = await import("../eslint/stack.js");
     expect(COGNITIVE_COMPLEXITY_MAX).toBe(15);
   });
@@ -428,8 +475,12 @@ describe("krizakaStack: the Sonar layer (eslint-plugin-sonarjs recommended, ADR-
   });
 
   it("is a warning on request and absent when off", async () => {
-    expect(severityOf(await lint(krizakaStack({ sonar: "warn" }), nested, "lib/x.ts"), "sonarjs/no-nested-conditional")).toBe(1);
-    expect(ids(await lint(krizakaStack({ sonar: "off" }), nested, "lib/x.ts"))).not.toContain("sonarjs/no-nested-conditional");
+    expect(
+      severityOf(await lint(krizakaStack({ sonar: "warn" }), nested, "lib/x.ts"), "sonarjs/no-nested-conditional"),
+    ).toBe(1);
+    expect(ids(await lint(krizakaStack({ sonar: "off" }), nested, "lib/x.ts"))).not.toContain(
+      "sonarjs/no-nested-conditional",
+    );
   });
 
   it("does not scan test files, as Sonar does not", async () => {
@@ -451,16 +502,24 @@ describe("krizakaStack: the Sonar layer (eslint-plugin-sonarjs recommended, ADR-
 
 describe("KRIZAKA_IGNORES — tsup's temporary config", () => {
   it("never lints the bundled config tsup writes next to a build (the lint/build race of krizaka-ts#211)", async () => {
-    const eslint = new ESLint({ overrideConfigFile: true, overrideConfig: [{ ignores: [...KRIZAKA_IGNORES] }], cwd: process.cwd() });
+    const eslint = new ESLint({
+      overrideConfigFile: true,
+      overrideConfig: [{ ignores: [...KRIZAKA_IGNORES] }],
+      cwd: process.cwd(),
+    });
     expect(KRIZAKA_IGNORES).toContain("**/tsup.config.bundled_*");
-    expect(await eslint.isPathIgnored(join(process.cwd(), "packages/time/tsup.config.bundled_0whpqqdtbqs.mjs"))).toBe(true);
+    expect(await eslint.isPathIgnored(join(process.cwd(), "packages/time/tsup.config.bundled_0whpqqdtbqs.mjs"))).toBe(
+      true,
+    );
   });
 });
 
 describe("krizakaCodeRules (krizaka/.github#422)", () => {
   const rules = krizakaCodeRules();
   it("refuses a braceless if, a third level of nesting and a third nested callback layer", async () => {
-    expect(ids(await lint(rules, "export const f = (a: boolean) => { if (a) return 1; return 2; };", "lib/x.ts"))).toEqual(["curly"]);
+    expect(
+      ids(await lint(rules, "export const f = (a: boolean) => { if (a) return 1; return 2; };", "lib/x.ts")),
+    ).toEqual(["curly"]);
     const deep = "export function f(a: number[]) { for (const x of a) { if (x) { for (const y of a) { use(y); } } } }";
     expect(ids(await lint(rules, deep, "lib/x.ts"))).toEqual(["max-depth"]);
   });

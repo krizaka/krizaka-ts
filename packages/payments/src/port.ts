@@ -49,10 +49,41 @@ export interface PaidFacts {
 /** What the domain learns from a processor, vendor-free. `id` is unique per event: the domain applies each once. */
 export type PaymentEvent =
   | ({ id: string; type: "payment_paid"; kind: PlanKind; accountId: string; customerId: string | null } & PaidFacts)
-  | ({ id: string; type: "subscription_started"; accountId: string; customerId: string | null; subscriptionId: string | null } & PaidFacts)
-  | { id: string; type: "subscription_changed"; accountId: string | null; customerId: string | null; subscriptionId: string; status: string; active: boolean; periodEnd: number | null }
-  | { id: string; type: "checkout_expired"; checkoutRef: string; accountId: string | null; metadata: Record<string, string> }
-  | { id: string; type: "payment_refunded"; paymentRef: string | null; invoiceRef: string | null; chargeRef: string; /** CUMULATIVE: all refunds of the payment so far. */ amountRefunded: number; amountCharged: number; currency: string; metadata: Record<string, string> }
+  | ({
+      id: string;
+      type: "subscription_started";
+      accountId: string;
+      customerId: string | null;
+      subscriptionId: string | null;
+    } & PaidFacts)
+  | {
+      id: string;
+      type: "subscription_changed";
+      accountId: string | null;
+      customerId: string | null;
+      subscriptionId: string;
+      status: string;
+      active: boolean;
+      periodEnd: number | null;
+    }
+  | {
+      id: string;
+      type: "checkout_expired";
+      checkoutRef: string;
+      accountId: string | null;
+      metadata: Record<string, string>;
+    }
+  | {
+      id: string;
+      type: "payment_refunded";
+      paymentRef: string | null;
+      invoiceRef: string | null;
+      chargeRef: string;
+      /** CUMULATIVE: all refunds of the payment so far. */ amountRefunded: number;
+      amountCharged: number;
+      currency: string;
+      metadata: Record<string, string>;
+    }
   | { id: string; type: "ignored" };
 
 export interface CheckoutRequest {
@@ -130,7 +161,10 @@ export interface PaymentsPort {
    */
   charge(request: ChargeRequest): Promise<ChargeResult>;
   /** Gives a charge back, in whole or in part. `ref` is `ChargeResult.ref` (an invoice) or a payment reference. */
-  refund(ref: string, options?: RefundOptions): Promise<{ refundRef: string; amountRefunded: number; currency: string }>;
+  refund(
+    ref: string,
+    options?: RefundOptions,
+  ): Promise<{ refundRef: string; amountRefunded: number; currency: string }>;
   /** Verifies the notification's proof of origin (read from its headers) over the raw body and translates it; throws `PaymentsError` on a bad signature. */
   parseWebhook(rawBody: string, headers: Headers, nowSeconds: number): PaymentEvent;
 }

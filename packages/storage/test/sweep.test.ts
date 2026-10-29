@@ -7,7 +7,8 @@ const meta = { contentType: "text/plain" };
 
 async function seeded(): Promise<ObjectStore> {
   const store = memoryObjectStore();
-  for (const key of ["docs/o1/a/original.pdf", "docs/o1/b/original.pdf", "docs/o2/c/original.png", "other/z/file.txt"]) await store.put(key, bytes, meta);
+  for (const key of ["docs/o1/a/original.pdf", "docs/o1/b/original.pdf", "docs/o2/c/original.png", "other/z/file.txt"])
+    await store.put(key, bytes, meta);
   return store;
 }
 
@@ -16,7 +17,12 @@ describe("sweepOrphans", () => {
     const store = await seeded();
     const known = new Set(["docs/o1/a/original.pdf"]);
     const result = await sweepOrphans(store, "docs/", (key) => known.has(key));
-    expect(result).toEqual({ scanned: 3, orphans: ["docs/o1/b/original.pdf", "docs/o2/c/original.png"], deleted: 2, failed: [] });
+    expect(result).toEqual({
+      scanned: 3,
+      orphans: ["docs/o1/b/original.pdf", "docs/o2/c/original.png"],
+      deleted: 2,
+      failed: [],
+    });
     expect((await store.list("")).map((f) => f.key)).toEqual(["docs/o1/a/original.pdf", "other/z/file.txt"]);
   });
 
@@ -31,7 +37,12 @@ describe("sweepOrphans", () => {
   it("is idempotent: a second run finds nothing", async () => {
     const store = await seeded();
     await sweepOrphans(store, "docs/", () => false);
-    expect(await sweepOrphans(store, "docs/", () => false)).toEqual({ scanned: 0, orphans: [], deleted: 0, failed: [] });
+    expect(await sweepOrphans(store, "docs/", () => false)).toEqual({
+      scanned: 0,
+      orphans: [],
+      deleted: 0,
+      failed: [],
+    });
   });
 
   it("keeps going when one delete fails, and reports it for the next sweep", async () => {

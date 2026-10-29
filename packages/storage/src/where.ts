@@ -20,10 +20,30 @@ export interface StoreDescriptor {
 }
 
 /** The descriptor of a configured store, from its configuration alone (see `residencyOfConfig`: a Bunny-shaped zone is dev only and never Canadian). */
-export function describeStore(config: { provider: "http" | "s3"; endpoint: string; region: string }, options: { encrypted: boolean; owner?: StoreOwner; httpKind?: string }): StoreDescriptor {
+export function describeStore(
+  config: { provider: "http" | "s3"; endpoint: string; region: string },
+  options: { encrypted: boolean; owner?: StoreOwner; httpKind?: string },
+): StoreDescriptor {
   const owner = options.owner ?? "krizaka";
-  if (config.provider === "http") return { kind: options.httpKind ?? "http", endpoint: config.endpoint, region: null, residency: "elsewhere", encrypted: options.encrypted, owner, devOnly: true };
-  return { kind: "s3", endpoint: new URL(config.endpoint).host, region: config.region, residency: residencyOfConfig(config), encrypted: options.encrypted, owner, devOnly: false };
+  if (config.provider === "http")
+    return {
+      kind: options.httpKind ?? "http",
+      endpoint: config.endpoint,
+      region: null,
+      residency: "elsewhere",
+      encrypted: options.encrypted,
+      owner,
+      devOnly: true,
+    };
+  return {
+    kind: "s3",
+    endpoint: new URL(config.endpoint).host,
+    region: config.region,
+    residency: residencyOfConfig(config),
+    encrypted: options.encrypted,
+    owner,
+    devOnly: false,
+  };
 }
 
 export interface WhereOptions {
@@ -41,20 +61,40 @@ export interface WhereOptions {
 export function where(kind: string, active: StoreDescriptor, options: WhereOptions = {}): StoreDescriptor {
   const fixed = options.fixed?.[kind];
   if (fixed) return fixed;
-  if (kind === STORE_KIND.none) return { ...active, kind, endpoint: null, region: null, residency: "unknown", encrypted: false, devOnly: false };
-  if (kind === STORE_KIND.device) return { kind, endpoint: null, region: null, residency: "device", encrypted: false, owner: "device", devOnly: false };
+  if (kind === STORE_KIND.none)
+    return { ...active, kind, endpoint: null, region: null, residency: "unknown", encrypted: false, devOnly: false };
+  if (kind === STORE_KIND.device)
+    return {
+      kind,
+      endpoint: null,
+      region: null,
+      residency: "device",
+      encrypted: false,
+      owner: "device",
+      devOnly: false,
+    };
   if (kind === active.kind) return active;
-  return { kind, endpoint: null, region: null, residency: "unknown", encrypted: false, owner: "krizaka", devOnly: options.devOnly?.includes(kind) ?? false };
+  return {
+    kind,
+    endpoint: null,
+    region: null,
+    residency: "unknown",
+    encrypted: false,
+    owner: "krizaka",
+    devOnly: options.devOnly?.includes(kind) ?? false,
+  };
 }
 
-export type NoticeKey = "none" | "krizakaCanadaEncrypted" | "krizakaCanada" | "krizakaElsewhere" | "workspace" | "devOnly" | "device";
+export type NoticeKey =
+  "none" | "krizakaCanadaEncrypted" | "krizakaCanada" | "krizakaElsewhere" | "workspace" | "devOnly" | "device";
 
 /** Which sentence says where this object lives (« Not kept », « Kept: Krizaka (Canada, encrypted) »…), with its variables; the product's messages hold the words. */
 export function storageNotice(d: StoreDescriptor): { key: NoticeKey; vars: Record<string, string> } {
   if (d.kind === STORE_KIND.none) return { key: "none", vars: {} };
   if (d.kind === STORE_KIND.device) return { key: "device", vars: {} };
   if (d.devOnly) return { key: "devOnly", vars: {} };
-  if (d.owner === "workspace") return { key: "workspace", vars: { endpoint: d.endpoint ?? "", region: d.region ?? "" } };
+  if (d.owner === "workspace")
+    return { key: "workspace", vars: { endpoint: d.endpoint ?? "", region: d.region ?? "" } };
   if (d.residency === "canada") return { key: d.encrypted ? "krizakaCanadaEncrypted" : "krizakaCanada", vars: {} };
   return { key: "krizakaElsewhere", vars: { region: d.region ?? "" } };
 }

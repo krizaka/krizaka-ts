@@ -63,12 +63,18 @@ const KEY = /^[a-z][a-z0-9_]{0,39}$/;
 /** A key of a state, a set, a reason, a role or a system view: lower-case letters, digits, underscore. */
 export const isKey = (value: unknown): value is string => typeof value === "string" && KEY.test(value);
 
-const isLabelText = (value: unknown) => typeof value === "string" && value.trim().length > 0 && value.length <= LABEL_MAX;
+const isLabelText = (value: unknown) =>
+  typeof value === "string" && value.trim().length > 0 && value.length <= LABEL_MAX;
 
 /** Whether a value is a label in both languages, each 1 to LABEL_MAX characters. */
-export const isLabel = (value: unknown): value is Label => isRecord(value) && isLabelText(value.fr) && isLabelText(value.en);
+export const isLabel = (value: unknown): value is Label =>
+  isRecord(value) && isLabelText(value.fr) && isLabelText(value.en);
 
-function keyedProblems(items: unknown, what: string, extra: (item: Record<string, unknown>, at: string) => string[]): string[] {
+function keyedProblems(
+  items: unknown,
+  what: string,
+  extra: (item: Record<string, unknown>, at: string) => string[],
+): string[] {
   if (!Array.isArray(items)) return [`${what} must be a list`];
   const seen = new Set<string>();
   return items.flatMap((item, i): string[] => {
@@ -95,7 +101,8 @@ function transitionProblems(set: Record<string, unknown>, states: Map<string, Re
     const pair = `${String(t.from)}→${String(t.to)}`;
     if (pairs.has(pair)) out.push(`${at}: ${pair} is declared twice`);
     pairs.add(pair);
-    if (!Array.isArray(t.roles) || t.roles.length === 0 || !t.roles.every(isKey)) out.push(`${at}: roles is a non-empty list of role keys`);
+    if (!Array.isArray(t.roles) || t.roles.length === 0 || !t.roles.every(isKey))
+      out.push(`${at}: roles is a non-empty list of role keys`);
     if (t.confirm !== undefined && typeof t.confirm !== "boolean") out.push(`${at}: confirm is true or false`);
     if (t.reasons !== undefined) out.push(...keyedProblems(t.reasons, `${at}.reasons`, () => []));
     return out;
@@ -116,19 +123,26 @@ export function statusSetProblems(input: unknown): string[] {
   if (!modes.includes(input.mode)) out.push("mode: editable or derived");
   out.push(
     ...keyedProblems(input.states, "states", (s, at) => [
-      ...((STATUS_TONES as readonly unknown[]).includes(s.tone) ? [] : [`${at}: tone is one of ${STATUS_TONES.join(", ")}`]),
+      ...((STATUS_TONES as readonly unknown[]).includes(s.tone)
+        ? []
+        : [`${at}: tone is one of ${STATUS_TONES.join(", ")}`]),
       ...(s.final === undefined || typeof s.final === "boolean" ? [] : [`${at}: final is true or false`]),
     ]),
   );
-  const states = new Map(Array.isArray(input.states) ? input.states.filter(isRecord).map((s) => [String(s.key), s] as const) : []);
-  if (Array.isArray(input.states) && (input.states.length < 2 || input.states.length > STATES_MAX)) out.push(`states: 2 to ${STATES_MAX}`);
+  const states = new Map(
+    Array.isArray(input.states) ? input.states.filter(isRecord).map((s) => [String(s.key), s] as const) : [],
+  );
+  if (Array.isArray(input.states) && (input.states.length < 2 || input.states.length > STATES_MAX))
+    out.push(`states: 2 to ${STATES_MAX}`);
   return [...out, ...(input.mode === STATUS_MODE.derived ? derivedProblems(input) : editableProblems(input, states))];
 }
 
 function derivedProblems(set: Record<string, unknown>): string[] {
   return [
     ...(set.initial === undefined ? [] : ["a derived set has no initial state"]),
-    ...(Array.isArray(set.transitions) && set.transitions.length === 0 ? [] : ["a derived set has no transitions: nobody moves it"]),
+    ...(Array.isArray(set.transitions) && set.transitions.length === 0
+      ? []
+      : ["a derived set has no transitions: nobody moves it"]),
   ];
 }
 
@@ -159,7 +173,9 @@ export const stateOf = (set: StatusSet, key: string): StatusState | undefined =>
 export function movesFrom(set: StatusSet, from: string, role: string): StatusTransition[] {
   if (set.mode !== STATUS_MODE.editable) return [];
   const order = statusOrder(set);
-  return set.transitions.filter((t) => t.from === from && t.roles.includes(role)).sort((a, b) => (order.get(a.to) ?? 0) - (order.get(b.to) ?? 0));
+  return set.transitions
+    .filter((t) => t.from === from && t.roles.includes(role))
+    .sort((a, b) => (order.get(a.to) ?? 0) - (order.get(b.to) ?? 0));
 }
 
 /**
@@ -167,12 +183,16 @@ export function movesFrom(set: StatusSet, from: string, role: string): StatusTra
  * @returns the transition
  * @throws OrganizeError `STATUS_DERIVED`, `MOVE_NOT_ALLOWED`, `FORBIDDEN` or `BAD_REQUEST` (a reason the move does not accept)
  */
-export function checkMove(set: StatusSet, move: { from: string; to: string; role: string; reason?: string | null }): StatusTransition {
+export function checkMove(
+  set: StatusSet,
+  move: { from: string; to: string; role: string; reason?: string | null },
+): StatusTransition {
   if (set.mode !== STATUS_MODE.editable) throw new OrganizeError(ORGANIZE_CODE.statusDerived);
   const transition = set.transitions.find((t) => t.from === move.from && t.to === move.to);
   if (!transition) throw new OrganizeError(ORGANIZE_CODE.moveNotAllowed, `${move.from} → ${move.to}`);
   if (!transition.roles.includes(move.role)) throw new OrganizeError(ORGANIZE_CODE.forbidden);
-  if (move.reason != null && !(transition.reasons ?? []).some((r) => r.key === move.reason)) throw new OrganizeError(ORGANIZE_CODE.badRequest, "Not a reason of this move");
+  if (move.reason != null && !(transition.reasons ?? []).some((r) => r.key === move.reason))
+    throw new OrganizeError(ORGANIZE_CODE.badRequest, "Not a reason of this move");
   return transition;
 }
 

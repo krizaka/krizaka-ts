@@ -10,12 +10,20 @@ describe("the settings of the outbox", () => {
     expect(outboxSettings["outbox.maxAttempts"]).toMatchObject({ default: 8, min: 1, max: 50 });
     expect(outboxSettings["outbox.backoffSeconds"]).toMatchObject({ default: 30, min: 1, max: 3600 });
     for (const key of Object.keys(OUTBOX_DEFAULTS) as (keyof typeof OUTBOX_DEFAULTS)[]) {
-      expect(outboxSettings[`outbox.${key}`]).toMatchObject({ default: OUTBOX_DEFAULTS[key], min: OUTBOX_BOUNDS[key][0], max: OUTBOX_BOUNDS[key][1] });
+      expect(outboxSettings[`outbox.${key}`]).toMatchObject({
+        default: OUTBOX_DEFAULTS[key],
+        min: OUTBOX_BOUNDS[key][0],
+        max: OUTBOX_BOUNDS[key][1],
+      });
     }
   });
 
   it("are read back for the outbox, falling back to the default for a key nobody knows", async () => {
     const values: Record<string, number> = { "outbox.batchSize": 100, "outbox.maxAttempts": 3 };
-    expect(await readOutboxSettings((key) => values[key])).toEqual({ ...OUTBOX_DEFAULTS, batchSize: 100, maxAttempts: 3 });
+    expect(await readOutboxSettings((key) => values[key])).toEqual({
+      ...OUTBOX_DEFAULTS,
+      batchSize: 100,
+      maxAttempts: 3,
+    });
   });
 });

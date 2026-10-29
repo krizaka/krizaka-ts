@@ -52,7 +52,11 @@ export const residencyOf = (region: string): Residency => (countryOf(region) ===
  */
 export function residencyOfConfig(config: { provider: "http" | "s3"; endpoint: string; region: string }): Residency {
   if (config.provider === "http") return "elsewhere";
-  const host = config.endpoint.replace(/^[a-z]+:\/\//i, "").split("/")[0]?.toLowerCase() ?? "";
+  const host =
+    config.endpoint
+      .replace(/^[a-z]+:\/\//i, "")
+      .split("/")[0]
+      ?.toLowerCase() ?? "";
   const labels = host.split(".").filter((label) => countryOf(label) !== undefined);
   if (labels.some((label) => countryOf(label) !== "CA")) return "elsewhere";
   return residencyOf(config.region);
@@ -95,5 +99,10 @@ export function residencyLabel(config: { provider: "http" | "s3"; endpoint: stri
   }
   const province = provinceOf(config.region);
   if (!province) return { key: "canada", country: "CA", province: null, text: "Canada" };
-  return { key: `canada-${province.toLowerCase()}` as ResidencyLabel["key"], country: "CA", province, text: `Canada (${PROVINCE_NAME[province]})` };
+  return {
+    key: `canada-${province.toLowerCase()}` as ResidencyLabel["key"],
+    country: "CA",
+    province,
+    text: `Canada (${PROVINCE_NAME[province]})`,
+  };
 }

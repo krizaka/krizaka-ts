@@ -43,7 +43,12 @@ export interface MailProvider {
   send(mail: OutgoingMail): Promise<Sent>;
 }
 
-export const DELIVERY_STATUS = { sent: "sent", failed: "failed", suppressed: "suppressed", duplicate: "duplicate" } as const;
+export const DELIVERY_STATUS = {
+  sent: "sent",
+  failed: "failed",
+  suppressed: "suppressed",
+  duplicate: "duplicate",
+} as const;
 export type DeliveryStatus = (typeof DELIVERY_STATUS)[keyof typeof DELIVERY_STATUS];
 
 /** One line of the delivery log: what, to whom (a hash, never the address), how it went. The shape of `@krizaka/email`'s `DeliveryLogEntry`. */

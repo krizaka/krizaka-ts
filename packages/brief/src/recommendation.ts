@@ -41,20 +41,28 @@ export class BriefError extends Error {
   }
 }
 
-export type RecommendationInput<Kind extends string, Action extends BriefAction> = Omit<Recommendation<Kind, Action>, "id" | "assumptions" | "evidence"> & {
+export type RecommendationInput<Kind extends string, Action extends BriefAction> = Omit<
+  Recommendation<Kind, Action>,
+  "id" | "assumptions" | "evidence"
+> & {
   readonly week: string;
   readonly assumptions?: readonly string[];
   readonly evidence?: readonly string[];
 };
 
 /** Builds a recommendation, checks its money and figures are integers, and gives it its stable id. */
-export function recommendation<Kind extends string, Action extends BriefAction>(input: RecommendationInput<Kind, Action>): Recommendation<Kind, Action> {
+export function recommendation<Kind extends string, Action extends BriefAction>(
+  input: RecommendationInput<Kind, Action>,
+): Recommendation<Kind, Action> {
   const { week, assumptions = [], evidence = [], ...rest } = input;
-  if (rest.subject.length === 0 || rest.subject.includes(":")) throw new BriefError("BAD_SUBJECT", `subject « ${rest.subject} » must be non-empty, without « : »`);
-  if (!Number.isSafeInteger(rest.impactCents)) throw new BriefError("NOT_INTEGER", `${rest.kind}: impactCents must be an integer`);
+  if (rest.subject.length === 0 || rest.subject.includes(":"))
+    throw new BriefError("BAD_SUBJECT", `subject « ${rest.subject} » must be non-empty, without « : »`);
+  if (!Number.isSafeInteger(rest.impactCents))
+    throw new BriefError("NOT_INTEGER", `${rest.kind}: impactCents must be an integer`);
   if (rest.impactCents < 0) throw new BriefError("NEGATIVE_IMPACT", `${rest.kind}: impactCents must be ≥ 0`);
   for (const [name, value] of Object.entries(rest.figures)) {
-    if (!Number.isSafeInteger(value)) throw new BriefError("NOT_INTEGER", `${rest.kind}: figure ${name} must be an integer`);
+    if (!Number.isSafeInteger(value))
+      throw new BriefError("NOT_INTEGER", `${rest.kind}: figure ${name} must be an integer`);
   }
   return { id: `${week}:${rest.kind}:${rest.subject}`, ...rest, assumptions, evidence };
 }

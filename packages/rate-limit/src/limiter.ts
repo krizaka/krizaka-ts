@@ -1,7 +1,15 @@
 import type { Clock } from "@krizaka/db";
 
 import { retryAfterSeconds } from "./memory";
-import { type ActionLimit, type CheckResult, type LimitKeys, type LimitsSource, type LimitStore, RATE_LIMIT_CODE, RateLimited } from "./port";
+import {
+  type ActionLimit,
+  type CheckResult,
+  type LimitKeys,
+  type LimitsSource,
+  type LimitStore,
+  RATE_LIMIT_CODE,
+  RateLimited,
+} from "./port";
 
 export interface LimiterDeps {
   store: LimitStore;
@@ -32,8 +40,15 @@ const subjectKey = (action: string, subject: string) => `${action}:s:${subject.t
 function checked(action: string, limit: ActionLimit | undefined): ActionLimit {
   if (!limit) throw new RangeError(`${RATE_LIMIT_CODE.noLimits}: no limits declared for the action « ${action} »`);
   const whole = (value: number | undefined) => value === undefined || (Number.isInteger(value) && value >= 1);
-  if (!Number.isInteger(limit.windowSeconds) || limit.windowSeconds < 1 || !whole(limit.perIp) || !whole(limit.perSubject)) {
-    throw new RangeError(`${RATE_LIMIT_CODE.badLimit}: « ${action} » needs whole numbers from 1 (windowSeconds ${limit.windowSeconds}, perIp ${limit.perIp}, perSubject ${limit.perSubject})`);
+  if (
+    !Number.isInteger(limit.windowSeconds) ||
+    limit.windowSeconds < 1 ||
+    !whole(limit.perIp) ||
+    !whole(limit.perSubject)
+  ) {
+    throw new RangeError(
+      `${RATE_LIMIT_CODE.badLimit}: « ${action} » needs whole numbers from 1 (windowSeconds ${limit.windowSeconds}, perIp ${limit.perIp}, perSubject ${limit.perSubject})`,
+    );
   }
   return limit;
 }
@@ -45,7 +60,8 @@ function checked(action: string, limit: ActionLimit | undefined): ActionLimit {
  * @throws RangeError when an action has no limits, or limits that are not whole numbers from 1
  */
 export function createLimiter(deps: LimiterDeps): Limiter {
-  const limitsOf = async (action: string): Promise<ActionLimit> => checked(action, typeof deps.limits === "function" ? await deps.limits(action) : deps.limits[action]);
+  const limitsOf = async (action: string): Promise<ActionLimit> =>
+    checked(action, typeof deps.limits === "function" ? await deps.limits(action) : deps.limits[action]);
 
   async function guarded<T>(action: string, work: () => Promise<T>, whenFailed: T): Promise<T> {
     try {
@@ -62,7 +78,8 @@ export function createLimiter(deps: LimiterDeps): Limiter {
     const now = deps.clock.now();
     const counters: { scope: "ip" | "subject"; key: string; max: number }[] = [];
     if (limit.perIp !== undefined) counters.push({ scope: "ip", key: ipKey(action, keys.ip), max: limit.perIp });
-    if (limit.perSubject !== undefined && keys.subject) counters.push({ scope: "subject", key: subjectKey(action, keys.subject), max: limit.perSubject });
+    if (limit.perSubject !== undefined && keys.subject)
+      counters.push({ scope: "subject", key: subjectKey(action, keys.subject), max: limit.perSubject });
     for (const { scope, key, max } of counters) {
       const hit = await guarded(action, () => deps.store.hit(key, limit.windowSeconds, now), null);
       if (hit && hit.count > max) return { ok: false, retryAfterSeconds: retryAfterSeconds(hit.resetAt, now), scope };

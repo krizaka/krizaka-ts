@@ -29,21 +29,41 @@ describe("the administration's three locks", () => {
   });
 
   it("on the API: 401 without a session, 403 for another role, 403 for another address, each with its code", () => {
-    expect(requireAdmin({ session: null, ...open })).toEqual({ ok: false, status: 401, code: ADMIN_REFUSAL.unauthenticated });
+    expect(requireAdmin({ session: null, ...open })).toEqual({
+      ok: false,
+      status: 401,
+      code: ADMIN_REFUSAL.unauthenticated,
+    });
     expect(requireAdmin({ session: user, ...open })).toEqual({ ok: false, status: 403, code: ADMIN_REFUSAL.forbidden });
-    expect(requireAdmin({ session: admin, ip: "198.51.100.9", allowedIps: ["203.0.113.7"] })).toEqual({ ok: false, status: 403, code: ADMIN_REFUSAL.ipNotAllowed });
+    expect(requireAdmin({ session: admin, ip: "198.51.100.9", allowedIps: ["203.0.113.7"] })).toEqual({
+      ok: false,
+      status: 403,
+      code: ADMIN_REFUSAL.ipNotAllowed,
+    });
   });
 
   it("on a page: the administration does not announce itself, so every failed lock is a 404", () => {
-    for (const input of [{ session: null, ...open }, { session: user, ...open }, { session: admin, ip: null, allowedIps: [] }]) {
-      expect(requireAdmin({ ...input, surface: "page" })).toEqual({ ok: false, status: 404, code: ADMIN_REFUSAL.notFound });
+    for (const input of [
+      { session: null, ...open },
+      { session: user, ...open },
+      { session: admin, ip: null, allowedIps: [] },
+    ]) {
+      expect(requireAdmin({ ...input, surface: "page" })).toEqual({
+        ok: false,
+        status: 404,
+        code: ADMIN_REFUSAL.notFound,
+      });
     }
     expect(requireAdmin({ session: admin, ...open, surface: "page" })).toEqual({ ok: true });
   });
 
   it("the first lock that fails decides, and the role is the product's to name", () => {
     expect(requireAdmin({ session: user, ip: "198.51.100.9", allowedIps: [] }).ok).toBe(false);
-    expect(requireAdmin({ session: user, ip: "198.51.100.9", allowedIps: [] })).toMatchObject({ code: ADMIN_REFUSAL.forbidden });
-    expect(requireAdmin({ session: { account: { role: "OPERATOR" } }, ip: null, allowedIps: null, role: "OPERATOR" })).toEqual({ ok: true });
+    expect(requireAdmin({ session: user, ip: "198.51.100.9", allowedIps: [] })).toMatchObject({
+      code: ADMIN_REFUSAL.forbidden,
+    });
+    expect(
+      requireAdmin({ session: { account: { role: "OPERATOR" } }, ip: null, allowedIps: null, role: "OPERATOR" }),
+    ).toEqual({ ok: true });
   });
 });

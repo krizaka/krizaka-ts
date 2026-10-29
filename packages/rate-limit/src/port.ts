@@ -40,7 +40,9 @@ export interface ActionLimit {
  * The limits, by action: a table, or a function that answers for an action (so the product can read them from its settings at each
  * check). `undefined` for an action nobody declared is a programming error and throws.
  */
-export type LimitsSource = Readonly<Record<string, ActionLimit>> | ((action: string) => ActionLimit | undefined | Promise<ActionLimit | undefined>);
+export type LimitsSource =
+  | Readonly<Record<string, ActionLimit>>
+  | ((action: string) => ActionLimit | undefined | Promise<ActionLimit | undefined>);
 
 /** The keys one check counts. The limiter receives keys, never a request: extract the address with `clientIp` of `@krizaka/auth`. */
 export interface LimitKeys {

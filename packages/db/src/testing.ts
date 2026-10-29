@@ -39,7 +39,10 @@ async function run(connection: Connection, sql: string): Promise<void> {
  */
 export async function createTestDatabase(options: TestDatabaseOptions): Promise<TestDatabase> {
   // A longer name would be truncated by PostgreSQL to 63 bytes, cutting the random suffix: runs would collide.
-  if (options.prefix.length > 47) throw new DbError(DB_CODE.unsafeIdentifier, [`${options.prefix}: a test database prefix has at most 47 characters`]);
+  if (options.prefix.length > 47)
+    throw new DbError(DB_CODE.unsafeIdentifier, [
+      `${options.prefix}: a test database prefix has at most 47 characters`,
+    ]);
   const name = ident(`${ident(options.prefix)}_it_${randomBytes(6).toString("hex")}`);
   await run(await options.connect(), `CREATE DATABASE ${name}`);
   const drop = async () => run(await options.connect(), `DROP DATABASE IF EXISTS ${name} WITH (FORCE)`);
@@ -74,7 +77,9 @@ export async function endPool(pool: EndablePool): Promise<void> {
   const clients = pool._clients ?? [];
   const closed = clients.flatMap(({ connection }) => {
     const stream = connection?.stream;
-    return stream && !stream.destroyed ? [new Promise<void>((resolve) => void stream.once("close", () => resolve()))] : [];
+    return stream && !stream.destroyed
+      ? [new Promise<void>((resolve) => void stream.once("close", () => resolve()))]
+      : [];
   });
   await pool.end();
   await Promise.all(closed);
@@ -83,7 +88,11 @@ export async function endPool(pool: EndablePool): Promise<void> {
 const MARKER = /\('([a-z_][a-z0-9_]*)', (\d+), '([0-9a-f]{64})'\)/g;
 
 /** The text as the drift test compares it: whitespace collapsed, drizzle's statement breakpoints ignored. */
-const normalize = (text: string) => text.replace(/-->\s*statement-breakpoint/g, " ").replace(/\s+/g, " ").trim();
+const normalize = (text: string) =>
+  text
+    .replace(/-->\s*statement-breakpoint/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 
 /** Where version `version` of a module is in the sequence: its emitted block, or an adoption block that covers it. -1 when absent. */
 function positionOf(text: string, module: ComposedModule, version: number): number {
@@ -97,7 +106,8 @@ function positionOf(text: string, module: ComposedModule, version: number): numb
 }
 
 /** Each « module vN » that has a marker somewhere (a marker without its exact block means edited or deleted SQL). */
-const markedVersions = (text: string) => new Set([...text.matchAll(MARKER)].map(([, module, version]) => `${module} v${version}`));
+const markedVersions = (text: string) =>
+  new Set([...text.matchAll(MARKER)].map(([, module, version]) => `${module} v${version}`));
 
 /**
  * The product's drift test. Every version of every composed module is in the product's sequence **as `emitMigration` (or
@@ -123,7 +133,11 @@ export function assertEmbedded(files: readonly string[], modules: readonly Compo
   }
   if (changed.length > 0) throw new DbError(DB_CODE.frozenChanged, changed);
   if (missing.length > 0) throw new DbError(DB_CODE.missingModules, missing);
-  const late = modules.flatMap(({ schema }) => schema.requires.filter((required) => (first.get(required) ?? Infinity) > first.get(schema.module)!).map((required) => `${schema.module} before ${required}`));
+  const late = modules.flatMap(({ schema }) =>
+    schema.requires
+      .filter((required) => (first.get(required) ?? Infinity) > first.get(schema.module)!)
+      .map((required) => `${schema.module} before ${required}`),
+  );
   if (late.length > 0) throw new DbError(DB_CODE.order, late);
 }
 
@@ -148,7 +162,9 @@ export interface UpgradeCase {
 export async function assertUpgrade(connect: Connect, upgrade: UpgradeCase): Promise<void> {
   const options = { lockKey: upgrade.lockKey ?? 7300 };
   await migrate(connect, upgrade.from, options);
-  await transaction(connect, async (query) => { await query(upgrade.seed); });
+  await transaction(connect, async (query) => {
+    await query(upgrade.seed);
+  });
   await migrate(connect, upgrade.to, options);
   const connection = await connect();
   try {

@@ -49,7 +49,8 @@ export const COUPON_BOUNDS = {
 export function checkSettings(s: CouponSettings): CouponSettings {
   for (const [key, [min, max]] of Object.entries(COUPON_BOUNDS)) {
     const value = s[key as keyof typeof COUPON_BOUNDS];
-    if (!Number.isSafeInteger(value) || value < min || value > max) throw new CouponError(COUPON_ERROR.badSettings, `${key} is ${min} to ${max}, got ${value}`);
+    if (!Number.isSafeInteger(value) || value < min || value > max)
+      throw new CouponError(COUPON_ERROR.badSettings, `${key} is ${min} to ${max}, got ${value}`);
   }
   return s;
 }
@@ -67,7 +68,10 @@ const MIN_CODE = 4;
  * @returns the key, or null when what is left is empty, too long or not letters and digits
  */
 export function normalizeCode(input: string): string | null {
-  const key = input.normalize("NFKC").replace(/[\s\-_]+/g, "").toUpperCase();
+  const key = input
+    .normalize("NFKC")
+    .replace(/[\s\-_]+/g, "")
+    .toUpperCase();
   return /^[A-Z0-9]+$/.test(key) && key.length >= 1 && key.length <= MAX_CODE ? key : null;
 }
 
@@ -125,11 +129,28 @@ export interface CreditEffect {
 /** What a code gives, in numbers. Informational for a discount: the provider computes the real amount and its taxes. */
 export function effectOf(coupon: Coupon, amountMinor: number): DiscountEffect | CreditEffect {
   if (coupon.kind === KIND.credit) {
-    return { kind: KIND.credit, credits: coupon.credits!, capPerDay: coupon.capPerDay, capPerMonth: coupon.capPerMonth, validDays: coupon.creditsValidDays!, onExhausted: coupon.onExhausted! };
+    return {
+      kind: KIND.credit,
+      credits: coupon.credits!,
+      capPerDay: coupon.capPerDay,
+      capPerMonth: coupon.capPerMonth,
+      validDays: coupon.creditsValidDays!,
+      onExhausted: coupon.onExhausted!,
+    };
   }
-  const raw = coupon.percentOffBp !== null ? Math.round((amountMinor * coupon.percentOffBp) / 10_000) : coupon.amountOffMinor!;
+  const raw =
+    coupon.percentOffBp !== null ? Math.round((amountMinor * coupon.percentOffBp) / 10_000) : coupon.amountOffMinor!;
   const discountMinor = Math.min(raw, amountMinor);
-  return { kind: KIND.discount, percentOffBp: coupon.percentOffBp, amountOffMinor: coupon.amountOffMinor, currency: coupon.currency, duration: coupon.duration!, durationMonths: coupon.durationMonths, discountMinor, payableMinor: amountMinor - discountMinor };
+  return {
+    kind: KIND.discount,
+    percentOffBp: coupon.percentOffBp,
+    amountOffMinor: coupon.amountOffMinor,
+    currency: coupon.currency,
+    duration: coupon.duration!,
+    durationMonths: coupon.durationMonths,
+    discountMinor,
+    payableMinor: amountMinor - discountMinor,
+  };
 }
 
 /** The immutable terms a provider adapter turns into its object. */
@@ -137,7 +158,9 @@ export function termsOf(coupon: Coupon): DiscountTerms {
   return {
     couponId: coupon.id,
     termsVersion: coupon.termsVersion,
-    ...(coupon.percentOffBp !== null ? { percentOffBp: coupon.percentOffBp } : { amountOffMinor: coupon.amountOffMinor!, currency: coupon.currency! }),
+    ...(coupon.percentOffBp !== null
+      ? { percentOffBp: coupon.percentOffBp }
+      : { amountOffMinor: coupon.amountOffMinor!, currency: coupon.currency! }),
     duration: coupon.duration!,
     ...(coupon.durationMonths !== null ? { durationMonths: coupon.durationMonths } : {}),
   };
@@ -161,12 +184,21 @@ function discountRefusal(coupon: Coupon, ctx: CheckoutContext, settings: CouponS
   if (coupon.plans.length > 0 && !coupon.plans.includes(ctx.plan ?? "")) return COUPON_CODE.notForPlan;
   if (coupon.minimumMinor !== null && amount < coupon.minimumMinor) return COUPON_CODE.minimum;
   if (coupon.currency !== null && coupon.currency !== ctx.currency) return COUPON_CODE.currency;
-  const tooLarge = coupon.percentOffBp !== null ? coupon.percentOffBp > settings.maxPercentOff * 100 : coupon.amountOffMinor! * 100 > amount * settings.maxPercentOff;
+  const tooLarge =
+    coupon.percentOffBp !== null
+      ? coupon.percentOffBp > settings.maxPercentOff * 100
+      : coupon.amountOffMinor! * 100 > amount * settings.maxPercentOff;
   return tooLarge ? COUPON_CODE.tooLarge : null;
 }
 
 /** The first rule a code breaks for a context at `now`, or none. The order is the order of the refusals' table. */
-export function refusalOf(coupon: Coupon, ctx: CheckoutContext, usage: Usage, now: Date, settings: CouponSettings): CouponRefusal | null {
+export function refusalOf(
+  coupon: Coupon,
+  ctx: CheckoutContext,
+  usage: Usage,
+  now: Date,
+  settings: CouponSettings,
+): CouponRefusal | null {
   const discount = coupon.kind === KIND.discount;
   if (discount !== (ctx.mode === "checkout")) return COUPON_CODE.kind;
   return commonRefusal(coupon, ctx, usage, now) ?? (discount ? discountRefusal(coupon, ctx, settings) : null);
@@ -210,10 +242,12 @@ const pos = (n: number | null | undefined, what: string, max = Number.MAX_SAFE_I
 export function checkCoupon(c: Coupon | (NewCoupon & { codeKey?: string }), settings: CouponSettings): void {
   const code = c.code.trim();
   const key = normalizeCode(code);
-  if (!key || key.length < Math.max(MIN_CODE, settings.minCodeLength)) throw bad(`A code is letters and digits, ${Math.max(MIN_CODE, settings.minCodeLength)} to ${MAX_CODE} characters`);
+  if (!key || key.length < Math.max(MIN_CODE, settings.minCodeLength))
+    throw bad(`A code is letters and digits, ${Math.max(MIN_CODE, settings.minCodeLength)} to ${MAX_CODE} characters`);
   if (c.kind !== KIND.discount && c.kind !== KIND.credit) throw bad("A coupon is a discount or a credit");
   if (!Object.values(PURPOSE).includes(c.purpose)) throw bad("A purpose is partner, promo, demo or support");
-  if ((c.purpose === PURPOSE.partner) !== Boolean(c.partnerId)) throw bad("A partner coupon names its partner, and only a partner coupon does");
+  if ((c.purpose === PURPOSE.partner) !== Boolean(c.partnerId))
+    throw bad("A partner coupon names its partner, and only a partner coupon does");
   if (!(c.startsAt instanceof Date) || Number.isNaN(c.startsAt.valueOf())) throw bad("A coupon starts on a date");
   if (c.endsAt && !isAfter(c.endsAt, c.startsAt)) throw bad("A coupon ends after it starts");
   pos(c.maxRedemptions, "maxRedemptions");
@@ -223,7 +257,14 @@ export function checkCoupon(c: Coupon | (NewCoupon & { codeKey?: string }), sett
 }
 
 function checkDiscount(c: NewCoupon, settings: CouponSettings): void {
-  if (c.credits != null || c.capPerDay != null || c.capPerMonth != null || c.creditsValidDays != null || c.onExhausted != null) throw bad("A discount carries no credit terms");
+  if (
+    c.credits != null ||
+    c.capPerDay != null ||
+    c.capPerMonth != null ||
+    c.creditsValidDays != null ||
+    c.onExhausted != null
+  )
+    throw bad("A discount carries no credit terms");
   const percent = c.percentOffBp != null;
   const amount = c.amountOffMinor != null;
   if (percent === amount) throw bad("A discount is a percentage or a fixed amount, never both");
@@ -232,21 +273,32 @@ function checkDiscount(c: NewCoupon, settings: CouponSettings): void {
     pos(c.amountOffMinor, "amountOffMinor");
     if (!/^[a-z]{3}$/.test(c.currency ?? "")) throw bad("A fixed amount has a lowercase currency");
   }
-  if (!c.duration || !Object.values(DURATION).includes(c.duration)) throw bad("A discount has a duration: once, repeating or forever");
-  if ((c.duration === DURATION.repeating) !== (c.durationMonths != null)) throw bad("Only a repeating discount names its months");
+  if (!c.duration || !Object.values(DURATION).includes(c.duration))
+    throw bad("A discount has a duration: once, repeating or forever");
+  if ((c.duration === DURATION.repeating) !== (c.durationMonths != null))
+    throw bad("Only a repeating discount names its months");
   pos(c.durationMonths, "durationMonths", 36);
   if (amount && c.duration === DURATION.forever) throw bad("A fixed amount never runs forever");
-  if (c.minimumMinor != null && (!Number.isSafeInteger(c.minimumMinor) || c.minimumMinor < 0)) throw bad("A minimum is a non-negative whole number");
+  if (c.minimumMinor != null && (!Number.isSafeInteger(c.minimumMinor) || c.minimumMinor < 0))
+    throw bad("A minimum is a non-negative whole number");
   if (c.currency != null && !/^[a-z]{3}$/.test(c.currency)) throw bad("A currency is three lowercase letters");
 }
 
 function checkCredit(c: NewCoupon): void {
-  if (c.percentOffBp != null || c.amountOffMinor != null || c.duration != null || c.durationMonths != null || c.minimumMinor != null) throw bad("A credit coupon carries no discount terms");
+  if (
+    c.percentOffBp != null ||
+    c.amountOffMinor != null ||
+    c.duration != null ||
+    c.durationMonths != null ||
+    c.minimumMinor != null
+  )
+    throw bad("A credit coupon carries no discount terms");
   pos(c.credits, "credits");
   if (c.credits == null) throw bad("A credit coupon grants credits: a free offer is always a capped credit coupon");
   pos(c.capPerDay, "capPerDay");
   pos(c.capPerMonth, "capPerMonth");
   if (c.creditsValidDays == null) throw bad("Every grant expires: set creditsValidDays");
   pos(c.creditsValidDays, "creditsValidDays", 3650);
-  if (c.onExhausted !== ON_EXHAUSTED.stop && c.onExhausted !== ON_EXHAUSTED.fallbackPaid) throw bad("onExhausted is stop or fallback_paid");
+  if (c.onExhausted !== ON_EXHAUSTED.stop && c.onExhausted !== ON_EXHAUSTED.fallbackPaid)
+    throw bad("onExhausted is stop or fallback_paid");
 }

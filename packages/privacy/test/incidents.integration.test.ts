@@ -33,12 +33,30 @@ describe.runIf(enabled)("incident register: PostgreSQL", () => {
   it("keeps an entry until its retention ends and never lets it change register", async () => {
     const register = createIncidentRegister({ clock: { now: () => NOW }, schema });
     const actor = { id: null, label: "Admin" };
-    const { id } = await register.open(query, { scope: "t1", kind: "loss", description: "A laptop was lost.", information: ["applicant file"] }, actor);
+    const { id } = await register.open(
+      query,
+      { scope: "t1", kind: "loss", description: "A laptop was lost.", information: ["applicant file"] },
+      actor,
+    );
     await expect(query(`DELETE FROM ${schema}.incident WHERE id = $1`, [id])).rejects.toThrow(/retention/);
     await expect(query(`UPDATE ${schema}.incident SET scope = 't2' WHERE id = $1`, [id])).rejects.toThrow(/register/);
-    await register.assess(query, "t1", id, { sensitivity: "low", consequences: "low", likelihood: "low", seriousInjury: false, rationale: "Encrypted disk." }, actor);
+    await register.assess(
+      query,
+      "t1",
+      id,
+      {
+        sensitivity: "low",
+        consequences: "low",
+        likelihood: "low",
+        seriousInjury: false,
+        rationale: "Encrypted disk.",
+      },
+      actor,
+    );
     await register.close(query, "t1", id, actor);
-    await expect(query(`UPDATE ${schema}.incident SET description = 'x' WHERE id = $1`, [id])).rejects.toThrow(/closed/);
+    await expect(query(`UPDATE ${schema}.incident SET description = 'x' WHERE id = $1`, [id])).rejects.toThrow(
+      /closed/,
+    );
     expect(await register.get(query, "t2", id)).toBeNull();
   });
 });

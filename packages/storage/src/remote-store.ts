@@ -25,7 +25,8 @@ interface Entry {
   Length?: number;
 }
 
-const fail = (what: string, status: number) => new StorageError(STORAGE_CODE.provider, `the storage refused the ${what} (${status})`);
+const fail = (what: string, status: number) =>
+  new StorageError(STORAGE_CODE.provider, `the storage refused the ${what} (${status})`);
 
 /**
  * An HTTP object store with the shape of Bunny Storage: `PUT`/`GET`/`DELETE` on `https://<endpoint>/<zone>/<prefix>/<key>` with an
@@ -40,7 +41,10 @@ export function remoteStore(options: RemoteStoreOptions): ObjectStore {
   const url = (key: string) => `${base}/${inZone(assertKey(key))}`;
   const listDir = async (dir: string): Promise<ObjectInfo[]> => {
     const root = prefix === "" ? "" : `${prefix}/`;
-    const res = await options.fetch(dir === "" ? `${base}/${root}` : `${base}/${inZone(dir)}/`, { method: "GET", headers });
+    const res = await options.fetch(dir === "" ? `${base}/${root}` : `${base}/${inZone(dir)}/`, {
+      method: "GET",
+      headers,
+    });
     if (res.status === 404) return [];
     if (!res.ok) throw fail("listing", res.status);
     const entries = JSON.parse(await res.text()) as Entry[];
@@ -54,18 +58,27 @@ export function remoteStore(options: RemoteStoreOptions): ObjectStore {
   };
   const list = async (p: string) => {
     const slash = p.lastIndexOf("/");
-    return (await listDir(slash < 0 ? "" : p.slice(0, slash))).filter((f) => f.key.startsWith(p)).sort((a, b) => a.key.localeCompare(b.key));
+    return (await listDir(slash < 0 ? "" : p.slice(0, slash)))
+      .filter((f) => f.key.startsWith(p))
+      .sort((a, b) => a.key.localeCompare(b.key));
   };
   return {
     async put(key, bytes, meta) {
-      const res = await options.fetch(url(key), { method: "PUT", headers: { ...headers, "content-type": meta.contentType }, body: bytes });
+      const res = await options.fetch(url(key), {
+        method: "PUT",
+        headers: { ...headers, "content-type": meta.contentType },
+        body: bytes,
+      });
       if (!res.ok) throw fail("write", res.status);
     },
     async get(key) {
       const res = await options.fetch(url(key), { method: "GET", headers });
       if (res.status === 404) return null;
       if (!res.ok) throw fail("read", res.status);
-      return { bytes: new Uint8Array(await res.arrayBuffer()), contentType: res.headers.get("content-type") ?? typeOfName(key) };
+      return {
+        bytes: new Uint8Array(await res.arrayBuffer()),
+        contentType: res.headers.get("content-type") ?? typeOfName(key),
+      };
     },
     async head(key) {
       assertKey(key);
@@ -80,7 +93,12 @@ export function remoteStore(options: RemoteStoreOptions): ObjectStore {
       if (!options.pullHostname || !options.tokenKey) return null;
       const path = `/${inZone(assertKey(key))}`;
       const expires = Math.floor(options.clock.now().valueOf() / 1000) + ttlSeconds;
-      const token = createHash("sha256").update(`${options.tokenKey}${path}${expires}`).digest("base64").replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
+      const token = createHash("sha256")
+        .update(`${options.tokenKey}${path}${expires}`)
+        .digest("base64")
+        .replaceAll("+", "-")
+        .replaceAll("/", "_")
+        .replaceAll("=", "");
       return `https://${options.pullHostname}${path}?token=${token}&expires=${expires}`;
     },
     publicUrl: (key) => (options.pullHostname ? `https://${options.pullHostname}/${inZone(assertKey(key))}` : null),

@@ -30,7 +30,13 @@ export function DocsProviders({ children }: { children: ReactNode }) {
   return (
     <RootProvider
       theme={{ enabled: false }}
-      search={{ options: { type: "static", api: "/search.json" }, hotKey: [{ display: "/", key: "/" }, { display: "⌘K", key: "k" }] }}
+      search={{
+        options: { type: "static", api: "/search.json" },
+        hotKey: [
+          { display: "/", key: "/" },
+          { display: "⌘K", key: "k" },
+        ],
+      }}
       i18n={{ locale, translations }}
     >
       {children}

@@ -22,7 +22,15 @@ interface Row {
   actor_label: string;
 }
 const COLUMNS = "id, key, price, before, effective_from, created_at, actor_label";
-const fromRow = (r: Row): StoredPriceVersion => ({ id: String(r.id), key: r.key, price: r.price, before: r.before, effectiveFrom: r.effective_from, createdAt: r.created_at, actorLabel: r.actor_label });
+const fromRow = (r: Row): StoredPriceVersion => ({
+  id: String(r.id),
+  key: r.key,
+  price: r.price,
+  before: r.before,
+  effectiveFrom: r.effective_from,
+  createdAt: r.created_at,
+  actorLabel: r.actor_label,
+});
 
 export function priceStore({ query }: { query: Query }): PriceStore {
   return {

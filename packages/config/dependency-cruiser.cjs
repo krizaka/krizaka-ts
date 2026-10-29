@@ -43,24 +43,31 @@ function createConfig({ exemptFrom = [] } = {}) {
       {
         name: "no-circular",
         severity: "error",
-        comment: "A cycle makes the order of loading a matter of luck and blocks tree shaking: move what both sides need to a third module.",
+        comment:
+          "A cycle makes the order of loading a matter of luck and blocks tree shaking: move what both sides need to a third module.",
         from: {},
         to: { circular: true },
       },
       {
         name: "not-to-unresolvable",
         severity: "error",
-        comment: "The import points to nothing: a missing file, a missing dependency or a ghost dependency that only works by hoisting. Declare it in package.json or fix the path.",
+        comment:
+          "The import points to nothing: a missing file, a missing dependency or a ghost dependency that only works by hoisting. Declare it in package.json or fix the path.",
         from: {},
         to: { couldNotResolve: true },
       },
       {
         name: "not-to-dev-dep",
         severity: "error",
-        comment: "Production code imports a devDependency: it is not installed in production. Move the package to `dependencies` (or `peerDependencies`, for a library whose consumer installs it), or the import to a test.",
+        comment:
+          "Production code imports a devDependency: it is not installed in production. Move the package to `dependencies` (or `peerDependencies`, for a library whose consumer installs it), or the import to a test.",
         from: { pathNot: [NODE_MODULES, DEV_FILES] },
         // a package that is also a peer dependency (the library declares it for its consumer, and keeps a copy to test with) is installed where it is used
-        to: { dependencyTypes: ["npm-dev"], dependencyTypesNot: ["type-only", "npm-peer"], pathNot: ["node_modules/@types/"] },
+        to: {
+          dependencyTypes: ["npm-dev"],
+          dependencyTypesNot: ["type-only", "npm-peer"],
+          pathNot: ["node_modules/@types/"],
+        },
       },
     ],
     options: {

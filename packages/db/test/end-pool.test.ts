@@ -7,7 +7,13 @@ import { endPool } from "../src/testing";
 /** A socket that closes later than `pool.end()` resolves: what `pg` does against a server. */
 function fakeSocket() {
   const socket = Object.assign(new EventEmitter(), { destroyed: false });
-  return { socket, close: () => { socket.destroyed = true; socket.emit("close"); } };
+  return {
+    socket,
+    close: () => {
+      socket.destroyed = true;
+      socket.emit("close");
+    },
+  };
 }
 
 describe("endPool", () => {
@@ -15,7 +21,9 @@ describe("endPool", () => {
     const [a, b] = [fakeSocket(), fakeSocket()];
     const pool = { _clients: [a, b].map(({ socket }) => ({ connection: { stream: socket } })), end: async () => {} };
     let done = false;
-    const ended = endPool(pool).then(() => { done = true; });
+    const ended = endPool(pool).then(() => {
+      done = true;
+    });
     await new Promise((resolve) => setTimeout(resolve, 10));
     expect(done).toBe(false);
     a.close();
@@ -29,7 +37,9 @@ describe("endPool", () => {
   it("does not wait for a socket that is already destroyed, nor for a pool without clients", async () => {
     const gone = fakeSocket();
     gone.close();
-    await expect(endPool({ _clients: [{ connection: { stream: gone.socket } }, {}], end: async () => {} })).resolves.toBeUndefined();
+    await expect(
+      endPool({ _clients: [{ connection: { stream: gone.socket } }, {}], end: async () => {} }),
+    ).resolves.toBeUndefined();
     await expect(endPool({ end: async () => {} })).resolves.toBeUndefined();
   });
 });

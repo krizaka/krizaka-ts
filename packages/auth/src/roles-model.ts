@@ -12,9 +12,15 @@ export interface RoleModel<Role extends string = string, Permission extends stri
   manages: Record<Role, readonly Role[]>;
 }
 
-export const defineRoles = <const Role extends string, const Permission extends string>(model: RoleModel<Role, Permission>): RoleModel<Role, Permission> => model;
+export const defineRoles = <const Role extends string, const Permission extends string>(
+  model: RoleModel<Role, Permission>,
+): RoleModel<Role, Permission> => model;
 
-export const can = <Role extends string, Permission extends string>(model: RoleModel<Role, Permission>, role: Role | null | undefined, permission: Permission): boolean => !!role && model.permissions[role].includes(permission);
+export const can = <Role extends string, Permission extends string>(
+  model: RoleModel<Role, Permission>,
+  role: Role | null | undefined,
+  permission: Permission,
+): boolean => !!role && model.permissions[role].includes(permission);
 
 export const ROLES_CODE = {
   forbidden: "FORBIDDEN",
@@ -26,7 +32,15 @@ export const ROLES_CODE = {
   inviteWrongAccount: "INVITE_WRONG_ACCOUNT",
 } as const;
 export type RolesCode = (typeof ROLES_CODE)[keyof typeof ROLES_CODE];
-const STATUS: Record<RolesCode, number> = { FORBIDDEN: 403, NOT_A_MEMBER: 404, UNKNOWN_ROLE: 400, LAST_OWNER: 409, ROLE_NOT_ALLOWED: 403, INVITE_INVALID: 400, INVITE_WRONG_ACCOUNT: 403 };
+const STATUS: Record<RolesCode, number> = {
+  FORBIDDEN: 403,
+  NOT_A_MEMBER: 404,
+  UNKNOWN_ROLE: 400,
+  LAST_OWNER: 409,
+  ROLE_NOT_ALLOWED: 403,
+  INVITE_INVALID: 400,
+  INVITE_WRONG_ACCOUNT: 403,
+};
 
 export class RolesError extends Error {
   readonly status: number;

@@ -23,9 +23,18 @@ describe.runIf(enabled)("mail: PostgreSQL", () => {
 
   it("keeps the recipient as a hash in the tables: no address is stored", async () => {
     const store = dbMailStore(query, schema);
-    await store.record({ at: new Date("2026-10-26T12:00:00Z"), template: "reset", category: "transactional", locale: "en", to: hashAddress("ana@example.com"), status: "sent" });
+    await store.record({
+      at: new Date("2026-10-26T12:00:00Z"),
+      template: "reset",
+      category: "transactional",
+      locale: "en",
+      to: hashAddress("ana@example.com"),
+      status: "sent",
+    });
     await store.suppress(hashAddress("ana@example.com"), "bounce", new Date("2026-10-26T12:00:00Z"));
-    const rows = await query(`SELECT to_hash AS v FROM ${schema}.delivery UNION ALL SELECT address_hash FROM ${schema}.suppression`);
+    const rows = await query(
+      `SELECT to_hash AS v FROM ${schema}.delivery UNION ALL SELECT address_hash FROM ${schema}.suppression`,
+    );
     expect(JSON.stringify(rows)).not.toContain("ana@example.com");
     expect(rows.length).toBeGreaterThanOrEqual(2);
   });

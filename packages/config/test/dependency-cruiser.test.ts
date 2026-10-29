@@ -10,13 +10,19 @@ import { runKnownViolations } from "../ratchet/known-violations.js";
 
 const require = createRequire(import.meta.url);
 const SHARED = fileURLToPath(new URL("../dependency-cruiser.cjs", import.meta.url));
-const DEPCRUISE = fileURLToPath(new URL("../node_modules/dependency-cruiser/bin/dependency-cruiser.mjs", import.meta.url));
-const shared = require(SHARED) as { forbidden: { name: string }[]; withOptions: (o: { exemptFrom: string[] }) => unknown };
+const DEPCRUISE = fileURLToPath(
+  new URL("../node_modules/dependency-cruiser/bin/dependency-cruiser.mjs", import.meta.url),
+);
+const shared = require(SHARED) as {
+  forbidden: { name: string }[];
+  withOptions: (o: { exemptFrom: string[] }) => unknown;
+};
 
 /** The Krizaka facade of a domain: a package that wraps the library. */
 const facadeOf = (home: string) => home;
 /** A package an app may import to reach a refused entry: `date-fns*` → `date-fns-tz`, `@tanstack/*` → `@tanstack/react-query`. */
-const sampleOf = (entry: string) => (entry.endsWith("/*") ? `${entry.slice(0, -1)}sample` : entry.endsWith("*") ? `${entry.slice(0, -1)}-sample` : entry);
+const sampleOf = (entry: string) =>
+  entry.endsWith("/*") ? `${entry.slice(0, -1)}sample` : entry.endsWith("*") ? `${entry.slice(0, -1)}-sample` : entry;
 
 let root: string;
 const write = (path: string, content: string) => {
@@ -27,7 +33,8 @@ const pkg = (name: string, main: string, extra: Record<string, unknown> = {}) =>
   write(`node_modules/${name}/package.json`, JSON.stringify({ name, version: "1.0.0", main: "index.js", ...extra }));
   write(`node_modules/${name}/index.js`, main);
 };
-const config = (extra = "") => write(".dependency-cruiser.cjs", `module.exports = { extends: ${JSON.stringify(SHARED)}, forbidden: [] };\n${extra}`);
+const config = (extra = "") =>
+  write(".dependency-cruiser.cjs", `module.exports = { extends: ${JSON.stringify(SHARED)}, forbidden: [] };\n${extra}`);
 
 beforeEach(() => {
   root = mkdtempSync(join(tmpdir(), "krizaka-depcruise-"));
@@ -38,9 +45,16 @@ afterEach(() => rmSync(root, { recursive: true, force: true }));
 
 // `err-long` (with the comment of the rule) sets the exit code; `json` lists the violations
 const cruise = (output = "json", targets = ["app"], configFile = ".dependency-cruiser.cjs", extra: string[] = []) =>
-  spawnSync(process.execPath, [DEPCRUISE, ...targets, "--config", configFile, "--output-type", output, ...extra], { cwd: root, encoding: "utf8" });
+  spawnSync(process.execPath, [DEPCRUISE, ...targets, "--config", configFile, "--output-type", output, ...extra], {
+    cwd: root,
+    encoding: "utf8",
+  });
 const violationsOf = (run = cruise()) =>
-  (JSON.parse(run.stdout).summary.violations as { from: string; to: string; rule: { name: string } }[]).map((v) => [v.from, v.rule.name, v.to]);
+  (JSON.parse(run.stdout).summary.violations as { from: string; to: string; rule: { name: string } }[]).map((v) => [
+    v.from,
+    v.rule.name,
+    v.to,
+  ]);
 
 describe("the covered-domains map", () => {
   it("names, for every domain, a Krizaka home and what is refused", () => {
@@ -53,7 +67,17 @@ describe("the covered-domains map", () => {
     }
     const refused = coveredDomains.flatMap((d) => d.refused);
     expect(refused).toEqual(
-      expect.arrayContaining(["date-fns*", "dayjs", "luxon", "moment", "@tanstack/*", "lucide-react", "react-icons", "@heroicons/*", "@radix-ui/*"]),
+      expect.arrayContaining([
+        "date-fns*",
+        "dayjs",
+        "luxon",
+        "moment",
+        "@tanstack/*",
+        "lucide-react",
+        "react-icons",
+        "@heroicons/*",
+        "@radix-ui/*",
+      ]),
     );
     expect(new Set(refused).size).toBe(refused.length); // one entry, one home
   });
@@ -64,7 +88,8 @@ describe("the covered-domains map", () => {
     expect(domainMessage(dates)).toContain("@krizaka/time");
     expect(MISSING_FUNCTION).toBe("Missing function? add it to the package first.");
     for (const domain of coveredDomains) expect(domainMessage(domain)).toContain(`${domain.home}`);
-    for (const domain of coveredDomains) expect(domainMessage(domain)).toMatch(/Missing function\? add it to the package first\.$/);
+    for (const domain of coveredDomains)
+      expect(domainMessage(domain)).toMatch(/Missing function\? add it to the package first\.$/);
   });
 
   it("matches a package, its subpaths, a prefix and a scope — never a local folder of the same name", () => {
@@ -98,7 +123,10 @@ describe("@krizaka/config/dependency-cruiser", () => {
       beforeEach(() => {
         // the facade wraps every refused library: its own import is allowed
         for (const sample of refusedSamples) pkg(sample, "exports.x = 1;\n");
-        pkg(home, refusedSamples.map((sample) => `require(${JSON.stringify(sample)});`).join("\n") + "\nexports.x = 1;\n");
+        pkg(
+          home,
+          refusedSamples.map((sample) => `require(${JSON.stringify(sample)});`).join("\n") + "\nexports.x = 1;\n",
+        );
         write("app/ok.js", `module.exports = require(${JSON.stringify(home)});\n`);
       });
 
@@ -108,19 +136,26 @@ describe("@krizaka/config/dependency-cruiser", () => {
       });
 
       it("refuses an app importing each refused library directly, and the message names the Krizaka home", () => {
-        refusedSamples.forEach((sample, i) => write(`app/direct-${i}.js`, `module.exports = require(${JSON.stringify(sample)});\n`));
+        refusedSamples.forEach((sample, i) =>
+          write(`app/direct-${i}.js`, `module.exports = require(${JSON.stringify(sample)});\n`),
+        );
         const run = cruise("err-long");
         expect(run.status).toBe(refusedSamples.length);
-        expect(violationsOf().map(([from, rule]) => [from, rule]).sort()).toEqual(
-          refusedSamples.map((_, i) => [`app/direct-${i}.js`, ruleName(domain)]).sort(),
-        );
+        expect(
+          violationsOf()
+            .map(([from, rule]) => [from, rule])
+            .sort(),
+        ).toEqual(refusedSamples.map((_, i) => [`app/direct-${i}.js`, ruleName(domain)]).sort());
         const text = run.stdout.replace(/\s+/g, " ");
         expect(text).toContain(domain.home);
         expect(text).toContain("Missing function? add it to the package first.");
       });
 
       it("refuses it even when the app does not declare the library (a transitive package, unresolved)", () => {
-        write("app/ghost.js", `module.exports = require(${JSON.stringify(sampleOf(domain.refused[0]!).replace(/$/, "/ghost"))});\n`);
+        write(
+          "app/ghost.js",
+          `module.exports = require(${JSON.stringify(sampleOf(domain.refused[0]!).replace(/$/, "/ghost"))});\n`,
+        );
         expect(violationsOf().map(([, rule]) => rule)).toContain(ruleName(domain));
       });
     });
@@ -131,7 +166,11 @@ describe("@krizaka/config/dependency-cruiser", () => {
     write("packages/query/src/index.js", `module.exports = require("@tanstack/react-query");\n`);
     write("apps/web/page.js", `module.exports = require("@tanstack/react-query");\n`);
     const targets = ["packages", "apps"];
-    expect(violationsOf(cruise("json", targets)).map(([from]) => from).sort()).toEqual(["apps/web/page.js", "packages/query/src/index.js"]);
+    expect(
+      violationsOf(cruise("json", targets))
+        .map(([from]) => from)
+        .sort(),
+    ).toEqual(["apps/web/page.js", "packages/query/src/index.js"]);
     write(
       ".dependency-cruiser.mono.cjs",
       `module.exports = require(${JSON.stringify(SHARED)}).withOptions({ exemptFrom: ["(^|/)packages/"] });\n`,
@@ -145,12 +184,19 @@ describe("@krizaka/config/dependency-cruiser", () => {
     write("app/b.js", `module.exports = require("./a");\n`);
     write("app/missing.js", `module.exports = require("./nowhere");\n`);
     pkg("left-pad", "exports.x = 1;\n");
-    write("package.json", JSON.stringify({ name: "fixture-app", version: "1.0.0", devDependencies: { "left-pad": "1.0.0" } }));
+    write(
+      "package.json",
+      JSON.stringify({ name: "fixture-app", version: "1.0.0", devDependencies: { "left-pad": "1.0.0" } }),
+    );
     write("app/dev.js", `module.exports = require("left-pad");\n`);
     write("app/dev.test.js", `module.exports = require("left-pad");\n`);
     expect(cruise("err").status).toBeGreaterThan(0);
     const found = violationsOf();
-    const rules = (name: string) => found.filter(([, rule]) => rule === name).map(([from]) => from).sort();
+    const rules = (name: string) =>
+      found
+        .filter(([, rule]) => rule === name)
+        .map(([from]) => from)
+        .sort();
     expect(rules("no-circular")).toHaveLength(1); // the cycle, once
     expect(["app/a.js", "app/b.js"]).toContain(rules("no-circular")[0]);
     expect(rules("not-to-unresolvable")).toEqual(["app/missing.js"]);
@@ -159,7 +205,15 @@ describe("@krizaka/config/dependency-cruiser", () => {
 
   it("lets production code import a peer dependency that is also a devDependency: the consumer installs it", () => {
     pkg("left-pad", "exports.x = 1;\n");
-    write("package.json", JSON.stringify({ name: "fixture-lib", version: "1.0.0", peerDependencies: { "left-pad": ">=1" }, devDependencies: { "left-pad": "1.0.0" } }));
+    write(
+      "package.json",
+      JSON.stringify({
+        name: "fixture-lib",
+        version: "1.0.0",
+        peerDependencies: { "left-pad": ">=1" },
+        devDependencies: { "left-pad": "1.0.0" },
+      }),
+    );
     write("app/peer.js", `module.exports = require("left-pad");\n`);
     expect(cruise("err").status).toBe(0);
     expect(violationsOf()).toEqual([]);
@@ -173,7 +227,8 @@ describe("@krizaka/config/dependency-cruiser", () => {
 });
 
 describe("the known violations only shrink", () => {
-  const known = () => JSON.parse(readFileSync(join(root, ".dependency-cruiser-known-violations.json"), "utf8")) as { from: string }[];
+  const known = () =>
+    JSON.parse(readFileSync(join(root, ".dependency-cruiser-known-violations.json"), "utf8")) as { from: string }[];
   const run = (command: "check" | "update" | "init") => runKnownViolations(command, { cwd: root, targets: ["app"] });
   beforeEach(() => {
     pkg("dayjs", "exports.x = 1;\n");
@@ -185,8 +240,15 @@ describe("the known violations only shrink", () => {
   it("init records what is broken once; depcruise --ignore-known then passes; init never overwrites", () => {
     expect(cruise("err").status).toBe(2);
     expect(run("init").code).toBe(0);
-    expect(known().map((v) => v.from).sort()).toEqual(["app/old-date.js", "app/old-icon.js"]);
-    expect(cruise("err", ["app"], ".dependency-cruiser.cjs", ["--ignore-known", ".dependency-cruiser-known-violations.json"]).status).toBe(0);
+    expect(
+      known()
+        .map((v) => v.from)
+        .sort(),
+    ).toEqual(["app/old-date.js", "app/old-icon.js"]);
+    expect(
+      cruise("err", ["app"], ".dependency-cruiser.cjs", ["--ignore-known", ".dependency-cruiser-known-violations.json"])
+        .status,
+    ).toBe(0);
     expect(run("check").code).toBe(0);
     expect(run("init").code).toBe(1);
   });
@@ -194,12 +256,19 @@ describe("the known violations only shrink", () => {
   it("refuses a new violation, and update never records it", () => {
     run("init");
     write("app/new.js", `module.exports = require("dayjs");\n`);
-    expect(cruise("err", ["app"], ".dependency-cruiser.cjs", ["--ignore-known", ".dependency-cruiser-known-violations.json"]).status).toBe(1); // the new one only
+    expect(
+      cruise("err", ["app"], ".dependency-cruiser.cjs", ["--ignore-known", ".dependency-cruiser-known-violations.json"])
+        .status,
+    ).toBe(1); // the new one only
     const checked = run("check");
     expect(checked.code).toBe(1);
     expect(checked.lines.join("\n")).toContain("new: krizaka-first-dates: app/new.js");
     expect(run("update").code).toBe(1);
-    expect(known().map((v) => v.from).sort()).toEqual(["app/old-date.js", "app/old-icon.js"]);
+    expect(
+      known()
+        .map((v) => v.from)
+        .sort(),
+    ).toEqual(["app/old-date.js", "app/old-icon.js"]);
   });
 
   it("a fixed violation must leave the file: check fails until update lowers it", () => {

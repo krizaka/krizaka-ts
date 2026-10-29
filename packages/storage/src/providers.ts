@@ -3,7 +3,8 @@
  * (and an adapter in `open-provider.ts`); the admin screen, the validation and the guards all read this table. Edge-safe.
  */
 /** The kinds this package ships. A private package registers more with `createProviderRegistry(…).with(…)`: its names are any other string. */
-export type ProviderKindName = "bunny" | "s3" | "dropbox" | "google-drive" | "onedrive" | "azblob" | "gcs" | "b2" | "webdav" | "folder" | "device";
+export type ProviderKindName =
+  "bunny" | "s3" | "dropbox" | "google-drive" | "onedrive" | "azblob" | "gcs" | "b2" | "webdav" | "folder" | "device";
 export type ProviderScope = "admin" | "user";
 /** `server` = a deployed web BFF, `dev` = a developer's machine or CI, `device` = a mobile or macOS client. */
 export type ProviderRuntime = "server" | "dev" | "device";
@@ -31,7 +32,13 @@ export interface ProviderKind {
   devOnly: boolean;
   /** `false` for a kind that is reserved: declared, with no adapter yet. */
   implemented: boolean;
-  capabilities: { private: boolean; signedUrls: boolean; publicUrls: boolean; maxObjectBytes: number; serverSideEncryption: "none" | "provider" | "customer-key" };
+  capabilities: {
+    private: boolean;
+    signedUrls: boolean;
+    publicUrls: boolean;
+    maxObjectBytes: number;
+    serverSideEncryption: "none" | "provider" | "customer-key";
+  };
   residency: "from-region" | "user-cloud" | "device" | "fixed-elsewhere";
   coordinates: readonly FieldSchema[];
   credentials: readonly FieldSchema[];
@@ -39,13 +46,29 @@ export interface ProviderKind {
 }
 
 const GIB = 1024 ** 3;
-const text = (name: string, required: boolean, type: FieldSchema["type"] = "text"): FieldSchema => ({ name, type, required });
+const text = (name: string, required: boolean, type: FieldSchema["type"] = "text"): FieldSchema => ({
+  name,
+  type,
+  required,
+});
 const secret = (name: string, required: boolean): FieldSchema => ({ name, type: "secret", required });
 
 export const S3_PRESETS: readonly Preset[] = [
-  { id: "digitalocean-spaces", endpointTemplate: "https://{region}.digitaloceanspaces.com", regions: ["tor1", "nyc3", "sfo3", "ams3", "fra1", "lon1", "sgp1", "blr1", "syd1"] },
-  { id: "aws-s3", endpointTemplate: "https://s3.{region}.amazonaws.com", regions: ["ca-central-1", "ca-west-1", "us-east-1", "us-west-2", "eu-west-1"] },
-  { id: "ovhcloud", endpointTemplate: "https://s3.{region}.io.cloud.ovh.net", regions: ["bhs", "gra", "sbg", "de", "uk", "waw"] },
+  {
+    id: "digitalocean-spaces",
+    endpointTemplate: "https://{region}.digitaloceanspaces.com",
+    regions: ["tor1", "nyc3", "sfo3", "ams3", "fra1", "lon1", "sgp1", "blr1", "syd1"],
+  },
+  {
+    id: "aws-s3",
+    endpointTemplate: "https://s3.{region}.amazonaws.com",
+    regions: ["ca-central-1", "ca-west-1", "us-east-1", "us-west-2", "eu-west-1"],
+  },
+  {
+    id: "ovhcloud",
+    endpointTemplate: "https://s3.{region}.io.cloud.ovh.net",
+    regions: ["bhs", "gra", "sbg", "de", "uk", "waw"],
+  },
   { id: "generic", endpointTemplate: null, regions: [] },
 ];
 
@@ -59,9 +82,20 @@ export const PROVIDER_KINDS: readonly ProviderKind[] = [
     runtimes: ["server", "dev"],
     devOnly: true,
     implemented: true,
-    capabilities: { private: true, signedUrls: true, publicUrls: true, maxObjectBytes: 5 * GIB, serverSideEncryption: "none" },
+    capabilities: {
+      private: true,
+      signedUrls: true,
+      publicUrls: true,
+      maxObjectBytes: 5 * GIB,
+      serverSideEncryption: "none",
+    },
     residency: "fixed-elsewhere",
-    coordinates: [text("endpoint", true, "host"), text("zone", true), text("pullHostname", false, "host"), text("prefix", false)],
+    coordinates: [
+      text("endpoint", true, "host"),
+      text("zone", true),
+      text("pullHostname", false, "host"),
+      text("prefix", false),
+    ],
     credentials: [secret("accessKey", true), secret("tokenKey", false)],
   },
   {
@@ -70,9 +104,20 @@ export const PROVIDER_KINDS: readonly ProviderKind[] = [
     runtimes: ["server", "dev"],
     devOnly: false,
     implemented: true,
-    capabilities: { private: true, signedUrls: true, publicUrls: true, maxObjectBytes: 5 * GIB, serverSideEncryption: "provider" },
+    capabilities: {
+      private: true,
+      signedUrls: true,
+      publicUrls: true,
+      maxObjectBytes: 5 * GIB,
+      serverSideEncryption: "provider",
+    },
     residency: "from-region",
-    coordinates: [text("endpoint", true, "url"), text("region", true, "region"), text("bucket", true), text("prefix", false)],
+    coordinates: [
+      text("endpoint", true, "url"),
+      text("region", true, "region"),
+      text("bucket", true),
+      text("prefix", false),
+    ],
     credentials: [secret("accessKeyId", true), secret("secretAccessKey", true)],
     presets: S3_PRESETS,
   },
@@ -83,7 +128,13 @@ export const PROVIDER_KINDS: readonly ProviderKind[] = [
     devOnly: false,
     implemented: true,
     // Temporary links live 4 h, longer than our 900 s cap: the app streams the file.
-    capabilities: { private: true, signedUrls: false, publicUrls: false, maxObjectBytes: DROPBOX_MAX, serverSideEncryption: "provider" },
+    capabilities: {
+      private: true,
+      signedUrls: false,
+      publicUrls: false,
+      maxObjectBytes: DROPBOX_MAX,
+      serverSideEncryption: "provider",
+    },
     residency: "user-cloud",
     coordinates: [text("clientId", true), text("prefix", false)],
     credentials: [secret("refreshToken", true)],
@@ -95,7 +146,13 @@ export const PROVIDER_KINDS: readonly ProviderKind[] = [
     devOnly: false,
     implemented: true,
     // The narrowest scope (`drive.file`): only the files the app created. Signed links: none; the app streams the file.
-    capabilities: { private: true, signedUrls: false, publicUrls: false, maxObjectBytes: 5 * 1024 * GIB, serverSideEncryption: "provider" },
+    capabilities: {
+      private: true,
+      signedUrls: false,
+      publicUrls: false,
+      maxObjectBytes: 5 * 1024 * GIB,
+      serverSideEncryption: "provider",
+    },
     residency: "user-cloud",
     coordinates: [text("clientId", true), text("prefix", false)],
     credentials: [secret("refreshToken", true), secret("clientSecret", false)],
@@ -107,7 +164,13 @@ export const PROVIDER_KINDS: readonly ProviderKind[] = [
     devOnly: false,
     implemented: true,
     // `Files.ReadWrite.AppFolder`: the app's own folder only.
-    capabilities: { private: true, signedUrls: false, publicUrls: false, maxObjectBytes: 250 * GIB, serverSideEncryption: "provider" },
+    capabilities: {
+      private: true,
+      signedUrls: false,
+      publicUrls: false,
+      maxObjectBytes: 250 * GIB,
+      serverSideEncryption: "provider",
+    },
     residency: "user-cloud",
     coordinates: [text("clientId", true), text("prefix", false)],
     credentials: [secret("refreshToken", true), secret("clientSecret", false)],
@@ -119,9 +182,20 @@ export const PROVIDER_KINDS: readonly ProviderKind[] = [
     runtimes: ["server", "dev"],
     devOnly: false,
     implemented: true,
-    capabilities: { private: true, signedUrls: false, publicUrls: false, maxObjectBytes: 190 * GIB, serverSideEncryption: "provider" },
+    capabilities: {
+      private: true,
+      signedUrls: false,
+      publicUrls: false,
+      maxObjectBytes: 190 * GIB,
+      serverSideEncryption: "provider",
+    },
     residency: "fixed-elsewhere",
-    coordinates: [text("endpoint", true, "url"), text("container", true), text("account_name", true), text("prefix", false)],
+    coordinates: [
+      text("endpoint", true, "url"),
+      text("container", true),
+      text("account_name", true),
+      text("prefix", false),
+    ],
     credentials: [secret("account_key", true)],
   },
   {
@@ -130,7 +204,13 @@ export const PROVIDER_KINDS: readonly ProviderKind[] = [
     runtimes: ["server", "dev"],
     devOnly: false,
     implemented: true,
-    capabilities: { private: true, signedUrls: true, publicUrls: false, maxObjectBytes: 5 * 1024 * GIB, serverSideEncryption: "provider" },
+    capabilities: {
+      private: true,
+      signedUrls: true,
+      publicUrls: false,
+      maxObjectBytes: 5 * 1024 * GIB,
+      serverSideEncryption: "provider",
+    },
     residency: "fixed-elsewhere",
     coordinates: [text("bucket", true), text("prefix", false)],
     // The service-account key file, base64 (OpenDAL's `credential`).
@@ -142,7 +222,13 @@ export const PROVIDER_KINDS: readonly ProviderKind[] = [
     runtimes: ["server", "dev"],
     devOnly: false,
     implemented: true,
-    capabilities: { private: true, signedUrls: false, publicUrls: false, maxObjectBytes: 5 * GIB, serverSideEncryption: "provider" },
+    capabilities: {
+      private: true,
+      signedUrls: false,
+      publicUrls: false,
+      maxObjectBytes: 5 * GIB,
+      serverSideEncryption: "provider",
+    },
     residency: "fixed-elsewhere",
     coordinates: [text("bucket", true), text("bucket_id", true), text("prefix", false)],
     credentials: [secret("application_key_id", true), secret("application_key", true)],
@@ -153,7 +239,13 @@ export const PROVIDER_KINDS: readonly ProviderKind[] = [
     runtimes: ["server", "dev"],
     devOnly: false,
     implemented: true,
-    capabilities: { private: true, signedUrls: false, publicUrls: false, maxObjectBytes: 5 * GIB, serverSideEncryption: "none" },
+    capabilities: {
+      private: true,
+      signedUrls: false,
+      publicUrls: false,
+      maxObjectBytes: 5 * GIB,
+      serverSideEncryption: "none",
+    },
     residency: "fixed-elsewhere",
     coordinates: [text("endpoint", true, "url"), text("prefix", false)],
     credentials: [secret("username", true), secret("password", true)],
@@ -164,7 +256,13 @@ export const PROVIDER_KINDS: readonly ProviderKind[] = [
     runtimes: ["dev"],
     devOnly: true,
     implemented: true,
-    capabilities: { private: true, signedUrls: false, publicUrls: false, maxObjectBytes: 5 * GIB, serverSideEncryption: "none" },
+    capabilities: {
+      private: true,
+      signedUrls: false,
+      publicUrls: false,
+      maxObjectBytes: 5 * GIB,
+      serverSideEncryption: "none",
+    },
     residency: "device",
     coordinates: [text("root", true, "path")],
     credentials: [],
@@ -175,7 +273,13 @@ export const PROVIDER_KINDS: readonly ProviderKind[] = [
     runtimes: ["device"],
     devOnly: false,
     implemented: false,
-    capabilities: { private: true, signedUrls: false, publicUrls: false, maxObjectBytes: 5 * GIB, serverSideEncryption: "none" },
+    capabilities: {
+      private: true,
+      signedUrls: false,
+      publicUrls: false,
+      maxObjectBytes: 5 * GIB,
+      serverSideEncryption: "none",
+    },
     residency: "device",
     coordinates: [],
     credentials: [],

@@ -137,7 +137,14 @@ export interface IncidentRegister {
   /** Records a measure taken to reduce the risk and prevent a new incident (s. 3.5). */
   recordMeasure(query: Query, scope: string, id: string, text: string, actor: IncidentActor): Promise<Incident>;
   /** Records a notice sent. Only an incident assessed as a risk of serious injury is notified. */
-  recordNotice(query: Query, scope: string, id: string, target: NoticeTarget, notice: { channel: string; reference?: string | undefined }, actor: IncidentActor): Promise<Incident>;
+  recordNotice(
+    query: Query,
+    scope: string,
+    id: string,
+    target: NoticeTarget,
+    notice: { channel: string; reference?: string | undefined },
+    actor: IncidentActor,
+  ): Promise<Incident>;
   /** Marks the incident as a drill (or not). */
   markDrill(query: Query, scope: string, id: string, drill: boolean, actor: IncidentActor): Promise<Incident>;
   /** Closes it: assessed, and both notices sent when the risk is serious. A closed entry is never edited again. */
@@ -174,8 +181,14 @@ const RANK: Record<Level, number> = { low: 0, medium: 1, high: 2 };
  * A guide for the person in charge, never the decision: the injury is serious when the information is sensitive and misuse is not
  * unlikely, when the consequences are severe and misuse is likely, or when everything is at least medium and misuse is likely.
  */
-export function suggestSeriousInjury(factors: Pick<AssessmentInput, "sensitivity" | "consequences" | "likelihood">): boolean {
-  const { sensitivity, consequences, likelihood } = { sensitivity: RANK[factors.sensitivity], consequences: RANK[factors.consequences], likelihood: RANK[factors.likelihood] };
+export function suggestSeriousInjury(
+  factors: Pick<AssessmentInput, "sensitivity" | "consequences" | "likelihood">,
+): boolean {
+  const { sensitivity, consequences, likelihood } = {
+    sensitivity: RANK[factors.sensitivity],
+    consequences: RANK[factors.consequences],
+    likelihood: RANK[factors.likelihood],
+  };
   if (sensitivity === RANK.high && likelihood >= RANK.medium) return true;
   if (consequences === RANK.high && likelihood === RANK.high) return true;
   return sensitivity >= RANK.medium && consequences >= RANK.medium && likelihood === RANK.high;
@@ -194,12 +207,48 @@ const cell = (value: unknown): string => {
   const safe = FORMULA.test(text) ? `'${text}` : text;
   return /[",\n\r]/.test(safe) ? `"${safe.replaceAll('"', '""')}"` : safe;
 };
-export const REGISTER_CSV_COLUMNS = ["id", "kind", "aware_at", "occurred_at", "description", "information", "persons_concerned", "serious_injury", "assessed_at", "cai_notice_at", "persons_notice_at", "measures", "status", "drill", "closed_at", "retain_until"] as const;
+export const REGISTER_CSV_COLUMNS = [
+  "id",
+  "kind",
+  "aware_at",
+  "occurred_at",
+  "description",
+  "information",
+  "persons_concerned",
+  "serious_injury",
+  "assessed_at",
+  "cai_notice_at",
+  "persons_notice_at",
+  "measures",
+  "status",
+  "drill",
+  "closed_at",
+  "retain_until",
+] as const;
 
 /** The register as CSV (RFC 4180), cells that a spreadsheet would read as a formula are quoted with a leading apostrophe. */
 export function registerToCsv(entries: readonly Incident[]): string {
   const rows = entries.map((e) =>
-    [e.id, e.kind, e.awareAt, e.occurredAt, e.description, e.information.join("; "), e.personsConcerned, e.assessment?.seriousInjury ?? "", e.assessment?.assessedAt ?? "", e.caiNotice?.sentAt ?? "", e.personsNotice?.sentAt ?? "", e.measures.map((m) => m.text).join("; "), e.status, e.drill, e.closedAt, e.retainUntil].map(cell).join(","),
+    [
+      e.id,
+      e.kind,
+      e.awareAt,
+      e.occurredAt,
+      e.description,
+      e.information.join("; "),
+      e.personsConcerned,
+      e.assessment?.seriousInjury ?? "",
+      e.assessment?.assessedAt ?? "",
+      e.caiNotice?.sentAt ?? "",
+      e.personsNotice?.sentAt ?? "",
+      e.measures.map((m) => m.text).join("; "),
+      e.status,
+      e.drill,
+      e.closedAt,
+      e.retainUntil,
+    ]
+      .map(cell)
+      .join(","),
   );
   return [REGISTER_CSV_COLUMNS.join(","), ...rows].join("\r\n") + "\r\n";
 }

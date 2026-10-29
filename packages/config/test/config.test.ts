@@ -18,21 +18,32 @@ describe("prettier", () => {
 });
 
 describe("tsconfig bases", () => {
-  it.each(["base", "react-library", "next", "react-native"])("%s resolves to a strict config", (name) => {
-    const base = fileURLToPath(new URL(`../tsconfig/${name}.json`, import.meta.url));
-    const dir = mkdtempSync(join(tmpdir(), "krizaka-tsconfig-"));
-    try {
-      writeFileSync(join(dir, "index.ts"), "export const x = 1;\n");
-      writeFileSync(join(dir, "tsconfig.json"), JSON.stringify({ extends: base, include: ["index.ts"] }));
-      const shown = JSON.parse(execFileSync(process.execPath, [TSC, "--showConfig", "-p", dir], { encoding: "utf8" }));
-      expect(shown.compilerOptions).toMatchObject({ strict: true, moduleResolution: "bundler", isolatedModules: true });
-    } finally {
-      rmSync(dir, { recursive: true, force: true });
-    }
-  }, 30_000);
+  it.each(["base", "react-library", "next", "react-native"])(
+    "%s resolves to a strict config",
+    (name) => {
+      const base = fileURLToPath(new URL(`../tsconfig/${name}.json`, import.meta.url));
+      const dir = mkdtempSync(join(tmpdir(), "krizaka-tsconfig-"));
+      try {
+        writeFileSync(join(dir, "index.ts"), "export const x = 1;\n");
+        writeFileSync(join(dir, "tsconfig.json"), JSON.stringify({ extends: base, include: ["index.ts"] }));
+        const shown = JSON.parse(
+          execFileSync(process.execPath, [TSC, "--showConfig", "-p", dir], { encoding: "utf8" }),
+        );
+        expect(shown.compilerOptions).toMatchObject({
+          strict: true,
+          moduleResolution: "bundler",
+          isolatedModules: true,
+        });
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    },
+    30_000,
+  );
 
   it("react bases set JSX", () => {
-    const read = (name: string) => JSON.parse(readFileSync(new URL(`../tsconfig/${name}.json`, import.meta.url), "utf8"));
+    const read = (name: string) =>
+      JSON.parse(readFileSync(new URL(`../tsconfig/${name}.json`, import.meta.url), "utf8"));
     expect(read("react-library").compilerOptions.jsx).toBe("react-jsx");
     expect(read("next").compilerOptions.plugins).toEqual([{ name: "next" }]);
     expect(read("react-native").compilerOptions.customConditions).toEqual(["react-native"]);
@@ -75,7 +86,9 @@ describe("package surface", () => {
   it("carries no product word", () => {
     const root = fileURLToPath(new URL("..", import.meta.url));
     const shipped = [
-      ...["bin", "eslint", "ratchet", "tsconfig"].flatMap((dir) => readdirSync(join(root, dir)).map((f) => `${dir}/${f}`)),
+      ...["bin", "eslint", "ratchet", "tsconfig"].flatMap((dir) =>
+        readdirSync(join(root, dir)).map((f) => `${dir}/${f}`),
+      ),
       "patterns.js",
       "dependency-cruiser.cjs",
       "prettier.config.js",
@@ -114,25 +127,34 @@ describe("published surface", () => {
     expect(files.has("bin")).toBe(true);
   });
 
-  it.each(["./covered-domains", "./covered-domains.json", "./dependency-cruiser", "./known-violations", "./eslint/stack"])(
-    "exports %s",
-    (entry) => {
-      expect(exportsMap).toContain(entry);
-    },
-  );
+  it.each([
+    "./covered-domains",
+    "./covered-domains.json",
+    "./dependency-cruiser",
+    "./known-violations",
+    "./eslint/stack",
+  ])("exports %s", (entry) => {
+    expect(exportsMap).toContain(entry);
+  });
 
   it("every export and bin points to a file that exists and is published", () => {
     const root = fileURLToPath(new URL("..", import.meta.url));
     const targets = [...Object.values(pkg.exports), ...Object.values(pkg.bin)] as string[];
     for (const target of targets) {
       expect(() => readFileSync(join(root, target))).not.toThrow();
-      expect(target === "./package.json" || files.has(target.slice(2)) || [...files].some((f) => target.startsWith(`./${f}/`))).toBe(true);
+      expect(
+        target === "./package.json" ||
+          files.has(target.slice(2)) ||
+          [...files].some((f) => target.startsWith(`./${f}/`)),
+      ).toBe(true);
     }
   });
 
   it("knows the two effect rules and their ratchet counters", async () => {
     const { STACK_RULES } = await import("../eslint/stack.js");
-    expect(STACK_RULES).toEqual(expect.arrayContaining(["krizaka/no-async-in-effect", "krizaka/no-derived-state-in-effect"]));
+    expect(STACK_RULES).toEqual(
+      expect.arrayContaining(["krizaka/no-async-in-effect", "krizaka/no-derived-state-in-effect"]),
+    );
     const { STACK_COUNTERS } = await import("../ratchet/ratchet.js");
     expect(STACK_COUNTERS).toEqual(expect.arrayContaining(["asyncInEffect", "derivedStateInEffect"]));
   });

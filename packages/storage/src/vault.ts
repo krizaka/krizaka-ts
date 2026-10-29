@@ -101,7 +101,8 @@ function ungcm(packed: string, key: Uint8Array, aad: string): Buffer {
  * (`rewrapEnvelope`): no credential is retyped.
  */
 export function sealEnvelope(secret: string, kek: Uint8Array, keyId: string): string {
-  if (!KEY_ID.test(keyId)) throw new StorageError(STORAGE_CODE.badConfig, "The vault key id is 1 to 32 letters, digits, - or _");
+  if (!KEY_ID.test(keyId))
+    throw new StorageError(STORAGE_CODE.badConfig, "The vault key id is 1 to 32 letters, digits, - or _");
   const dataKey = randomBytes(32);
   return `v2.${keyId}.${gcm(dataKey, kek, keyId)}.${gcm(Buffer.from(secret, "utf8"), dataKey, BODY_AAD)}`;
 }
@@ -133,7 +134,8 @@ export function openEnvelope(sealed: string, ring: LocalKeys): string {
 /** Re-wraps the data key under `to` (the rotation): the sealed secret is untouched. A `v1.` value is opened and sealed as `v2.`. */
 export function rewrapEnvelope(sealed: string, ring: LocalKeys, to: { keyId: string; key: Uint8Array }): string {
   if (sealed.startsWith("v1.")) return sealEnvelope(openEnvelope(sealed, ring), to.key, to.keyId);
-  if (!KEY_ID.test(to.keyId)) throw new StorageError(STORAGE_CODE.badConfig, "The vault key id is 1 to 32 letters, digits, - or _");
+  if (!KEY_ID.test(to.keyId))
+    throw new StorageError(STORAGE_CODE.badConfig, "The vault key id is 1 to 32 letters, digits, - or _");
   const { dataKey, body } = unwrap(sealed, ring);
   return `v2.${to.keyId}.${gcm(dataKey, to.key, to.keyId)}.${body}`;
 }
@@ -145,7 +147,8 @@ function parts(sealed: string): { keyId: string; wrapped: string; body: string }
 }
 
 const assertKeyId = (keyId: string) => {
-  if (!KEY_ID.test(keyId)) throw new StorageError(STORAGE_CODE.badConfig, "The vault key id is 1 to 32 letters, digits, - or _");
+  if (!KEY_ID.test(keyId))
+    throw new StorageError(STORAGE_CODE.badConfig, "The vault key id is 1 to 32 letters, digits, - or _");
 };
 
 /** `sealEnvelope` through a keyring (a KMS can wrap the data key): `v2.<ring.keyId>…`. */

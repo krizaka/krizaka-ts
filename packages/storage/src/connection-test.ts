@@ -13,7 +13,11 @@ const sameBytes = (a: Uint8Array, b: Uint8Array) => a.length === b.length && a.e
  * The connection test of a store: writes a small probe object, reads it back and compares, then deletes it, the three things a kept
  * file needs. Never leaves the probe behind and never reports a secret. The clock and the probe id are injected.
  */
-export async function testConnection(store: ObjectStore, probeId: string, now: () => number): Promise<{ ok: boolean; steps: TestStep[] }> {
+export async function testConnection(
+  store: ObjectStore,
+  probeId: string,
+  now: () => number,
+): Promise<{ ok: boolean; steps: TestStep[] }> {
   const key = `connection-test/${probeId}.txt`;
   const payload = new TextEncoder().encode(`krizaka connection test ${probeId}`);
   const steps: TestStep[] = [];
@@ -23,7 +27,12 @@ export async function testConnection(store: ObjectStore, probeId: string, now: (
       await fn();
       steps.push({ name, ok: true, ms: now() - start });
     } catch (error) {
-      steps.push({ name, ok: false, ms: now() - start, error: error instanceof Error ? error.message.replace(/\s+/g, " ").slice(0, 160) : "failed" });
+      steps.push({
+        name,
+        ok: false,
+        ms: now() - start,
+        error: error instanceof Error ? error.message.replace(/\s+/g, " ").slice(0, 160) : "failed",
+      });
     }
   };
   await run("write", () => store.put(key, payload, { contentType: "text/plain" }));

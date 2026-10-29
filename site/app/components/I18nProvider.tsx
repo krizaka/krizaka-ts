@@ -8,7 +8,15 @@ import type { Locale, TranslationDictionary } from "@/lib/i18n";
    from useI18n(); format and <Rich> stay @krizaka/i18n. */
 const engine = createI18nReact<TranslationDictionary, Locale>({ locales: ["en", "fr"], defaultLocale: "en" });
 
-export function I18nProvider({ locale, messages, children }: { locale: Locale; messages: TranslationDictionary; children: ReactNode }) {
+export function I18nProvider({
+  locale,
+  messages,
+  children,
+}: {
+  locale: Locale;
+  messages: TranslationDictionary;
+  children: ReactNode;
+}) {
   return (
     <engine.I18nProvider locale={locale} messages={messages} setLocale={() => undefined}>
       {children}

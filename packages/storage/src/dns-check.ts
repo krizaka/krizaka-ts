@@ -10,7 +10,15 @@ export function isPrivateAddress(address: string): boolean {
   const ip = mapped?.[1] ?? address;
   if (net.isIPv4(ip)) {
     const [a = 0, b = 0] = ip.split(".").map(Number);
-    return a === 0 || a === 10 || a === 127 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 100 && b >= 64 && b <= 127);
+    return (
+      a === 0 ||
+      a === 10 ||
+      a === 127 ||
+      (a === 169 && b === 254) ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168) ||
+      (a === 100 && b >= 64 && b <= 127)
+    );
   }
   const v6 = ip.toLowerCase();
   return v6 === "::" || v6 === "::1" || /^f[cd]/.test(v6) || /^fe[89ab]/.test(v6);
@@ -25,13 +33,18 @@ const defaultResolver: Resolver = async (host) => (await lookup(host, { all: tru
  * @returns the origin
  * @throws StorageError `STORAGE_BAD_ENDPOINT`
  */
-export async function checkEndpointDns(endpoint: string, options: { allowLocal?: boolean; resolve?: Resolver } = {}): Promise<string> {
+export async function checkEndpointDns(
+  endpoint: string,
+  options: { allowLocal?: boolean; resolve?: Resolver } = {},
+): Promise<string> {
   const origin = checkEndpoint(endpoint, options.allowLocal ? { allowLocal: true } : {});
   if (options.allowLocal) return origin;
   const host = new URL(origin).hostname.replace(/^\[|\]$/g, "");
-  if (!host.includes(".") && !net.isIP(host)) throw new StorageError(STORAGE_CODE.badEndpoint, "endpoint must be a public host name");
+  if (!host.includes(".") && !net.isIP(host))
+    throw new StorageError(STORAGE_CODE.badEndpoint, "endpoint must be a public host name");
   const addresses = net.isIP(host) ? [host] : await (options.resolve ?? defaultResolver)(host).catch(() => []);
   if (addresses.length === 0) throw new StorageError(STORAGE_CODE.badEndpoint, "endpoint does not resolve");
-  if (addresses.some(isPrivateAddress)) throw new StorageError(STORAGE_CODE.badEndpoint, "endpoint must not be a private address");
+  if (addresses.some(isPrivateAddress))
+    throw new StorageError(STORAGE_CODE.badEndpoint, "endpoint must not be a private address");
   return origin;
 }

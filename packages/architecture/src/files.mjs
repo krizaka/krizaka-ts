@@ -4,7 +4,21 @@ import { join, posix } from "node:path";
 
 import { asc } from "./order.mjs";
 
-const SKIP_DIRS = new Set(["node_modules", ".git", "dist", "build", ".next", ".turbo", "coverage", "out", "target", ".open-next", ".expo", ".cache", ".venv"]);
+const SKIP_DIRS = new Set([
+  "node_modules",
+  ".git",
+  "dist",
+  "build",
+  ".next",
+  ".turbo",
+  "coverage",
+  "out",
+  "target",
+  ".open-next",
+  ".expo",
+  ".cache",
+  ".venv",
+]);
 const CODE = /\.(?:[cm]?[jt]sx?)$/;
 const TEST = /(?:\.(?:test|spec|stories)\.[cm]?[jt]sx?$|(?:^|\/)(?:__tests__|test|tests|e2e|fixtures)\/)/;
 const ENV_FILES = /^(?:env\.(?:[cm]?[jt]s)|\.env\.(?:example|sample|template))$/;
@@ -58,14 +72,19 @@ const yamlPackages = (yaml) => {
 
 const subdirs = (root, rel) => {
   try {
-    return readdirSync(join(root, rel), { withFileTypes: true }).filter((e) => e.isDirectory() && !SKIP_DIRS.has(e.name)).map((e) => posix.join(rel, e.name));
+    return readdirSync(join(root, rel), { withFileTypes: true })
+      .filter((e) => e.isDirectory() && !SKIP_DIRS.has(e.name))
+      .map((e) => posix.join(rel, e.name));
   } catch {
     return [];
   }
 };
 
 const expand = (root, pattern) => {
-  const clean = pattern.replace(/^\.\//, "").replace(/\/\*\*$/, "/*").replace(/\/$/, "");
+  const clean = pattern
+    .replace(/^\.\//, "")
+    .replace(/\/\*\*$/, "/*")
+    .replace(/\/$/, "");
   if (clean.includes("*") && !clean.endsWith("/*")) return [];
   const dirs = clean.endsWith("/*") ? subdirs(root, clean.slice(0, -2)) : [clean];
   return dirs.filter((d) => existsSync(join(root, d, "package.json")));
@@ -77,11 +96,16 @@ export function workspaceDirs(root) {
   const declared = Array.isArray(pkg?.workspaces) ? pkg.workspaces : (pkg?.workspaces?.packages ?? []);
   const patterns = [...declared, ...yamlPackages(readText(join(root, "pnpm-workspace.yaml")))];
   const excluded = new Set(patterns.filter((p) => p.startsWith("!")).flatMap((p) => expand(root, p.slice(1))));
-  return [...new Set(patterns.filter((p) => !p.startsWith("!")).flatMap((p) => expand(root, p)))].filter((d) => !excluded.has(d)).sort(asc);
+  return [...new Set(patterns.filter((p) => !p.startsWith("!")).flatMap((p) => expand(root, p)))]
+    .filter((d) => !excluded.has(d))
+    .sort(asc);
 }
 
 /** The Maven modules listed by the root pom (one level), as repo-relative directories. */
 export function mavenModules(root) {
   const pom = readText(join(root, "pom.xml"));
-  return [...pom.matchAll(/<module>\s*([^<\s]+)\s*<\/module>/g)].map((m) => posix.normalize(m[1])).filter((d) => existsSync(join(root, d, "pom.xml"))).sort(asc);
+  return [...pom.matchAll(/<module>\s*([^<\s]+)\s*<\/module>/g)]
+    .map((m) => posix.normalize(m[1]))
+    .filter((d) => existsSync(join(root, d, "pom.xml")))
+    .sort(asc);
 }

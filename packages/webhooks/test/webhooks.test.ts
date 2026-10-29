@@ -3,7 +3,18 @@ import crypto from "node:crypto";
 import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { createWebhooks, endpointUrlProblem, EVENT_ID_HEADER, type OutgoingRequest, type Query, receiveWebhook, SIGNATURE_HEADER, signBody, verifySignature, webhooksMigration } from "../src";
+import {
+  createWebhooks,
+  endpointUrlProblem,
+  EVENT_ID_HEADER,
+  type OutgoingRequest,
+  type Query,
+  receiveWebhook,
+  SIGNATURE_HEADER,
+  signBody,
+  verifySignature,
+  webhooksMigration,
+} from "../src";
 
 const T = 1_790_000_000;
 
@@ -34,7 +45,9 @@ describe("the signature", () => {
 });
 
 describe("where a webhook may go", () => {
-  it.each(["https://example.com/hook", "https://hooks.example.co.uk:8443/a?b=1"])("%s is allowed", (u) => expect(endpointUrlProblem(u)).toBeNull());
+  it.each(["https://example.com/hook", "https://hooks.example.co.uk:8443/a?b=1"])("%s is allowed", (u) =>
+    expect(endpointUrlProblem(u)).toBeNull(),
+  );
   it.each([
     ["not a url", "NOT_A_URL"],
     ["http://example.com/x", "NOT_HTTPS"],
@@ -60,8 +73,18 @@ describe.runIf(enabled)("webhooks on PostgreSQL", () => {
   const schemaName = `wh_${Math.random().toString(36).slice(2, 10)}`;
   let client: pg.Client;
   let query: Query;
-  const hooks = () => createWebhooks({ query: (s, p) => query(s, p), rules: RULES, secrets: { seal: (s) => `sealed:${s}`, open: (s) => s.replace(/^sealed:/, "") } });
-  const owner = async () => (await query<{ id: string }>("INSERT INTO accounts (email) VALUES ($1) RETURNING id", [`o-${Math.random().toString(36).slice(2)}@test.example`]))[0]!.id;
+  const hooks = () =>
+    createWebhooks({
+      query: (s, p) => query(s, p),
+      rules: RULES,
+      secrets: { seal: (s) => `sealed:${s}`, open: (s) => s.replace(/^sealed:/, "") },
+    });
+  const owner = async () =>
+    (
+      await query<{ id: string }>("INSERT INTO accounts (email) VALUES ($1) RETURNING id", [
+        `o-${Math.random().toString(36).slice(2)}@test.example`,
+      ])
+    )[0]!.id;
   /** The queue is shared by the tests of this file: empty it, so a test sees only its own deliveries. */
   const drain = () => hooks().deliverDue(NOW, async () => ({ status: 200 }), { limit: 1000 });
   const URL_ = "https://hooks.example.com/akinaza";
@@ -76,7 +99,9 @@ describe.runIf(enabled)("webhooks on PostgreSQL", () => {
       queue = run.catch(() => undefined);
       return run as never;
     };
-    await client.query("CREATE TABLE accounts (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), email text UNIQUE NOT NULL)");
+    await client.query(
+      "CREATE TABLE accounts (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), email text UNIQUE NOT NULL)",
+    );
     await client.query(webhooksMigration());
     await client.query(webhooksMigration()); // twice: safe
   });
@@ -87,14 +112,31 @@ describe.runIf(enabled)("webhooks on PostgreSQL", () => {
 
   it("registers an endpoint (the secret once, kept sealed), refuses bad addresses and events, enforces the quota", async () => {
     const o = await owner();
-    const { endpoint, secret } = await hooks().registerEndpoint(o, { url: URL_, events: ["booking.created"] }, { maxEndpoints: 2 }, NOW);
+    const { endpoint, secret } = await hooks().registerEndpoint(
+      o,
+      { url: URL_, events: ["booking.created"] },
+      { maxEndpoints: 2 },
+      NOW,
+    );
     expect(secret).toMatch(/^whsec_/);
     expect(JSON.stringify(await hooks().listEndpoints(o))).not.toContain(secret);
-    expect((await query<{ secret_sealed: string }>("SELECT secret_sealed FROM webhook_endpoints WHERE id = $1", [endpoint.id]))[0]!.secret_sealed).toBe(`sealed:${secret}`);
-    await expect(hooks().registerEndpoint(o, { url: "http://x.com", events: ["booking.created"] }, { maxEndpoints: 2 }, NOW)).rejects.toMatchObject({ code: "WEBHOOK_URL" });
-    await expect(hooks().registerEndpoint(o, { url: URL_, events: ["nope"] }, { maxEndpoints: 2 }, NOW)).rejects.toMatchObject({ code: "WEBHOOK_EVENTS" });
+    expect(
+      (
+        await query<{ secret_sealed: string }>("SELECT secret_sealed FROM webhook_endpoints WHERE id = $1", [
+          endpoint.id,
+        ])
+      )[0]!.secret_sealed,
+    ).toBe(`sealed:${secret}`);
+    await expect(
+      hooks().registerEndpoint(o, { url: "http://x.com", events: ["booking.created"] }, { maxEndpoints: 2 }, NOW),
+    ).rejects.toMatchObject({ code: "WEBHOOK_URL" });
+    await expect(
+      hooks().registerEndpoint(o, { url: URL_, events: ["nope"] }, { maxEndpoints: 2 }, NOW),
+    ).rejects.toMatchObject({ code: "WEBHOOK_EVENTS" });
     await hooks().registerEndpoint(o, { url: `${URL_}/2`, events: ["invoice.paid"] }, { maxEndpoints: 2 }, NOW);
-    await expect(hooks().registerEndpoint(o, { url: `${URL_}/3`, events: ["invoice.paid"] }, { maxEndpoints: 2 }, NOW)).rejects.toMatchObject({ code: "WEBHOOK_LIMIT" });
+    await expect(
+      hooks().registerEndpoint(o, { url: `${URL_}/3`, events: ["invoice.paid"] }, { maxEndpoints: 2 }, NOW),
+    ).rejects.toMatchObject({ code: "WEBHOOK_LIMIT" });
   });
 
   it("queues an event once per subscribed endpoint, however often it is emitted; another owner's endpoints are never fed", async () => {
@@ -104,14 +146,26 @@ describe.runIf(enabled)("webhooks on PostgreSQL", () => {
     await hooks().registerEndpoint(b, { url: URL_, events: ["booking.created"] }, { maxEndpoints: 5 }, NOW);
     expect(await hooks().emit(a, { id: "booking:1", type: "booking.created", payload: { id: "1" } }, NOW)).toBe(1);
     expect(await hooks().emit(a, { id: "booking:1", type: "booking.created", payload: { id: "1" } }, NOW)).toBe(0);
-    await expect(hooks().emit(a, { id: "x", type: "nope", payload: {} }, NOW)).rejects.toMatchObject({ code: "WEBHOOK_EVENTS" });
-    expect((await query("SELECT 1 FROM webhook_deliveries d JOIN webhook_endpoints e ON e.id = d.endpoint_id WHERE e.owner_id = $1", [b]))).toHaveLength(0);
+    await expect(hooks().emit(a, { id: "x", type: "nope", payload: {} }, NOW)).rejects.toMatchObject({
+      code: "WEBHOOK_EVENTS",
+    });
+    expect(
+      await query(
+        "SELECT 1 FROM webhook_deliveries d JOIN webhook_endpoints e ON e.id = d.endpoint_id WHERE e.owner_id = $1",
+        [b],
+      ),
+    ).toHaveLength(0);
   });
 
   it("delivers signed (the receiver can verify it), logs it, and does not send it twice", async () => {
     await drain();
     const o = await owner();
-    const { endpoint, secret } = await hooks().registerEndpoint(o, { url: URL_, events: ["invoice.paid"] }, { maxEndpoints: 5 }, NOW);
+    const { endpoint, secret } = await hooks().registerEndpoint(
+      o,
+      { url: URL_, events: ["invoice.paid"] },
+      { maxEndpoints: 5 },
+      NOW,
+    );
     await hooks().emit(o, { id: "invoice:9", type: "invoice.paid", payload: { number: "F-00009" } }, NOW);
     const sent: OutgoingRequest[] = [];
     const ok = async (r: OutgoingRequest) => (sent.push(r), { status: 204 });
@@ -124,31 +178,57 @@ describe.runIf(enabled)("webhooks on PostgreSQL", () => {
     const before = sent.length;
     await hooks().deliverDue(NOW, ok);
     expect(sent.length).toBe(before);
-    expect((await hooks().deliveries(o, endpoint.id))[0]).toMatchObject({ status: "delivered", attempts: 1, lastStatus: 204 });
+    expect((await hooks().deliveries(o, endpoint.id))[0]).toMatchObject({
+      status: "delivered",
+      attempts: 1,
+      lastStatus: 204,
+    });
   });
 
   it("retries with the backoff, then gives up and says why; a deactivated endpoint is left alone", async () => {
     await drain();
     const o = await owner();
-    const { endpoint } = await hooks().registerEndpoint(o, { url: URL_, events: ["booking.created"] }, { maxEndpoints: 5 }, NOW);
+    const { endpoint } = await hooks().registerEndpoint(
+      o,
+      { url: URL_, events: ["booking.created"] },
+      { maxEndpoints: 5 },
+      NOW,
+    );
     await hooks().emit(o, { id: "booking:7", type: "booking.created", payload: {} }, NOW);
     const down = async () => ({ status: 500 });
     expect(await hooks().deliverDue(NOW, down)).toMatchObject({ retried: 1 });
     expect(await hooks().deliverDue(NOW, down)).toEqual({ delivered: 0, retried: 0, failed: 0 }); // not due yet
     const t2 = new Date(NOW.getTime() + 31_000);
-    expect(await hooks().deliverDue(t2, async () => { throw new Error("connect ECONNREFUSED"); })).toMatchObject({ retried: 1 });
+    expect(
+      await hooks().deliverDue(t2, async () => {
+        throw new Error("connect ECONNREFUSED");
+      }),
+    ).toMatchObject({ retried: 1 });
     const t3 = new Date(NOW.getTime() + 31_000 + 301_000);
     expect(await hooks().deliverDue(t3, down)).toMatchObject({ failed: 1 });
-    expect((await hooks().deliveries(o, endpoint.id))[0]).toMatchObject({ status: "failed", attempts: 3, lastStatus: 500 });
+    expect((await hooks().deliveries(o, endpoint.id))[0]).toMatchObject({
+      status: "failed",
+      attempts: 3,
+      lastStatus: 500,
+    });
     await hooks().emit(o, { id: "booking:8", type: "booking.created", payload: {} }, NOW);
     await hooks().updateEndpoint(o, endpoint.id, { active: false });
-    expect(await hooks().deliverDue(t3, async () => ({ status: 200 }))).toEqual({ delivered: 0, retried: 0, failed: 0 });
+    expect(await hooks().deliverDue(t3, async () => ({ status: 200 }))).toEqual({
+      delivered: 0,
+      retried: 0,
+      failed: 0,
+    });
   });
 
   it("rotating the secret changes the signature at once; only the owner can touch an endpoint", async () => {
     await drain();
     const [o, other] = [await owner(), await owner()];
-    const { endpoint, secret } = await hooks().registerEndpoint(o, { url: URL_, events: ["booking.created"] }, { maxEndpoints: 5 }, NOW);
+    const { endpoint, secret } = await hooks().registerEndpoint(
+      o,
+      { url: URL_, events: ["booking.created"] },
+      { maxEndpoints: 5 },
+      NOW,
+    );
     const { secret: next } = await hooks().rotateSecret(o, endpoint.id);
     expect(next).not.toBe(secret);
     await hooks().emit(o, { id: "booking:rot", type: "booking.created", payload: {} }, NOW);
@@ -165,7 +245,15 @@ describe.runIf(enabled)("webhooks on PostgreSQL", () => {
   describe("an incoming webhook", () => {
     const secret = "whsec_in";
     const body = '{"id":"evt_1"}';
-    const input = (over: object = {}) => ({ source: "processor", secret, rawBody: body, signature: signBody(secret, body, T), eventId: `evt_${Math.random().toString(36).slice(2)}`, now: NOW, ...over });
+    const input = (over: object = {}) => ({
+      source: "processor",
+      secret,
+      rawBody: body,
+      signature: signBody(secret, body, T),
+      eventId: `evt_${Math.random().toString(36).slice(2)}`,
+      now: NOW,
+      ...over,
+    });
 
     it("is verified, then applied exactly once; a replay changes nothing", async () => {
       let applied = 0;
@@ -176,21 +264,45 @@ describe.runIf(enabled)("webhooks on PostgreSQL", () => {
     });
     it("refuses a bad or stale signature before recording anything", async () => {
       const i = input({ signature: signBody("whsec_other", body, T) });
-      await expect(receiveWebhook({ query: (s, p) => query(s, p) }, i, async () => undefined)).rejects.toMatchObject({ code: "WEBHOOK_SIGNATURE" });
-      await expect(receiveWebhook({ query: (s, p) => query(s, p) }, input({ now: new Date((T + 1000) * 1000) }), async () => undefined)).rejects.toMatchObject({ code: "WEBHOOK_SIGNATURE" });
+      await expect(receiveWebhook({ query: (s, p) => query(s, p) }, i, async () => undefined)).rejects.toMatchObject({
+        code: "WEBHOOK_SIGNATURE",
+      });
+      await expect(
+        receiveWebhook(
+          { query: (s, p) => query(s, p) },
+          input({ now: new Date((T + 1000) * 1000) }),
+          async () => undefined,
+        ),
+      ).rejects.toMatchObject({ code: "WEBHOOK_SIGNATURE" });
       expect(await query("SELECT 1 FROM webhook_received WHERE event_id = $1", [i.eventId])).toHaveLength(0);
     });
     it("when applying fails the event is not kept as received, so the sender's retry applies it", async () => {
       const i = input();
-      await expect(receiveWebhook({ query: (s, p) => query(s, p) }, i, async () => { throw new Error("boom"); })).rejects.toThrow("boom");
+      await expect(
+        receiveWebhook({ query: (s, p) => query(s, p) }, i, async () => {
+          throw new Error("boom");
+        }),
+      ).rejects.toThrow("boom");
       let applied = 0;
       expect(await receiveWebhook({ query: (s, p) => query(s, p) }, i, async () => void applied++)).toBe("applied");
       expect(applied).toBe(1);
     });
     it("the same id from another source is another event", async () => {
       const id = `evt_${crypto.randomUUID()}`;
-      expect(await receiveWebhook({ query: (s, p) => query(s, p) }, input({ eventId: id, source: "a" }), async () => undefined)).toBe("applied");
-      expect(await receiveWebhook({ query: (s, p) => query(s, p) }, input({ eventId: id, source: "b" }), async () => undefined)).toBe("applied");
+      expect(
+        await receiveWebhook(
+          { query: (s, p) => query(s, p) },
+          input({ eventId: id, source: "a" }),
+          async () => undefined,
+        ),
+      ).toBe("applied");
+      expect(
+        await receiveWebhook(
+          { query: (s, p) => query(s, p) },
+          input({ eventId: id, source: "b" }),
+          async () => undefined,
+        ),
+      ).toBe("applied");
     });
   });
 });

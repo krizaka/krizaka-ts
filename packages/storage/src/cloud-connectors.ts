@@ -1,4 +1,12 @@
-import { ArcticFetchError, CodeChallengeMethod, generateCodeVerifier, generateState, OAuth2Client, OAuth2RequestError, type OAuth2Tokens } from "arctic";
+import {
+  ArcticFetchError,
+  CodeChallengeMethod,
+  generateCodeVerifier,
+  generateState,
+  OAuth2Client,
+  OAuth2RequestError,
+  type OAuth2Tokens,
+} from "arctic";
 
 import { type Clock, STORAGE_CODE, StorageError } from "./port";
 
@@ -77,8 +85,13 @@ const clientOf = (app: ConnectorApp) => new OAuth2Client(app.clientId, app.clien
 /** An expired, revoked or refused grant is a lost connection; a network or provider failure is not. The message never quotes a token. */
 function failureOf(error: unknown, what: string): StorageError {
   if (error instanceof StorageError) return error;
-  if (error instanceof OAuth2RequestError && (error.code === "invalid_grant" || error.code === "invalid_token" || error.code === "access_denied")) return new StorageError(STORAGE_CODE.disconnected, "The cloud no longer accepts this connection");
-  if (error instanceof ArcticFetchError) return new StorageError(STORAGE_CODE.provider, `The cloud could not be reached for the ${what}`);
+  if (
+    error instanceof OAuth2RequestError &&
+    (error.code === "invalid_grant" || error.code === "invalid_token" || error.code === "access_denied")
+  )
+    return new StorageError(STORAGE_CODE.disconnected, "The cloud no longer accepts this connection");
+  if (error instanceof ArcticFetchError)
+    return new StorageError(STORAGE_CODE.provider, `The cloud could not be reached for the ${what}`);
   return new StorageError(STORAGE_CODE.provider, `The cloud refused the ${what}`);
 }
 
@@ -92,19 +105,33 @@ const tokensOf = (tokens: OAuth2Tokens): ConnectionTokens => ({
  * Step 1: where the person is sent. Keep `verifier` on the server (sealed inside `state`'s record or a short-lived row); compare
  * `state` on the way back. PKCE S256 for every provider, even with a client secret.
  */
-export function startConnection(connector: CloudConnector, app: ConnectorApp): { url: string; state: string; verifier: string } {
+export function startConnection(
+  connector: CloudConnector,
+  app: ConnectorApp,
+): { url: string; state: string; verifier: string } {
   const state = generateState();
   const verifier = generateCodeVerifier();
-  const url = clientOf(app).createAuthorizationURLWithPKCE(connector.authorize, state, CodeChallengeMethod.S256, verifier, [...connector.scopes]);
+  const url = clientOf(app).createAuthorizationURLWithPKCE(
+    connector.authorize,
+    state,
+    CodeChallengeMethod.S256,
+    verifier,
+    [...connector.scopes],
+  );
   for (const [name, value] of Object.entries(connector.extra)) url.searchParams.set(name, value);
   return { url: url.toString(), state, verifier };
 }
 
 /** Step 2: the code the provider sent back, with the verifier of step 1. The refresh token is what gets sealed. */
-export async function finishConnection(connector: CloudConnector, app: ConnectorApp, input: { code: string; verifier: string }): Promise<ConnectionTokens> {
+export async function finishConnection(
+  connector: CloudConnector,
+  app: ConnectorApp,
+  input: { code: string; verifier: string },
+): Promise<ConnectionTokens> {
   try {
     const tokens = tokensOf(await clientOf(app).validateAuthorizationCode(connector.token, input.code, input.verifier));
-    if (tokens.refreshToken === null) throw new StorageError(STORAGE_CODE.provider, "The cloud gave no refresh token: the connection would not last");
+    if (tokens.refreshToken === null)
+      throw new StorageError(STORAGE_CODE.provider, "The cloud gave no refresh token: the connection would not last");
     return tokens;
   } catch (error) {
     throw failureOf(error, "connection");
@@ -112,7 +139,11 @@ export async function finishConnection(connector: CloudConnector, app: Connector
 }
 
 /** A fresh access token. `STORAGE_DISCONNECTED` when the grant was revoked or expired. A rotated refresh token comes back to be resealed. */
-export async function refreshConnection(connector: CloudConnector, app: ConnectorApp, refreshToken: string): Promise<ConnectionTokens> {
+export async function refreshConnection(
+  connector: CloudConnector,
+  app: ConnectorApp,
+  refreshToken: string,
+): Promise<ConnectionTokens> {
   try {
     return tokensOf(await clientOf(app).refreshAccessToken(connector.token, refreshToken, []));
   } catch (error) {
@@ -121,12 +152,18 @@ export async function refreshConnection(connector: CloudConnector, app: Connecto
 }
 
 /** The person's disconnect: revoked at the provider where it can be (already revoked is fine); the caller then deletes the sealed token. */
-export async function revokeConnection(connector: CloudConnector, app: ConnectorApp, token: string, call: typeof fetch = fetch): Promise<void> {
+export async function revokeConnection(
+  connector: CloudConnector,
+  app: ConnectorApp,
+  token: string,
+  call: typeof fetch = fetch,
+): Promise<void> {
   if (!connector.revoke) return;
   try {
     if (connector.revoke.style === "rfc7009") return await clientOf(app).revokeToken(connector.revoke.url, token);
     const res = await call(connector.revoke.url, { method: "POST", headers: { authorization: `Bearer ${token}` } });
-    if (!res.ok && res.status !== 401) throw new StorageError(STORAGE_CODE.provider, `The cloud refused the revocation (${res.status})`);
+    if (!res.ok && res.status !== 401)
+      throw new StorageError(STORAGE_CODE.provider, `The cloud refused the revocation (${res.status})`);
   } catch (error) {
     throw failureOf(error, "revocation");
   }
@@ -136,7 +173,13 @@ export async function revokeConnection(connector: CloudConnector, app: Connector
  * The `accessToken` an `opendalStore` asks for: renewed from the refresh token a minute before it expires, the rotated refresh token
  * handed to `onRotate` (to reseal), `STORAGE_DISCONNECTED` once the grant is gone.
  */
-export function connectionAccessToken(input: { connector: CloudConnector; app: ConnectorApp; refreshToken: string; clock: Clock; onRotate?: (refreshToken: string) => Promise<void> }): () => Promise<string> {
+export function connectionAccessToken(input: {
+  connector: CloudConnector;
+  app: ConnectorApp;
+  refreshToken: string;
+  clock: Clock;
+  onRotate?: (refreshToken: string) => Promise<void>;
+}): () => Promise<string> {
   let refreshToken = input.refreshToken;
   let access: { token: string; until: number } | null = null;
   // @fixed: renew a minute early so a call never starts with a token about to expire

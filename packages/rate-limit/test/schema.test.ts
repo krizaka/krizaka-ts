@@ -11,7 +11,9 @@ describe("the rate-limit schema", () => {
     expect(sql).toContain("CREATE SCHEMA IF NOT EXISTS rate_limit;");
     expect(sql).toContain("CREATE TABLE rate_limit.bucket");
     expect(sql).toContain("key          text PRIMARY KEY");
-    expect(emitMigration(rateLimitSchema, 1, { ...context, schema: "kz_limits" })).toContain("CREATE TABLE kz_limits.bucket");
+    expect(emitMigration(rateLimitSchema, 1, { ...context, schema: "kz_limits" })).toContain(
+      "CREATE TABLE kz_limits.bucket",
+    );
     expect(rateLimitSchema.tables).toEqual([]);
   });
 

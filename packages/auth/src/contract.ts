@@ -39,6 +39,10 @@ export const ME_HEADERS = { "Cache-Control": "private, no-store", Vary: "Cookie"
  * @throws ZodError when the body breaks the contract (a signed-in answer without an account)
  */
 export function meResponse(input: { signupOpen: boolean; account?: MeAccount | null | undefined }): Response {
-  const body: Me = meSchema.parse({ signedIn: !!input.account, signupOpen: input.signupOpen, ...(input.account ? { account: input.account } : {}) });
+  const body: Me = meSchema.parse({
+    signedIn: !!input.account,
+    signupOpen: input.signupOpen,
+    ...(input.account ? { account: input.account } : {}),
+  });
   return Response.json(body, { headers: ME_HEADERS });
 }
