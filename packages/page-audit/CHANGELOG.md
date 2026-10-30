@@ -1,5 +1,11 @@
 # @krizaka/page-audit
 
+## 0.7.0
+
+### Minor Changes
+
+- b3128f3: `controlOverlaps`: two interactive elements that share pixels on screen fail the audit (a control that cannot be clicked because another one covers it). Off by default; a page opts in with `controlOverlaps: true`.
+
 ## 0.6.0
 
 ### Minor Changes
