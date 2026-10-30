@@ -44,11 +44,23 @@ export type StripeAdapterConfig = ProcessorConfig;
 const PROVIDER = "stripe";
 // @fixed: the processor's documented window for a Checkout Session's `expires_at`: from 30 minutes (we ask for 31) to 24 hours after creation
 const MIN_EXPIRY_SECONDS = 31 * 60;
+// @fixed: the processor's documented bounds of a subscription's `trial_period_days`
+const MIN_TRIAL_DAYS = 1;
+// @fixed: the processor's documented bounds of a subscription's `trial_period_days`
+const MAX_TRIAL_DAYS = 730;
 // @fixed: the processor's documented ceiling for a Checkout Session's `expires_at`
 const MAX_EXPIRY_SECONDS = 24 * 3600;
 
 const refuse = (message: string, code: (typeof PAYMENTS_CODE)[keyof typeof PAYMENTS_CODE], status = 422) =>
   new PaymentsError(status, message, code);
+
+/** Checks the free days of a checkout: whole days within the processor's bounds, and a subscription only. @throws PaymentsError `PAYMENTS_BAD_TRIAL` */
+export function assertTrial(days: number, mode: PlanConfig["mode"]): void {
+  if (mode !== "subscription")
+    throw refuse("Free days are for a subscription, not a one-off payment", PAYMENTS_CODE.badTrial);
+  if (!Number.isInteger(days) || days < MIN_TRIAL_DAYS || days > MAX_TRIAL_DAYS)
+    throw refuse(`Free days are a whole number from ${MIN_TRIAL_DAYS} to ${MAX_TRIAL_DAYS}`, PAYMENTS_CODE.badTrial);
+}
 
 /** Checks the terms a discount is made of, before any call. @throws PaymentsError `PAYMENTS_BAD_DISCOUNT` */
 export function assertTerms(terms: DiscountTerms, mode: PlanConfig["mode"]): void {
@@ -196,6 +208,7 @@ export function processorAdapter(config: ProcessorConfig): PaymentsPort {
     return found?.payment_intent ?? found?.charge ?? null;
   }
   return {
+    capabilities: { trial: true },
     async charge(request: ChargeRequest): Promise<ChargeResult> {
       assertCharge(request);
       const key = request.key;
@@ -310,6 +323,7 @@ export function processorAdapter(config: ProcessorConfig): PaymentsPort {
     async checkout(p: CheckoutRequest) {
       const { mode } = plan(p.kind);
       if (p.discount) assertTerms(p.discount, mode);
+      if (p.trialDays !== undefined) assertTrial(p.trialDays, mode);
       const expiresAt = p.expiresAt ? expirySeconds(p.expiresAt) : undefined;
       const coupon = p.discount ? await couponFor(p.discount) : undefined;
       const session = await call<{ id: string; url: string; expires_at?: number }>(
@@ -327,7 +341,12 @@ export function processorAdapter(config: ProcessorConfig): PaymentsPort {
           tax_id_collection: { enabled: true },
           ...(mode === "payment"
             ? { invoice_creation: { enabled: true } }
-            : { subscription_data: { metadata: { account_id: p.accountId } } }),
+            : {
+                subscription_data: {
+                  metadata: { account_id: p.accountId },
+                  ...(p.trialDays === undefined ? {} : { trial_period_days: p.trialDays }),
+                },
+              }),
           metadata: { ...p.metadata, account_id: p.accountId, kind: p.kind },
           ...(expiresAt === undefined ? {} : { expires_at: expiresAt }),
           success_url: p.successUrl,

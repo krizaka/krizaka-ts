@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   assertTerms,
+  assertTrial,
   type CheckoutRequest,
   type DiscountTerms,
   memoryDiscountStore,
@@ -227,5 +228,34 @@ describe("the webhook tolerance is a setting", () => {
     expect(() => adapterOver(f, { webhookToleranceSeconds: 30 }).parseWebhook(body, headers, 1_100)).toThrow(
       PaymentsError,
     );
+  });
+});
+
+describe("free days on a subscription (the processor's trial)", () => {
+  it("sends trial_period_days with the subscription and keeps the account id; none without the field", async () => {
+    const f = fake();
+    await adapterOver(f).checkout(request({ trialDays: 90 }));
+    expect(f.session().form.get("subscription_data[trial_period_days]")).toBe("90");
+    expect(f.session().form.get("subscription_data[metadata][account_id]")).toBe("a1");
+    const g = fake();
+    await adapterOver(g).checkout(request());
+    expect(g.session().form.has("subscription_data[trial_period_days]")).toBe(false);
+  });
+  it("refuses free days that are not whole days within the processor's bounds, or on a one-off payment, before any call", async () => {
+    for (const trialDays of [0, -1, 1.5, 731, Number.NaN]) {
+      const f = fake();
+      await expect(adapterOver(f).checkout(request({ trialDays }))).rejects.toMatchObject({
+        code: PAYMENTS_CODE.badTrial,
+      });
+      expect(f.calls).toEqual([]);
+    }
+    const f = fake();
+    await expect(adapterOver(f).checkout(request({ kind: "audit", trialDays: 30 }))).rejects.toMatchObject({
+      code: PAYMENTS_CODE.badTrial,
+    });
+    expect(() => assertTrial(30, "subscription")).not.toThrow();
+  });
+  it("declares that it carries free days, so a product can refuse to promise what an older adapter would drop", () => {
+    expect(adapterOver(fake()).capabilities).toEqual({ trial: true });
   });
 });
