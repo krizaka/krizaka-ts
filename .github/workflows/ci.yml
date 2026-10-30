@@ -18,7 +18,7 @@ jobs:
   # The pipeline is the org's (krizaka/.github docs/standards/ci-and-deploy.md): the changes gate, the pnpm cache, parallel legs, the
   # timeouts and the gate that always reports live there. This file says only what is Krizaka TS's.
   ci:
-    uses: krizaka/.github/.github/workflows/node-ci.yml@4d440de1d8392bb59431759579295e89ed5f6986 # main (fix-needs-guard, light Sonar scan)
+    uses: krizaka/.github/.github/workflows/node-ci.yml@3f78a2d25b154a21cabbc5d57b8278f6b1ddf0f1 # main (fix-needs-guard, light Sonar scan)
     permissions:
       contents: read
     with:
