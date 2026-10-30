@@ -15,13 +15,13 @@ rule:
           - pattern: $F($$$)
             has:
               field: function
-              regex: '^(hours|minutes|seconds)ToMilliseconds$'
+              regex: "^(hours|minutes|seconds)ToMilliseconds$"
           - kind: binary_expression
-            regex: '^[0-9_ *+/().-]+$'
+            regex: "^[0-9_ *+/().-]+$"
   not:
     follows:
       kind: comment
-      regex: '@fixed:'
+      regex: "@fixed:"
       stopBy: neighbor
 files:
   - "packages/*/src/**/*.ts"

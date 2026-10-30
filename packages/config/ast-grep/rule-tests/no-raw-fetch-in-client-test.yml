@@ -1,0 +1,18 @@
+id: no-raw-fetch-in-client
+valid:
+  - |
+    "use client";
+    const forgot = useMutation({ mutationFn: (email) => krizakaFetch("/api/forgot", { method: "POST", json: { email } }) });
+  - |
+    export async function GET() {
+      return fetch("https://example.com/feed");
+    }
+invalid:
+  - |
+    "use client";
+    async function submit() {
+      const res = await fetch("/api/v1/auth/forgot", { method: "POST" });
+    }
+  - |
+    'use client';
+    const load = () => fetch("/api/items").then((r) => r.json());

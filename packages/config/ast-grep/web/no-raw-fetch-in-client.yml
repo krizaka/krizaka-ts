@@ -1,0 +1,23 @@
+id: no-raw-fetch-in-client
+language: Tsx
+severity: error
+message: "No raw `fetch` in a client component: it hand-makes the pending, error and success state and reads errors as text. Use `krizakaFetch` (Problem Details, typed errors) inside `useQuery` / `useMutation` of @krizaka/query. A missing function is added to the lib first."
+rule:
+  pattern: fetch($$$ARGS)
+  inside:
+    kind: program
+    stopBy: end
+    has:
+      kind: expression_statement
+      regex: '^["'']use client["'']'
+ignores:
+  - "**/node_modules/**"
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+  - "**/*.stories.tsx"
+  - "**/__tests__/**"
+  - "**/tests/**"
+  - "**/e2e/**"
+  - "**/fixtures/**"
+  - "**/scripts/**"
+  - "**/tools/**"
