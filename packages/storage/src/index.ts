@@ -32,6 +32,7 @@ export {
   residencyOf,
   residencyOfConfig,
 } from "./regions";
+export { readUpload, type ReadUploadOptions, type ReadUploadResult } from "./read-upload";
 export { sniffType } from "./sniff";
 export { type SweepOptions, sweepOrphans, type SweepResult } from "./sweep";
 export {
