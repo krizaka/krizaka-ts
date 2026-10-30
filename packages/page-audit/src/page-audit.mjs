@@ -117,6 +117,42 @@ function spillOf(panels) {
   return { overflowing, spill };
 }
 
+/** What is seen of a control: its box cut by every clipping or scrolling ancestor (a control scrolled out of its list is not on screen). */
+function seenBox(el) {
+  const r = el.getBoundingClientRect();
+  let box = { left: r.left, top: r.top, right: r.right, bottom: r.bottom };
+  for (let n = el.parentElement; n && n !== document.body; n = n.parentElement) {
+    const st = getComputedStyle(n);
+    if (st.overflowX === "visible" && st.overflowY === "visible") continue;
+    const c = n.getBoundingClientRect();
+    box = {
+      left: Math.max(box.left, st.overflowX === "visible" ? box.left : c.left),
+      right: Math.min(box.right, st.overflowX === "visible" ? box.right : c.right),
+      top: Math.max(box.top, st.overflowY === "visible" ? box.top : c.top),
+      bottom: Math.min(box.bottom, st.overflowY === "visible" ? box.bottom : c.bottom),
+    };
+  }
+  return box;
+}
+
+/** `controlOverlaps`: two interactive elements, neither inside the other, that share pixels on screen (a header over a row, a radio over its card's text): one of them cannot be clicked. */
+function controlOverlapsOf() {
+  const controls =
+    'button, a[href], input:not([type="hidden"]), select, textarea, summary, [role="button"], [role="radio"], [role="checkbox"], [role="switch"], [role="tab"], [role="menuitem"], [role="link"], [role="combobox"]';
+  const drawn = [...document.querySelectorAll(controls)]
+    .filter(
+      (el) => !clipped(el) && getComputedStyle(el).visibility !== "hidden" && getComputedStyle(el).display !== "none",
+    )
+    .map((el) => ({ el, box: seenBox(el) }))
+    .filter(({ box }) => box.right - box.left > 4 && box.bottom - box.top > 4);
+  const overlaps = [];
+  drawn.forEach((a, i) => {
+    for (const b of drawn.slice(i + 1))
+      if (apart(a.el, b.el) && meets(a.box, b.box)) overlaps.push(nameOf(a.el) + " over " + nameOf(b.el));
+  });
+  return overlaps;
+}
+
 /** `overlaps`: two sections that are not nested and cover each other, or what ran out of its panel and lands on another section (the card covering « Dernières vérifications »). */
 function overlapsOf(panels, spill) {
   const overlaps = [];
@@ -389,6 +425,7 @@ function measurePage() {
     overlaps: overlapsOf(panels, spill).slice(0, 3),
     cutColumns: cutColumnsOf(),
     chromeOverlaps: chromeOverlapsOf(doc).slice(0, 3),
+    controlOverlaps: controlOverlapsOf().slice(0, 5),
     clips: clipsOf(),
     emptyHeadings: emptyHeadingsOf(),
     unlabelledFiles: unlabelledFilesOf(),
@@ -424,6 +461,8 @@ const PROBES = [
   notDrawn,
   runsOut,
   spillOf,
+  seenBox,
+  controlOverlapsOf,
   overlapsOf,
   cutBy,
   cutColumnsOf,
@@ -479,6 +518,7 @@ export function problemsOf(
     emptyControls = false,
     hardColors = false,
     maps = false,
+    controlOverlaps = false,
   } = {},
 ) {
   return [
@@ -496,6 +536,9 @@ export function problemsOf(
       ? [`${where}: ${result.hardColors} element(s) with a hard-coded colour in an inline style`]
       : []),
     ...(maps ? mapProblems(where, result.maps ?? [], maps) : []),
+    ...(controlOverlaps && result.controlOverlaps?.length
+      ? [`${where}: controls overlap, one cannot be clicked (${result.controlOverlaps.join(", ")})`]
+      : []),
     ...errorsOf(where, errors),
     ...layoutProblems(where, result),
     ...(h1 ? namingProblems(where, result) : []),

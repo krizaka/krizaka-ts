@@ -7,6 +7,8 @@ import {
   CHROME_BAD,
   CHROME_FINE,
   COLUMN_CUT,
+  CONTROLS_FINE,
+  CONTROLS_OVERLAP,
   EMPTY_MAIN,
   FINE,
   FOLDED_SECTION,
@@ -42,6 +44,12 @@ const EXPECT = [
   ["a map with no canvas", MAP_NO_CANVAS, /has no canvas/, { maps: true }],
   ["no map where one is required", FINE, /no map on the page/, { maps: { required: true } }],
   ["two page footers and no nav", CHROME_BAD, /2 page footers/, { landmarks: "public" }],
+  [
+    "two controls on top of each other",
+    CONTROLS_OVERLAP,
+    /controls overlap, one cannot be clicked/,
+    { controlOverlaps: true },
+  ],
   ["no nav landmark", CHROME_BAD, /no <nav> landmark/, { landmarks: "app" }],
 ];
 const FINES = [
@@ -61,11 +69,13 @@ const ALL = {
   hardColors: true,
   landmarks: "public",
   maps: true,
+  controlOverlaps: true,
 };
 const FINES_STRICT = [
   ["a frame that fits its screen", FRAME_FITS, { frame: true, emptyMain: false }],
   ["the family chrome", CHROME_FINE, ALL],
   ["maps with a size and something drawn", MAP_FINE, { maps: true }],
+  ["controls side by side, in a label, in a scroller", CONTROLS_FINE, { controlOverlaps: true }],
   ["a map that is not drawn (display none)", MAP_HIDDEN, { maps: true }],
 ];
 
