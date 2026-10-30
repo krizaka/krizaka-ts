@@ -24,6 +24,8 @@ export async function rawCall(
   path: string,
   params: Record<string, unknown> = {},
   idempotencyKey?: string,
+  /** A Connect direct call: the request is made ON this connected account (`Stripe-Account`). */
+  stripeAccount?: string,
 ): Promise<{ ok: boolean; status: number; json: Record<string, unknown> & { error?: { message?: string } } }> {
   const doFetch = config.fetch ?? fetch;
   const base = (config.apiBase ?? "https://api.stripe.com").replace(/\/$/, "");
@@ -33,6 +35,7 @@ export async function rawCall(
     headers: {
       authorization: `Bearer ${config.secretKey}`,
       ...(method === "POST" ? { "content-type": "application/x-www-form-urlencoded" } : {}),
+      ...(stripeAccount ? { "stripe-account": stripeAccount } : {}),
       ...(idempotencyKey ? { "idempotency-key": idempotencyKey } : {}),
     },
     body: method === "POST" ? form : undefined,
