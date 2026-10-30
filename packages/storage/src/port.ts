@@ -49,6 +49,7 @@ export const STORAGE_CODE = {
   tooBig: "STORAGE_TOO_BIG",
   badType: "STORAGE_BAD_TYPE",
   typeMismatch: "STORAGE_TYPE_MISMATCH",
+  noFile: "STORAGE_NO_FILE",
   provider: "STORAGE_PROVIDER_FAILED",
   badConfig: "STORAGE_BAD_CONFIG",
   badEndpoint: "STORAGE_BAD_ENDPOINT",

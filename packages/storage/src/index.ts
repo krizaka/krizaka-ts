@@ -20,6 +20,7 @@ export {
   type ProviderScope,
   S3_PRESETS,
 } from "./providers";
+export { readUpload, type ReadUploadOptions, type ReadUploadResult } from "./read-upload";
 export {
   COUNTRY_OF_REGION,
   countryOf,
