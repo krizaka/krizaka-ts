@@ -11,6 +11,9 @@ export interface MemoryConnect extends ConnectPort {
 
 type Held = ConnectPayment & { captured: number; refunded: number; accountId: string };
 
+/** The only state a payment can still be captured or released from. */
+const CAN_SETTLE: ReadonlySet<string> = new Set(["held"]);
+
 const refuse = (status: number, message: string, code: PaymentsCode) => new PaymentsError(status, message, code);
 
 const positive = (n: number | undefined, what: string): void => {
@@ -21,7 +24,7 @@ const positive = (n: number | undefined, what: string): void => {
 const view = (p: Held): ConnectPayment => ({
   paymentRef: p.paymentRef,
   state: p.state,
-  amountMinor: p.state === "paid" ? p.captured : p.amountMinor,
+  amountMinor: p.captured || p.amountMinor,
   currency: p.currency,
 });
 
@@ -57,7 +60,8 @@ export function memoryConnect(): MemoryConnect {
     return found;
   };
   const mustBeHeld = (p: Held): void => {
-    if (p.state !== "held") throw refuse(409, `Payment ${p.paymentRef} is ${p.state}, not held`, PAYMENTS_CODE.notHeld);
+    if (!CAN_SETTLE.has(p.state))
+      throw refuse(409, `Payment ${p.paymentRef} is ${p.state}, not held`, PAYMENTS_CODE.notHeld);
   };
 
   return {
@@ -104,7 +108,7 @@ export function memoryConnect(): MemoryConnect {
       }),
     pay: (accountId, r) =>
       step(`pay:${accountId}`, r.key, () => {
-        if (account(accountId).state !== "active")
+        if (!account(accountId).chargesEnabled)
           throw refuse(422, "The account cannot charge yet", PAYMENTS_CODE.badAccount);
         positive(r.amountMinor, "An amount");
         const fee = r.applicationFeeMinor ?? 0;
