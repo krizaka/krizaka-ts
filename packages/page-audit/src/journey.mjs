@@ -13,7 +13,13 @@ export const DEFAULT_BUDGET_SECONDS = 90;
 const PLATFORMS = Object.freeze(["web", "mobile"]);
 const KEBAB = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const ISSUE = /^[\w.-]+\/[\w.-]+#\d+$/;
-const JOURNEY_FILE = /([^/\\]+)\.journey\.[cm]?[jt]sx?$/;
+const JOURNEY_SUFFIX = /\.journey\.[cm]?[jt]sx?$/;
+/** The journey id of a file path (`<id>.journey.ts`), or undefined. The base name is cut first: no backtracking over the path. */
+function journeyId(file) {
+  const base = file.slice(Math.max(file.lastIndexOf("/"), file.lastIndexOf("\\")) + 1);
+  const match = JOURNEY_SUFFIX.exec(base);
+  return match && match.index > 0 ? base.slice(0, match.index) : undefined;
+}
 
 /** The problems of one catalogue row (`journeys/journeys.json`), empty when it is a good journey. `cast` = the seeded persona ids. */
 export function validateJourney(journey, { cast } = {}) {
@@ -37,7 +43,7 @@ export function validateJourney(journey, { cast } = {}) {
 /** Files and rows must match: a file with no row, a row with no file, an id twice. `files` are paths of `<id>.journey.ts`. */
 export function checkCatalogue({ files, index }) {
   const problems = [];
-  const fileIds = new Set(files.map((f) => JOURNEY_FILE.exec(f)?.[1]).filter(Boolean));
+  const fileIds = new Set(files.map(journeyId).filter(Boolean));
   const seen = new Set();
   for (const row of index) {
     if (seen.has(row.id)) problems.push(`journeys.json lists « ${row.id} » twice`);
