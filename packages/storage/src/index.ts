@@ -20,6 +20,7 @@ export {
   type ProviderScope,
   S3_PRESETS,
 } from "./providers";
+export { readUpload, type ReadUploadOptions, type ReadUploadResult } from "./read-upload";
 export {
   COUNTRY_OF_REGION,
   countryOf,
@@ -32,7 +33,6 @@ export {
   residencyOf,
   residencyOfConfig,
 } from "./regions";
-export { readUpload, type ReadUploadOptions, type ReadUploadResult } from "./read-upload";
 export { sniffType } from "./sniff";
 export { type SweepOptions, sweepOrphans, type SweepResult } from "./sweep";
 export {
