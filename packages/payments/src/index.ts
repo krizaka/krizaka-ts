@@ -17,7 +17,7 @@ export type {
   ConnectPort,
   DirectPaymentRequest,
 } from "./connect";
-export { connectAdapter,type ConnectAdapterConfig } from "./connect-stripe";
+export { connectAdapter, type ConnectAdapterConfig } from "./connect-processor";
 export {
   type ConnectOutcome,
   type ConnectWebhookConfig,

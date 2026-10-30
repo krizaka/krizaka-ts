@@ -1,7 +1,7 @@
 import { differenceInSeconds } from "@krizaka/time";
 
 import type { ConnectEvent, ConnectHandlers } from "./connect";
-import { accountStatusOf } from "./connect-stripe";
+import { accountStatusOf } from "./connect-processor";
 import type { Clock, EventStore } from "./port";
 import { PAYMENTS_CODE, PaymentsError } from "./port";
 import { DEFAULT_TOLERANCE_SECONDS, verifySignature } from "./webhook";
