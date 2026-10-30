@@ -41,14 +41,25 @@ beforeEach(() => {
   write("package.json", JSON.stringify({ name: "fixture-app", version: "1.0.0", dependencies: {} }));
   config();
 });
-afterEach(() => rmSync(root, { recursive: true, force: true }));
+afterEach(() => {
+  rmSync(root, { recursive: true, force: true });
+  const spawned = cruises;
+  cruises = 0;
+  expect(spawned, "cruises spawned by this test").toBeLessThanOrEqual(MAX_CRUISES_PER_TEST);
+});
 
 // `err-long` (with the comment of the rule) sets the exit code; `json` lists the violations
-const cruise = (output = "json", targets = ["app"], configFile = ".dependency-cruiser.cjs", extra: string[] = []) =>
-  spawnSync(process.execPath, [DEPCRUISE, ...targets, "--config", configFile, "--output-type", output, ...extra], {
-    cwd: root,
-    encoding: "utf8",
-  });
+// Each cruise is a node process (seconds under CI load): a test spawns a bounded number of them (guard of krizaka-ts#288).
+const MAX_CRUISES_PER_TEST = 3;
+let cruises = 0;
+const cruise = (output = "json", targets = ["app"], configFile = ".dependency-cruiser.cjs", extra: string[] = []) => {
+  cruises += 1;
+  return spawnSync(
+    process.execPath,
+    [DEPCRUISE, ...targets, "--config", configFile, "--output-type", output, ...extra],
+    { cwd: root, encoding: "utf8" },
+  );
+};
 const violationsOf = (run = cruise()) =>
   (JSON.parse(run.stdout).summary.violations as { from: string; to: string; rule: { name: string } }[]).map((v) => [
     v.from,
@@ -131,22 +142,29 @@ describe("@krizaka/config/dependency-cruiser", () => {
       });
 
       it("lets an app use the Krizaka home, whose own import of the library is allowed", () => {
-        expect(cruise("err").status).toBe(0);
-        expect(violationsOf()).toEqual([]);
+        const report = JSON.parse(cruise().stdout) as { summary: { error: number; violations: unknown[] } };
+        expect(report.summary.error).toBe(0);
+        expect(report.summary.violations).toEqual([]);
       });
 
       it("refuses an app importing each refused library directly, and the message names the Krizaka home", () => {
         refusedSamples.forEach((sample, i) =>
           write(`app/direct-${i}.js`, `module.exports = require(${JSON.stringify(sample)});\n`),
         );
-        const run = cruise("err-long");
-        expect(run.status).toBe(refusedSamples.length);
-        expect(
-          violationsOf()
-            .map(([from, rule]) => [from, rule])
-            .sort(),
-        ).toEqual(refusedSamples.map((_, i) => [`app/direct-${i}.js`, ruleName(domain)]).sort());
-        const text = run.stdout.replace(/\s+/g, " ");
+        // ONE cruise: the json report carries the exit-code count (summary.error) and each rule's comment (the message), so a
+        // second err-long cruise is not needed (it doubled the time of this test, the timeout of krizaka-ts#288).
+        const report = JSON.parse(cruise().stdout) as {
+          summary: { error: number; violations: { from: string; rule: { name: string; comment?: string } }[] };
+        };
+        expect(report.summary.error).toBe(refusedSamples.length);
+        expect(report.summary.violations.map((v) => [v.from, v.rule.name]).sort()).toEqual(
+          refusedSamples.map((_, i) => [`app/direct-${i}.js`, ruleName(domain)]).sort(),
+        );
+        // the json report names the rule only; err-long prints the rule's comment, which the shared preset holds.
+        const rule = (shared.forbidden as { name: string; comment?: string }[]).find(
+          (r) => r.name === ruleName(domain),
+        );
+        const text = (rule?.comment ?? "").replace(/\s+/g, " ");
         expect(text).toContain(domain.home);
         expect(text).toContain("Missing function? add it to the package first.");
       });
