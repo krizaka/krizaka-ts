@@ -8,7 +8,9 @@ import { describe, expect, it } from "vitest";
 const dir = new URL("../.github/workflows/", import.meta.url);
 const pins = new Map();
 for (const file of readdirSync(dir).filter((f) => f.endsWith(".yml"))) {
-  for (const m of readFileSync(new URL(file, dir), "utf8").matchAll(/uses:\s*krizaka\/\.github\/(\S+?)@([0-9a-f]{40})/g)) {
+  for (const m of readFileSync(new URL(file, dir), "utf8").matchAll(
+    /uses:\s*krizaka\/\.github\/(\S+?)@([0-9a-f]{40})/g,
+  )) {
     const path = m[1].endsWith(".yml") ? m[1] : `${m[1]}/action.yml`;
     pins.set(`${path}@${m[2]}`, { path, sha: m[2], file });
   }
@@ -22,7 +24,8 @@ describe("org pins", () => {
   it.each([...pins.values()])("$file: $path exists at $sha", async ({ path, sha }) => {
     let status = 200;
     try {
-      status = (await fetch(`https://raw.githubusercontent.com/krizaka/.github/${sha}/${path}`, { method: "HEAD" })).status;
+      status = (await fetch(`https://raw.githubusercontent.com/krizaka/.github/${sha}/${path}`, { method: "HEAD" }))
+        .status;
     } catch {
       return; // offline: nothing to say about the pin
     }
