@@ -1,6 +1,6 @@
 # @krizaka/rate-limit
 
-Limits per action for every Krizaka product: fixed windows per address and per subject, the limits read from the admin's settings, a memory store and a PostgreSQL store shared by every instance. It replaces the `rate-limit.ts` that Yomizaka, Akinaza and Kachizaka carried byte for byte, and the PostgreSQL variants of Orochia and Yasakia.
+Limits per action for every Krizaka product: fixed windows per address and per subject, the limits read from the admin's settings, a memory store and a PostgreSQL store shared by every instance. It replaces the `rate-limit.ts` that Yomizaka and Akinaza carried byte for byte, and the PostgreSQL variants some products carried.
 
 ```ts
 import { emitMigration } from "@krizaka/db";
@@ -31,5 +31,9 @@ await limiter.forget("signIn", keys); // a successful sign-in clears its failure
 - **Limits are settings.** `rateLimitSettings` (`@krizaka/rate-limit/settings`, needs `@krizaka/settings` and `zod`) declares `limits.<action>.perIp`, `.perSubject` and `.windowSeconds` as integers with the product's defaults; `limitsFromSettings` reads them back at each check. An action id is letters and digits (`signIn`), because it sits in a settings key.
 - **Stores:** `memoryLimitStore({ maxKeys })` keeps the copies' bound (10 000 windows; ended ones dropped first, then one shared overflow window, so a flood of keys limits itself and never clears a blocked caller's count). `dbLimitStore(query, { schema })` counts in **one atomic statement** (`INSERT … ON CONFLICT DO UPDATE … RETURNING`), so 100 parallel checks count exactly and every instance sees the same counters; times come from the injected clock, not the database's. The table is `rate_limit.bucket (key, count, window_start, reset_at)`, one row per key (a deviation from `(key, window_start)` as primary key: with the first hit starting the window, two concurrent first hits would otherwise open two rows). `purge(now)` deletes the ended windows: call it from the product's job.
 - **A store that fails lets the request through** (the limiter must not take the site down) and tells `onStoreError`; `failOpen: false` rethrows instead.
-- **Orochia's extras** are in the port: `peek` (read without counting), `set` (a lock-out) and `reset`.
+- **The extras** are in the port: `peek` (read without counting), `set` (a lock-out) and `reset`.
 - `limitStoreContract` (from `@krizaka/rate-limit/testkit`) is the contract every store runs.
+
+## Turnstile (`@krizaka/rate-limit/turnstile`)
+
+A Cloudflare Turnstile widget protects nothing until the server asks Cloudflare about the token it produced. `createTurnstileVerifier({ secret, hostnames, now })` returns `verify({ token, remoteIp, action })` → `{ ok: true }` or `{ ok: false, reason, errorCodes }`. It **fails closed**: no secret (`not-configured`), no or oversized token (`missing-token`), a refusal (`rejected`), a token solved on another hostname or for another form's `action`, a replayed token (single-use, remembered for Cloudflare's 300 s), a timeout or an unreachable service (`unavailable`) all refuse. The secret is `ABUSE_CAPTCHA_SECRET_KEY` with `ABUSE_CAPTCHA_PROVIDER=turnstile` (the provider is a value; never in the browser); the site key is the public `NEXT_PUBLIC_ABUSE_CAPTCHA_SITE_KEY`. Answer a refusal with a 4xx and send nothing; log the `reason` only (no address, no message). Rule `turnstile-server-side` of the org registry.

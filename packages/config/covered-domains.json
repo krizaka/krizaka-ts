@@ -13,7 +13,17 @@
       "title": "Words, languages and messages",
       "home": "@krizaka/i18n",
       "use": "`@krizaka/i18n`",
-      "refused": ["i18next*", "react-i18next", "next-intl", "next-i18next", "react-intl", "@formatjs/*", "@lingui/*", "i18n-js", "typesafe-i18n"]
+      "refused": [
+        "i18next*",
+        "react-i18next",
+        "next-intl",
+        "next-i18next",
+        "react-intl",
+        "@formatjs/*",
+        "@lingui/*",
+        "i18n-js",
+        "typesafe-i18n"
+      ]
     },
     {
       "id": "query",

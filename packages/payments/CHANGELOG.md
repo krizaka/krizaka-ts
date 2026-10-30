@@ -1,5 +1,28 @@
 # @krizaka/payments
 
+## 0.5.0
+
+### Minor Changes
+
+- 70687cc: `subscription_changed` carries `cancelAtPeriodEnd`: true while the subscription is active but will not renew (the customer cancelled; the processor's `cancel_at_period_end`), false once it has ended. A product shows « Ends on <periodEnd> » instead of « Renews on ».
+
+## 0.4.2
+
+### Patch Changes
+
+- Updated dependencies [2a7898c]
+- Updated dependencies [2272b57]
+  - @krizaka/time@0.2.0
+  - @krizaka/settings@0.5.2
+
+## 0.4.1
+
+### Patch Changes
+
+- Updated dependencies [0d19b64]
+  - @krizaka/db@0.3.0
+  - @krizaka/settings@0.5.1
+
 ## 0.4.0
 
 ### Minor Changes

@@ -18,7 +18,16 @@ export function accountsMigration(options: { backfillVerified?: boolean } = {}):
  * The SQL of version 1 of the memberships and invitations tables, for a product that runs it by hand (idempotent).
  * @deprecated Use `rolesSchema` with `emitMigration` or `adoptMigration` from `@krizaka/db`. Removed in the next major.
  */
-export function rolesMigration(roles: readonly string[], options: { ownerTable?: string; scopeTable?: string } = {}): string {
-  const tables = { owner: ident(options.ownerTable ?? "accounts"), ...(options.scopeTable ? { scope: ident(options.scopeTable) } : {}) };
-  return rolesSchema(roles, { scoped: options.scopeTable !== undefined }).migrations[0]!.sql({ schema: "public", tables });
+export function rolesMigration(
+  roles: readonly string[],
+  options: { ownerTable?: string; scopeTable?: string } = {},
+): string {
+  const tables = {
+    owner: ident(options.ownerTable ?? "accounts"),
+    ...(options.scopeTable ? { scope: ident(options.scopeTable) } : {}),
+  };
+  return rolesSchema(roles, { scoped: options.scopeTable !== undefined }).migrations[0]!.sql({
+    schema: "public",
+    tables,
+  });
 }

@@ -1,7 +1,7 @@
 {
   "name": "@krizaka/config",
-  "version": "0.8.1",
-  "description": "The shared configuration of every Krizaka JavaScript repository: ESLint flat configs (base, Next.js, the four UI rules, the stack rules, no locale ternary), the « Krizaka first » covered-domains map and the dependency-cruiser preset generated from it (refused imports, cycles, unresolvable imports, dev dependencies), tsconfig bases, Prettier, EditorConfig, and the krizaka-ratchet and krizaka-known-violations debt counters.",
+  "version": "0.18.0",
+  "description": "The shared configuration of every Krizaka JavaScript repository: ESLint flat configs (base, Next.js, the four UI rules, the stack rules, no locale ternary), the « Krizaka first » covered-domains map and the dependency-cruiser preset generated from it (refused imports, cycles, unresolvable imports, dev dependencies), tsconfig bases, Prettier, EditorConfig, the shared ast-grep rule pack (sets core, web, html) with the krizaka-sg-ratchet bin, the krizaka-seo-family check, the krizaka-edit-check hook for coding agents, the krizaka-workspace-guard (no registry range between packages of one pnpm workspace), and the krizaka-ratchet and krizaka-known-violations debt counters.",
   "keywords": [
     "krizaka",
     "eslint-config",
@@ -11,7 +11,9 @@
     "design-system",
     "dependency-cruiser",
     "tanstack",
-    "krizaka-first"
+    "krizaka-first",
+    "ast-grep",
+    "seo"
   ],
   "homepage": "https://ts.krizaka.com/config",
   "bugs": "https://github.com/krizaka/krizaka-ts/issues",
@@ -29,6 +31,7 @@
     "./eslint/krizaka-ui": "./eslint/krizaka-ui.js",
     "./eslint/no-locale-ternary": "./eslint/no-locale-ternary.js",
     "./eslint/stack": "./eslint/stack.js",
+    "./eslint/code-rules": "./eslint/code-rules.js",
     "./eslint/ui-warnings": "./eslint/ui-warnings.js",
     "./eslint/env-names": "./eslint/env-names.js",
     "./eslint/plugin": "./eslint/plugin.js",
@@ -36,6 +39,7 @@
     "./covered-domains": "./covered-domains.cjs",
     "./covered-domains.json": "./covered-domains.json",
     "./known-violations": "./ratchet/known-violations.js",
+    "./server-client-boundary": "./ratchet/server-client-boundary.js",
     "./patterns": "./patterns.js",
     "./ratchet": "./ratchet/ratchet.js",
     "./prettier": "./prettier.config.js",
@@ -48,10 +52,18 @@
   },
   "bin": {
     "krizaka-ratchet": "./bin/krizaka-ratchet.mjs",
-    "krizaka-known-violations": "./bin/krizaka-known-violations.mjs"
+    "krizaka-known-violations": "./bin/krizaka-known-violations.mjs",
+    "krizaka-server-client-boundary": "./bin/krizaka-server-client-boundary.mjs",
+    "krizaka-sg-ratchet": "./bin/krizaka-sg-ratchet.mjs",
+    "krizaka-seo-family": "./bin/krizaka-seo-family.mjs",
+    "krizaka-edit-check": "./bin/krizaka-edit-check.mjs",
+    "krizaka-workspace-guard": "./bin/krizaka-workspace-guard.mjs"
   },
   "files": [
     "bin",
+    "edit-check",
+    "workspace-guard",
+    "ast-grep",
     "eslint",
     "ratchet",
     "tsconfig",
@@ -68,7 +80,7 @@
   "scripts": {
     "lint": "eslint . --max-warnings 0 && tsc --noEmit --noUnusedLocals --noUnusedParameters --noFallthroughCasesInSwitch --noImplicitReturns",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run --coverage --coverage.provider=v8 --coverage.reporter=lcov --coverage.reporter=text-summary \"--coverage.include=src/**/*.ts\" && ast-grep test --skip-snapshot-tests -c ast-grep/sgconfig.yml",
     "size": "size-limit",
     "publint": "publint",
     "check": "pnpm run lint && pnpm run test && pnpm run size && pnpm run publint"
@@ -78,6 +90,7 @@
     "dependency-cruiser": "^18.6.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-simple-import-sort": "^14.0.0",
+    "eslint-plugin-sonarjs": "^4.2.2",
     "globals": "^17.13.0",
     "tinyglobby": "^0.2.17",
     "typescript-eslint": "^8.71.1"
@@ -86,7 +99,7 @@
     "eslint": "^9 || ^10",
     "eslint-config-next": ">=16",
     "prettier": "^3",
-    "typescript": "^5"
+    "typescript": "^5 || ^6"
   },
   "peerDependenciesMeta": {
     "eslint-config-next": {
@@ -97,6 +110,7 @@
     }
   },
   "devDependencies": {
+    "@ast-grep/cli": "0.51.0",
     "@size-limit/file": "^14.2.0",
     "@types/estree": "^1.0.8",
     "@types/node": "^22.15.0",
@@ -123,7 +137,7 @@
         "ratchet/ratchet.js",
         "patterns.js"
       ],
-      "limit": "9 kB",
+      "limit": "13.5 kB",
       "gzip": true
     }
   ]

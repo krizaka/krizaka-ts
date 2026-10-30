@@ -1,6 +1,6 @@
 {
   "name": "@krizaka/credits",
-  "version": "0.1.1",
+  "version": "0.1.3",
   "description": "One credits ledger for every Krizaka product: grants that expire with daily and monthly caps, purchases, debits, refunds, holds. Append-only; the balance is derived. Concurrent consumption never goes negative and never spends twice. No database client, no wall clock.",
   "keywords": [
     "krizaka",
@@ -48,7 +48,7 @@
     "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsup",
     "lint": "eslint . --max-warnings 0 && tsc --noEmit",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run --coverage --coverage.provider=v8 --coverage.reporter=lcov --coverage.reporter=text-summary \"--coverage.include=src/**/*.ts\"",
     "check": "pnpm run lint && pnpm run test && pnpm run build",
     "prepublishOnly": "pnpm run build"
   },

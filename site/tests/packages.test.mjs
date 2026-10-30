@@ -3,7 +3,17 @@ import assert from "node:assert/strict";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { absolutizeLinks, changelogBody, exportsOf, installTabs, mdxSafe, orderFromReadme, renderPage, sourceOfExport, withoutTitle } from "../scripts/packages-lib.mjs";
+import {
+  absolutizeLinks,
+  changelogBody,
+  exportsOf,
+  installTabs,
+  mdxSafe,
+  orderFromReadme,
+  renderPage,
+  sourceOfExport,
+  withoutTitle,
+} from "../scripts/packages-lib.mjs";
 
 const messages = (hook = "One line.") => ({
   packages: { demo: { hook } },
@@ -13,11 +23,33 @@ const messages = (hook = "One line.") => ({
     readmeNote: "Note",
     exports: { title: "Exports", lead: "{count} names.", name: "Name", kind: "Kind", summary: "What" },
     kinds: { function: "function", class: "class", const: "constant", type: "type", enum: "enum" },
-    facts: { title: "Package", version: "Version", unpublished: "Not on npm", license: "Licence", node: "Node", dependencies: "Deps", peers: "Peers", none: "none", source: "Source" },
+    facts: {
+      title: "Package",
+      version: "Version",
+      unpublished: "Not on npm",
+      license: "Licence",
+      node: "Node",
+      dependencies: "Deps",
+      peers: "Peers",
+      none: "none",
+      source: "Source",
+    },
     changelog: { title: "Changelog" },
   },
 });
-const pkg = { id: "demo", name: "@krizaka/demo", version: "1.2.3", license: "Apache-2.0", node: ">=22", dependencies: { "date-fns": "^4" }, peerDependencies: {}, exports: [{ name: "makeIt", kind: "function", summary: "Makes | it." }], subpaths: [], readme: "# @krizaka/demo\n\nHello {world} <b>.\n\n```ts\nconst a = { b: 1 } < 2;\n```\n", changelog: "# @krizaka/demo\n\n## 1.2.3\n\n### Minor Changes\n\n- abc1234: First <release>.\n" };
+const pkg = {
+  id: "demo",
+  name: "@krizaka/demo",
+  version: "1.2.3",
+  license: "Apache-2.0",
+  node: ">=22",
+  dependencies: { "date-fns": "^4" },
+  peerDependencies: {},
+  exports: [{ name: "makeIt", kind: "function", summary: "Makes | it." }],
+  subpaths: [],
+  readme: "# @krizaka/demo\n\nHello {world} <b>.\n\n```ts\nconst a = { b: 1 } < 2;\n```\n",
+  changelog: "# @krizaka/demo\n\n## 1.2.3\n\n### Minor Changes\n\n- abc1234: First <release>.\n",
+};
 
 test("MDX-unsafe characters are escaped in prose and left alone in code", () => {
   const out = mdxSafe("a {b} <c> `{d}` <https://x.y>\n```\n{e} <f>\n```");
@@ -44,8 +76,14 @@ test("the changelog loses commit hashes and keeps a heading per version", () => 
 
 test("exports are read from the types: kind and first sentence", () => {
   const dir = mkdtempSync(join(tmpdir(), "kz-ts-"));
-  writeFileSync(join(dir, "port.ts"), "/** A port. More text. */\nexport interface Port { a: 1 }\nexport class Boom extends Error {}\n");
-  writeFileSync(join(dir, "index.ts"), "export * from \"./port\";\n/** Builds it. */\nexport function build(): number { return 1; }\nexport const LIMIT = 3;\nexport const make = (a: number) => a;\nexport { type Port as Alias } from \"./port\";\n");
+  writeFileSync(
+    join(dir, "port.ts"),
+    "/** A port. More text. */\nexport interface Port { a: 1 }\nexport class Boom extends Error {}\n",
+  );
+  writeFileSync(
+    join(dir, "index.ts"),
+    'export * from "./port";\n/** Builds it. */\nexport function build(): number { return 1; }\nexport const LIMIT = 3;\nexport const make = (a: number) => a;\nexport { type Port as Alias } from "./port";\n',
+  );
   const found = Object.fromEntries(exportsOf(join(dir, "index.ts")).map((e) => [e.name, e]));
   assert.equal(found.build.kind, "function");
   assert.equal(found.build.summary, "Builds it.");
@@ -96,7 +134,20 @@ test("a plain-JavaScript package (no build, subpath exports only) has a page: it
   assert.equal(sourceOfExport("./dist/index.js"), "src/index.ts");
   const dir = mkdtempSync(join(tmpdir(), "kz-js-"));
   writeFileSync(join(dir, "stack.js"), "/** The stack rules. */\nexport function krizakaStack() { return []; }\n");
-  assert.deepEqual(exportsOf(join(dir, "stack.js")).map((e) => [e.name, e.kind]), [["krizakaStack", "function"]]);
+  assert.deepEqual(
+    exportsOf(join(dir, "stack.js")).map((e) => [e.name, e.kind]),
+    [["krizakaStack", "function"]],
+  );
   assert.deepEqual(exportsOf(join(dir, "missing.json")), []);
   assert.deepEqual(exportsOf(null), []);
+});
+
+test("a version range with `<` (a peer such as `>=0.49.13 <0.50`) is code on the page, never MDX markup", () => {
+  const page = renderPage(
+    { ...pkg, peerDependencies: { opendal: ">=0.49.13 <0.50" }, dependencies: { a: "<2" } },
+    "en",
+    messages(),
+  );
+  assert.match(page, /`opendal` `>=0\.49\.13 <0\.50`/);
+  assert.match(page, /`a` `<2`/);
 });

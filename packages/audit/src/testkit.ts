@@ -9,8 +9,12 @@ import type { AuditInsert, AuditStore } from "./port";
  * @param make builds the store
  * @param owner the n-th actor id
  */
-export function auditStoreContract(name: string, make: () => AuditStore | Promise<AuditStore>, owner: (n: number) => string | Promise<string>) {
-  const tag = () => `t${Math.random().toString(36).slice(2, 10)}`;
+export function auditStoreContract(
+  name: string,
+  make: () => AuditStore | Promise<AuditStore>,
+  owner: (n: number) => string | Promise<string>,
+) {
+  const tag = () => `t${crypto.randomUUID().replaceAll("-", "").slice(0, 8)}`;
   const entry = (prefix: string, over: Partial<AuditInsert> = {}): AuditInsert => ({
     at: new Date("2026-10-23T10:00:00Z"),
     actorId: null,
@@ -28,10 +32,27 @@ export function auditStoreContract(name: string, make: () => AuditStore | Promis
     const p = tag();
     const actor = await owner(1);
     await store.insert(entry(p, { at: new Date("2026-10-23T09:00:00Z"), action: `${p}.first` }));
-    await store.insert(entry(p, { actorId: actor, actorLabel: "Eric", action: `${p}.second`, targetType: "shop", targetId: "s1", detail: { n: 2, tags: ["a"] }, ip: "203.0.113.9" }));
+    await store.insert(
+      entry(p, {
+        actorId: actor,
+        actorLabel: "Eric",
+        action: `${p}.second`,
+        targetType: "shop",
+        targetId: "s1",
+        detail: { n: 2, tags: ["a"] },
+        ip: "203.0.113.9",
+      }),
+    );
     const listed = await store.list({ actionPrefix: `${p}.` });
     expect(listed.map((e) => e.action)).toEqual([`${p}.second`, `${p}.first`]);
-    expect(listed[0]).toMatchObject({ actorId: actor, actorLabel: "Eric", targetType: "shop", targetId: "s1", detail: { n: 2, tags: ["a"] }, ip: "203.0.113.9" });
+    expect(listed[0]).toMatchObject({
+      actorId: actor,
+      actorLabel: "Eric",
+      targetType: "shop",
+      targetId: "s1",
+      detail: { n: 2, tags: ["a"] },
+      ip: "203.0.113.9",
+    });
     expect(listed[0]!.at.toISOString()).toBe("2026-10-23T10:00:00.000Z");
     expect(typeof listed[0]!.id).toBe("string");
   });
@@ -40,8 +61,12 @@ export function auditStoreContract(name: string, make: () => AuditStore | Promis
     const store = await make();
     const p = tag();
     const [a, b] = [await owner(2), await owner(3)];
-    await store.insert(entry(p, { actorId: a, targetType: "shop", targetId: "x", at: new Date("2026-10-01T00:00:00Z") }));
-    await store.insert(entry(p, { actorId: b, targetType: "shop", targetId: "y", at: new Date("2026-10-10T00:00:00Z") }));
+    await store.insert(
+      entry(p, { actorId: a, targetType: "shop", targetId: "x", at: new Date("2026-10-01T00:00:00Z") }),
+    );
+    await store.insert(
+      entry(p, { actorId: b, targetType: "shop", targetId: "y", at: new Date("2026-10-10T00:00:00Z") }),
+    );
     expect(await store.list({ actionPrefix: p, actorId: a })).toHaveLength(1);
     expect((await store.list({ actionPrefix: p, target: { type: "shop", id: "y" } }))[0]!.actorId).toBe(b);
     expect(await store.list({ actionPrefix: p, from: new Date("2026-10-05T00:00:00Z") })).toHaveLength(1);
@@ -68,7 +93,11 @@ export function auditStoreContract(name: string, make: () => AuditStore | Promis
     expect(await store.redactActor(gone)).toBeGreaterThanOrEqual(1);
     const after = await store.list({ actionPrefix: p });
     expect(after.find((e) => e.actorLabel === "Stays")!.actorId).toBe(stays);
-    expect(after.find((e) => e.actorLabel !== "Stays")).toMatchObject({ actorId: null, actorLabel: "erased", ip: null });
+    expect(after.find((e) => e.actorLabel !== "Stays")).toMatchObject({
+      actorId: null,
+      actorLabel: "erased",
+      ip: null,
+    });
     expect((await store.forActor(gone)).filter((e) => e.action.startsWith(p))).toEqual([]);
   });
 

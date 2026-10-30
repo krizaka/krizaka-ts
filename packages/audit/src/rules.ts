@@ -23,7 +23,8 @@ const ACTION = /^[a-z][a-z0-9_]*(\.[a-z0-9_]+)*$/;
  */
 export function toInsert(input: AuditEntryInput, at: Date, allowedActions?: readonly string[]): AuditInsert {
   if (!ACTION.test(input.action) || input.action.length > 80) throw new AuditError(AUDIT_CODE.badAction, input.action);
-  if (allowedActions && !allowedActions.includes(input.action)) throw new AuditError(AUDIT_CODE.unknownAction, input.action);
+  if (allowedActions && !allowedActions.includes(input.action))
+    throw new AuditError(AUDIT_CODE.unknownAction, input.action);
   if (input.ip != null && isIP(input.ip) === 0) throw new AuditError(AUDIT_CODE.badIp, input.ip);
   const label = input.actorLabel.trim();
   if (label.length < 1 || label.length > 120) throw new AuditError(AUDIT_CODE.badLabel, input.actorLabel);
@@ -54,8 +55,10 @@ const BIGINT_MAX = 9_223_372_036_854_775_807n;
  * @throws AuditError `AUDIT_BAD_FILTER`
  */
 export function checkFilters(filters: AuditFilters): void {
-  if (filters.limit !== undefined && !(Number.isInteger(filters.limit) && filters.limit > 0)) throw new AuditError(AUDIT_CODE.badFilter, `limit ${String(filters.limit)}`);
-  if (filters.before !== undefined && !(CURSOR.test(filters.before) && BigInt(filters.before) <= BIGINT_MAX)) throw new AuditError(AUDIT_CODE.badFilter, `before ${filters.before}`);
+  if (filters.limit !== undefined && !(Number.isInteger(filters.limit) && filters.limit > 0))
+    throw new AuditError(AUDIT_CODE.badFilter, `limit ${String(filters.limit)}`);
+  if (filters.before !== undefined && !(CURSOR.test(filters.before) && BigInt(filters.before) <= BIGINT_MAX))
+    throw new AuditError(AUDIT_CODE.badFilter, `before ${filters.before}`);
 }
 
 /**

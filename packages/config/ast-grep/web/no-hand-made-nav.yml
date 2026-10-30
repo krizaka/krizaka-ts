@@ -1,0 +1,24 @@
+id: no-hand-made-nav
+language: Tsx
+severity: error
+message: "No hand-made navigation bar. Every bar is `NavBar` from @krizaka/ui/nav-bar (the standard: mark · Product ▾ · Platforms ▾ · Docs; GitHub · theme · language · sign in · the one action) — see « Navigation in the family » on ui.krizaka.com. No Radix NavigationMenu of our own, no local component named NavBar/Navbar/TopNav."
+rule:
+  any:
+    - kind: string_fragment
+      regex: react-navigation-menu
+      inside:
+        kind: import_statement
+        stopBy: end
+    - kind: import_specifier
+      regex: ^NavigationMenu$
+    - any:
+        - kind: function_declaration
+        - kind: variable_declarator
+      has:
+        field: name
+        kind: identifier
+        regex: ^(NavBar|Navbar|TopNav|TopNavBar|SiteNav)$
+ignores:
+  - "**/node_modules/**"
+  - "**/.next/**"
+  - "**/dist/**"

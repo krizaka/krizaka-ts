@@ -1,6 +1,6 @@
 {
   "name": "@krizaka/time",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Date arithmetic for every Krizaka backend, in one place: add seconds, minutes and hours to an instant, measure the gap between two, compare them. Exact on the instant, whatever the server's time zone. The facade the « Krizaka first » dates rule points to, so no package imports a date library of its own.",
   "keywords": [
     "krizaka",
@@ -38,7 +38,7 @@
     "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsup",
     "lint": "eslint . --max-warnings 0 && tsc --noEmit",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run --coverage --coverage.provider=v8 --coverage.reporter=lcov --coverage.reporter=text-summary \"--coverage.include=src/**/*.ts\"",
     "check": "pnpm run lint && pnpm run test && pnpm run build",
     "prepublishOnly": "pnpm run build"
   },

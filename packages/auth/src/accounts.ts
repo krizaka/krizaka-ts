@@ -3,7 +3,14 @@ import crypto from "node:crypto";
 import type { Query } from "@krizaka/db";
 import { addHours, addMinutes } from "date-fns";
 
-import { AccountError, type AccountProfile, type AccountService, type ProfilePatch, type SessionSummary, type Theme } from "./port";
+import {
+  AccountError,
+  type AccountProfile,
+  type AccountService,
+  type ProfilePatch,
+  type SessionSummary,
+  type Theme,
+} from "./port";
 
 /** A SQL executor: `@krizaka/db`'s `Query`, which the product passes (its pool, or its transaction's client). */
 export type { Query };
@@ -47,7 +54,10 @@ export interface AccountDeps {
   product: string;
   /** The product's token prefix, two or three letters (`ye1.` for Yomizaka: `ye`). The tokens are `<prefix>1.<43 base64url>`. */
   tokenPrefix: string;
-  passwords: { hash: (password: string) => Promise<string>; verify: (password: string, stored: string) => Promise<boolean> };
+  passwords: {
+    hash: (password: string) => Promise<string>;
+    verify: (password: string, stored: string) => Promise<boolean>;
+  };
   /** How a token is kept: the product's own keyed hash, the one its sessions use. */
   tokenHash: (token: string) => string;
   /**
@@ -72,7 +82,9 @@ export const PASSWORD_RESET_MAX_MINUTES = 1440;
 
 const checkResetTtl = (minutes: number): number => {
   if (!Number.isInteger(minutes) || minutes < PASSWORD_RESET_MIN_MINUTES || minutes > PASSWORD_RESET_MAX_MINUTES) {
-    throw new RangeError(`passwordResetTtlMinutes must be a whole number from ${PASSWORD_RESET_MIN_MINUTES} to ${PASSWORD_RESET_MAX_MINUTES}, got ${minutes}`);
+    throw new RangeError(
+      `passwordResetTtlMinutes must be a whole number from ${PASSWORD_RESET_MIN_MINUTES} to ${PASSWORD_RESET_MAX_MINUTES}, got ${minutes}`,
+    );
   }
   return minutes;
 };
@@ -83,21 +95,39 @@ const THEMES: readonly Theme[] = ["light", "dark", "system"];
 
 /** One format for every mailed link (an e-mail change, a password reset): the product's prefix, a version, 256 random bits. */
 export const linkToken = (prefix: string) => `${prefix}1.${crypto.randomBytes(32).toString("base64url")}`;
-export const isLinkToken = (prefix: string, value: string | undefined | null): value is string => !!value && new RegExp(`^${prefix}1\\.[A-Za-z0-9_-]{43}$`).test(value);
+export const isLinkToken = (prefix: string, value: string | undefined | null): value is string =>
+  !!value && new RegExp(`^${prefix}1\\.[A-Za-z0-9_-]{43}$`).test(value);
 export const emailChangeToken = linkToken;
 export const isEmailChangeToken = isLinkToken;
 
-export function passwordResetMail(product: string, locale: "en" | "fr", url: string, ttlMinutes: number = PASSWORD_RESET_TTL_MINUTES) {
+export function passwordResetMail(
+  product: string,
+  locale: "en" | "fr",
+  url: string,
+  ttlMinutes: number = PASSWORD_RESET_TTL_MINUTES,
+) {
   checkResetTtl(ttlMinutes);
   return locale === "fr"
-    ? { subject: `Réinitialisez votre mot de passe — ${product}`, text: `Bonjour,\n\nPour choisir un nouveau mot de passe pour votre compte ${product}, ouvrez ce lien (valide ${ttlMinutes} min, une seule fois) :\n${url}\n\nSi vous n'avez rien demandé, ignorez ce message : votre mot de passe ne change pas.\n` }
-    : { subject: `Reset your password — ${product}`, text: `Hello,\n\nTo choose a new password for your ${product} account, open this link (valid ${ttlMinutes} min, once):\n${url}\n\nIf you did not ask for this, ignore this message: your password does not change.\n` };
+    ? {
+        subject: `Réinitialisez votre mot de passe — ${product}`,
+        text: `Bonjour,\n\nPour choisir un nouveau mot de passe pour votre compte ${product}, ouvrez ce lien (valide ${ttlMinutes} min, une seule fois) :\n${url}\n\nSi vous n'avez rien demandé, ignorez ce message : votre mot de passe ne change pas.\n`,
+      }
+    : {
+        subject: `Reset your password — ${product}`,
+        text: `Hello,\n\nTo choose a new password for your ${product} account, open this link (valid ${ttlMinutes} min, once):\n${url}\n\nIf you did not ask for this, ignore this message: your password does not change.\n`,
+      };
 }
 
 export function emailChangeMail(product: string, locale: "en" | "fr", url: string) {
   return locale === "fr"
-    ? { subject: `Confirmez votre nouvelle adresse — ${product}`, text: `Bonjour,\n\nPour utiliser cette adresse avec votre compte ${product}, confirmez-la en ouvrant ce lien (valide ${EMAIL_CHANGE_TTL_HOURS} h) :\n${url}\n\nSi vous n'avez rien demandé, ignorez ce message : rien ne change.\n` }
-    : { subject: `Confirm your new address — ${product}`, text: `Hello,\n\nTo use this address with your ${product} account, confirm it by opening this link (valid ${EMAIL_CHANGE_TTL_HOURS} h):\n${url}\n\nIf you did not ask for this, ignore this message: nothing changes.\n` };
+    ? {
+        subject: `Confirmez votre nouvelle adresse — ${product}`,
+        text: `Bonjour,\n\nPour utiliser cette adresse avec votre compte ${product}, confirmez-la en ouvrant ce lien (valide ${EMAIL_CHANGE_TTL_HOURS} h) :\n${url}\n\nSi vous n'avez rien demandé, ignorez ce message : rien ne change.\n`,
+      }
+    : {
+        subject: `Confirm your new address — ${product}`,
+        text: `Hello,\n\nTo use this address with your ${product} account, confirm it by opening this link (valid ${EMAIL_CHANGE_TTL_HOURS} h):\n${url}\n\nIf you did not ask for this, ignore this message: nothing changes.\n`,
+      };
 }
 
 /** One « @ », something on each side, a dot inside the domain, no space — checked without a backtracking pattern. */
@@ -142,12 +172,28 @@ export function dbAccounts(deps: AccountDeps): AccountService {
       [id],
     );
     if (!row) throw new AccountError(404, "NOT_FOUND", "No such account");
-    return { id: row.id, email: row.email, name: row.name, locale: row.locale, theme: row.theme, avatarSeed: row.avatar_seed, emailVerified: !!row.email_verified_at, pendingEmail: row.pending };
+    return {
+      id: row.id,
+      email: row.email,
+      name: row.name,
+      locale: row.locale,
+      theme: row.theme,
+      avatarSeed: row.avatar_seed,
+      emailVerified: !!row.email_verified_at,
+      pendingEmail: row.pending,
+    };
   }
 
   async function confirmPassword(id: string, password: string): Promise<void> {
-    const [row] = await query<{ password_hash: string | null }>("SELECT password_hash FROM accounts WHERE id = $1", [id]);
-    if (!row?.password_hash || password.length > PASSWORD_MAX || !(await deps.passwords.verify(password, row.password_hash))) throw wrong();
+    const [row] = await query<{ password_hash: string | null }>("SELECT password_hash FROM accounts WHERE id = $1", [
+      id,
+    ]);
+    if (
+      !row?.password_hash ||
+      password.length > PASSWORD_MAX ||
+      !(await deps.passwords.verify(password, row.password_hash))
+    )
+      throw wrong();
   }
 
   return {
@@ -155,12 +201,22 @@ export function dbAccounts(deps: AccountDeps): AccountService {
 
     async updateProfile(id, patch: ProfilePatch) {
       const name = patch.name === undefined ? undefined : patch.name === null ? null : cleanName(patch.name);
-      if (patch.avatarSeed && !/^[a-z0-9-]{1,40}$/.test(patch.avatarSeed)) throw new AccountError(400, "BAD_REQUEST", "Not an avatar");
+      if (patch.avatarSeed && !/^[a-z0-9-]{1,40}$/.test(patch.avatarSeed))
+        throw new AccountError(400, "BAD_REQUEST", "Not an avatar");
       if (patch.theme && !THEMES.includes(patch.theme)) throw new AccountError(400, "BAD_REQUEST", "Not a theme");
       await query(
         `UPDATE accounts SET name = CASE WHEN $2::boolean THEN $3 ELSE name END, locale = COALESCE($4, locale),
                 avatar_seed = CASE WHEN $5::boolean THEN $6 ELSE avatar_seed END, theme = CASE WHEN $7::boolean THEN $8 ELSE theme END WHERE id = $1`,
-        [id, name !== undefined, name === "" ? null : (name ?? null), patch.locale ?? null, patch.avatarSeed !== undefined, patch.avatarSeed ?? null, patch.theme !== undefined, patch.theme ?? null],
+        [
+          id,
+          name !== undefined,
+          name === "" ? null : (name ?? null),
+          patch.locale ?? null,
+          patch.avatarSeed !== undefined,
+          patch.avatarSeed ?? null,
+          patch.theme !== undefined,
+          patch.theme ?? null,
+        ],
       );
       return profileOf(id);
     },
@@ -174,17 +230,34 @@ export function dbAccounts(deps: AccountDeps): AccountService {
       const profile = await profileOf(id);
       await query("UPDATE email_changes SET used_at = $2 WHERE account_id = $1 AND used_at IS NULL", [id, now]);
       const token = (deps.token ?? (() => emailChangeToken(deps.tokenPrefix)))();
-      await query("INSERT INTO email_changes (account_id, new_email, token_hash, expires_at) VALUES ($1, $2, $3, $4)", [id, address, deps.tokenHash(token), addHours(now, EMAIL_CHANGE_TTL_HOURS)]);
+      await query("INSERT INTO email_changes (account_id, new_email, token_hash, expires_at) VALUES ($1, $2, $3, $4)", [
+        id,
+        address,
+        deps.tokenHash(token),
+        addHours(now, EMAIL_CHANGE_TTL_HOURS),
+      ]);
       const url = `${deps.baseUrl.replace(/\/$/, "")}/${profile.locale}/confirm-email?token=${encodeURIComponent(token)}`;
-      await deps.mail({ to: address, locale: profile.locale, ...emailChangeMail(deps.product, profile.locale, url), link: { kind: "emailChange", url, hours: EMAIL_CHANGE_TTL_HOURS } });
+      await deps.mail({
+        to: address,
+        locale: profile.locale,
+        ...emailChangeMail(deps.product, profile.locale, url),
+        link: { kind: "emailChange", url, hours: EMAIL_CHANGE_TTL_HOURS },
+      });
     },
 
     async confirmEmailChange(token, now) {
       if (!isEmailChangeToken(deps.tokenPrefix, token)) return "INVALID";
-      const [row] = await query<{ account_id: string; new_email: string }>("UPDATE email_changes SET used_at = $2 WHERE token_hash = $1 AND used_at IS NULL AND expires_at > $2 RETURNING account_id, new_email", [deps.tokenHash(token), now]);
+      const [row] = await query<{ account_id: string; new_email: string }>(
+        "UPDATE email_changes SET used_at = $2 WHERE token_hash = $1 AND used_at IS NULL AND expires_at > $2 RETURNING account_id, new_email",
+        [deps.tokenHash(token), now],
+      );
       if (!row) return "INVALID";
       try {
-        await query("UPDATE accounts SET email = $2, email_verified_at = $3 WHERE id = $1", [row.account_id, row.new_email, now]);
+        await query("UPDATE accounts SET email = $2, email_verified_at = $3 WHERE id = $1", [
+          row.account_id,
+          row.new_email,
+          now,
+        ]);
       } catch {
         return "INVALID"; // taken in the meantime
       }
@@ -193,10 +266,15 @@ export function dbAccounts(deps: AccountDeps): AccountService {
 
     async changePassword(id, input, keepSessionId) {
       await confirmPassword(id, input.current);
-      if (input.next.length < PASSWORD_MIN) throw new AccountError(400, "PASSWORD_TOO_SHORT", `At least ${PASSWORD_MIN} characters`);
-      if (input.next.length > PASSWORD_MAX) throw new AccountError(400, "PASSWORD_TOO_LONG", `At most ${PASSWORD_MAX} characters`);
+      if (input.next.length < PASSWORD_MIN)
+        throw new AccountError(400, "PASSWORD_TOO_SHORT", `At least ${PASSWORD_MIN} characters`);
+      if (input.next.length > PASSWORD_MAX)
+        throw new AccountError(400, "PASSWORD_TOO_LONG", `At most ${PASSWORD_MAX} characters`);
       await query("UPDATE accounts SET password_hash = $2 WHERE id = $1", [id, await deps.passwords.hash(input.next)]);
-      await query("DELETE FROM sessions WHERE account_id = $1 AND ($2::uuid IS NULL OR id <> $2::uuid)", [id, keepSessionId ?? null]);
+      await query("DELETE FROM sessions WHERE account_id = $1 AND ($2::uuid IS NULL OR id <> $2::uuid)", [
+        id,
+        keepSessionId ?? null,
+      ]);
     },
 
     confirmPassword,
@@ -206,45 +284,88 @@ export function dbAccounts(deps: AccountDeps): AccountService {
       if (!looksLikeEmail(address)) return; // the same answer: nothing is disclosed
       // One transaction, the account row locked: two requests at once leave one valid link — the later one. The mail goes after the commit.
       const issued = await transaction(async (q) => {
-        const [row] = await q<{ id: string; locale: "en" | "fr" }>("SELECT id, locale FROM accounts WHERE email = $1 AND password_hash IS NOT NULL FOR UPDATE", [address]);
+        const [row] = await q<{ id: string; locale: "en" | "fr" }>(
+          "SELECT id, locale FROM accounts WHERE email = $1 AND password_hash IS NOT NULL FOR UPDATE",
+          [address],
+        );
         if (!row) return null;
         await q("UPDATE password_resets SET used_at = $2 WHERE account_id = $1 AND used_at IS NULL", [row.id, now]);
         const token = (deps.token ?? (() => linkToken(deps.tokenPrefix)))();
-        await q("INSERT INTO password_resets (account_id, token_hash, expires_at) VALUES ($1, $2, $3)", [row.id, deps.tokenHash(token), addMinutes(now, resetTtlMinutes)]);
+        await q("INSERT INTO password_resets (account_id, token_hash, expires_at) VALUES ($1, $2, $3)", [
+          row.id,
+          deps.tokenHash(token),
+          addMinutes(now, resetTtlMinutes),
+        ]);
         return { token, locale: row.locale };
       });
       if (!issued) return;
       const url = `${deps.baseUrl.replace(/\/$/, "")}/${issued.locale}/reset-password?token=${encodeURIComponent(issued.token)}`;
-      await deps.mail({ to: address, locale: issued.locale, ...passwordResetMail(deps.product, issued.locale, url, resetTtlMinutes), link: { kind: "passwordReset", url, minutes: resetTtlMinutes } });
+      await deps.mail({
+        to: address,
+        locale: issued.locale,
+        ...passwordResetMail(deps.product, issued.locale, url, resetTtlMinutes),
+        link: { kind: "passwordReset", url, minutes: resetTtlMinutes },
+      });
     },
 
     async resetPassword(token, next, now) {
-      if (next.length < PASSWORD_MIN) throw new AccountError(400, "PASSWORD_TOO_SHORT", `At least ${PASSWORD_MIN} characters`);
-      if (next.length > PASSWORD_MAX) throw new AccountError(400, "PASSWORD_TOO_LONG", `At most ${PASSWORD_MAX} characters`);
+      if (next.length < PASSWORD_MIN)
+        throw new AccountError(400, "PASSWORD_TOO_SHORT", `At least ${PASSWORD_MIN} characters`);
+      if (next.length > PASSWORD_MAX)
+        throw new AccountError(400, "PASSWORD_TOO_LONG", `At most ${PASSWORD_MAX} characters`);
       if (!isLinkToken(deps.tokenPrefix, token)) return "INVALID";
       // One transaction: the link is claimed, the password set and every session ended as one — a failure leaves the link usable.
       return transaction(async (q) => {
-        const [row] = await q<{ account_id: string }>("UPDATE password_resets SET used_at = $2 WHERE token_hash = $1 AND used_at IS NULL AND expires_at > $2 RETURNING account_id", [deps.tokenHash(token), now]);
+        const [row] = await q<{ account_id: string }>(
+          "UPDATE password_resets SET used_at = $2 WHERE token_hash = $1 AND used_at IS NULL AND expires_at > $2 RETURNING account_id",
+          [deps.tokenHash(token), now],
+        );
         if (!row) return "INVALID" as const;
-        await q("UPDATE accounts SET password_hash = $2 WHERE id = $1", [row.account_id, await deps.passwords.hash(next)]);
+        await q("UPDATE accounts SET password_hash = $2 WHERE id = $1", [
+          row.account_id,
+          await deps.passwords.hash(next),
+        ]);
         await q("DELETE FROM sessions WHERE account_id = $1", [row.account_id]);
         return "CHANGED" as const;
       });
     },
 
     async sessions(id, now, currentSessionId) {
-      const rows = await query<{ id: string; created_at: Date; expires_at: Date; ip: string | null; user_agent: string | null }>("SELECT id, created_at, expires_at, ip, user_agent FROM sessions WHERE account_id = $1 AND expires_at > $2 ORDER BY created_at DESC", [id, now]);
-      return rows.map((r): SessionSummary => ({ id: r.id, createdAt: r.created_at, expiresAt: r.expires_at, ip: r.ip, userAgent: r.user_agent, current: r.id === currentSessionId }));
+      const rows = await query<{
+        id: string;
+        created_at: Date;
+        expires_at: Date;
+        ip: string | null;
+        user_agent: string | null;
+      }>(
+        "SELECT id, created_at, expires_at, ip, user_agent FROM sessions WHERE account_id = $1 AND expires_at > $2 ORDER BY created_at DESC",
+        [id, now],
+      );
+      return rows.map((r): SessionSummary => ({
+        id: r.id,
+        createdAt: r.created_at,
+        expiresAt: r.expires_at,
+        ip: r.ip,
+        userAgent: r.user_agent,
+        current: r.id === currentSessionId,
+      }));
     },
 
     async signOutOthers(id, keepSessionId) {
-      return (await query("DELETE FROM sessions WHERE account_id = $1 AND id <> $2::uuid RETURNING id", [id, keepSessionId])).length;
+      return (
+        await query("DELETE FROM sessions WHERE account_id = $1 AND id <> $2::uuid RETURNING id", [id, keepSessionId])
+      ).length;
     },
 
     async exportAccount(id, now, extra) {
       const profile = await profileOf(id);
       const live = await this.sessions(id, now);
-      return { exportedAt: now.toISOString(), account: profile, sessions: live.map(({ current: _current, ...s }) => s), ...(extra ? await extra() : {}) };
+      return {
+        exportedAt: now.toISOString(),
+        account: profile,
+        sessions: live.map(({ current: _current, ...s }) => s),
+        ...(extra ? await extra() : {}),
+      };
     },
 
     async deleteAccount(id) {

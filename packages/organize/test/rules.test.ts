@@ -1,6 +1,17 @@
 import { describe, expect, it } from "vitest";
 
-import { cleanDescription, cleanName, DESCRIPTION_MAX, isId, isTagColor, NAME_MAX, parseTagsParam, TAG_COLORS, tagsHref, toggleTag } from "../src/rules";
+import {
+  cleanDescription,
+  cleanName,
+  DESCRIPTION_MAX,
+  isId,
+  isTagColor,
+  NAME_MAX,
+  parseTagsParam,
+  TAG_COLORS,
+  tagsHref,
+  toggleTag,
+} from "../src/rules";
 
 const A = "11111111-1111-4111-8111-111111111111";
 const B = "22222222-2222-4222-8222-222222222222";
@@ -13,7 +24,9 @@ describe("names", () => {
     expect(cleanName("x".repeat(NAME_MAX + 1))).toBeNull();
   });
   it("a description may be empty (none), is trimmed, and is bounded", () => {
-    expect(cleanDescription("  Un salon de quartier.\r\nOuvert le samedi. ")).toEqual({ value: "Un salon de quartier.\nOuvert le samedi." });
+    expect(cleanDescription("  Un salon de quartier.\r\nOuvert le samedi. ")).toEqual({
+      value: "Un salon de quartier.\nOuvert le samedi.",
+    });
     expect(cleanDescription("   ")).toEqual({ value: null });
     expect(cleanDescription(null)).toEqual({ value: null });
     expect(cleanDescription("x".repeat(DESCRIPTION_MAX + 1))).toBeNull();

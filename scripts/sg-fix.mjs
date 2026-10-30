@@ -9,7 +9,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { localBin } from "./sg-ratchet.mjs";
+import { localBin } from "../packages/config/bin/krizaka-sg-ratchet.mjs";
 
 export const DATE_FNS = ["hoursToMilliseconds", "minutesToMilliseconds", "differenceInMilliseconds"];
 
@@ -21,7 +21,11 @@ export const DATE_FNS = ["hoursToMilliseconds", "minutesToMilliseconds", "differ
 export function withDateFnsImports(source) {
   const imported = new Set();
   const existing = source.match(/import\s*\{([^}]*)\}\s*from\s*["']date-fns["'];?/);
-  for (const name of existing?.[1].split(",").map((n) => n.trim()).filter(Boolean) ?? []) imported.add(name);
+  for (const name of existing?.[1]
+    .split(",")
+    .map((n) => n.trim())
+    .filter(Boolean) ?? [])
+    imported.add(name);
   const missing = DATE_FNS.filter((name) => new RegExp(`\\b${name}\\(`).test(source) && !imported.has(name));
   if (missing.length === 0) return source;
   const names = [...new Set([...imported, ...missing])].sort((a, b) => a.localeCompare(b));

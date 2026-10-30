@@ -1,5 +1,53 @@
 # @krizaka/auth
 
+## 0.13.1
+
+### Patch Changes
+
+- 2272b57: The READMEs, comments and published declarations no longer name the products that left the organisation (krizaka/.github#413, rule `no-departed-published`). The sources were cleaned in #262 with an empty changeset, so the published tarballs still carried the old text; this release replaces them. No behaviour change.
+- Updated dependencies [2272b57]
+  - @krizaka/settings@0.5.2
+
+## 0.13.0
+
+### Minor Changes
+
+- e3f2596: `landingRedirect` throws in production (`NODE_ENV=production`) when `origin` is missing or empty: a deployment that forgot its declared public URL fails at the first request instead of redirecting to a Location built from client-controlled headers. Optional outside production.
+
+## 0.12.0
+
+### Minor Changes
+
+- db3fab1: `landingRedirect` takes an optional `origin` (the app's declared public origin, never the request's Host): the Location is then absolute on it, which a Next.js proxy accepts; without it the Location stays relative. Spoofed `Host` / `x-forwarded-*` never reach the Location (host-header injection).
+
+## 0.11.2
+
+### Patch Changes
+
+- 723e1d9: `landingRedirect` answers a relative `Location` (`/app`, not `https://localhost:3000/app`): behind a proxy or in CI the request URL carries an internal scheme and host, and an absolute `Location` sent the browser there (ERR_SSL_PROTOCOL_ERROR).
+
+## 0.11.1
+
+### Patch Changes
+
+- Updated dependencies [0d19b64]
+  - @krizaka/db@0.3.0
+  - @krizaka/settings@0.5.1
+
+## 0.11.0
+
+### Minor Changes
+
+- 2c1a96d: Loading `@krizaka/auth` no longer calls `crypto.scrypt` (a top-level `promisify`): a client component that imports the role model or `can` from the barrel would throw at load in the browser bundle (akinaza#515). The call now happens when a password is hashed or checked.
+  
+  New entry `@krizaka/auth/client`: `can`, `defineRoles`, `RoleModel`, `ROLES_CODE`, `RolesError` and the `/api/me` contract, with no `node:*` import — the import for client code. The repository now bundles every entry a package declares `krizaka.browserSafe` for the browser and fails on a node built-in (`scripts/browser-safe.test.mjs`).
+
+## 0.10.0
+
+### Minor Changes
+
+- 5055f12: `landingRedirect` and `sessionHint` (krizaka-ui#827): the proxy-side rules of « a signed-in person never sees the public side ». A request with the session cookie on the landing route answers 307 to the product's home (`Cache-Control: private, no-store`, `Vary: Cookie`); `sessionHint` keeps a readable `kz-session=1` flag next to the HttpOnly cookie so the static pages' bar draws the signed-in placeholder on its first paint. The cookie is a hint, never an authorization.
+
 ## 0.9.1
 
 ### Patch Changes

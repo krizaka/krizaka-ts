@@ -1,6 +1,6 @@
 {
   "name": "@krizaka/orazaka-client",
-  "version": "0.1.0",
+  "version": "0.2.1",
   "description": "One Orazaka client for the TypeScript products: start a Studio run (safe to retry with an idempotency key), read its status and outputs, wait for it, with typed errors with stable codes, a time limit and a circuit breaker. Base URL, key and clock are parameters; no environment, no framework.",
   "keywords": [
     "krizaka",
@@ -39,7 +39,7 @@
     "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsup",
     "lint": "eslint . --max-warnings 0 && tsc --noEmit",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run --coverage --coverage.provider=v8 --coverage.reporter=lcov --coverage.reporter=text-summary \"--coverage.include=src/**/*.ts\"",
     "check": "pnpm run lint && pnpm run test && pnpm run build",
     "prepublishOnly": "pnpm run build"
   },

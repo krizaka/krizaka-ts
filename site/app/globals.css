@@ -10,7 +10,8 @@
 
 /* The Krizaka typography: the files of @krizaka/fonts, loaded by next/font/local (app/fonts.ts), in the token roles. */
 :root {
-  --kz-font-sans: var(--font-kz-text), "Atkinson Hyperlegible Next", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --kz-font-sans:
+    var(--font-kz-text), "Atkinson Hyperlegible Next", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --kz-font-display: var(--font-kz-display), "Young Serif", Georgia, serif;
   --kz-font-mono: var(--font-kz-mono), "Courier Prime", "Courier New", ui-monospace, Menlo, monospace;
   --font-display: var(--kz-font-display);
@@ -44,11 +45,21 @@ html.light {
 }
 /* The active page of the sidebar and the table of contents is accent TEXT: the text role (AA on the tinted row). */
 html.light #nd-sidebar,
-html.light #nd-toc { --color-fd-primary: var(--kz-accent-text); }
-#nd-page .text-fd-primary { color: var(--kz-accent-text); }
+html.light #nd-toc {
+  --color-fd-primary: var(--kz-accent-text);
+}
+#nd-page .text-fd-primary {
+  color: var(--kz-accent-text);
+}
 
 @layer base {
-  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  *,
+  *::before,
+  *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
 }
 
 html {
@@ -65,35 +76,104 @@ body {
   min-height: 100dvh;
   overflow-x: hidden;
 }
-::selection { background: hsla(217, 92%, 60%, 0.25); }
-html.light ::selection { background: hsla(217, 92%, 50%, 0.18); }
-:focus-visible { outline: 2px solid var(--kz-accent); outline-offset: 2px; border-radius: var(--kz-radius-sm, 6px); }
-:focus:not(:focus-visible) { outline: none; }
+::selection {
+  background: hsla(217, 92%, 60%, 0.25);
+}
+html.light ::selection {
+  background: hsla(217, 92%, 50%, 0.18);
+}
+:focus-visible {
+  outline: 2px solid var(--kz-accent);
+  outline-offset: 2px;
+  border-radius: var(--kz-radius-sm, 6px);
+}
+:focus:not(:focus-visible) {
+  outline: none;
+}
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* ─── The bar (@krizaka/ui NavBar): as wide as the documentation under it ─── */
-.kz-site-bar-wrap { padding-inline: var(--kz-page-gutter, clamp(16px, 3.2vw, 32px)); }
-.kz-site-bar, .kz-site-bar[data-compact] { max-width: var(--kz-page-max-docs); }
-.kz-skip { position: fixed; left: 12px; top: -64px; z-index: 100; padding: 8px 14px; border-radius: 2px; background: var(--kz-accent); color: var(--kz-on-accent); font-weight: 600; }
-.kz-skip:focus { top: 12px; }
+.kz-site-bar-wrap {
+  padding-inline: var(--kz-page-gutter, clamp(16px, 3.2vw, 32px));
+}
+.kz-site-bar,
+.kz-site-bar[data-compact] {
+  max-width: var(--kz-page-max-docs);
+}
+.kz-skip {
+  position: fixed;
+  left: 12px;
+  top: -64px;
+  z-index: 100;
+  padding: 8px 14px;
+  border-radius: 2px;
+  background: var(--kz-accent);
+  color: var(--kz-on-accent);
+  font-weight: 600;
+}
+.kz-skip:focus {
+  top: 12px;
+}
 
 /* ─── The documentation in the frame ─── */
-.kz-docs { padding-top: var(--kz-docs-top); font-family: var(--kz-font-sans); letter-spacing: normal; --fd-layout-width: var(--kz-page-max-docs); --fd-banner-height: var(--kz-docs-top); }
-@media (min-width: 768px) { .kz-docs { padding-inline: var(--kz-page-gutter, clamp(16px, 3.2vw, 32px)); } }
-.kz-docs #nd-sidebar:not([data-collapsed="true"]) { background: transparent; }
-.kz-docs [data-layout-main] { justify-items: start; }
+.kz-docs {
+  padding-top: var(--kz-docs-top);
+  font-family: var(--kz-font-sans);
+  letter-spacing: normal;
+  --fd-layout-width: var(--kz-page-max-docs);
+  --fd-banner-height: var(--kz-docs-top);
+}
+@media (min-width: 768px) {
+  .kz-docs {
+    padding-inline: var(--kz-page-gutter, clamp(16px, 3.2vw, 32px));
+  }
+}
+.kz-docs #nd-sidebar:not([data-collapsed="true"]) {
+  background: transparent;
+}
+.kz-docs [data-layout-main] {
+  justify-items: start;
+}
 
 /* ─── Code the pages hold: a table that never breaks the page at phone width ─── */
 
 /* ─── 404 ─── */
-.kz-404 { min-height: 100dvh; display: grid; place-content: center; gap: 1rem; padding: 2rem; text-align: center; }
-.kz-404 h1 { font-family: var(--kz-font-display); font-size: clamp(2rem, 6vw, 3rem); }
-.kz-404 a { color: var(--kz-accent-text); font-weight: 600; }
+.kz-404 {
+  min-height: 100dvh;
+  display: grid;
+  place-content: center;
+  gap: 1rem;
+  padding: 2rem;
+  text-align: center;
+}
+.kz-404 h1 {
+  font-family: var(--kz-font-display);
+  font-size: clamp(2rem, 6vw, 3rem);
+}
+.kz-404 a {
+  color: var(--kz-accent-text);
+  font-weight: 600;
+}
 
-.kz-table-scroll { overflow-x: auto; border: 1px solid var(--kz-border-subtle); border-radius: var(--kz-radius-md); }
-.kz-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+.kz-table-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--kz-border-subtle);
+  border-radius: var(--kz-radius-md);
+}
+.kz-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
 .kz-table th,
 .kz-table td {
   text-align: start;
@@ -110,9 +190,16 @@ html.light ::selection { background: hsla(217, 92%, 50%, 0.18); }
   color: var(--kz-text-secondary);
   background: var(--kz-surface-1);
 }
-.kz-table tbody tr:last-child > * { border-bottom: 0; }
-.kz-table tbody th { font-weight: 500; white-space: nowrap; }
-.kz-table td { color: var(--kz-text-secondary); }
+.kz-table tbody tr:last-child > * {
+  border-bottom: 0;
+}
+.kz-table tbody th {
+  font-weight: 500;
+  white-space: nowrap;
+}
+.kz-table td {
+  color: var(--kz-text-secondary);
+}
 .kz-table code {
   font-family: var(--font-mono);
   font-size: 0.8125rem;
@@ -121,15 +208,41 @@ html.light ::selection { background: hsla(217, 92%, 50%, 0.18); }
   background: var(--kz-surface-2);
   color: var(--kz-text-primary);
 }
-.kz-table code.kz-type { color: var(--kz-accent-text); background: var(--kz-accent-soft); white-space: pre-wrap; overflow-wrap: anywhere; }
-.kz-table td:has(> .kz-type) { min-width: 7.5rem; }
+.kz-table code.kz-type {
+  color: var(--kz-accent-text);
+  background: var(--kz-accent-soft);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.kz-table td:has(> .kz-type) {
+  min-width: 7.5rem;
+}
 /* ─── The home (landing template of @krizaka/ui) ─── */
 /* The bar is as wide as the page it floats over: the home is the page frame (72rem), the documentation the wider one. */
-html:has(.jh-home) .kz-site-bar, html:has(.jh-home) .kz-site-bar[data-compact] { max-width: var(--kz-page-max, 72rem); }
-.jh-home { --kz-hero-top: var(--kz-docs-top); min-width: 0; }
-.jh-home > div > * { min-width: 0; }
-.jh-mono { font-family: var(--kz-font-mono); font-size: 0.82em; letter-spacing: -0.02em; }
+html:has(.jh-home) .kz-site-bar,
+html:has(.jh-home) .kz-site-bar[data-compact] {
+  max-width: var(--kz-page-max, 72rem);
+}
+.jh-home {
+  --kz-hero-top: var(--kz-docs-top);
+  min-width: 0;
+}
+.jh-home > div > * {
+  min-width: 0;
+}
+.jh-mono {
+  font-family: var(--kz-font-mono);
+  font-size: 0.82em;
+  letter-spacing: -0.02em;
+}
 
 /* The hero's install command: the tabs fill the window. */
-.jh-gen { display: grid; gap: 14px; padding: clamp(14px, 2vw, 18px); min-width: 0; }
-.jh-gen pre { font-size: clamp(11.5px, 1.5vw, 13px); }
+.jh-gen {
+  display: grid;
+  gap: 14px;
+  padding: clamp(14px, 2vw, 18px);
+  min-width: 0;
+}
+.jh-gen pre {
+  font-size: clamp(11.5px, 1.5vw, 13px);
+}

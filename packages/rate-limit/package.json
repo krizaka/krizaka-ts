@@ -1,6 +1,6 @@
 {
   "name": "@krizaka/rate-limit",
-  "version": "0.1.1",
+  "version": "0.2.1",
   "description": "Limits per action for every Krizaka product: fixed windows per address and per subject, the limits read from the admin's settings, a memory store and a PostgreSQL store whose atomic upsert counts exactly under concurrency, a stable 429 with Retry-After. No database client, no wall clock, no request object.",
   "keywords": [
     "krizaka",
@@ -30,6 +30,10 @@
       "types": "./dist/settings.d.ts",
       "import": "./dist/settings.js"
     },
+    "./turnstile": {
+      "types": "./dist/turnstile.d.ts",
+      "import": "./dist/turnstile.js"
+    },
     "./testkit": {
       "types": "./dist/testkit.d.ts",
       "import": "./dist/testkit.js"
@@ -46,7 +50,7 @@
     "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsup",
     "lint": "eslint . --max-warnings 0 && tsc --noEmit",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run --coverage --coverage.provider=v8 --coverage.reporter=lcov --coverage.reporter=text-summary \"--coverage.include=src/**/*.ts\"",
     "check": "pnpm run lint && pnpm run test && pnpm run build",
     "prepublishOnly": "pnpm run build"
   },

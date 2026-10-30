@@ -14,7 +14,12 @@ export function getMdxComponents(locale: Locale): MDXComponents {
   return {
     ...defaultMdxComponents,
     // A link to another page of the documentation stays in the reader's language (/auth → /fr/auth).
-    a: ({ href, ...props }: AnchorHTMLAttributes<HTMLAnchorElement>) => <Anchor href={href?.startsWith("/") && !href.startsWith("//") ? `${locale === "fr" ? "/fr" : ""}${href}` : href} {...props} />,
+    a: ({ href, ...props }: AnchorHTMLAttributes<HTMLAnchorElement>) => (
+      <Anchor
+        href={href?.startsWith("/") && !href.startsWith("//") ? `${locale === "fr" ? "/fr" : ""}${href}` : href}
+        {...props}
+      />
+    ),
     InstallTabs: ({ name }: { name: string }) => (
       <div className="not-prose" style={{ margin: "16px 0 24px" }}>
         <InstallTabs names={name} locale={locale} />

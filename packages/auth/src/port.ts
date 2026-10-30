@@ -56,7 +56,11 @@ export interface AccountService {
   /** Signs every other session out (and returns how many); `keepSessionId` stays. */
   signOutOthers(accountId: string, keepSessionId: string): Promise<number>;
   /** What the product keeps about the person, as one JSON-able document: the profile, the live sign-ins, and what `extra` adds. */
-  exportAccount(accountId: string, now: Date, extra?: () => Promise<Record<string, unknown>>): Promise<Record<string, unknown>>;
+  exportAccount(
+    accountId: string,
+    now: Date,
+    extra?: () => Promise<Record<string, unknown>>,
+  ): Promise<Record<string, unknown>>;
   /** Deletes the identity: the account, its sessions and everything that hangs on it (the product erases its own data first). */
   deleteAccount(accountId: string): Promise<void>;
 }

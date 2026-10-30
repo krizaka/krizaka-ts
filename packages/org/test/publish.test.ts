@@ -22,7 +22,12 @@ describe("the CDN publish", () => {
   it("is a no-op with a warning when the secrets are missing", async () => {
     const lines: string[] = [];
     expect(config({})).toBeNull();
-    const sent = await publish({ dist: makeDist(ALL), env: {}, log: (l: string) => lines.push(l), fetchImpl: () => Promise.reject(new Error("no network expected")) });
+    const sent = await publish({
+      dist: makeDist(ALL),
+      env: {},
+      log: (l: string) => lines.push(l),
+      fetchImpl: () => Promise.reject(new Error("no network expected")),
+    });
     expect(sent).toBe(0);
     expect(lines.join("\n")).toMatch(/not published/);
   });
@@ -42,7 +47,12 @@ describe("the CDN publish", () => {
       sent.push({ url, key: init?.headers?.AccessKey });
       return Promise.resolve({ ok: true, status: 200 });
     };
-    const count = await publish({ dist: makeDist(ALL), env: { MEDIA_STORAGE_API_KEY: KEY, MEDIA_STORAGE_ZONE: "zone" }, fetchImpl, log: (l: string) => logs.push(l) });
+    const count = await publish({
+      dist: makeDist(ALL),
+      env: { MEDIA_STORAGE_API_KEY: KEY, MEDIA_STORAGE_ZONE: "zone" },
+      fetchImpl,
+      log: (l: string) => logs.push(l),
+    });
     expect(count).toBe(8);
     expect(sent.filter((s) => s.key === KEY)).toHaveLength(8);
     expect(sent.at(-1)?.url).toMatch(/^https:\/\/krizaka-assets\.b-cdn\.net\/org\/v1\/org\.json/);
@@ -51,7 +61,12 @@ describe("the CDN publish", () => {
 
   it("fails loudly when the storage refuses", async () => {
     await expect(
-      publish({ dist: makeDist(ALL), env: { MEDIA_STORAGE_API_KEY: KEY, MEDIA_STORAGE_ZONE: "z" }, fetchImpl: () => Promise.resolve({ ok: false, status: 401 }), log: () => {} }),
+      publish({
+        dist: makeDist(ALL),
+        env: { MEDIA_STORAGE_API_KEY: KEY, MEDIA_STORAGE_ZONE: "z" },
+        fetchImpl: () => Promise.resolve({ ok: false, status: 401 }),
+        log: () => {},
+      }),
     ).rejects.toThrow(/401/);
   });
 });

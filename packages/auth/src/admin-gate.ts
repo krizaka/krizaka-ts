@@ -52,7 +52,8 @@ export interface AdminGateInput {
  */
 export function requireAdmin(input: AdminGateInput): AdminDecision {
   const page = input.surface === "page";
-  const refuse = (status: 401 | 403, code: AdminRefusal): AdminDecision => (page ? { ok: false, status: 404, code: ADMIN_REFUSAL.notFound } : { ok: false, status, code });
+  const refuse = (status: 401 | 403, code: AdminRefusal): AdminDecision =>
+    page ? { ok: false, status: 404, code: ADMIN_REFUSAL.notFound } : { ok: false, status, code };
   if (!input.session) return refuse(401, ADMIN_REFUSAL.unauthenticated);
   if (input.session.account.role !== (input.role ?? "ADMIN")) return refuse(403, ADMIN_REFUSAL.forbidden);
   if (!ipAllowed(input.ip, input.allowedIps)) return refuse(403, ADMIN_REFUSAL.ipNotAllowed);

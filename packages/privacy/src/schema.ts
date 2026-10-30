@@ -47,5 +47,49 @@ CREATE TABLE ${c.schema}.request (
 );
 CREATE INDEX request_subject ON ${c.schema}.request (subject_kind, subject_id, requested_at DESC);`,
     },
+    {
+      version: 2,
+      name: "confidentiality incident register",
+      sql: (c) => `
+CREATE TABLE ${c.schema}.incident (
+  id                uuid PRIMARY KEY,
+  scope             text NOT NULL CHECK (char_length(scope) BETWEEN 1 AND 100),
+  kind              text NOT NULL CHECK (kind IN ('access', 'use', 'communication', 'loss')),
+  aware_at          timestamptz NOT NULL,
+  occurred_at       timestamptz,
+  description       text NOT NULL CHECK (char_length(description) BETWEEN 1 AND 2000),
+  information       text[] NOT NULL CHECK (cardinality(information) BETWEEN 1 AND 30),
+  persons_concerned integer CHECK (persons_concerned IS NULL OR persons_concerned >= 0),
+  measures          jsonb NOT NULL DEFAULT '[]',
+  status            text NOT NULL CHECK (status IN ('open', 'assessed', 'closed')),
+  assessment        jsonb,
+  cai_notice        jsonb,
+  persons_notice    jsonb,
+  drill             boolean NOT NULL DEFAULT false,
+  opened_by         text NOT NULL,
+  opened_at         timestamptz NOT NULL,
+  closed_at         timestamptz,
+  retain_until      timestamptz NOT NULL
+);
+CREATE INDEX incident_scope ON ${c.schema}.incident (scope, aware_at, id);
+CREATE FUNCTION ${c.schema}.incident_guard() RETURNS trigger LANGUAGE plpgsql AS $fn$
+BEGIN
+  IF TG_OP = 'DELETE' THEN
+    IF OLD.retain_until > now() THEN
+      RAISE EXCEPTION 'an incident stays in the register until its retention ends' USING ERRCODE = 'restrict_violation';
+    END IF;
+    RETURN OLD;
+  END IF;
+  IF OLD.status = 'closed' THEN
+    RAISE EXCEPTION 'a closed entry of the register is never edited' USING ERRCODE = 'restrict_violation';
+  END IF;
+  IF NEW.id <> OLD.id OR NEW.scope <> OLD.scope THEN
+    RAISE EXCEPTION 'an incident never changes register' USING ERRCODE = 'restrict_violation';
+  END IF;
+  RETURN NEW;
+END;
+$fn$;
+CREATE TRIGGER incident_guard BEFORE UPDATE OR DELETE ON ${c.schema}.incident FOR EACH ROW EXECUTE FUNCTION ${c.schema}.incident_guard();`,
+    },
   ],
 });

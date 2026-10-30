@@ -5,7 +5,15 @@ import { hashAddress } from "./rules";
 
 export const T0 = new Date("2026-10-26T12:00:00.000Z");
 const day = (n: number) => new Date(T0.valueOf() + n * 24 * 3600 * 1000);
-const entry = (over: Partial<DeliveryInput> = {}) => ({ at: T0, template: "reset", category: "transactional", locale: "fr", to: hashAddress("a@b.co"), status: "sent" as const, ...over });
+const entry = (over: Partial<DeliveryInput> = {}) => ({
+  at: T0,
+  template: "reset",
+  category: "transactional",
+  locale: "fr",
+  to: hashAddress("a@b.co"),
+  status: "sent" as const,
+  ...over,
+});
 
 /** What every `MailStore` adapter must do: the same behaviour behind the same port. `make` gives an empty store. */
 export function mailStoreContract(name: string, make: () => MailStore | Promise<MailStore>) {
@@ -43,7 +51,13 @@ export function mailStoreContract(name: string, make: () => MailStore | Promise<
     await store.record(entry({ status: "failed", detail: "mailgun answered 500" }));
     await store.record(entry({ at: day(1), status: "sent", messageId: "<m1>", idempotencyKey: "k" }));
     const [first, second] = await store.recent(10);
-    expect(first).toMatchObject({ status: "sent", messageId: "<m1>", idempotencyKey: "k", to: hashAddress("a@b.co"), at: day(1).toISOString() });
+    expect(first).toMatchObject({
+      status: "sent",
+      messageId: "<m1>",
+      idempotencyKey: "k",
+      to: hashAddress("a@b.co"),
+      at: day(1).toISOString(),
+    });
     expect(second).toMatchObject({ status: "failed", detail: "mailgun answered 500" });
     expect(JSON.stringify(await store.recent(10))).not.toContain("a@b.co");
     expect(await store.recent(1)).toHaveLength(1);

@@ -1,0 +1,76 @@
+# @krizaka/page-audit
+
+The page audit of every Krizaka app, in one place (ADR-013: one source per rule set). It measures a rendered page in a real browser:
+horizontal overflow, a card out of its panel, sections covering each other, a column cut by a clipping ancestor, top chrome that
+overlaps, content cut inside its box, a token wrapped per character, unnamed buttons, empty headings. Closed `<details>`, `aria-hidden`
+layers, scrollers and fixed elements are not counted. Library code, not UI: it lives in krizaka-ts.
+
+```bash
+npm i -D @krizaka/page-audit playwright-core
+npx krizaka-page-audit --self-test                                       # proves it on its own fixtures
+npx krizaka-page-audit --base http://localhost:3000 --routes /en,/fr --widths 360,390,1440 --themes dark,light
+```
+
+```js
+import { auditRoutes, auditContext, loadSettled, resizeSettled, auditPage, problemsOf } from "@krizaka/page-audit";
+const problems = await auditRoutes({ base, routes: ["/en", "/fr"], checks: { h1: true } }); // [] when fine
+```
+
+`auditContext` / `loadSettled` / `resizeSettled` open a context with reduced motion and no View Transition, and wait for none to run
+before anything is measured (yomizaka#354). `prepare(page, route)` signs in or seeds; `launch` gives your own browser.
+
+## The dev-preview crawls, in one audit (0.3)
+
+Opt-in through `checks` (nothing changes for a repo that does not ask): `status` (HTTP 4xx/5xx or no response), `emptyMain`, `frame`
+(the signed-in frame, `[data-app-frame-slot]`, forces a scroll), `minAction` (a button-styled action under N px), `boxes` (a landmark
+wider than its box), `landmarks` (`"public"` one footer naming Krizaka and a nav, `"app"`, `"auth"`), `pictures`, `emptyControls`,
+`hardColors`, `maps` (an empty map, akinaza#488: a GL / Leaflet / `[data-kz-map]` box under 120 px on a side, a GL map with no canvas,
+a Leaflet map with no loaded tile; `maps: { required: true }` also fails a page that should draw one but has none). Console noise the app tolerates: `ignoreConsole: [/…/]` (`[]` counts every error); `attempts` retries a route.
+
+```js
+const routes = await routesFromSitemap(base, { first: ["/", "/docs"], limit: 14 }); // a crawl as the route source (null: nothing answers)
+await auditRoutes({
+  base, routes: [...routes, { url: "/login", chrome: "auth" }, { url: "/chat", session: true, chrome: "app" }],
+  widths: [{ width: 1440, height: 900 }, { width: 390, height: 844 }],
+  session: { storageState }, // or { signIn(context, { base, theme }) {…}, routes: async (page) => […] } for pages found once signed in
+  a11y: { app: "my-app", baseline: "a11y-baseline.json", widths: [390, 1440], session: { app: "my-app-app", baseline: "a11y-baseline.app.json" } },
+  checks: { status: true, emptyMain: true, minAction: 36, landmarks: "public", frame: true },
+});
+```
+
+`a11y` runs axe through `@krizaka/a11y-audit` (an optional peer) and ratchets with the repo's own baseline file; `--a11y-update` and
+`--a11y-init` work as there. The CLI takes `--sitemap`, `--status`, `--empty-main`, `--min-action`, `--a11y app:baseline.json`.
+
+## Visual regression of the journeys (0.4)
+
+`@krizaka/page-audit/visual` (krizaka/.github#375) compares screenshots of an app's main journeys against Linux baselines, with `@playwright/test`
+as the runner. It freezes what moves (clock, motion, caret, View Transition, locale, time zone, fonts) and leaves the app its routes, its persona and its masks.
+
+```js
+import { test, expect } from "@playwright/test";
+import { defineJourneyTests } from "@krizaka/page-audit/visual";
+defineJourneyTests({
+  test, expect,
+  signIn: async (page) => { /* the seeded persona signs in through the form */ },
+  journeys: [
+    { name: "landing", path: "/fr" },
+    { name: "home", path: "/fr/app", session: true, mask: ["[data-live]"] },
+    { name: "home", path: "/fr/app", session: true, firstPaint: true, viewports: ["phone"] },          // the HTML the server sent
+    { name: "home", path: "/fr/app", session: true, firstPaint: { hold: ["**/api/me"] } },             // hydrated, account query pending
+  ],
+});
+```
+
+Baselines are taken in the official Playwright container by the shared workflows of krizaka/.github (`visual-regression.yml` to compare,
+`update-visual-baselines.yml` to commit them on a branch); never on a Mac.
+
+## The journey kit (0.6)
+
+`@krizaka/page-audit/journey` is the kit of the customer journeys (ADR-017, krizaka/.github#423). A product writes no copy of it.
+
+- **Catalogue**: `validateJourney` checks a row of `journeys/journeys.json` (kebab-case id, a promise, a persona of the seeded cast, platforms, steps, a budget of 90 s by default); `checkCatalogue` fails a file without a row, a row without a file, an id twice; `journeysByTag(index, "smoke")` picks what runs on every pull request; `budgetProblem` names a journey over its budget.
+- **Persona sign-in once per worker**: `personaSessions({ dir, signIn }).stateFor("eric")` signs the persona in on the first call and reuses the browser state after (parallel calls share one sign-in; one file per worker; a failed sign-in is not remembered).
+- **Seeded cast**: `seededPersona(cast, "eric")` reads a member or names who exists.
+- **Masks**: `journeyMaskSelectors({ extra })` = `time`, `[data-mask]`, `[data-date]`, `[data-testid$="-id"]`, `[data-run-id]` and the journey's own.
+- **Video hooks**: `videoContextOptions(journey, { dir })` records only the journeys with `video: true`; `videoFile(journey, "web")` names the file.
+- **Flake policy**: `assertNoRetries(playwrightConfig)` refuses retries above 0 (also per project); `quarantine(entries)` holds a named test with its reason and its issue, capped at one.

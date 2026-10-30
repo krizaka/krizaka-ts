@@ -1,6 +1,6 @@
 {
   "name": "@krizaka/outbox",
-  "version": "0.1.1",
+  "version": "0.1.3",
   "description": "The transactional outbox of every Krizaka product: an event written in the caller's transaction, delivered after the commit at least once by leased workers, with doubling retries, dead letters and an idempotent-consumer helper. No broker, no database client, no wall clock.",
   "keywords": [
     "krizaka",
@@ -47,7 +47,7 @@
     "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsup",
     "lint": "eslint . --max-warnings 0 && tsc --noEmit",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run --coverage --coverage.provider=v8 --coverage.reporter=lcov --coverage.reporter=text-summary \"--coverage.include=src/**/*.ts\"",
     "check": "pnpm run lint && pnpm run test && pnpm run build",
     "prepublishOnly": "pnpm run build"
   },

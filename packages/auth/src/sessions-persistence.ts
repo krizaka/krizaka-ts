@@ -29,7 +29,10 @@ export function dbSessionStore<Account>(query: Query, options: DbSessionStoreOpt
   const active = options.active ? ` AND a.${ident(options.active.column)} = $3` : "";
   return {
     async insert(session) {
-      await query(`INSERT INTO ${sessions} (account_id, token_hash, created_at, expires_at, ip, user_agent) VALUES ($1, $2, $3, $4, $5, $6)`, [session.accountId, session.tokenHash, session.createdAt, session.expiresAt, session.ip, session.userAgent]);
+      await query(
+        `INSERT INTO ${sessions} (account_id, token_hash, created_at, expires_at, ip, user_agent) VALUES ($1, $2, $3, $4, $5, $6)`,
+        [session.accountId, session.tokenHash, session.createdAt, session.expiresAt, session.ip, session.userAgent],
+      );
     },
     async find(tokenHash, now): Promise<Session<Account> | null> {
       const params: unknown[] = [tokenHash, now];

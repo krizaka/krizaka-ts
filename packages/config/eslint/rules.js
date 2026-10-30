@@ -3,7 +3,15 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { countFormFields, EFFECT_NAMES_SOURCE, FETCH_NAMES_SOURCE, isLocalSelection, LIGHT_VARIANT_SOURCE, paletteSource } from "../patterns.js";
+import {
+  countFormFields,
+  EFFECT_NAMES_SOURCE,
+  effectProblem,
+  FETCH_NAMES_SOURCE,
+  isLocalSelection,
+  LIGHT_VARIANT_SOURCE,
+  paletteSource,
+} from "../patterns.js";
 
 /** @typedef {import("eslint").Rule.RuleModule} RuleModule */
 /** @typedef {import("estree").Node} Node */
@@ -54,7 +62,7 @@ const callee = (/** @type {string} */ names) => `:matches([callee.name=/${names}
 export const noFetchInClientEffect = {
   meta: {
     type: "suggestion",
-    docs: { description: "Forbid a fetch (or krizakaFetch) inside a useEffect of a \"use client\" file." },
+    docs: { description: 'Forbid a fetch (or krizakaFetch) inside a useEffect of a "use client" file.' },
     schema: [],
     messages: {
       fetchInEffect:
@@ -64,10 +72,63 @@ export const noFetchInClientEffect = {
   create(context) {
     if (!isClientFile(context)) return {};
     return {
-      [`CallExpression${callee(EFFECT_NAMES_SOURCE)} CallExpression${callee(FETCH_NAMES_SOURCE)}`]: (/** @type {Node} */ node) =>
-        context.report({ node, messageId: "fetchInEffect" }),
+      [`CallExpression${callee(EFFECT_NAMES_SOURCE)} CallExpression${callee(FETCH_NAMES_SOURCE)}`]: (
+        /** @type {Node} */ node,
+      ) => context.report({ node, messageId: "fetchInEffect" }),
     };
   },
+};
+
+/**
+ * Reports the effects (`useEffect` / `useLayoutEffect`) whose callback `effectProblem` says is `kind`.
+ * @param {import("eslint").Rule.RuleContext} context
+ * @param {"async" | "derived"} kind
+ * @param {string} messageId
+ */
+function effectVisitor(context, kind, messageId) {
+  return {
+    [`CallExpression${callee(EFFECT_NAMES_SOURCE)}`]: (/** @type {import("estree").CallExpression} */ node) => {
+      const fn = node.arguments[0];
+      if (fn?.type !== "ArrowFunctionExpression" && fn?.type !== "FunctionExpression") return;
+      if (effectProblem(context.sourceCode.getText(fn.body)) === kind) context.report({ node, messageId });
+    },
+  };
+}
+
+/** Oussama, 2026-10-27: async data is `useQuery` / `useMutation`, never an effect (standard: react-effects). */
+/** @type {RuleModule} */
+export const noAsyncInEffect = {
+  meta: {
+    type: "problem",
+    docs: {
+      description:
+        "Forbid loading data (await, .then, fetch, invoke, api.*, *Client.*) in a useEffect that is not a subscription.",
+    },
+    schema: [],
+    messages: {
+      asyncInEffect:
+        "Data is not loaded in an effect: read it with useQuery and write it with useMutation (@krizaka/query), keyed by the selection so a stale answer is dropped. An effect is for a subscription (with its cleanup) or an object URL. See krizaka/.github docs/standards/react-effects.md.",
+    },
+  },
+  create: (context) => effectVisitor(context, "async", "asyncInEffect"),
+};
+
+/** Oussama, 2026-10-27: syncing React state is computed in render, never an effect (standard: react-effects). */
+/** @type {RuleModule} */
+export const noDerivedStateInEffect = {
+  meta: {
+    type: "problem",
+    docs: {
+      description:
+        "Forbid a useEffect whose only statements are setState calls (derive the value in render, or reset with a key).",
+    },
+    schema: [],
+    messages: {
+      derivedState:
+        "An effect that only sets state from props or state renders twice: compute the value during render, or reset the component with a `key`. See krizaka/.github docs/standards/react-effects.md.",
+    },
+  },
+  create: (context) => effectVisitor(context, "derived", "derivedState"),
 };
 
 /** Oussama, 2026-10-22: « changer les tabs doit changer les routes » — a selection of a page lives in the URL. */
@@ -75,11 +136,14 @@ export const noFetchInClientEffect = {
 export const routeStateSelection = {
   meta: {
     type: "problem",
-    docs: { description: "A Tabs / segmented / toggle / chip-group selection in a page keeps its state in the URL (routeKey), not in local state." },
+    docs: {
+      description:
+        "A Tabs / segmented / toggle / chip-group selection in a page keeps its state in the URL (routeKey), not in local state.",
+    },
     schema: [],
     messages: {
       local:
-        "This selection is local state: changing it does not change the URL. Bind it to the route with `routeKey=\"…\"` (and `routeValues`, see `useRouteState` in @krizaka/ui/router), or justify it with `// @ephemeral: <reason>` on this line or the one above.",
+        'This selection is local state: changing it does not change the URL. Bind it to the route with `routeKey="…"` (and `routeValues`, see `useRouteState` in @krizaka/ui/router), or justify it with `// @ephemeral: <reason>` on this line or the one above.',
     },
   },
   create(context) {
@@ -99,7 +163,10 @@ export const routeStateSelection = {
 export const noFamilySwitcher = {
   meta: {
     type: "problem",
-    docs: { description: "Forbid the family switcher (NavBar.Family): krizaka.com is the only link back between the Krizaka sites." },
+    docs: {
+      description:
+        "Forbid the family switcher (NavBar.Family): krizaka.com is the only link back between the Krizaka sites.",
+    },
     schema: [],
     messages: {
       family:
@@ -108,9 +175,11 @@ export const noFamilySwitcher = {
   },
   create(context) {
     return {
-      "JSXMemberExpression[object.name='NavBar'][property.name='Family']": (/** @type {Node} */ node) => context.report({ node, messageId: "family" }),
+      "JSXMemberExpression[object.name='NavBar'][property.name='Family']": (/** @type {Node} */ node) =>
+        context.report({ node, messageId: "family" }),
       "JSXIdentifier[name='NavBarFamily']": (/** @type {Node} */ node) => context.report({ node, messageId: "family" }),
-      "ImportSpecifier[imported.name='NavBarFamily']": (/** @type {Node} */ node) => context.report({ node, messageId: "family" }),
+      "ImportSpecifier[imported.name='NavBarFamily']": (/** @type {Node} */ node) =>
+        context.report({ node, messageId: "family" }),
     };
   },
 };
@@ -153,7 +222,20 @@ export const noLocalTableOrForm = {
 export const ENV_PRODUCT_PREFIXES = Object.freeze(["KRIZAKA"]);
 
 /** The bounded contexts a name starts with (krizaka/.github#46). */
-export const ENV_CONTEXT_WORDS = Object.freeze(["APP", "DATABASE", "AUTH", "MEDIA", "MAIL", "PUSH", "PAYMENTS", "REALTIME", "ABUSE", "OBSERVABILITY", "AI", "OPERATOR"]);
+export const ENV_CONTEXT_WORDS = Object.freeze([
+  "APP",
+  "DATABASE",
+  "AUTH",
+  "MEDIA",
+  "MAIL",
+  "PUSH",
+  "PAYMENTS",
+  "REALTIME",
+  "ABUSE",
+  "OBSERVABILITY",
+  "AI",
+  "OPERATOR",
+]);
 
 /** @type {Map<string, string | null>} */
 const ownProductCache = new Map();
@@ -188,7 +270,10 @@ function productPrefixOf(file) {
     const name = String(JSON.parse(readFileSync(file, "utf8")).name ?? "");
     // A product names its packages `<product>-<part>` (acme-monorepo, @org/acme-admin); a one-word package
     // (@org/realtime, @org/ui) is a building block, not a product, and a context word is never one.
-    const words = name.replace(/^@[^/]+\//, "").split(/[-_.]/).filter(Boolean);
+    const words = name
+      .replace(/^@[^/]+\//, "")
+      .split(/[-_.]/)
+      .filter(Boolean);
     const word = words.length > 1 ? words[0].toUpperCase() : "";
     return /^[A-Z][A-Z0-9]+$/.test(word) && !ENV_CONTEXT_WORDS.includes(word) ? word : null;
   } catch {
@@ -198,17 +283,62 @@ function productPrefixOf(file) {
 
 /** Vendors: a vendor is a value (`MEDIA_STORAGE_PROVIDER=bunny`, `MAIL_PROVIDER=mailgun`), never a name. */
 export const ENV_VENDOR_PREFIXES = Object.freeze([
-  "BUNNY", "MAILGUN", "RESEND", "SENDGRID", "POSTMARK", "STRIPE", "CCBILL", "SEGPAY", "NOWPAYMENTS", "PAYPAL",
-  "TURNSTILE", "CLOUDFLARE", "VERCEL", "DIGITALOCEAN", "DO", "AWS", "GCP", "AZURE", "GOOGLE", "FACEBOOK", "APPLE",
-  "GITHUB", "GH", "EXPO", "FIREBASE", "FCM", "APNS", "REDIS", "VALKEY", "OPENAI", "ANTHROPIC", "OLLAMA", "SENTRY",
-  "TWILIO", "SUPABASE", "MAPBOX",
+  "BUNNY",
+  "MAILGUN",
+  "RESEND",
+  "SENDGRID",
+  "POSTMARK",
+  "STRIPE",
+  "CCBILL",
+  "SEGPAY",
+  "NOWPAYMENTS",
+  "PAYPAL",
+  "TURNSTILE",
+  "CLOUDFLARE",
+  "VERCEL",
+  "DIGITALOCEAN",
+  "DO",
+  "AWS",
+  "GCP",
+  "AZURE",
+  "GOOGLE",
+  "FACEBOOK",
+  "APPLE",
+  "GITHUB",
+  "GH",
+  "EXPO",
+  "FIREBASE",
+  "FCM",
+  "APNS",
+  "REDIS",
+  "VALKEY",
+  "OPENAI",
+  "ANTHROPIC",
+  "OLLAMA",
+  "SENTRY",
+  "TWILIO",
+  "SUPABASE",
+  "MAPBOX",
 ]);
 
 /** Names the platforms set themselves (GitHub Actions, EAS): read, never chosen. */
 export const ENV_PLATFORM_NAMES = Object.freeze([
-  "GITHUB_ACTIONS", "GITHUB_TOKEN", "GITHUB_SHA", "GITHUB_REF", "GITHUB_REF_NAME", "GITHUB_REPOSITORY", "GITHUB_RUN_ID",
-  "GITHUB_RUN_NUMBER", "GITHUB_WORKSPACE", "GITHUB_OUTPUT", "GITHUB_STEP_SUMMARY", "GITHUB_EVENT_NAME", "GITHUB_SERVER_URL",
-  "EAS_BUILD", "EAS_BUILD_PLATFORM", "EAS_BUILD_PROFILE",
+  "GITHUB_ACTIONS",
+  "GITHUB_TOKEN",
+  "GITHUB_SHA",
+  "GITHUB_REF",
+  "GITHUB_REF_NAME",
+  "GITHUB_REPOSITORY",
+  "GITHUB_RUN_ID",
+  "GITHUB_RUN_NUMBER",
+  "GITHUB_WORKSPACE",
+  "GITHUB_OUTPUT",
+  "GITHUB_STEP_SUMMARY",
+  "GITHUB_EVENT_NAME",
+  "GITHUB_SERVER_URL",
+  "EAS_BUILD",
+  "EAS_BUILD_PLATFORM",
+  "EAS_BUILD_PROFILE",
   "EXPO_TOKEN",
 ]);
 
@@ -221,7 +351,10 @@ const PUBLIC_PREFIX = /^(?:NEXT_PUBLIC_|EXPO_PUBLIC_|VITE_)/;
  * @param {{ products?: readonly string[], vendors?: readonly string[], allow?: readonly string[] }} [options]
  * @returns {{ prefix: string, kind: "product" | "vendor" } | null}
  */
-export function envNamePrefixProblem(name, { products = ENV_PRODUCT_PREFIXES, vendors = ENV_VENDOR_PREFIXES, allow = ENV_PLATFORM_NAMES } = {}) {
+export function envNamePrefixProblem(
+  name,
+  { products = ENV_PRODUCT_PREFIXES, vendors = ENV_VENDOR_PREFIXES, allow = ENV_PLATFORM_NAMES } = {},
+) {
   if (allow.includes(name)) return null;
   const bare = name.replace(PUBLIC_PREFIX, "");
   const head = bare.split("_")[0] ?? "";
@@ -234,11 +367,21 @@ export function envNamePrefixProblem(name, { products = ENV_PRODUCT_PREFIXES, ve
 /** The name read by `process.env.X`, `process.env["X"]` or `import.meta.env.X`, or null. */
 function envNameOf(/** @type {any} */ node) {
   const object = node.object;
-  const isProcessEnv = object?.type === "MemberExpression" && object.object?.type === "Identifier" && object.object.name === "process" && !object.computed && object.property?.name === "env";
-  const isImportMetaEnv = object?.type === "MemberExpression" && object.object?.type === "MetaProperty" && !object.computed && object.property?.name === "env";
+  const isProcessEnv =
+    object?.type === "MemberExpression" &&
+    object.object?.type === "Identifier" &&
+    object.object.name === "process" &&
+    !object.computed &&
+    object.property?.name === "env";
+  const isImportMetaEnv =
+    object?.type === "MemberExpression" &&
+    object.object?.type === "MetaProperty" &&
+    !object.computed &&
+    object.property?.name === "env";
   if (!isProcessEnv && !isImportMetaEnv) return null;
   if (!node.computed && node.property?.type === "Identifier") return node.property.name;
-  if (node.computed && node.property?.type === "Literal" && typeof node.property.value === "string") return node.property.value;
+  if (node.computed && node.property?.type === "Literal" && typeof node.property.value === "string")
+    return node.property.value;
   return null;
 }
 
@@ -252,7 +395,9 @@ function envNameOf(/** @type {any} */ node) {
 export const envName = {
   meta: {
     type: "problem",
-    docs: { description: "Forbid environment variable names prefixed with a product or a vendor (krizaka/.github#46)." },
+    docs: {
+      description: "Forbid environment variable names prefixed with a product or a vendor (krizaka/.github#46).",
+    },
     schema: [
       {
         type: "object",
@@ -274,7 +419,11 @@ export const envName = {
   create(context) {
     const options = context.options[0] ?? {};
     const own = ownProductPrefix(context.cwd);
-    const products = [...ENV_PRODUCT_PREFIXES, ...(own && !ENV_VENDOR_PREFIXES.includes(own) ? [own] : []), ...(options.products ?? [])];
+    const products = [
+      ...ENV_PRODUCT_PREFIXES,
+      ...(own && !ENV_VENDOR_PREFIXES.includes(own) ? [own] : []),
+      ...(options.products ?? []),
+    ];
     const vendors = [...ENV_VENDOR_PREFIXES, ...(options.vendors ?? [])];
     const allow = [...ENV_PLATFORM_NAMES, ...(options.allow ?? [])];
     return {
@@ -283,7 +432,12 @@ export const envName = {
         const name = envNameOf(node);
         if (!name) return;
         const problem = envNamePrefixProblem(name, { products, vendors, allow });
-        if (problem) context.report({ node, messageId: problem.kind, data: { name, prefix: problem.prefix, lower: problem.prefix.toLowerCase() } });
+        if (problem)
+          context.report({
+            node,
+            messageId: problem.kind,
+            data: { name, prefix: problem.prefix, lower: problem.prefix.toLowerCase() },
+          });
       },
     };
   },
@@ -300,7 +454,13 @@ function classNameRule(pattern, message) {
     meta: {
       type: "suggestion",
       docs: { description: message },
-      schema: [{ type: "object", properties: { allow: { type: "array", items: { type: "string" } } }, additionalProperties: false }],
+      schema: [
+        {
+          type: "object",
+          properties: { allow: { type: "array", items: { type: "string" } } },
+          additionalProperties: false,
+        },
+      ],
       messages: { found: message },
     },
     create(context) {
@@ -311,14 +471,18 @@ function classNameRule(pattern, message) {
       };
       return {
         "JSXAttribute[name.name='className'] Literal": (/** @type {any} */ node) => check(node, node.value),
-        "JSXAttribute[name.name='className'] TemplateElement": (/** @type {any} */ node) => check(node, node.value.cooked),
+        "JSXAttribute[name.name='className'] TemplateElement": (/** @type {any} */ node) =>
+          check(node, node.value.cooked),
       };
     },
   };
 }
 
 /** `krizaka/no-light-variant`: a theme is a set of tokens, never a `light:` variant (a dark island: `.theme-dark`). */
-export const noLightVariant = classNameRule(() => new RegExp(LIGHT_VARIANT_SOURCE), "`light:` is forbidden in products: a theme is a set of tokens. A dark island? `.theme-dark` on the ancestor.");
+export const noLightVariant = classNameRule(
+  () => new RegExp(LIGHT_VARIANT_SOURCE),
+  "`light:` is forbidden in products: a theme is a set of tokens. A dark island? `.theme-dark` on the ancestor.",
+);
 
 /** `krizaka/no-raw-palette`: a component reads a role (`bg-surface-1`, `text-accent`), never a palette step (`bg-zinc-900`). */
 export const noRawPalette = classNameRule(

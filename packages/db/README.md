@@ -10,7 +10,7 @@ client**: you pass your own connection (`pg`'s `Client` or `PoolClient` fits as 
 - **`adoptMigration`** adopts tables you already have: markers only, no DDL.
 - **`assertModules`**, at boot, refuses a database that lacks a version the code needs.
 - **`migrate`** is a runner for products without one: an advisory lock, a history table, one transaction per step.
-- **`@krizaka/db/testing`:** `createTestDatabase`, `assertEmbedded` (your drift test) and `assertUpgrade`.
+- **`@krizaka/db/testing`:** `createTestDatabase`, `endPool` (ends a pg pool and waits for its sockets, before the database is dropped), `assertEmbedded` (your drift test) and `assertUpgrade`.
 
 ```bash
 pnpm add @krizaka/db

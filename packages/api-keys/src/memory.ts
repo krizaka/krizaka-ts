@@ -20,7 +20,10 @@ export function memoryApiKeyStore(): ApiKeyStore {
       return r ? copy(r) : null;
     },
     async list(ownerId) {
-      return [...rows.values()].filter((r) => r.ownerId === ownerId).map(copy).sort((a, b) => compareAsc(a.createdAt, b.createdAt));
+      return [...rows.values()]
+        .filter((r) => r.ownerId === ownerId)
+        .map(copy)
+        .sort((a, b) => compareAsc(a.createdAt, b.createdAt));
     },
     async update(id, patch) {
       const r = rows.get(id);

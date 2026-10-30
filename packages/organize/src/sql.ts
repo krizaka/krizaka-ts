@@ -39,13 +39,25 @@ export interface OrganizeSchema {
   kinds: Record<string, KindDecl>;
 }
 
-export const DEFAULTS = { ownerTable: "accounts", localeColumn: "locale", collections: "collections", tags: "tags" } as const;
+export const DEFAULTS = {
+  ownerTable: "accounts",
+  localeColumn: "locale",
+  collections: "collections",
+  tags: "tags",
+} as const;
 
 export function resolved(schema: OrganizeSchema) {
   const kinds = Object.fromEntries(
     Object.entries(schema.kinds).map(([kind, k]) => [
       kind,
-      { table: ident(k.table), ownerColumn: ident(k.ownerColumn ?? "owner_id"), tagTable: ident(k.tagTable ?? `${k.table}_tags`), tagColumn: ident(k.tagColumn ?? "entity_id"), inCollection: k.inCollection ?? true, owns: k.owns ?? `e.${ident(k.ownerColumn ?? "owner_id")} = $1` },
+      {
+        table: ident(k.table),
+        ownerColumn: ident(k.ownerColumn ?? "owner_id"),
+        tagTable: ident(k.tagTable ?? `${k.table}_tags`),
+        tagColumn: ident(k.tagColumn ?? "entity_id"),
+        inCollection: k.inCollection ?? true,
+        owns: k.owns ?? `e.${ident(k.ownerColumn ?? "owner_id")} = $1`,
+      },
     ]),
   );
   return {
@@ -138,9 +150,13 @@ CREATE TRIGGER ${k.table}_default_collection BEFORE INSERT OR UPDATE OF collecti
 `);
   }
   // owners that exist already get their default collection, and their entities fall into it
-  parts.push(`SELECT ${c}_create_default(o.id, o.${r.localeColumn}) FROM ${r.ownerTable} o WHERE NOT EXISTS (SELECT 1 FROM ${c} x WHERE x.owner_id = o.id AND x.is_default);`);
+  parts.push(
+    `SELECT ${c}_create_default(o.id, o.${r.localeColumn}) FROM ${r.ownerTable} o WHERE NOT EXISTS (SELECT 1 FROM ${c} x WHERE x.owner_id = o.id AND x.is_default);`,
+  );
   for (const k of Object.values(r.kinds).filter((x) => x.inCollection)) {
-    parts.push(`UPDATE ${k.table} e SET collection_id = x.id FROM ${c} x WHERE e.collection_id IS NULL AND x.owner_id = e.${k.ownerColumn} AND x.is_default;`);
+    parts.push(
+      `UPDATE ${k.table} e SET collection_id = x.id FROM ${c} x WHERE e.collection_id IS NULL AND x.owner_id = e.${k.ownerColumn} AND x.is_default;`,
+    );
   }
   return parts.join("\n");
 }

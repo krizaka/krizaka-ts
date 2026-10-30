@@ -1,11 +1,14 @@
 import crypto from "node:crypto";
-import { promisify } from "node:util";
 
-const scrypt = promisify(crypto.scrypt) as (password: string, salt: Buffer, keylen: number, options: crypto.ScryptOptions) => Promise<Buffer>;
+/** Called only when a password is hashed or checked: the module also loads in a browser bundle (the role model), where `crypto.scrypt` does not exist. */
+const scrypt = (password: string, salt: Buffer, keylen: number, options: crypto.ScryptOptions): Promise<Buffer> =>
+  new Promise((resolve, reject) => {
+    crypto.scrypt(password, salt, keylen, options, (error, key) => (error ? reject(error) : resolve(key)));
+  });
 
 /**
  * scrypt (N=2^15, r=8, p=1), a 16-byte salt, stored as `scrypt$N$r$p$salt$hash` (base64url). These are the parameters of the copies
- * the products carried (Yomizaka, Akinaza, Kachizaka, Yororis): a hash they stored verifies here, and one made here verifies there.
+ * the products carried (Yomizaka, Akinaza): a hash they stored verifies here, and one made here verifies there.
  */
 // @fixed: the cost of the algorithm is part of the stored format; changing it is a new scheme, not a setting
 const N = 32768;
@@ -47,7 +50,12 @@ export async function verifyPassword(password: string, stored: string): Promise<
   const [scheme, n, r, p, salt, hash] = stored.split("$");
   if (scheme !== "scrypt" || !salt || !hash || password.length > PASSWORD_MAX_LENGTH) return false;
   const expected = Buffer.from(hash, "base64url");
-  const given = await scrypt(password, Buffer.from(salt, "base64url"), expected.length, { N: Number(n), r: Number(r), p: Number(p), maxmem: MAXMEM });
+  const given = await scrypt(password, Buffer.from(salt, "base64url"), expected.length, {
+    N: Number(n),
+    r: Number(r),
+    p: Number(p),
+    maxmem: MAXMEM,
+  });
   return given.length === expected.length && crypto.timingSafeEqual(given, expected);
 }
 

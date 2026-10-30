@@ -13,7 +13,13 @@ export interface ProviderHarness {
   issue(identity: ExternalIdentity, challenge?: string): string | Promise<string>;
 }
 
-export const PERSON: ExternalIdentity = { issuer: "https://accounts.google.com", subject: "1234567890", email: "eric@example.com", emailVerified: true, name: "Éric" };
+export const PERSON: ExternalIdentity = {
+  issuer: "https://accounts.google.com",
+  subject: "1234567890",
+  email: "eric@example.com",
+  emailVerified: true,
+  name: "Éric",
+};
 
 /** What every IdentityProvider adapter must do: the same behaviour behind the same port. */
 export function identityProviderContract(name: string, make: () => ProviderHarness | Promise<ProviderHarness>) {
@@ -36,7 +42,14 @@ export function identityProviderContract(name: string, make: () => ProviderHarne
 
   it(`${name}: refuses a return address that leaves the product`, async () => {
     const { provider } = await make();
-    for (const bad of ["https://evil.example/", "//evil.example", "javascript:alert(1)", "/ok\\evil", "relative", "/a\nb"]) {
+    for (const bad of [
+      "https://evil.example/",
+      "//evil.example",
+      "javascript:alert(1)",
+      "/ok\\evil",
+      "relative",
+      "/a\nb",
+    ]) {
       await expect(provider.start("google", bad), bad).rejects.toMatchObject({ code: "BAD_RETURN_TO" });
     }
   });
@@ -63,16 +76,26 @@ export function identityProviderContract(name: string, make: () => ProviderHarne
   it(`${name}: a PKCE flow needs the verifier that made the challenge`, async () => {
     const { provider, issue } = await make();
     const verifier = "v".repeat(64);
-    await expect(provider.complete(await issue(PERSON, pkceChallenge(verifier)))).rejects.toMatchObject({ code: "INVALID_CODE" });
-    await expect(provider.complete(await issue(PERSON, pkceChallenge(verifier)), { codeVerifier: "w".repeat(64) })).rejects.toMatchObject({ code: "INVALID_CODE" });
-    expect(await provider.complete(await issue(PERSON, pkceChallenge(verifier)), { codeVerifier: verifier })).toEqual(PERSON);
+    await expect(provider.complete(await issue(PERSON, pkceChallenge(verifier)))).rejects.toMatchObject({
+      code: "INVALID_CODE",
+    });
+    await expect(
+      provider.complete(await issue(PERSON, pkceChallenge(verifier)), { codeVerifier: "w".repeat(64) }),
+    ).rejects.toMatchObject({ code: "INVALID_CODE" });
+    expect(await provider.complete(await issue(PERSON, pkceChallenge(verifier)), { codeVerifier: verifier })).toEqual(
+      PERSON,
+    );
   });
 }
 
 /** What every IdentityLinkStore adapter must do. `account(n)` gives an account id the adapter accepts. */
-export function identityLinkStoreContract(name: string, make: () => IdentityLinkStore | Promise<IdentityLinkStore>, account: (n: number) => string | Promise<string>) {
+export function identityLinkStoreContract(
+  name: string,
+  make: () => IdentityLinkStore | Promise<IdentityLinkStore>,
+  account: (n: number) => string | Promise<string>,
+) {
   const NOW = new Date("2026-10-26T12:00:00Z");
-  const subject = () => `sub-${Math.random().toString(36).slice(2)}`;
+  const subject = () => `sub-${randomUUID()}`;
 
   it(`${name}: finds a linked identity, and nothing else`, async () => {
     const store = await make();
@@ -139,7 +162,14 @@ export function sessionStoreContract(name: string, make: () => SessionStoreHarne
     const { store, account } = await make();
     const accountId = await account(1);
     const tokenHash = hashOf();
-    await store.insert({ accountId, tokenHash, createdAt: NOW, expiresAt: hours(24), ip: "203.0.113.7", userAgent: "test" });
+    await store.insert({
+      accountId,
+      tokenHash,
+      createdAt: NOW,
+      expiresAt: hours(24),
+      ip: "203.0.113.7",
+      userAgent: "test",
+    });
     const found = await store.find(tokenHash, hours(1));
     expect(found?.account).toEqual({ id: accountId });
     expect(found?.id).toBeTruthy();
@@ -180,6 +210,8 @@ export function sessionStoreContract(name: string, make: () => SessionStoreHarne
     const accountId = await account(4);
     const tokenHash = hashOf();
     await store.insert({ accountId, tokenHash, createdAt: NOW, expiresAt: hours(24), ip: null, userAgent: null });
-    await expect(store.insert({ accountId, tokenHash, createdAt: NOW, expiresAt: hours(24), ip: null, userAgent: null })).rejects.toThrow();
+    await expect(
+      store.insert({ accountId, tokenHash, createdAt: NOW, expiresAt: hours(24), ip: null, userAgent: null }),
+    ).rejects.toThrow();
   });
 }

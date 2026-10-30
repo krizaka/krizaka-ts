@@ -1,6 +1,6 @@
 import { defineModule, type ModuleSchema } from "@krizaka/db";
 
-import { type OrganizeSchema,organizeSql } from "./sql";
+import { type OrganizeSchema, organizeSql } from "./sql";
 import { type WorkspaceDecl, workspaceSql } from "./workspace-schema";
 
 /**
@@ -27,6 +27,8 @@ export function workspaceSchema(declaration: WorkspaceDecl): ModuleSchema {
   return defineModule({
     module: "organize_workspace",
     schema: declaration.schema ?? "organize",
-    migrations: [{ version: 1, name: "tags, status, views", sql: (c) => workspaceSql({ ...declaration, schema: c.schema }) }],
+    migrations: [
+      { version: 1, name: "tags, status, views", sql: (c) => workspaceSql({ ...declaration, schema: c.schema }) },
+    ],
   });
 }

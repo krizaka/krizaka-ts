@@ -30,7 +30,11 @@ describe.runIf(enabled)("rate limits: PostgreSQL", () => {
 
   it("counts exactly under concurrency through the limiter: 100 parallel checks, 60 allowed and 40 refused", async () => {
     const store = await fresh();
-    const limiter = createLimiter({ store, clock: { now: () => NOW }, limits: { burst: { perIp: 60, windowSeconds: 60 } } });
+    const limiter = createLimiter({
+      store,
+      clock: { now: () => NOW },
+      limits: { burst: { perIp: 60, windowSeconds: 60 } },
+    });
     const results = await Promise.all(Array.from({ length: 100 }, () => limiter.check("burst", { ip: "203.0.113.7" })));
     expect(results.filter((r) => r.ok)).toHaveLength(60);
     expect(results.filter((r) => !r.ok)).toHaveLength(40);

@@ -17,7 +17,14 @@ export const ON_EXHAUSTED = { stop: "stop", fallbackPaid: "fallback_paid" } as c
 export type OnExhausted = (typeof ON_EXHAUSTED)[keyof typeof ON_EXHAUSTED];
 
 /** The kinds of line of the ledger. Amounts are signed: credits in are positive, credits out negative. */
-export const ENTRY_TYPE = { grant: "GRANT", purchase: "PURCHASE", debit: "DEBIT", refund: "REFUND", expiry: "EXPIRY", adjustment: "ADJUSTMENT" } as const;
+export const ENTRY_TYPE = {
+  grant: "GRANT",
+  purchase: "PURCHASE",
+  debit: "DEBIT",
+  refund: "REFUND",
+  expiry: "EXPIRY",
+  adjustment: "ADJUSTMENT",
+} as const;
 export type EntryType = (typeof ENTRY_TYPE)[keyof typeof ENTRY_TYPE];
 
 export const HOLD_STATUS = { active: "active", settled: "settled", released: "released" } as const;
@@ -110,7 +117,12 @@ export interface CreditStore {
   holdByOperation(operation: string): Promise<Hold | null>;
   /** What the account's active holds that have not expired at `now` keep back, except `exceptHoldId`. */
   heldAmount(accountId: string, now: Date, exceptHoldId?: string): Promise<number>;
-  closeHold(holdId: string, status: typeof HOLD_STATUS.settled | typeof HOLD_STATUS.released, settledAmount: number | null, at: Date): Promise<void>;
+  closeHold(
+    holdId: string,
+    status: typeof HOLD_STATUS.settled | typeof HOLD_STATUS.released,
+    settledAmount: number | null,
+    at: Date,
+  ): Promise<void>;
   /** Granted pots past their date that still hold credits and no EXPIRY line, oldest first. */
   lapsedWithCredits(now: Date, limit: number): Promise<{ grantId: string; accountId: string }[]>;
 }

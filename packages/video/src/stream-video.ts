@@ -1,6 +1,15 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-import { type Clock, type FetchLike, VIDEO_CODE, VIDEO_STATUS, VideoError, type VideoEvent, type VideoProvider, type VideoStatus } from "./port";
+import {
+  type Clock,
+  type FetchLike,
+  VIDEO_CODE,
+  VIDEO_STATUS,
+  VideoError,
+  type VideoEvent,
+  type VideoProvider,
+  type VideoStatus,
+} from "./port";
 import { embedToken, mobileViewToken, signedDirectoryUrl, signedFileUrl, tusSignature } from "./signing";
 
 export interface StreamVideoOptions {
@@ -61,7 +70,14 @@ export function streamVideo(options: StreamVideoOptions): VideoProvider {
   return {
     name: "stream",
     async createVideo(input) {
-      const res = await options.fetch(`${api}/library/${options.libraryId}/videos`, { method: "POST", headers, body: JSON.stringify({ title: input.title, ...(input.collectionId ? { collectionId: input.collectionId } : {}) }) });
+      const res = await options.fetch(`${api}/library/${options.libraryId}/videos`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          title: input.title,
+          ...(input.collectionId ? { collectionId: input.collectionId } : {}),
+        }),
+      });
       if (!res.ok) throw new VideoError(VIDEO_CODE.provider, `the video service refused the creation (${res.status})`);
       const guid = (JSON.parse(await res.text()) as { guid?: unknown }).guid;
       if (typeof guid !== "string") throw new VideoError(VIDEO_CODE.provider, "the video service answered no id");
@@ -74,24 +90,54 @@ export function streamVideo(options: StreamVideoOptions): VideoProvider {
         videoId,
         endpoint: `${api}/tusupload`,
         expires,
-        headers: { AuthorizationSignature: tusSignature({ libraryId: options.libraryId, libraryKey: options.libraryKey, expires, videoId }), AuthorizationExpire: String(expires), VideoId: videoId, LibraryId: options.libraryId },
+        headers: {
+          AuthorizationSignature: tusSignature({
+            libraryId: options.libraryId,
+            libraryKey: options.libraryKey,
+            expires,
+            videoId,
+          }),
+          AuthorizationExpire: String(expires),
+          VideoId: videoId,
+          LibraryId: options.libraryId,
+        },
       };
     },
     viewToken(videoId, ttlSeconds, surface) {
       const expires = nowSeconds() + ttl(ttlSeconds);
       checkId(videoId);
-      return { expires, token: surface === "embed" ? embedToken({ tokenKey: options.tokenKey, videoId, expires }) : mobileViewToken({ libraryKey: options.libraryKey, videoId, expires }) };
+      return {
+        expires,
+        token:
+          surface === "embed"
+            ? embedToken({ tokenKey: options.tokenKey, videoId, expires })
+            : mobileViewToken({ libraryKey: options.libraryKey, videoId, expires }),
+      };
     },
     playbackUrls(videoId, ttlSeconds) {
       const expires = nowSeconds() + ttl(ttlSeconds);
       checkId(videoId);
       return {
-        hls: signedDirectoryUrl({ hostname: options.cdnHostname, directory: `/${videoId}/`, file: "playlist.m3u8", tokenKey: options.tokenKey, expires }),
-        poster: signedFileUrl({ hostname: options.cdnHostname, path: `/${videoId}/thumbnail.jpg`, tokenKey: options.tokenKey, expires }),
+        hls: signedDirectoryUrl({
+          hostname: options.cdnHostname,
+          directory: `/${videoId}/`,
+          file: "playlist.m3u8",
+          tokenKey: options.tokenKey,
+          expires,
+        }),
+        poster: signedFileUrl({
+          hostname: options.cdnHostname,
+          path: `/${videoId}/thumbnail.jpg`,
+          tokenKey: options.tokenKey,
+          expires,
+        }),
       };
     },
     async deleteVideo(videoId) {
-      const res = await options.fetch(`${api}/library/${options.libraryId}/videos/${checkId(videoId)}`, { method: "DELETE", headers });
+      const res = await options.fetch(`${api}/library/${options.libraryId}/videos/${checkId(videoId)}`, {
+        method: "DELETE",
+        headers,
+      });
       if (res.status === 404) return false;
       if (!res.ok) throw new VideoError(VIDEO_CODE.provider, `the video service refused the delete (${res.status})`);
       return true;
@@ -99,18 +145,29 @@ export function streamVideo(options: StreamVideoOptions): VideoProvider {
     parseWebhook(rawBody, received): VideoEvent | null {
       const lower = Object.fromEntries(Object.entries(received).map(([k, v]) => [k.toLowerCase(), v]));
       const signature = lower["x-bunnystream-signature"];
-      if (lower["x-bunnystream-signature-version"] !== "v1" || lower["x-bunnystream-signature-algorithm"] !== "hmac-sha256" || typeof signature !== "string") throw new VideoError(VIDEO_CODE.badWebhook, "the signature headers are missing");
+      if (
+        lower["x-bunnystream-signature-version"] !== "v1" ||
+        lower["x-bunnystream-signature-algorithm"] !== "hmac-sha256" ||
+        typeof signature !== "string"
+      )
+        throw new VideoError(VIDEO_CODE.badWebhook, "the signature headers are missing");
       const expected = createHmac("sha256", options.readOnlyKey).update(rawBody).digest("hex");
       const a = Buffer.from(expected);
       const b = Buffer.from(signature);
-      if (a.length !== b.length || !timingSafeEqual(a, b)) throw new VideoError(VIDEO_CODE.badWebhook, "the signature does not match");
+      if (a.length !== b.length || !timingSafeEqual(a, b))
+        throw new VideoError(VIDEO_CODE.badWebhook, "the signature does not match");
       let body: { VideoLibraryId?: unknown; VideoGuid?: unknown; Status?: unknown };
       try {
         body = JSON.parse(rawBody) as typeof body;
       } catch {
         throw new VideoError(VIDEO_CODE.badWebhook, "the body is not JSON");
       }
-      if (String(body.VideoLibraryId) !== options.libraryId || typeof body.VideoGuid !== "string" || typeof body.Status !== "number") throw new VideoError(VIDEO_CODE.badWebhook, "the body is not this library's event");
+      if (
+        String(body.VideoLibraryId) !== options.libraryId ||
+        typeof body.VideoGuid !== "string" ||
+        typeof body.Status !== "number"
+      )
+        throw new VideoError(VIDEO_CODE.badWebhook, "the body is not this library's event");
       const status = STATUS[body.Status];
       return status ? { videoId: body.VideoGuid, status, raw: body.Status } : null;
     },

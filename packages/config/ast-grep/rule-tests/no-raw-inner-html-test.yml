@@ -1,0 +1,11 @@
+id: no-raw-inner-html
+valid:
+  - |
+    const a = <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(data) }} />;
+  - |
+    const b = <div className="x">{html}</div>;
+invalid:
+  - |
+    const a = <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }} />;
+  - |
+    const b = <div dangerouslySetInnerHTML={{ __html: userHtml }} />;

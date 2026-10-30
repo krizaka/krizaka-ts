@@ -1,6 +1,6 @@
 {
   "name": "@krizaka/storage",
-  "version": "0.2.0",
+  "version": "0.8.1",
   "description": "Files behind one port for every Krizaka product: put with a content-hashed name, get, head, delete, list, signed and public URLs; adapters over an injected fetch for an HTTP object store and any S3-compatible bucket (Signature V4, no SDK), and a local folder; layout as data, bytes checked by magic number, limits passed in. The admin chooses the provider through settings.",
   "keywords": [
     "krizaka",
@@ -26,18 +26,35 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "types": "./dist/node.d.ts",
+      "node": "./dist/node.js",
+      "default": "./dist/index.js"
+    },
+    "./node": {
+      "types": "./dist/node.d.ts",
+      "import": "./dist/node.js"
     },
     "./settings": {
       "types": "./dist/settings.d.ts",
       "import": "./dist/settings.js"
     },
+    "./resolve": {
+      "types": "./dist/resolve.d.ts",
+      "import": "./dist/resolve.js"
+    },
     "./testkit": {
       "types": "./dist/testkit.d.ts",
       "import": "./dist/testkit.js"
     },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./provider-admin": {
+      "types": "./dist/provider-admin.d.ts",
+      "import": "./dist/provider-admin.js"
+    },
+    "./opendal": {
+      "types": "./dist/opendal.d.ts",
+      "import": "./dist/opendal.js"
+    }
   },
   "files": [
     "dist",
@@ -49,7 +66,7 @@
     "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsup",
     "lint": "eslint . --max-warnings 0 && tsc --noEmit",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run --coverage --coverage.provider=v8 --coverage.reporter=lcov --coverage.reporter=text-summary \"--coverage.include=src/**/*.ts\"",
     "check": "pnpm run lint && pnpm run test && pnpm run build",
     "prepublishOnly": "pnpm run build"
   },
@@ -60,8 +77,11 @@
     "@krizaka/config": "workspace:^",
     "@types/node": "^22.10.0",
     "@types/pg": "^8.23.1",
+    "esbuild": "^0.25.0",
     "eslint": "^9.39.0",
+    "opendal": "0.49.13",
     "pg": "^8.23.1",
+    "testcontainers": "^12.2.1",
     "tsup": "^8.5.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.11",
@@ -69,17 +89,22 @@
   },
   "dependencies": {
     "@krizaka/db": "workspace:^",
-    "@krizaka/settings": "workspace:^"
+    "@krizaka/settings": "workspace:^",
+    "arctic": "3.7.0"
   },
   "peerDependencies": {
     "vitest": ">=4",
-    "zod": ">=3.23"
+    "zod": ">=3.23",
+    "opendal": ">=0.49.13 <0.50"
   },
   "peerDependenciesMeta": {
     "vitest": {
       "optional": true
     },
     "zod": {
+      "optional": true
+    },
+    "opendal": {
       "optional": true
     }
   }

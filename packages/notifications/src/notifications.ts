@@ -3,18 +3,49 @@ import { randomUUID } from "node:crypto";
 import { subHours, subSeconds } from "@krizaka/time";
 
 import { dbNotificationStore } from "./persistence";
-import { CHANNEL, type Channel, type Clock, DELIVERY, type Delivery, type Device, type Item, NOTIFICATION_CODE, type NotificationConfig, NotificationError, type NotificationStore, PLATFORM, type Platform, type Query } from "./port";
-import { categoryOf, checkConfig, checkInput, type NotifyInput, type PreferenceView, resolveChannels, uuidOf, viewOf } from "./rules";
+import {
+  CHANNEL,
+  type Channel,
+  type Clock,
+  DELIVERY,
+  type Delivery,
+  type Device,
+  type Item,
+  NOTIFICATION_CODE,
+  type NotificationConfig,
+  NotificationError,
+  type NotificationStore,
+  PLATFORM,
+  type Platform,
+  type Query,
+} from "./port";
+import {
+  categoryOf,
+  checkConfig,
+  checkInput,
+  type NotifyInput,
+  type PreferenceView,
+  resolveChannels,
+  uuidOf,
+  viewOf,
+} from "./rules";
 
 /** The event the outbox carries, the name Java's `krizaka-notifications-api` gives its request. */
 export const NOTIFICATION_EVENT = { requested: "evt.notification.requested.v1" } as const;
 
 /** One topic per delivery, so a worker claims only what it delivers (`notifications.email`, `notifications.push`, `notifications.live`). */
-export const NOTIFICATION_TOPIC: Record<Delivery, string> = { [DELIVERY.email]: "notifications.email", [DELIVERY.push]: "notifications.push", [DELIVERY.live]: "notifications.live" };
+export const NOTIFICATION_TOPIC: Record<Delivery, string> = {
+  [DELIVERY.email]: "notifications.email",
+  [DELIVERY.push]: "notifications.push",
+  [DELIVERY.live]: "notifications.live",
+};
 
 /** What the module needs of `@krizaka/outbox` (its `Outbox` satisfies it): append in the caller's transaction. */
 export interface NotificationOutbox {
-  append(tx: Query, message: { topic: string; type: string; payload: unknown; id: string }): Promise<{ id: string; appended: boolean }>;
+  append(
+    tx: Query,
+    message: { topic: string; type: string; payload: unknown; id: string },
+  ): Promise<{ id: string; appended: boolean }>;
 }
 
 export interface NotificationDeps {
@@ -60,7 +91,11 @@ export interface Notifications {
    */
   notify(tx: Query, input: NotifyInput): Promise<Notified>;
   /** The bell, newest first. */
-  list(query: Query, accountId: string, options?: { unreadOnly?: boolean; limit?: number; before?: { createdAt: Date; id: string } }): Promise<Item[]>;
+  list(
+    query: Query,
+    accountId: string,
+    options?: { unreadOnly?: boolean; limit?: number; before?: { createdAt: Date; id: string } },
+  ): Promise<Item[]>;
   unreadCount(query: Query, accountId: string): Promise<number>;
   /** Marks the account's own unread items read (those in `ids`, or all). Returns how many. */
   markRead(query: Query, accountId: string, ids?: readonly string[]): Promise<number>;
@@ -90,7 +125,8 @@ const platforms = new Set<string>(Object.values(PLATFORM));
 export function createNotifications(deps: NotificationDeps): Notifications {
   const storeFor = deps.storeFor ?? ((query: Query) => dbNotificationStore(query, deps.schema ?? "notifications"));
   const config = async () => checkConfig(typeof deps.config === "function" ? await deps.config() : deps.config);
-  const asMap = (rows: { category: string; channel: Channel; enabled: boolean }[], category: string) => new Map(rows.filter((r) => r.category === category).map((r) => [r.channel, r.enabled] as const));
+  const asMap = (rows: { category: string; channel: Channel; enabled: boolean }[], category: string) =>
+    new Map(rows.filter((r) => r.category === category).map((r) => [r.channel, r.enabled] as const));
   return {
     async notify(tx, input) {
       checkInput(input);
@@ -99,23 +135,55 @@ export function createNotifications(deps: NotificationDeps): Notifications {
       const now = deps.clock.now();
       const store = storeFor(tx);
       const channels = resolveChannels(category, asMap(await store.preferences(input.accountId), input.category));
-      const item: Item = { id: randomUUID(), accountId: input.accountId, category: input.category, template: input.template, payload: { variables: input.variables ?? {}, ...(input.payload ?? {}) }, dedupeKey: input.dedupeKey ?? null, inBell: channels.app, createdAt: now, readAt: null };
-      const { duplicate, capped } = await store.record(item, { max: category.burstMax, since: subSeconds(now, category.burstWindowSeconds) });
+      const item: Item = {
+        id: randomUUID(),
+        accountId: input.accountId,
+        category: input.category,
+        template: input.template,
+        payload: { variables: input.variables ?? {}, ...(input.payload ?? {}) },
+        dedupeKey: input.dedupeKey ?? null,
+        inBell: channels.app,
+        createdAt: now,
+        readAt: null,
+      };
+      const { duplicate, capped } = await store.record(item, {
+        max: category.burstMax,
+        since: subSeconds(now, category.burstWindowSeconds),
+      });
       if (duplicate) return { notificationId: null, duplicate: true, capped: false, channels: [] };
       const used: Delivery[] = [];
       if (!capped) {
-        const base = { template: input.template, locale: input.locale ?? null, variables: input.variables ?? {}, notificationId: item.id, accountId: input.accountId, category: input.category };
+        const base = {
+          template: input.template,
+          locale: input.locale ?? null,
+          variables: input.variables ?? {},
+          notificationId: item.id,
+          accountId: input.accountId,
+          category: input.category,
+        };
         const send = async (request: NotificationRequest) => {
-          await deps.outbox.append(tx, { topic: NOTIFICATION_TOPIC[request.channel], type: NOTIFICATION_EVENT.requested, payload: request, id: uuidOf(`${item.id}:${request.channel}:${request.recipient}`) });
+          await deps.outbox.append(tx, {
+            topic: NOTIFICATION_TOPIC[request.channel],
+            type: NOTIFICATION_EVENT.requested,
+            payload: request,
+            id: uuidOf(`${item.id}:${request.channel}:${request.recipient}`),
+          });
           if (!used.includes(request.channel)) used.push(request.channel);
         };
         if (channels.app) await send({ ...base, channel: DELIVERY.live, recipient: input.accountId });
         if (channels.email && input.email) await send({ ...base, channel: DELIVERY.email, recipient: input.email });
-        if (channels.push) for (const device of await store.devices(input.accountId)) await send({ ...base, channel: DELIVERY.push, recipient: device.token, platform: device.platform });
+        if (channels.push)
+          for (const device of await store.devices(input.accountId))
+            await send({ ...base, channel: DELIVERY.push, recipient: device.token, platform: device.platform });
       }
       return { notificationId: item.id, duplicate: false, capped, channels: used };
     },
-    list: (query, accountId, options = {}) => storeFor(query).list(accountId, { unreadOnly: options.unreadOnly ?? false, limit: options.limit ?? 30, ...(options.before ? { before: options.before } : {}) }),
+    list: (query, accountId, options = {}) =>
+      storeFor(query).list(accountId, {
+        unreadOnly: options.unreadOnly ?? false,
+        limit: options.limit ?? 30,
+        ...(options.before ? { before: options.before } : {}),
+      }),
     unreadCount: (query, accountId) => storeFor(query).unreadCount(accountId),
     markRead: (query, accountId, ids) => storeFor(query).markRead(accountId, ids ?? null, deps.clock.now()),
     async preferences(query, accountId) {
@@ -123,8 +191,10 @@ export function createNotifications(deps: NotificationDeps): Notifications {
     },
     async setPreference(query, accountId, category, channel, enabled) {
       const def = categoryOf(await config(), category);
-      if (def.locked) throw new NotificationError(NOTIFICATION_CODE.locked, `category « ${category} » cannot be switched off`);
-      if (!Object.values(CHANNEL).includes(channel)) throw new NotificationError(NOTIFICATION_CODE.badInput, `unknown channel « ${channel} »`);
+      if (def.locked)
+        throw new NotificationError(NOTIFICATION_CODE.locked, `category « ${category} » cannot be switched off`);
+      if (!Object.values(CHANNEL).includes(channel))
+        throw new NotificationError(NOTIFICATION_CODE.badInput, `unknown channel « ${channel} »`);
       await storeFor(query).setPreference(accountId, category, channel, enabled, deps.clock.now());
     },
     async setMatrix(query, accountId, matrix) {
@@ -134,15 +204,28 @@ export function createNotifications(deps: NotificationDeps): Notifications {
       for (const [category, row] of Object.entries(matrix)) {
         if (cfg.categories[category]!.locked) continue;
         for (const [channel, enabled] of Object.entries(row)) {
-          if (!Object.values(CHANNEL).includes(channel as Channel)) throw new NotificationError(NOTIFICATION_CODE.badInput, `unknown channel « ${channel} »`);
-          if (typeof enabled === "boolean") await store.setPreference(accountId, category, channel as Channel, enabled, deps.clock.now());
+          if (!Object.values(CHANNEL).includes(channel as Channel))
+            throw new NotificationError(NOTIFICATION_CODE.badInput, `unknown channel « ${channel} »`);
+          if (typeof enabled === "boolean")
+            await store.setPreference(accountId, category, channel as Channel, enabled, deps.clock.now());
         }
       }
     },
     async registerDevice(query, accountId, device) {
-      if (!platforms.has(device.platform) || device.token.trim() === "" || device.token.length > 4096) throw new NotificationError(NOTIFICATION_CODE.badInput, "a device is a platform (ios, android, web) and a token");
+      if (!platforms.has(device.platform) || device.token.trim() === "" || device.token.length > 4096)
+        throw new NotificationError(
+          NOTIFICATION_CODE.badInput,
+          "a device is a platform (ios, android, web) and a token",
+        );
       const now = deps.clock.now();
-      await storeFor(query).upsertDevice({ id: randomUUID(), accountId, platform: device.platform, token: device.token, createdAt: now, lastSeenAt: now });
+      await storeFor(query).upsertDevice({
+        id: randomUUID(),
+        accountId,
+        platform: device.platform,
+        token: device.token,
+        createdAt: now,
+        lastSeenAt: now,
+      });
     },
     revokeDevice: (query, token) => storeFor(query).revokeDevice(token, deps.clock.now()),
     devices: (query, accountId) => storeFor(query).devices(accountId),

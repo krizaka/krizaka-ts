@@ -11,7 +11,10 @@ describe("dependency-cruiser covers every package (krizaka-ts#77)", () => {
 
   it("each package records its known violations beside it (they only shrink)", () => {
     for (const workspace of Object.keys(PACKAGES)) {
-      assert.ok(existsSync(new URL(`../${workspace}/.dependency-cruiser-known-violations.json`, import.meta.url)), workspace);
+      assert.ok(
+        existsSync(new URL(`../${workspace}/.dependency-cruiser-known-violations.json`, import.meta.url)),
+        workspace,
+      );
     }
   });
 
@@ -27,7 +30,14 @@ describe("dependency-cruiser covers every package (krizaka-ts#77)", () => {
     const rule = config.forbidden.find((r) => r.name === "krizaka-ts-not-from-ui");
     assert.ok(rule && rule.severity === "error");
     const pattern = new RegExp(rule.to.path);
-    for (const bad of ["node_modules/@krizaka/ui/dist/index.js", "node_modules/.pnpm/@krizaka+ui@1/node_modules/@krizaka/tokens/index.js", "@krizaka/icons", "@krizaka/ui/button"]) assert.match(bad, pattern, bad);
-    for (const ok of ["node_modules/@krizaka/db/dist/index.js", "@krizaka/intl", "@krizaka/i18n", "src/ui-kit.ts"]) assert.doesNotMatch(ok, pattern, ok);
+    for (const bad of [
+      "node_modules/@krizaka/ui/dist/index.js",
+      "node_modules/.pnpm/@krizaka+ui@1/node_modules/@krizaka/tokens/index.js",
+      "@krizaka/icons",
+      "@krizaka/ui/button",
+    ])
+      assert.match(bad, pattern, bad);
+    for (const ok of ["node_modules/@krizaka/db/dist/index.js", "@krizaka/intl", "@krizaka/i18n", "src/ui-kit.ts"])
+      assert.doesNotMatch(ok, pattern, ok);
   });
 });

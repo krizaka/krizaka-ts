@@ -4,15 +4,29 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { countRepository, countSource, countStackSource, runRatchet } from "../ratchet/ratchet.js";
+import { isRuntimeFile } from "../eslint/code-rules.js";
+import { countCodeRules, countRepository, countSource, countStackSource, runRatchet } from "../ratchet/ratchet.js";
 
 const FIXTURE = fileURLToPath(new URL("./fixtures/repo", import.meta.url));
 const BIN = fileURLToPath(new URL("../bin/krizaka-ratchet.mjs", import.meta.url));
 const UI = { palette: 6, light: 3, arbitraryVar: 2, classNameTemplate: 2 };
-// lib/use-data.ts (fetch in a client effect ×2, @tanstack ×2) · features/forms.tsx (a table, a form of two fields)
-const STACK = { fetchInClientEffect: 2, directTanstackImport: 2, localTableOrForm: 2, retiredImport: 0, routeStateSelection: 0 };
+// lib/use-data.ts (fetch in a client effect ×2, data loaded in an effect ×1, + lib/server-data.ts ×1, @tanstack ×2) · features/forms.tsx (a table, a form of two fields)
+const STACK = {
+  fetchInClientEffect: 2,
+  asyncInEffect: 2,
+  derivedStateInEffect: 0,
+  directTanstackImport: 2,
+  localTableOrForm: 2,
+  retiredImport: 0,
+  routeStateSelection: 0,
+  cognitiveComplexity: 0,
+  sonar: 0,
+  codeRules: 0,
+};
 const TOTAL = { ...UI, ...STACK };
-const STACK_GLOBS = ["app", "components", "src", "lib", "hooks", "features"].map((d) => `${d}/**/*.{js,jsx,mjs,ts,tsx,mts}`);
+const STACK_GLOBS = ["app", "components", "src", "lib", "hooks", "features"].map(
+  (d) => `${d}/**/*.{js,jsx,mjs,ts,tsx,mts}`,
+);
 
 let root: string;
 beforeEach(() => {
@@ -40,7 +54,9 @@ describe("countSource", () => {
   });
 
   it("ignores roles, unknown families and words that only end in light", () => {
-    expect(countSource(`"bg-surface-1 text-fg-secondary text-accent bg-white/10 twilight: bg-lime-500 text-zinc"`)).toEqual({
+    expect(
+      countSource(`"bg-surface-1 text-fg-secondary text-accent bg-white/10 twilight: bg-lime-500 text-zinc"`),
+    ).toEqual({
       palette: 0,
       light: 0,
       arbitraryVar: 0,
@@ -58,7 +74,24 @@ describe("countStackSource", () => {
     const effect = `useEffect(() => { fetch(a); window.fetch(b); refetch(); }, []);\nconst f = () => fetch(c);`;
     expect(countStackSource(`"use client";\n${effect}`).fetchInClientEffect).toBe(2);
     expect(countStackSource(`// a "use client" word in a comment\n${effect}`).fetchInClientEffect).toBe(0);
-    expect(countStackSource(`/* header */\n'use client'\nReact.useLayoutEffect(() => void krizakaFetch(u))`).fetchInClientEffect).toBe(1);
+    expect(
+      countStackSource(`/* header */\n'use client'\nReact.useLayoutEffect(() => void krizakaFetch(u))`)
+        .fetchInClientEffect,
+    ).toBe(1);
+  });
+
+  it("counts the effects that load data and the effects that only set state, in any file", () => {
+    const code = [
+      `useEffect(() => { invoke("list", { dir }).then(setFiles); }, [dir]);`,
+      `useEffect(() => { void (async () => { setX(await api.get(id)); })(); }, [id]);`,
+      `useEffect(() => { setDir(root); }, [root]);`,
+      `useEffect(() => { if (!open) { setQuery(""); setPage(0); } }, [open]);`,
+      `useEffect(() => { const un = listen("file-added", async () => { await qc.invalidateQueries(); }); return () => { void un.then((f) => f()); }; }, []);`,
+      `useEffect(() => { const url = URL.createObjectURL(blob); setUrl(url); return () => URL.revokeObjectURL(url); }, [blob]);`,
+      `useEffect(() => { document.title = "x"; }, []);`,
+      `useEffect(() => { const off = on<Probe>("stack-probe", (p) => setProbe(p)); return () => { void off.then((f) => f()); }; }, []);`,
+    ].join("\n");
+    expect(countStackSource(code)).toMatchObject({ asyncInEffect: 2, derivedStateInEffect: 2 });
   });
 
   it("counts every form of @tanstack import, never the facades", () => {
@@ -140,6 +173,22 @@ describe("runRatchet", () => {
     expect(ratchetFile().counters).toEqual({ ...STACK, palette: 5, light: 3, arbitraryVar: 0, classNameTemplate: 2 });
   });
 
+  it("--update keeps a counter it does not measure, and says so (the 0.11.0 regression: pageTemplate was dropped)", async () => {
+    await runRatchet({ root, mode: "init" });
+    const file = ratchetFile();
+    writeFileSync(
+      join(root, "lint-ratchet.json"),
+      JSON.stringify({ ...file, counters: { ...file.counters, pageTemplate: 38 } }),
+    );
+    rmSync(join(root, "app/settings/panel.tsx")); // something to lower, so the file is rewritten
+    const result = await runRatchet({ root, mode: "update" });
+    expect(result).toMatchObject({ ok: true, written: true, unmeasured: ["pageTemplate"] });
+    expect(ratchetFile().counters).toMatchObject({ pageTemplate: 38, palette: 5 });
+    const check = cli("--update");
+    expect(check.stdout).toContain("pageTemplate");
+    expect(ratchetFile().counters.pageTemplate).toBe(38);
+  });
+
   const APP_UI = { palette: 4, light: 2, arbitraryVar: 2, classNameTemplate: 1 }; // app/**/*.tsx only
 
   it("a file without the stack counters still checks, and --update records them", async () => {
@@ -148,18 +197,26 @@ describe("runRatchet", () => {
     expect(check).toMatchObject({ ok: true, written: false, added: Object.keys(STACK) });
     const update = await runRatchet({ root, mode: "update" });
     expect(update).toMatchObject({ ok: true, written: true });
-    expect(ratchetFile()).toEqual({ globs: ["app/**/*.tsx"], stackGlobs: STACK_GLOBS, counters: { ...APP_UI, ...STACK } });
+    expect(ratchetFile()).toEqual({
+      globs: ["app/**/*.tsx"],
+      stackGlobs: STACK_GLOBS,
+      counters: { ...APP_UI, ...STACK },
+    });
   });
 
   it("fails when a stack debt goes up, and reads `retire` and `maxFormFields` from the file", async () => {
     writeFileSync(
       join(root, "lint-ratchet.json"),
-      JSON.stringify({ retire: ["framer-motion"], maxFormFields: 2, counters: { ...TOTAL, localTableOrForm: 1, retiredImport: 1 } }),
+      JSON.stringify({
+        retire: ["framer-motion"],
+        maxFormFields: 2,
+        counters: { ...TOTAL, localTableOrForm: 1, retiredImport: 1 },
+      }),
     );
     expect((await runRatchet({ root })).ok).toBe(true); // the two-field form is allowed with maxFormFields 2
     addDebt(`"use client";\nimport { m } from "framer-motion/m";\nuseEffect(() => { fetch("/a"); }, []);`);
     const result = await runRatchet({ root });
-    expect(result.increased).toEqual(["fetchInClientEffect", "retiredImport"]);
+    expect(result.increased).toEqual(["fetchInClientEffect", "asyncInEffect", "retiredImport"]);
   });
 
   it("uses the globs recorded in the file", async () => {
@@ -183,7 +240,8 @@ describe("runRatchet", () => {
   });
 });
 
-describe("krizaka-ratchet CLI", () => {
+// each CLI call is a fresh node process that loads ESLint + the TS parser (cognitive complexity): several per test, slow on a shared CI runner
+describe("krizaka-ratchet CLI", { timeout: 90_000 }, () => {
   it("--init, then --json for CI (exit 0)", () => {
     expect(cli("--init").status).toBe(0);
     expect(existsSync(join(root, "lint-ratchet.json"))).toBe(true);
@@ -222,7 +280,6 @@ describe("the routeStateSelection counter", () => {
   });
 });
 
-
 describe("runRatchet file argument", () => {
   it("refuses a ratchet file outside the root or that is not .json", async () => {
     for (const file of ["../outside.json", "/etc/passwd", "lint-ratchet.txt", "."]) {
@@ -232,5 +289,108 @@ describe("runRatchet file argument", () => {
   it("still accepts a nested .json file", async () => {
     const result = await runRatchet({ root, mode: "init", file: "config/my-ratchet.json" }).catch((e: Error) => e);
     expect(String(result)).not.toMatch(/must be a \.json file inside/);
+  });
+});
+
+// a function of cognitive complexity 16 (nested ifs weigh more each level)
+const COMPLEX = `export function f(a: number[], b: boolean) {
+  for (const x of a) {
+    if (x > 1) {
+      if (b) {
+        for (const y of a) {
+          if (y > x && b) { return y; }
+          if (y < x || b) { return x; }
+          while (y > 3 && x) { return 0; }
+        }
+      }
+    }
+  }
+}
+`;
+
+describe("cognitiveComplexity (Sonar S3776)", () => {
+  it("counts the functions above 15, not the simple ones", async () => {
+    const { countCognitiveComplexity } = await import("../ratchet/ratchet.js");
+    expect(countCognitiveComplexity(COMPLEX, "lib/x.ts")).toBe(1);
+    expect(countCognitiveComplexity("export const f = (a: number) => (a > 1 ? 1 : 2);", "lib/x.ts")).toBe(0);
+  });
+
+  it("fails the ratchet when a new function goes over, ignoring test files", async () => {
+    expect(cli("--init").status).toBe(0);
+    writeFileSync(join(root, "lib/x.test.ts"), COMPLEX);
+    expect(cli().status).toBe(0);
+    writeFileSync(join(root, "lib/x.ts"), COMPLEX);
+    const run = cli();
+    expect(run.status).toBe(1);
+    expect(run.stdout).toMatch(/functions over complexity 15/);
+    expect(ratchetFile().counters.cognitiveComplexity).toBe(0);
+  });
+});
+
+describe("sonar (eslint-plugin-sonarjs recommended, one counter per rule)", () => {
+  const NESTED = "export const f = (a: boolean, b: boolean) => (a ? 1 : b ? 2 : 3);\n";
+
+  it("counts the violations per rule, tests excluded", async () => {
+    const { countSonar } = await import("../ratchet/ratchet.js");
+    expect(countSonar(NESTED, "lib/x.ts")).toEqual({ "sonarjs/no-nested-conditional": 1 });
+    expect(countSonar("export const g = 1;", "lib/x.ts")).toEqual({});
+    expect(countSonar("export const = ;", "lib/x.ts")).toEqual({});
+  });
+
+  it("freezes the existing violations, fails a new one and lowers when fixed", async () => {
+    writeFileSync(join(root, "lib/nested.ts"), NESTED);
+    expect(cli("--init").status).toBe(0);
+    expect(ratchetFile().counters).toMatchObject({ sonar: expect.any(Number), "sonarjs/no-nested-conditional": 1 });
+    expect(cli().status).toBe(0);
+    writeFileSync(join(root, "lib/nested2.ts"), NESTED);
+    const run = cli();
+    expect(run.status).toBe(1);
+    expect(run.stdout).toMatch(/sonarjs\/no-nested-conditional/);
+    rmSync(join(root, "lib/nested2.ts"));
+    rmSync(join(root, "lib/nested.ts"));
+    expect(cli("--update").status).toBe(0);
+    expect(ratchetFile().counters["sonarjs/no-nested-conditional"]).toBeUndefined();
+  });
+
+  it("fails the first violation of a rule that had none once the layer is recorded", async () => {
+    expect(cli("--init").status).toBe(0);
+    writeFileSync(join(root, "lib/nested.ts"), NESTED);
+    expect(cli().status).toBe(1);
+  });
+
+  it("records the layer on --update in a file written before it, without failing", async () => {
+    expect(cli("--init").status).toBe(0);
+    const file = ratchetFile();
+    delete file.counters.sonar;
+    writeFileSync(join(root, "lint-ratchet.json"), JSON.stringify(file));
+    writeFileSync(join(root, "lib/nested.ts"), NESTED);
+    expect(cli().status).toBe(0);
+    expect(cli("--update").status).toBe(0);
+    expect(ratchetFile().counters["sonarjs/no-nested-conditional"]).toBe(1);
+  });
+});
+
+describe("code rules (braces, depth, nested callbacks, console; krizaka/.github#422)", () => {
+  const DEEP =
+    "export function f(a: number[]) {\n  for (const x of a) {\n    if (x) {\n      for (const y of a) {\n        if (y) { return y; }\n      }\n    }\n  }\n}\n";
+  it("counts a function nested three levels deep", () => {
+    expect(countCodeRules(DEEP, "lib/x.ts")).toEqual({ "code/max-depth": 2 });
+  });
+  it("counts a statement without braces", () => {
+    expect(countCodeRules("export const f = (a: boolean) => { if (a) return 1; return 2; };\n", "lib/x.ts")).toEqual({
+      "code/curly": 1,
+    });
+  });
+  it("counts console only in runtime code", () => {
+    const source = "export function f() { console.log(1); }\n";
+    expect(countCodeRules(source, "lib/x.ts")).toEqual({ "code/no-console": 1 });
+    expect(countCodeRules(source, "scripts/x.mjs")).toEqual({});
+    expect(countCodeRules(source, "packages/db/src/x.ts")).toEqual({ "code/no-console": 1 });
+    expect(countCodeRules(source, "lib/x.test.ts")).toEqual({});
+  });
+  it("isRuntimeFile", () => {
+    expect(isRuntimeFile("app/api/x/route.ts")).toBe(true);
+    expect(isRuntimeFile("scripts/lexicon.mjs")).toBe(false);
+    expect(isRuntimeFile("eslint.config.mjs")).toBe(false);
   });
 });

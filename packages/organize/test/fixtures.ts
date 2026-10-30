@@ -17,7 +17,13 @@ export const DECISION: StatusSet = {
     { from: "en_attente", to: "a_decider", roles: ["owner", "manager"] },
     { from: "a_decider", to: "retenu", roles: ["owner"] },
     { from: "en_attente", to: "retenu", roles: ["owner"] },
-    { from: "a_decider", to: "non_retenu", roles: ["owner"], confirm: true, reasons: [{ key: "incomplet", label: { fr: "Dossier incomplet", en: "Incomplete file" } }] },
+    {
+      from: "a_decider",
+      to: "non_retenu",
+      roles: ["owner"],
+      confirm: true,
+      reasons: [{ key: "incomplet", label: { fr: "Dossier incomplet", en: "Incomplete file" } }],
+    },
   ],
 };
 
@@ -36,7 +42,18 @@ export const INVOICE_STATE: StatusSet = {
 
 export const fileConfig = (over: Partial<KindConfig> = {}): KindConfig => ({
   kind: "file",
-  tags: { writers: ["owner", "manager"], userTags: true, max: 5, presets: { default: [{ name: "Urgent", marker: "red" }, { name: "Garant", marker: "blue" }], coiffure: [{ name: "Fidèle", marker: "violet" }] } },
+  tags: {
+    writers: ["owner", "manager"],
+    userTags: true,
+    max: 5,
+    presets: {
+      default: [
+        { name: "Urgent", marker: "red" },
+        { name: "Garant", marker: "blue" },
+      ],
+      coiffure: [{ name: "Fidèle", marker: "violet" }],
+    },
+  },
   status: DECISION,
   views: [{ key: "a_decider", label: { fr: "À décider", en: "To decide" }, filters: { status: ["a_decider"] } }],
   ...over,

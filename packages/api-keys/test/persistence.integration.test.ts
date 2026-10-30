@@ -23,7 +23,9 @@ describe.runIf(enabled)("api key store: PostgreSQL", () => {
     client = new pg.Client({ connectionString: process.env.DATABASE_URL });
     await client.connect();
     await client.query(`CREATE SCHEMA ${schema}; SET search_path TO ${schema}`);
-    await client.query("CREATE TABLE accounts (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), email text UNIQUE NOT NULL)");
+    await client.query(
+      "CREATE TABLE accounts (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), email text UNIQUE NOT NULL)",
+    );
     await client.query(apiKeysMigration());
   });
   afterAll(async () => {
@@ -32,8 +34,20 @@ describe.runIf(enabled)("api key store: PostgreSQL", () => {
   });
   const owners = new Map<number, string>();
   const owner = async (n: number) => {
-    if (!owners.has(n)) owners.set(n, (await client.query("INSERT INTO accounts (email) VALUES ($1) RETURNING id", [`k-${n}-${Math.random().toString(36).slice(2)}@test`])).rows[0].id);
+    if (!owners.has(n))
+      owners.set(
+        n,
+        (
+          await client.query("INSERT INTO accounts (email) VALUES ($1) RETURNING id", [
+            `k-${n}-${Math.random().toString(36).slice(2)}@test`,
+          ])
+        ).rows[0].id,
+      );
     return owners.get(n)!;
   };
-  apiKeyStoreContract("pg", () => dbApiKeyStore(async (sql, params) => (await client.query(sql, params as unknown[])).rows), owner);
+  apiKeyStoreContract(
+    "pg",
+    () => dbApiKeyStore(async (sql, params) => (await client.query(sql, params as unknown[])).rows),
+    owner,
+  );
 });

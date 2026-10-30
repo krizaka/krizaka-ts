@@ -1,6 +1,6 @@
 {
   "name": "@krizaka/payments",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Payments for every Krizaka product, the processor behind a port: the Stripe adapter (Checkout with discount terms, expiry and idempotency, customer portal, price read by lookup key, verified webhook with paid, expired and refunded events), event application in the effect's transaction, announcement through the outbox, integer money, and a catalogue setup built from the price catalogue. No SDK: you pass fetch.",
   "keywords": [
     "krizaka",
@@ -53,7 +53,7 @@
     "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsup",
     "lint": "eslint . --max-warnings 0 && tsc --noEmit",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run --coverage --coverage.provider=v8 --coverage.reporter=lcov --coverage.reporter=text-summary \"--coverage.include=src/**/*.ts\"",
     "check": "pnpm run lint && pnpm run test && pnpm run build",
     "prepublishOnly": "pnpm run build"
   },

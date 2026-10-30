@@ -1,6 +1,6 @@
 {
   "name": "@krizaka/coupons",
-  "version": "0.1.1",
+  "version": "0.1.3",
   "description": "Discount and credit coupons the admin manages, for every Krizaka product: a code with a window and limits, reserved at checkout under a row lock, confirmed once on the payment event, released when unpaid, refunded; partners for attribution. The database is the source of truth; the provider applies the discount from immutable terms; credit coupons grant capped credits. No database client, no wall clock, no network.",
   "keywords": [
     "krizaka",
@@ -49,7 +49,7 @@
     "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsup",
     "lint": "eslint . --max-warnings 0 && tsc --noEmit",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run --coverage --coverage.provider=v8 --coverage.reporter=lcov --coverage.reporter=text-summary \"--coverage.include=src/**/*.ts\"",
     "check": "pnpm run lint && pnpm run test && pnpm run build",
     "prepublishOnly": "pnpm run build"
   },

@@ -1,0 +1,17 @@
+id: no-hardcoded-default-media
+language: Tsx
+severity: error
+message: "A default avatar, shop picture or banner is never a hard-coded URL: read it from the Krizaka org JSON with `listDefaults(kind)` / `defaultFor(kind, seed)` / `defaultUrl(item, size)` from `@krizaka/org` (ADR-011, standards/default-media.md). A folder or a shop is never given a person."
+note: "krizaka-ts#134, akinaza#411: the sets are versioned on Bunny (`defaults/v<n>/<kind>/…`) and may be withdrawn; a copied path goes stale."
+rule:
+  any:
+    - kind: string
+    - kind: template_string
+  regex: (people/defaults|defaults/v[0-9]+/|krizaka-defaults)
+ignores:
+  - "**/node_modules/**"
+  - "**/.next/**"
+  - "**/dist/**"
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+  - "**/*.json"

@@ -97,7 +97,16 @@ export interface PrivacyStore {
 
 /** The structural slice of `@krizaka/audit` this package writes through, so it adds no dependency. */
 export interface AuditPort {
-  record(query: Query, entry: { actorId: string | null; actorLabel: string; action: string; target?: { type: string; id: string } | null; detail?: Record<string, unknown> }): Promise<unknown>;
+  record(
+    query: Query,
+    entry: {
+      actorId: string | null;
+      actorLabel: string;
+      action: string;
+      target?: { type: string; id: string } | null;
+      detail?: Record<string, unknown>;
+    },
+  ): Promise<unknown>;
 }
 
 /** The structural slice of `@krizaka/outbox` used for a large export. */

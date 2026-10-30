@@ -1,0 +1,57 @@
+{
+  "name": "@krizaka/architecture",
+  "version": "0.1.0",
+  "description": "The C4 view of a repository, generated from its code: containers from the workspaces, components from the folders, the imports between them, the external services from the env declarations. Dependency-free, runs on a local checkout, writes JSON and a text version.",
+  "keywords": [
+    "krizaka",
+    "c4",
+    "architecture",
+    "dependencies"
+  ],
+  "homepage": "https://ts.krizaka.com/architecture",
+  "bugs": "https://github.com/krizaka/krizaka-ts/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/krizaka/krizaka-ts.git",
+    "directory": "packages/architecture"
+  },
+  "license": "Apache-2.0",
+  "author": "Krizaka (https://www.krizaka.com)",
+  "type": "module",
+  "main": "./src/index.mjs",
+  "types": "./src/index.d.ts",
+  "bin": {
+    "krizaka-architecture": "./src/cli.mjs"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "node --check src/index.mjs",
+    "test": "node --test",
+    "check": "pnpm run lint && pnpm run test",
+    "prepublishOnly": "pnpm run check"
+  },
+  "devDependencies": {
+    "@krizaka/config": "workspace:^",
+    "@types/node": "^22.10.0",
+    "eslint": "^9.39.0"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

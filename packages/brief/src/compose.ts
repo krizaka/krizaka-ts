@@ -35,11 +35,19 @@ export interface ComposeInput<Ctx, R extends Recommendation> {
 
 /** Urgency, then impact (larger first), then id: a total order, so the same data always gives the same brief. */
 export function byPriority(a: Recommendation, b: Recommendation): number {
-  return URGENCY[a.urgency] - URGENCY[b.urgency] || b.impactCents - a.impactCents || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+  return (
+    URGENCY[a.urgency] - URGENCY[b.urgency] || b.impactCents - a.impactCents || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
+  );
 }
 
 /** Runs the detectors, lets the guards veto, ranks, and keeps the top `limit` (3 by default). Same id twice: the first wins. */
-export function composeBrief<Ctx, R extends Recommendation>({ week, ctx, detectors, guards = [], limit = 3 }: ComposeInput<Ctx, R>): Brief<R> {
+export function composeBrief<Ctx, R extends Recommendation>({
+  week,
+  ctx,
+  detectors,
+  guards = [],
+  limit = 3,
+}: ComposeInput<Ctx, R>): Brief<R> {
   const seen = new Set<string>();
   const passed: R[] = [];
   const vetoed: Vetoed<R>[] = [];
@@ -54,7 +62,11 @@ export function composeBrief<Ctx, R extends Recommendation>({ week, ctx, detecto
   return { week, items: ranked.slice(0, limit), vetoed, dropped: ranked.slice(limit) };
 }
 
-function firstRefusal<Ctx, R extends Recommendation>(guards: readonly Guard<Ctx, R>[], item: R, ctx: Ctx): { guard: string; reason: string } | null {
+function firstRefusal<Ctx, R extends Recommendation>(
+  guards: readonly Guard<Ctx, R>[],
+  item: R,
+  ctx: Ctx,
+): { guard: string; reason: string } | null {
   for (const guard of guards) {
     const reason = guard.check(item, ctx);
     if (reason) return { guard: guard.name, reason };

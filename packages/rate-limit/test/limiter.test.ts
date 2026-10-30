@@ -13,7 +13,7 @@ function setup(limits: Parameters<typeof createLimiter>[0]["limits"], over: { ma
   return { limiter, store, at: (date: Date) => void (now = date) };
 }
 
-/** The copies' tests (Yomizaka, Akinaza and Kachizaka `rate-limit`, byte-identical), carried over: same numbers, same answers. */
+/** The copies' tests (Yomizaka and Akinaza `rate-limit`, byte-identical), carried over: same numbers, same answers. */
 describe("the copies' behaviour", () => {
   it("allows the limit, then refuses with Retry-After until the window ends", async () => {
     const { limiter, at } = setup({ k: { perIp: 2, windowSeconds: 60 } });
@@ -30,7 +30,13 @@ describe("the copies' behaviour", () => {
     await limiter.enforce("sign-in", { ip: "203.0.113.7", subject: "a@b.c" });
     const error = await limiter.enforce("sign-in", { ip: "203.0.113.7", subject: "A@B.C" }).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(RateLimited);
-    expect(error).toMatchObject({ status: 429, code: "RATE_LIMITED", scope: "subject", retryAfterSeconds: 60, headers: { "Retry-After": "60" } });
+    expect(error).toMatchObject({
+      status: 429,
+      code: "RATE_LIMITED",
+      scope: "subject",
+      retryAfterSeconds: 60,
+      headers: { "Retry-After": "60" },
+    });
   });
 
   it("counts a refused hit too, as the copies did", async () => {
@@ -56,7 +62,10 @@ describe("the copies' behaviour", () => {
   });
 
   it("counts the subject only when the action limits it and one is given", async () => {
-    const { limiter, store } = setup({ onlyIp: { perIp: 5, windowSeconds: 60 }, both: { perIp: 5, perSubject: 5, windowSeconds: 60 } });
+    const { limiter, store } = setup({
+      onlyIp: { perIp: 5, windowSeconds: 60 },
+      both: { perIp: 5, perSubject: 5, windowSeconds: 60 },
+    });
     await limiter.check("onlyIp", { ip: "1.1.1.1", subject: "x@y.z" });
     await limiter.check("both", { ip: "1.1.1.1", subject: null });
     expect(await store.peek("onlyIp:s:x@y.z", BASE)).toBeNull();
@@ -89,9 +98,15 @@ describe("the limits", () => {
   });
 
   it("refuse to run without limits for the action, or with limits that are not whole numbers from 1", async () => {
-    const { limiter } = setup({ ok: { perIp: 1, windowSeconds: 60 }, zero: { perIp: 0, windowSeconds: 60 }, fraction: { perSubject: 1.5, windowSeconds: 60 }, noWindow: { perIp: 1, windowSeconds: 0 } });
+    const { limiter } = setup({
+      ok: { perIp: 1, windowSeconds: 60 },
+      zero: { perIp: 0, windowSeconds: 60 },
+      fraction: { perSubject: 1.5, windowSeconds: 60 },
+      noWindow: { perIp: 1, windowSeconds: 0 },
+    });
     await expect(limiter.check("missing", { ip: "1.1.1.1" })).rejects.toThrow(RATE_LIMIT_CODE.noLimits);
-    for (const action of ["zero", "fraction", "noWindow"]) await expect(limiter.check(action, { ip: "1.1.1.1" })).rejects.toThrow(RATE_LIMIT_CODE.badLimit);
+    for (const action of ["zero", "fraction", "noWindow"])
+      await expect(limiter.check(action, { ip: "1.1.1.1" })).rejects.toThrow(RATE_LIMIT_CODE.badLimit);
   });
 });
 
@@ -106,17 +121,30 @@ describe("forgetting", () => {
 });
 
 describe("a store that fails", () => {
-  const broken = (): ReturnType<typeof memoryLimitStore> => ({ ...memoryLimitStore(), hit: async () => Promise.reject(new Error("db down")) });
+  const broken = (): ReturnType<typeof memoryLimitStore> => ({
+    ...memoryLimitStore(),
+    hit: async () => Promise.reject(new Error("db down")),
+  });
 
   it("lets the request through by default, and tells onStoreError", async () => {
     const heard: unknown[] = [];
-    const limiter = createLimiter({ store: broken(), clock: { now: () => BASE }, limits: { k: { perIp: 1, windowSeconds: 60 } }, onStoreError: (error, action) => heard.push([String(error), action]) });
+    const limiter = createLimiter({
+      store: broken(),
+      clock: { now: () => BASE },
+      limits: { k: { perIp: 1, windowSeconds: 60 } },
+      onStoreError: (error, action) => heard.push([String(error), action]),
+    });
     expect(await limiter.check("k", { ip: "1.1.1.1" })).toEqual({ ok: true });
     expect(heard).toEqual([["Error: db down", "k"]]);
   });
 
   it("refuses by rethrowing when told to fail closed", async () => {
-    const limiter = createLimiter({ store: broken(), clock: { now: () => BASE }, limits: { k: { perIp: 1, windowSeconds: 60 } }, failOpen: false });
+    const limiter = createLimiter({
+      store: broken(),
+      clock: { now: () => BASE },
+      limits: { k: { perIp: 1, windowSeconds: 60 } },
+      failOpen: false,
+    });
     await expect(limiter.check("k", { ip: "1.1.1.1" })).rejects.toThrow("db down");
   });
 });

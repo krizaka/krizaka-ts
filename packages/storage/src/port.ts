@@ -8,7 +8,13 @@ export type { Clock } from "@krizaka/db";
 export type FetchLike = (
   url: string,
   init: { method: string; headers: Record<string, string>; body?: Uint8Array },
-) => Promise<{ ok: boolean; status: number; headers: { get(name: string): string | null }; arrayBuffer(): Promise<ArrayBuffer>; text(): Promise<string> }>;
+) => Promise<{
+  ok: boolean;
+  status: number;
+  headers: { get(name: string): string | null };
+  arrayBuffer(): Promise<ArrayBuffer>;
+  text(): Promise<string>;
+}>;
 
 export interface StoredObject {
   bytes: Uint8Array;
@@ -46,6 +52,14 @@ export const STORAGE_CODE = {
   provider: "STORAGE_PROVIDER_FAILED",
   badConfig: "STORAGE_BAD_CONFIG",
   badEndpoint: "STORAGE_BAD_ENDPOINT",
+  badSecretKey: "STORAGE_BAD_SECRET_KEY",
+  unreadable: "STORAGE_UNREADABLE",
+  keepingOff: "STORAGE_KEEPING_OFF",
+  notFound: "STORAGE_PROVIDER_NOT_FOUND",
+  inUse: "STORAGE_PROVIDER_IN_USE",
+  notVerified: "STORAGE_PROVIDER_NOT_VERIFIED",
+  testFailed: "STORAGE_TEST_FAILED",
+  disconnected: "STORAGE_DISCONNECTED",
 } as const;
 export type StorageCode = (typeof STORAGE_CODE)[keyof typeof STORAGE_CODE];
 

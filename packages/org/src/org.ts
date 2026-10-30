@@ -21,8 +21,14 @@ const TONES = [1, 2, 3, 4, 5, 6] as const;
 
 const avatarAlt = (kind: "person" | "plain", n: number): Localized =>
   kind === "person"
-    ? { fr: `Photo de profil par défaut : silhouette, teinte ${n}`, en: `Default profile picture: silhouette, tone ${n}` }
-    : { fr: `Photo de profil par défaut : disque uni, teinte ${n}`, en: `Default profile picture: plain disc, tone ${n}` };
+    ? {
+        fr: `Photo de profil par défaut : silhouette, teinte ${n}`,
+        en: `Default profile picture: silhouette, tone ${n}`,
+      }
+    : {
+        fr: `Photo de profil par défaut : disque uni, teinte ${n}`,
+        en: `Default profile picture: plain disc, tone ${n}`,
+      };
 
 /** The default profile pictures a product shows when a person has no photo (`people/defaults/v1`, krizaka-ui `tools/export-brand.mjs`). */
 const defaults: OrgAvatar[] = (["person", "plain"] as const).flatMap((kind) =>
@@ -68,16 +74,34 @@ export const org: Org = {
   },
   defaults: centralDefaults,
   products: [
-    { id: "orazaka", name: "Orazaka", status: "devPreview", url: "https://dev.orazaka.com", repo: "https://github.com/krizaka/orazaka" },
-    { id: "yomizaka", name: "Yomizaka", status: "development", url: "https://dev.yomizaka.com", repo: "https://github.com/krizaka/yomizaka" },
-    { id: "akinaza", name: "Akinaza", status: "development", url: "https://dev.akinaza.com", repo: "https://github.com/krizaka/akinaza" },
+    {
+      id: "orazaka",
+      name: "Orazaka",
+      status: "development",
+      url: "https://dev.orazaka.com",
+      repo: "https://github.com/krizaka/orazaka",
+    },
+    {
+      id: "yomizaka",
+      name: "Yomizaka",
+      status: "development",
+      url: "https://dev.yomizaka.com",
+      repo: "https://github.com/krizaka/yomizaka",
+    },
+    {
+      id: "akinaza",
+      name: "Akinaza",
+      status: "development",
+      url: "https://dev.akinaza.com",
+      repo: "https://github.com/krizaka/akinaza",
+    },
   ],
   sites: [
     { id: "www", name: "krizaka.com", url: "https://www.krizaka.com" },
     { id: "ui", name: "Krizaka UI", url: "https://ui.krizaka.com" },
     { id: "java", name: "Krizaka Java", url: "https://java.krizaka.com" },
     { id: "ts", name: "Krizaka TS", url: "https://ts.krizaka.com" },
-    { id: "motion", name: "Krizaka Motion", url: "https://motion.krizaka.com" },
+    { id: "motion", name: "Krizaka Lab", url: "https://lab.krizaka.com" },
     { id: "blog", name: "Blog", url: "https://blog.krizaka.com" },
   ],
   contact: {
@@ -85,10 +109,21 @@ export const org: Org = {
     email: null,
   },
   footer: {
-    line: { fr: "Une entreprise de Technologies Krizaka · Fait à Montréal", en: "A Technologies Krizaka company · Made in Montréal" },
+    line: {
+      fr: "Une entreprise de Technologies Krizaka · Fait à Montréal",
+      en: "A Technologies Krizaka company · Made in Montréal",
+    },
     legal: [
-      { id: "privacy", label: { fr: "Confidentialité", en: "Privacy" }, url: { fr: "https://www.krizaka.com/fr/privacy", en: "https://www.krizaka.com/en/privacy" } },
-      { id: "terms", label: { fr: "Conditions", en: "Terms" }, url: { fr: "https://www.krizaka.com/fr/terms", en: "https://www.krizaka.com/en/terms" } },
+      {
+        id: "privacy",
+        label: { fr: "Confidentialité", en: "Privacy" },
+        url: { fr: "https://www.krizaka.com/fr/privacy", en: "https://www.krizaka.com/en/privacy" },
+      },
+      {
+        id: "terms",
+        label: { fr: "Conditions", en: "Terms" },
+        url: { fr: "https://www.krizaka.com/fr/terms", en: "https://www.krizaka.com/en/terms" },
+      },
     ],
   },
 };

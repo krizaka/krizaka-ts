@@ -20,7 +20,12 @@ import "../globals.css";
 export default function SiteRoot({ locale, children }: { locale: Locale; children: ReactNode }) {
   const t = getDictionary(locale);
   return (
-    <html lang={locale} className={cn(textFace.variable, displayFace.variable, monoFace.variable, "h-full dark")} data-scroll-behavior="smooth" suppressHydrationWarning>
+    <html
+      lang={locale}
+      className={cn(textFace.variable, displayFace.variable, monoFace.variable, "h-full dark")}
+      data-scroll-behavior="smooth"
+      suppressHydrationWarning
+    >
       <head>
         <ThemeScript defaultMode="dark" />
         <meta name="theme-color" content="#0d0d0f" />

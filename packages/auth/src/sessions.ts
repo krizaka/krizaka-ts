@@ -3,7 +3,7 @@ import crypto from "node:crypto";
 import type { Clock } from "@krizaka/db";
 
 /**
- * Web sessions (the copies each product carried: Yomizaka `ys1.`, Akinaza `as1.`, Kachizaka `ks1.`). The cookie holds a random token
+ * Web sessions (the copies each product carried: Yomizaka `ys1.`, Akinaza `as1.`). The cookie holds a random token
  * (`<prefix>1.` and 32 bytes); the store keeps only its keyed hash, so a leaked table opens nothing. The account is re-read on every
  * request (a suspension applies at once). The lifetime is the setting `auth.sessionDays`.
  */
@@ -50,7 +50,10 @@ export interface Sessions<Account> {
   /** The keyed hash the store keeps for a token. */
   tokenHash(token: string): string;
   /** Opens a session: the token for the cookie (shown once) and when it expires. */
-  create(accountId: string, meta: { ip: string | null; userAgent: string | null }): Promise<{ token: string; expires: Date }>;
+  create(
+    accountId: string,
+    meta: { ip: string | null; userAgent: string | null },
+  ): Promise<{ token: string; expires: Date }>;
   /** The session a token opens, or null (unknown, malformed, expired, account not active). */
   resolve(token: string | undefined): Promise<Session<Account> | null>;
   /** Ends the session of this token. A malformed token is ignored. */
@@ -67,10 +70,12 @@ const USER_AGENT_MAX = 300;
  * @throws RangeError for a token prefix that is not 1 to 4 lower-case letters, or a lifetime that is not a whole number of days from 1
  */
 export function createSessions<Account>(deps: SessionsDeps<Account>): Sessions<Account> {
-  if (!PREFIX.test(deps.tokenPrefix)) throw new RangeError(`tokenPrefix must be 1 to 4 lower-case letters, got ${deps.tokenPrefix}`);
+  if (!PREFIX.test(deps.tokenPrefix))
+    throw new RangeError(`tokenPrefix must be 1 to 4 lower-case letters, got ${deps.tokenPrefix}`);
   const head = `${deps.tokenPrefix}1.`;
   const secret = () => (typeof deps.secret === "function" ? deps.secret() : deps.secret);
-  const isToken = (value: string | undefined): value is string => !!value && value.startsWith(head) && BODY.test(value.slice(head.length));
+  const isToken = (value: string | undefined): value is string =>
+    !!value && value.startsWith(head) && BODY.test(value.slice(head.length));
   const tokenHash = (token: string) => crypto.createHmac("sha256", `session:${secret()}`).update(token).digest("hex");
   const newToken = () => `${head}${crypto.randomBytes(32).toString("base64url")}`;
   return {
@@ -79,13 +84,21 @@ export function createSessions<Account>(deps: SessionsDeps<Account>): Sessions<A
     tokenHash,
     async create(accountId, meta) {
       const days = typeof deps.sessionDays === "function" ? await deps.sessionDays() : deps.sessionDays;
-      if (!Number.isInteger(days) || days < 1) throw new RangeError(`sessionDays must be a whole number of days from 1, got ${days}`);
+      if (!Number.isInteger(days) || days < 1)
+        throw new RangeError(`sessionDays must be a whole number of days from 1, got ${days}`);
       const token = newToken();
       const createdAt = deps.clock.now();
       // days of 24 hours, not calendar days: the same instant whatever the server's time zone (the copies added 86 400 000 ms a day)
       const expires = new Date(createdAt);
       expires.setUTCHours(expires.getUTCHours() + days * 24);
-      await deps.store.insert({ accountId, tokenHash: tokenHash(token), createdAt, expiresAt: expires, ip: meta.ip, userAgent: meta.userAgent?.slice(0, USER_AGENT_MAX) ?? null });
+      await deps.store.insert({
+        accountId,
+        tokenHash: tokenHash(token),
+        createdAt,
+        expiresAt: expires,
+        ip: meta.ip,
+        userAgent: meta.userAgent?.slice(0, USER_AGENT_MAX) ?? null,
+      });
       return { token, expires };
     },
     async resolve(token) {
@@ -115,7 +128,15 @@ export interface SessionCookie {
  * @param options the cookie's name (`yomizaka_session`) and whether it is `Secure`
  */
 export function sessionCookie(token: string, expires: Date, options: { name: string; secure: boolean }): SessionCookie {
-  return { name: options.name, value: token, httpOnly: true, secure: options.secure, sameSite: "lax", path: "/", expires };
+  return {
+    name: options.name,
+    value: token,
+    httpOnly: true,
+    secure: options.secure,
+    sameSite: "lax",
+    path: "/",
+    expires,
+  };
 }
 
 /** The same cookie, expired now: what signing out sets. */

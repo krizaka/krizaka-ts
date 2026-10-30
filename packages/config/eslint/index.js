@@ -20,6 +20,8 @@ export const KRIZAKA_IGNORES = Object.freeze([
   "**/.expo/**",
   "**/storybook-static/**",
   "**/next-env.d.ts",
+  // tsup bundles its config to a temp file beside it and deletes it: a lint running next to a build must not read it
+  "**/tsup.config.bundled_*",
 ]);
 
 /**

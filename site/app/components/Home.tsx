@@ -1,5 +1,17 @@
 import Link from "next/link";
-import { BookmarkIcon, ClockIcon, ExternalIcon, ForwardIcon, GlobeIcon, LinkIcon, PackIcon, SettingsIcon, ShieldIcon, StudioIcon, UserIcon } from "@krizaka/icons";
+import {
+  BookmarkIcon,
+  ClockIcon,
+  ExternalIcon,
+  ForwardIcon,
+  GlobeIcon,
+  LinkIcon,
+  PackIcon,
+  SettingsIcon,
+  ShieldIcon,
+  StudioIcon,
+  UserIcon,
+} from "@krizaka/icons";
 import { Button } from "@krizaka/ui/button";
 import { ArgumentCard } from "@krizaka/ui/argument-card";
 import { CardGrid } from "@krizaka/ui/card-grid";
@@ -16,7 +28,14 @@ import InstallTabs from "./InstallTabs";
    each package manager), the facts read at build, why (three pillars), the packages (one card each, from the generated
    data), the ways on. Every figure is data (the packages and npm); every word is a message. */
 
-const ICONS: Record<string, typeof PackIcon> = { auth: ShieldIcon, settings: SettingsIcon, "api-keys": LinkIcon, webhooks: ForwardIcon, organize: BookmarkIcon, brief: ClockIcon };
+const ICONS: Record<string, typeof PackIcon> = {
+  auth: ShieldIcon,
+  settings: SettingsIcon,
+  "api-keys": LinkIcon,
+  webhooks: ForwardIcon,
+  organize: BookmarkIcon,
+  brief: ClockIcon,
+};
 
 export default function Home({ locale }: { locale: Locale }) {
   const dict = getDictionary(locale);
@@ -52,16 +71,42 @@ export default function Home({ locale }: { locale: Locale }) {
           </div>
         }
         proofs={[
-          { value: <NumberTicker value={all.filter((p) => p.version).length} locale={locale} />, label: t.proofs.packages },
-          { value: <NumberTicker value={all.reduce((n, p) => n + exportedNames(p), 0)} locale={locale} />, label: t.proofs.exports },
+          {
+            value: <NumberTicker value={all.filter((p) => p.version).length} locale={locale} />,
+            label: t.proofs.packages,
+          },
+          {
+            value: <NumberTicker value={all.reduce((n, p) => n + exportedNames(p), 0)} locale={locale} />,
+            label: t.proofs.exports,
+          },
           { value: licenses.join(" · "), label: t.proofs.license },
-          ...(nodes.length === 1 ? [{ value: <span className="jh-mono">Node {nodes[0]}</span>, label: t.proofs.node }] : []),
+          ...(nodes.length === 1
+            ? [{ value: <span className="jh-mono">Node {nodes[0]}</span>, label: t.proofs.node }]
+            : []),
         ]}
         featuresHeading={{ eyebrow: t.pillars.eyebrow, title: t.pillars.title, lead: t.pillars.lead }}
         features={[
-          { id: "ports", size: "lg", icon: <PackIcon size={22} />, title: t.pillars.ports.title, text: t.pillars.ports.text },
-          { id: "proven", size: "md", icon: <StudioIcon size={22} />, title: t.pillars.proven.title, text: t.pillars.proven.text },
-          { id: "released", size: "md", icon: <UserIcon size={22} />, title: t.pillars.released.title, text: t.pillars.released.text },
+          {
+            id: "ports",
+            size: "lg",
+            icon: <PackIcon size={22} />,
+            title: t.pillars.ports.title,
+            text: t.pillars.ports.text,
+          },
+          {
+            id: "proven",
+            size: "md",
+            icon: <StudioIcon size={22} />,
+            title: t.pillars.proven.title,
+            text: t.pillars.proven.text,
+          },
+          {
+            id: "released",
+            size: "md",
+            icon: <UserIcon size={22} />,
+            title: t.pillars.released.title,
+            text: t.pillars.released.text,
+          },
         ]}
         closing={{
           title: t.closing.title,
@@ -80,7 +125,14 @@ export default function Home({ locale }: { locale: Locale }) {
           ),
         }}
       >
-        <Section id="packages" eyebrow={t.packages.eyebrow} title={format(t.packages.title, { count: String(all.length) })} lead={t.packages.lead} reveal divider>
+        <Section
+          id="packages"
+          eyebrow={t.packages.eyebrow}
+          title={format(t.packages.title, { count: String(all.length) })}
+          lead={t.packages.lead}
+          reveal
+          divider
+        >
           <CardGrid min={290} columns={3}>
             {all.map((p) => {
               const Icon = ICONS[p.id] ?? PackIcon;
@@ -92,7 +144,15 @@ export default function Home({ locale }: { locale: Locale }) {
                   title={p.name}
                   meta={p.node ? `Node ${p.node}` : undefined}
                   hook={{ label: t.packages.hookLabel, text: dict.packages[p.id as keyof typeof dict.packages].hook }}
-                  facts={[p.version ? { label: format(t.packages.published, { version: p.version }), tone: "ok", href: npmPackageUrl(p.name) } : { label: t.packages.unpublished, tone: "wip" }]}
+                  facts={[
+                    p.version
+                      ? {
+                          label: format(t.packages.published, { version: p.version }),
+                          tone: "ok",
+                          href: npmPackageUrl(p.name),
+                        }
+                      : { label: t.packages.unpublished, tone: "wip" },
+                  ]}
                   more={{ href: path(`/${p.id}`), label: t.packages.details }}
                   linkAs={Link}
                 />
@@ -103,10 +163,30 @@ export default function Home({ locale }: { locale: Locale }) {
 
         <Section id="go" eyebrow={t.go.eyebrow} title={t.go.title} reveal divider>
           <CardGrid min={260} columns={3}>
-            <LinkCard href={REPOSITORY_URL} icon={<BookmarkIcon size={22} aria-hidden />} title={t.go.source.title} description={t.go.source.text} />
-            <LinkCard href={NPM_ORG_URL} icon={<PackIcon size={22} aria-hidden />} title={t.go.npm.title} description={t.go.npm.text} />
-            <LinkCard href={JAVA_URL} icon={<StudioIcon size={22} aria-hidden />} title={t.go.java.title} description={t.go.java.text} />
-            <LinkCard href={UI_URL} icon={<GlobeIcon size={22} aria-hidden />} title={t.go.ui.title} description={t.go.ui.text} />
+            <LinkCard
+              href={REPOSITORY_URL}
+              icon={<BookmarkIcon size={22} aria-hidden />}
+              title={t.go.source.title}
+              description={t.go.source.text}
+            />
+            <LinkCard
+              href={NPM_ORG_URL}
+              icon={<PackIcon size={22} aria-hidden />}
+              title={t.go.npm.title}
+              description={t.go.npm.text}
+            />
+            <LinkCard
+              href={JAVA_URL}
+              icon={<StudioIcon size={22} aria-hidden />}
+              title={t.go.java.title}
+              description={t.go.java.text}
+            />
+            <LinkCard
+              href={UI_URL}
+              icon={<GlobeIcon size={22} aria-hidden />}
+              title={t.go.ui.title}
+              description={t.go.ui.text}
+            />
           </CardGrid>
         </Section>
       </LandingPage>

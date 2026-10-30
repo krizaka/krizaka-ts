@@ -1,5 +1,22 @@
 # @krizaka/coupons
 
+## 0.1.3
+
+### Patch Changes
+
+- Updated dependencies [2a7898c]
+- Updated dependencies [2272b57]
+  - @krizaka/time@0.2.0
+  - @krizaka/settings@0.5.2
+
+## 0.1.2
+
+### Patch Changes
+
+- Updated dependencies [0d19b64]
+  - @krizaka/db@0.3.0
+  - @krizaka/settings@0.5.1
+
 ## 0.1.1
 
 ### Patch Changes

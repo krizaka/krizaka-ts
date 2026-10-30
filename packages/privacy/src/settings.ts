@@ -3,7 +3,8 @@ import { integer, type Registry } from "@krizaka/settings";
 import { checkPurpose } from "./rules";
 
 /** The settings key of a purpose's retention: `payment-history` → `privacy.retention.paymentHistoryDays` (a key holds letters and digits only). */
-export const retentionKey = (purpose: string): string => `privacy.retention.${purpose.replace(/[-_]([a-z0-9])/g, (_, c: string) => c.toUpperCase())}Days`;
+export const retentionKey = (purpose: string): string =>
+  `privacy.retention.${purpose.replace(/[-_]([a-z0-9])/g, (_, c: string) => c.toUpperCase())}Days`;
 
 /**
  * The registry fragment of the retention: `privacy.retention.<purpose>Days` for each purpose the product declares, an integer with the
@@ -24,6 +25,8 @@ export function privacySettings(purposes: Readonly<Record<string, { retentionDay
 }
 
 /** The retention of a purpose as `createPrivacy` takes it, from the product's accessor (`(key) => service.get(key, ctx)`). */
-export function retentionFromSettings(read: (key: string) => number | undefined | Promise<number | undefined>): (purpose: string) => Promise<number | undefined> {
+export function retentionFromSettings(
+  read: (key: string) => number | undefined | Promise<number | undefined>,
+): (purpose: string) => Promise<number | undefined> {
   return async (purpose) => read(retentionKey(purpose));
 }

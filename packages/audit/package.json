@@ -1,6 +1,6 @@
 {
   "name": "@krizaka/audit",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Who did what, for every Krizaka product: an append-only audit trail in its own schema, written inside the caller's transaction or quietly beside it, filtered for the admin, exported and redacted for Loi 25, purged after a retention set by the admin. No database client, no wall clock.",
   "keywords": [
     "krizaka",
@@ -43,7 +43,7 @@
     "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsup",
     "lint": "eslint . --max-warnings 0 && tsc --noEmit",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run --coverage --coverage.provider=v8 --coverage.reporter=lcov --coverage.reporter=text-summary \"--coverage.include=src/**/*.ts\"",
     "check": "pnpm run lint && pnpm run test && pnpm run build",
     "prepublishOnly": "pnpm run build"
   },

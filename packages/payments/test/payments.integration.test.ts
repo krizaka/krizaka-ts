@@ -2,7 +2,14 @@ import { emitMigration, transaction } from "@krizaka/db";
 import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { adoptPaymentEventsSql, applyOnceInTransaction, dbDiscountStore, dbEventStore, type PaymentEvent, paymentsSchema } from "../src";
+import {
+  adoptPaymentEventsSql,
+  applyOnceInTransaction,
+  dbDiscountStore,
+  dbEventStore,
+  type PaymentEvent,
+  paymentsSchema,
+} from "../src";
 import { discountStoreContract, eventStoreContract } from "../src/testkit";
 
 /** The payments tables against a real PostgreSQL (CI's service; locally ORGANIZE_DB_IT=1 and a DATABASE_URL), in a schema of its own. */
@@ -10,8 +17,23 @@ const enabled = process.env.ORGANIZE_DB_IT === "1" && !!process.env.DATABASE_URL
 const schema = `pay_${Math.random().toString(36).slice(2, 10)}`;
 const legacy = `${schema}_legacy`;
 const moved = `${schema}_moved`;
-const FACTS = { checkoutRef: "cs_1", paymentRef: "pi_1", invoiceRef: null, amountTotal: 1149, amountDiscount: 0, currency: "cad", metadata: {} };
-const paid: PaymentEvent = { id: "evt_paid", type: "payment_paid", kind: "audit", accountId: "a1", customerId: null, ...FACTS };
+const FACTS = {
+  checkoutRef: "cs_1",
+  paymentRef: "pi_1",
+  invoiceRef: null,
+  amountTotal: 1149,
+  amountDiscount: 0,
+  currency: "cad",
+  metadata: {},
+};
+const paid: PaymentEvent = {
+  id: "evt_paid",
+  type: "payment_paid",
+  kind: "audit",
+  accountId: "a1",
+  customerId: null,
+  ...FACTS,
+};
 const T0 = new Date("2026-10-26T12:00:00.000Z");
 
 describe.runIf(enabled)("payments: PostgreSQL", () => {
@@ -26,7 +48,9 @@ describe.runIf(enabled)("payments: PostgreSQL", () => {
     await pool.query(`CREATE TABLE ${schema}.balance (n integer NOT NULL)`);
   });
   afterAll(async () => {
-    await pool.query(`DROP SCHEMA ${schema} CASCADE; DROP SCHEMA IF EXISTS ${legacy} CASCADE; DROP SCHEMA IF EXISTS ${moved} CASCADE`);
+    await pool.query(
+      `DROP SCHEMA ${schema} CASCADE; DROP SCHEMA IF EXISTS ${legacy} CASCADE; DROP SCHEMA IF EXISTS ${moved} CASCADE`,
+    );
     await pool.end();
   });
 
@@ -42,7 +66,9 @@ describe.runIf(enabled)("payments: PostgreSQL", () => {
   it("stamps the receipt time from the injected clock", async () => {
     await pool.query(`TRUNCATE ${schema}.event`);
     await dbEventStore(query, { schema, table: "event" }).markSeen("evt_t", "payment_paid", T0);
-    expect(new Date((await query(`SELECT received_at FROM ${schema}.event`))[0]!.received_at as string).toISOString()).toBe(T0.toISOString());
+    expect(
+      new Date((await query(`SELECT received_at FROM ${schema}.event`))[0]!.received_at as string).toISOString(),
+    ).toBe(T0.toISOString());
   });
 
   it("commits the record and the effect together, rolls both back when the handler fails, and a replay changes nothing", async () => {
@@ -73,7 +99,12 @@ describe.runIf(enabled)("payments: PostgreSQL", () => {
       await pool.query(`TRUNCATE ${schema}.event, ${schema}.balance`);
       const outcomes = await Promise.all(
         Array.from({ length: 12 }, () =>
-          applyOnceInTransaction((work) => transaction(connect, work), { ...paid, id: `evt_${round}` }, { payment_paid: async (_e, tx) => void (await tx(`INSERT INTO ${schema}.balance VALUES (1)`)) }, { table: { schema, table: "event" } }),
+          applyOnceInTransaction(
+            (work) => transaction(connect, work),
+            { ...paid, id: `evt_${round}` },
+            { payment_paid: async (_e, tx) => void (await tx(`INSERT INTO ${schema}.balance VALUES (1)`)) },
+            { table: { schema, table: "event" } },
+          ),
         ),
       );
       expect(outcomes.filter((o) => o === "applied")).toHaveLength(1);
@@ -91,7 +122,9 @@ describe.runIf(enabled)("payments: PostgreSQL", () => {
   });
 
   it("adopts a product's existing payment_events: the rows move, version 1 leaves them, the module reads them", async () => {
-    await pool.query(`CREATE SCHEMA ${legacy}; CREATE TABLE ${legacy}.payment_events (id text PRIMARY KEY, type text NOT NULL, received_at timestamptz NOT NULL DEFAULT now()); INSERT INTO ${legacy}.payment_events (id, type) VALUES ('evt_old', 'payment_paid')`);
+    await pool.query(
+      `CREATE SCHEMA ${legacy}; CREATE TABLE ${legacy}.payment_events (id text PRIMARY KEY, type text NOT NULL, received_at timestamptz NOT NULL DEFAULT now()); INSERT INTO ${legacy}.payment_events (id, type) VALUES ('evt_old', 'payment_paid')`,
+    );
     await pool.query(adoptPaymentEventsSql(legacy, moved));
     await pool.query(emitMigration(paymentsSchema, 1, { tables: {}, schema: moved }));
     const store = dbEventStore(query, { schema: moved, table: "event" });
@@ -104,8 +137,12 @@ describe.runIf(enabled)("payments: PostgreSQL", () => {
 
 describe("payments: the names it checks", () => {
   it("refuses an unsafe schema or table name before any SQL is written (a test that runs without a database)", () => {
-    expect(() => dbEventStore(async () => [], { schema: "payments; DROP TABLE x", table: "event" })).toThrow(/DB_UNSAFE_IDENTIFIER/);
-    expect(() => dbEventStore(async () => [], { schema: "payments", table: "event; --" })).toThrow(/DB_UNSAFE_IDENTIFIER/);
+    expect(() => dbEventStore(async () => [], { schema: "payments; DROP TABLE x", table: "event" })).toThrow(
+      /DB_UNSAFE_IDENTIFIER/,
+    );
+    expect(() => dbEventStore(async () => [], { schema: "payments", table: "event; --" })).toThrow(
+      /DB_UNSAFE_IDENTIFIER/,
+    );
     expect(() => dbDiscountStore(async () => [], "payments; DROP TABLE x")).toThrow(/DB_UNSAFE_IDENTIFIER/);
   });
 });

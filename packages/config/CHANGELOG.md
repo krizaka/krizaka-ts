@@ -1,5 +1,87 @@
 # @krizaka/config
 
+## 0.18.0
+
+### Minor Changes
+
+- 8110f8e: `krizaka-edit-check` formats the edited file with the repository's Prettier (ts, tsx, js, jsx, mjs, cjs, json, css) before the ESLint check, when the repository has adopted it (the binary and a `prettier.config.*`). Silent: formatting is never a finding. Rule `formatter`, krizaka/.github#427.
+  
+  The `typescript` peer range is `^5 || ^6`, so a repository on TypeScript 6 can install the package for its Prettier config alone (npm refused the install on `typescript@6`).
+
+## 0.17.0
+
+### Minor Changes
+
+- 2a7898c: Code rules (krizaka/.github#422): `krizakaCodeRules` (curly all, max-depth 2, max-nested-callbacks 3, no-console in runtime code; also in `krizakaStack` as `codeRules`), per-rule `code/<rule>` counters in `krizaka-ratchet`, and two ast-grep `core` rules: `no-sync-fs-in-runtime` and `no-hand-written-validation-regex`.
+
+### Patch Changes
+
+- 2272b57: The READMEs, comments and published declarations no longer name the products that left the organisation (krizaka/.github#413, rule `no-departed-published`). The sources were cleaned in #262 with an empty changeset, so the published tarballs still carried the old text; this release replaces them. No behaviour change.
+
+## 0.16.0
+
+### Minor Changes
+
+- 44ab6c5: `krizaka-workspace-guard`: a bin that fails when a package of a pnpm workspace depends on another package of the same workspace through a registry range instead of `workspace:` (the guard that lived in krizaka-ts `scripts/workspace-ranges.test.mjs`, extracted for every pnpm workspace; krizaka/.github#388).
+
+## 0.15.0
+
+### Minor Changes
+
+- 3b98609: `krizaka-edit-check <file>`, a bin for the coding agents' `PostToolUse` hook (ADR-015 §7): TypeScript runs the repository's ESLint on the one file, Java runs the pinned PMD (checksummed, cached once under `~/.cache/krizaka`) with the Krizaka rules, never Maven. Findings on stderr with exit 2; silent on a timeout (10 s budget) or when the tool is not there yet.
+
+## 0.14.1
+
+### Patch Changes
+
+- 8b55915: ESLint ignores the temporary `tsup.config.bundled_*` file tsup writes next to a build, so a lint running beside a build no longer crashes with ENOENT.
+
+## 0.14.0
+
+### Minor Changes
+
+- 9148481: ast-grep `web` set: `no-hardcoded-default-media` refuses a hard-coded `people/defaults`, `defaults/v<n>/` or `krizaka-defaults` path; default media come from `@krizaka/org` (krizaka-ts#134, akinaza#411).
+
+## 0.13.0
+
+### Minor Changes
+
+- ad78b4e: Ship the shared ast-grep rule pack (`ast-grep/{core,web,html}` with their `rule-tests`), the `krizaka-sg-ratchet` bin and the `krizaka-seo-family` bin, so no repository keeps a copy of `sg-ratchet.mjs`, of the rules or of `check-seo-family.mjs` (ADR-013).
+
+## 0.12.0
+
+### Minor Changes
+
+- 9fc230c: `krizakaStack()` enables the whole `eslint-plugin-sonarjs` recommended set (the engine of SonarCloud's JS/TS rules), so a Sonar finding fails at lint time (ADR-013, krizaka/.github#333, krizaka-ts#164). New option `sonar: "error" | "warn" | "off"` (default `"error"`; a repository with debt passes `"warn"`). Test files are not part of it. Fifteen rules that duplicate ESLint core, typescript-eslint, tsc or eslint-config-next are turned off explicitly with a reason (`SONAR_OFF`, `@krizaka/config/eslint/sonar`). `krizaka-ratchet` counts every rule: a `sonar` total plus one `sonarjs/<rule>` counter per rule with a violation; `--update` records them, a first violation of a rule that had none fails, `cognitive-complexity` keeps its own counter. Rules that need type information (S2871 `no-alphabetical-sort`, `deprecation`…) only fire when the lint runs with `projectService`.
+
+## 0.11.1
+
+### Patch Changes
+
+- 45d545e: `krizaka-ratchet --update` keeps the counters of the file it does not measure (a repository's own, e.g. `pageTemplate`) as recorded instead of dropping them silently, and names them in its report. It still never raises a count (krizaka/.github#319).
+
+## 0.11.0
+
+### Minor Changes
+
+- a4da09a: Sonar's cognitive complexity (S3776, threshold 15) at lint time: `krizakaStack()` adds `sonarjs/cognitive-complexity` (error by default, `complexity: "warn"` for a repository with debt) and `krizaka-ratchet` a `cognitiveComplexity` counter that freezes existing violations and fails any increase (krizaka/.github#319).
+
+## 0.10.0
+
+### Minor Changes
+
+- 524ebfb: New `krizaka-server-client-boundary` (and `@krizaka/config/server-client-boundary`): the server/client boundary guard every Next.js App Router app owes (yomizaka#457). It walks what the server renders (pages, layouts, routes, then the local modules they import, down to a `"use client"` file) and fails when one imports a function (a lowercase export) from a `"use client"` module of `@krizaka/*`, which crashes the page with React error #441 and which neither unit tests nor `next build` see. `--root`, `--app`, `--alias` (read from tsconfig `@/*`), `--scope`.
+
+## 0.9.1
+
+### Patch Changes
+
+- ced0546: Fixes the broken 0.9.0 (published from the stale copy in krizaka-ui, without `krizaka-known-violations` and the
+  covered-domains and dependency-cruiser presets). krizaka-ts is the single source of `@krizaka/config`: the React-effects
+  rules of krizaka-ui#767 are ported here. `krizakaStack()` gains `krizaka/no-async-in-effect` and
+  `krizaka/no-derived-state-in-effect` (errors by default, `effects: "warn"` while a repository has debt), and
+  `krizaka-ratchet` counts them (`asyncInEffect`, `derivedStateInEffect`). Use `>=0.9.1`.
+
 ## 0.8.1
 
 ### Patch Changes

@@ -58,7 +58,15 @@ export function resolveWorkspace(decl: WorkspaceDecl) {
       ] as const;
     }),
   );
-  return { schema, scope: ident(decl.scope), users: ident(decl.users), config: `${schema}.kind_config`, tags: `${schema}.tag`, views: `${schema}.view`, kinds };
+  return {
+    schema,
+    scope: ident(decl.scope),
+    users: ident(decl.users),
+    config: `${schema}.kind_config`,
+    tags: `${schema}.tag`,
+    views: `${schema}.view`,
+    kinds,
+  };
 }
 export type ResolvedWorkspace = ReturnType<typeof resolveWorkspace>;
 

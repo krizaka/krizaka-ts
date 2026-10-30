@@ -1,6 +1,6 @@
 {
   "name": "@krizaka/auth",
-  "version": "0.9.1",
+  "version": "0.13.1",
   "description": "The account of a Krizaka product — name, language, theme, avatar, e-mail change by link with the verified flag, password, sessions with sign-out of the others, data export, deletion — behind a port, with a PostgreSQL adapter and its migration. Each product keeps its own accounts; no framework, no wall clock, no mail vendor.",
   "keywords": [
     "krizaka",
@@ -35,6 +35,10 @@
       "types": "./dist/contract.d.ts",
       "import": "./dist/contract.js"
     },
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "import": "./dist/client.js"
+    },
     "./settings": {
       "types": "./dist/settings.d.ts",
       "import": "./dist/settings.js"
@@ -47,11 +51,17 @@
     "LICENSE"
   ],
   "sideEffects": false,
+  "krizaka": {
+    "browserSafe": [
+      "./client",
+      "./contract"
+    ]
+  },
   "scripts": {
     "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsup",
     "lint": "eslint . --max-warnings 0 && tsc --noEmit",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run --coverage --coverage.provider=v8 --coverage.reporter=lcov --coverage.reporter=text-summary \"--coverage.include=src/**/*.ts\"",
     "check": "pnpm run lint && pnpm run test && pnpm run build",
     "prepublishOnly": "pnpm run build"
   },

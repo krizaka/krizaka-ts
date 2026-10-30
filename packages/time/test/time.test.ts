@@ -1,6 +1,18 @@
 import { describe, expect, it } from "vitest";
 
-import { addHours, addMinutes, addSeconds, differenceInMilliseconds, differenceInSeconds, isAfter, isBefore, subHours, subMinutes, subSeconds } from "../src";
+import {
+  addHours,
+  addMinutes,
+  addSeconds,
+  differenceInMilliseconds,
+  differenceInSeconds,
+  isAfter,
+  isBefore,
+  isIsoDate,
+  subHours,
+  subMinutes,
+  subSeconds,
+} from "../src";
 
 const NOON = new Date("2026-10-26T12:00:00.000Z");
 
@@ -38,5 +50,16 @@ describe("gaps and order", () => {
     expect(isBefore(NOON, addSeconds(NOON, 1))).toBe(true);
     expect(isAfter(NOON, addSeconds(NOON, 1))).toBe(false);
     expect(isBefore(NOON, NOON)).toBe(false);
+  });
+});
+
+describe("isIsoDate", () => {
+  it("accepts real calendar dates only", () => {
+    expect(isIsoDate("2026-10-29")).toBe(true);
+    expect(isIsoDate("2028-02-29")).toBe(true);
+    expect(isIsoDate("2026-02-30")).toBe(false);
+    expect(isIsoDate("2026-2-3")).toBe(false);
+    expect(isIsoDate("2026-10-29T10:00:00Z")).toBe(false);
+    expect(isIsoDate(undefined)).toBe(false);
   });
 });

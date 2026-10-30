@@ -8,11 +8,26 @@ export const T0 = new Date("2026-10-26T12:00:00.000Z");
 export const at = (seconds: number) => new Date(T0.valueOf() + seconds * 1000);
 
 /** An item for tests; the account ids are UUIDs because the database's are. */
-export const itemOf = (accountId: string, over: Partial<Item> = {}): Item => ({ id: randomUUID(), accountId, category: "messages", template: "new-message", payload: { variables: {} }, dedupeKey: null, inBell: true, createdAt: T0, readAt: null, ...over });
+export const itemOf = (accountId: string, over: Partial<Item> = {}): Item => ({
+  id: randomUUID(),
+  accountId,
+  category: "messages",
+  template: "new-message",
+  payload: { variables: {} },
+  dedupeKey: null,
+  inBell: true,
+  createdAt: T0,
+  readAt: null,
+  ...over,
+});
 const BURST = { max: 3, since: at(-3600) };
 
 /** What every `NotificationStore` adapter must do: the same behaviour behind the same port. `make` gives an empty store whose accounts exist. */
-export function notificationStoreContract(name: string, make: () => NotificationStore | Promise<NotificationStore>, accountId: () => string | Promise<string>) {
+export function notificationStoreContract(
+  name: string,
+  make: () => NotificationStore | Promise<NotificationStore>,
+  accountId: () => string | Promise<string>,
+) {
   it(`${name}: records an item, and says it is capped once the window already holds the cap`, async () => {
     const store = await make();
     const a = await accountId();
@@ -47,7 +62,11 @@ export function notificationStoreContract(name: string, make: () => Notification
     await store.record(itemOf(a, { createdAt: at(9), inBell: false }), { max: 100, since: at(-3600) });
     const first = await store.list(a, { unreadOnly: false, limit: 2 });
     expect(first.map((i) => i.id)).toEqual([ids[4], ids[3]]);
-    const next = await store.list(a, { unreadOnly: false, limit: 10, before: { createdAt: first[1]!.createdAt, id: first[1]!.id } });
+    const next = await store.list(a, {
+      unreadOnly: false,
+      limit: 10,
+      before: { createdAt: first[1]!.createdAt, id: first[1]!.id },
+    });
     expect(next.map((i) => i.id)).toEqual([ids[2], ids[1], ids[0]]);
     expect(await store.unreadCount(a)).toBe(5);
   });
@@ -62,7 +81,9 @@ export function notificationStoreContract(name: string, make: () => Notification
     for (const i of [mine, theirs, other]) await store.record(i, BURST);
     expect(await store.markRead(a, [mine.id, theirs.id], at(10))).toBe(1);
     expect(await store.markRead(a, [mine.id], at(20))).toBe(0);
-    expect((await store.list(a, { unreadOnly: false, limit: 10 })).find((i) => i.id === mine.id)?.readAt?.toISOString()).toBe(at(10).toISOString());
+    expect(
+      (await store.list(a, { unreadOnly: false, limit: 10 })).find((i) => i.id === mine.id)?.readAt?.toISOString(),
+    ).toBe(at(10).toISOString());
     expect(await store.unreadCount(b)).toBe(1);
     expect((await store.list(a, { unreadOnly: true, limit: 10 })).map((i) => i.id)).toEqual([other.id]);
     expect(await store.markRead(a, null, at(30))).toBe(1);
@@ -87,7 +108,14 @@ export function notificationStoreContract(name: string, make: () => Notification
     const store = await make();
     const a = await accountId();
     const b = await accountId();
-    const device = (account: string, token: string, seconds: number) => ({ id: randomUUID(), accountId: account, platform: "ios" as const, token, createdAt: at(seconds), lastSeenAt: at(seconds) });
+    const device = (account: string, token: string, seconds: number) => ({
+      id: randomUUID(),
+      accountId: account,
+      platform: "ios" as const,
+      token,
+      createdAt: at(seconds),
+      lastSeenAt: at(seconds),
+    });
     await store.upsertDevice(device(a, "tok-1", 0));
     await store.upsertDevice(device(a, "tok-1", 5));
     await store.upsertDevice(device(a, "tok-2", 6));
@@ -110,7 +138,14 @@ export function notificationStoreContract(name: string, make: () => Notification
     expect(await store.purgeBefore(at(-86_400))).toBe(1);
     await store.record(itemOf(b), BURST);
     await store.setPreference(a, "messages", CHANNEL.app, false, T0);
-    await store.upsertDevice({ id: randomUUID(), accountId: a, platform: "web", token: "tok-erase", createdAt: T0, lastSeenAt: T0 });
+    await store.upsertDevice({
+      id: randomUUID(),
+      accountId: a,
+      platform: "web",
+      token: "tok-erase",
+      createdAt: T0,
+      lastSeenAt: T0,
+    });
     expect(await store.erase(a)).toBe(3);
     expect(await store.unreadCount(a)).toBe(0);
     expect(await store.preferences(a)).toEqual([]);

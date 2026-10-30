@@ -49,10 +49,43 @@ export interface PaidFacts {
 /** What the domain learns from a processor, vendor-free. `id` is unique per event: the domain applies each once. */
 export type PaymentEvent =
   | ({ id: string; type: "payment_paid"; kind: PlanKind; accountId: string; customerId: string | null } & PaidFacts)
-  | ({ id: string; type: "subscription_started"; accountId: string; customerId: string | null; subscriptionId: string | null } & PaidFacts)
-  | { id: string; type: "subscription_changed"; accountId: string | null; customerId: string | null; subscriptionId: string; status: string; active: boolean; periodEnd: number | null }
-  | { id: string; type: "checkout_expired"; checkoutRef: string; accountId: string | null; metadata: Record<string, string> }
-  | { id: string; type: "payment_refunded"; paymentRef: string | null; invoiceRef: string | null; chargeRef: string; /** CUMULATIVE: all refunds of the payment so far. */ amountRefunded: number; amountCharged: number; currency: string; metadata: Record<string, string> }
+  | ({
+      id: string;
+      type: "subscription_started";
+      accountId: string;
+      customerId: string | null;
+      subscriptionId: string | null;
+    } & PaidFacts)
+  | {
+      id: string;
+      type: "subscription_changed";
+      accountId: string | null;
+      customerId: string | null;
+      subscriptionId: string;
+      status: string;
+      active: boolean;
+      periodEnd: number | null;
+      /** The subscription stays active until `periodEnd`, then ends: the customer cancelled and nothing renews. False once it has ended. */
+      cancelAtPeriodEnd: boolean;
+    }
+  | {
+      id: string;
+      type: "checkout_expired";
+      checkoutRef: string;
+      accountId: string | null;
+      metadata: Record<string, string>;
+    }
+  | {
+      id: string;
+      type: "payment_refunded";
+      paymentRef: string | null;
+      invoiceRef: string | null;
+      chargeRef: string;
+      /** CUMULATIVE: all refunds of the payment so far. */ amountRefunded: number;
+      amountCharged: number;
+      currency: string;
+      metadata: Record<string, string>;
+    }
   | { id: string; type: "ignored" };
 
 export interface CheckoutRequest {
@@ -70,6 +103,12 @@ export interface CheckoutRequest {
   metadata?: Record<string, string>;
   /** When the unpaid session expires: 30 minutes to 24 hours after the call (the processor's window), else the adapter refuses. */
   expiresAt?: Date;
+  /**
+   * Free days at the start of a SUBSCRIPTION: the processor's trial (status `trialing`, the first charge at the end, the card kept
+   * meanwhile). A whole number of days from 1 to 730; refused on a one-off payment. The product decides who gets one (once per
+   * customer) and in which mode of the processor: the adapter only carries the days.
+   */
+  trialDays?: number;
 }
 
 /** The processor's price of a plan: integer minor units (cents), a lowercase ISO currency, the billing interval (null = one-off). */
@@ -115,6 +154,8 @@ export interface RefundOptions {
 }
 
 export interface PaymentsPort {
+  /** What this adapter carries beyond the basics, so a product can refuse to promise what it would silently drop (`trial`: `CheckoutRequest.trialDays`). */
+  readonly capabilities?: { readonly trial?: boolean };
   /** Creates the processor's customer for an account (idempotent per account). */
   createCustomer(email: string, accountId: string): Promise<{ id: string }>;
   /** A hosted payment page for a plan; the amount, the taxes and the invoice are the processor's. */
@@ -130,7 +171,10 @@ export interface PaymentsPort {
    */
   charge(request: ChargeRequest): Promise<ChargeResult>;
   /** Gives a charge back, in whole or in part. `ref` is `ChargeResult.ref` (an invoice) or a payment reference. */
-  refund(ref: string, options?: RefundOptions): Promise<{ refundRef: string; amountRefunded: number; currency: string }>;
+  refund(
+    ref: string,
+    options?: RefundOptions,
+  ): Promise<{ refundRef: string; amountRefunded: number; currency: string }>;
   /** Verifies the notification's proof of origin (read from its headers) over the raw body and translates it; throws `PaymentsError` on a bad signature. */
   parseWebhook(rawBody: string, headers: Headers, nowSeconds: number): PaymentEvent;
 }
@@ -156,6 +200,7 @@ export const PAYMENTS_CODE = {
   noPrice: "PAYMENTS_NO_PRICE",
   badDiscount: "PAYMENTS_BAD_DISCOUNT",
   badExpiry: "PAYMENTS_BAD_EXPIRY",
+  badTrial: "PAYMENTS_BAD_TRIAL",
   needsClock: "PAYMENTS_NEEDS_CLOCK",
   processor: "PAYMENTS_PROCESSOR",
   badMoney: "PAYMENTS_BAD_MONEY",

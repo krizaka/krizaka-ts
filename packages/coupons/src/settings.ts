@@ -3,7 +3,8 @@ import { flag, integer, type Registry } from "@krizaka/settings";
 import type { CouponSettings } from "./port";
 import { COUPON_ATTEMPT_ACTION, COUPON_BOUNDS, COUPON_DEFAULTS } from "./rules";
 
-const int = <K extends keyof typeof COUPON_BOUNDS>(key: K, unit: string) => integer("coupons", COUPON_DEFAULTS[key], { min: COUPON_BOUNDS[key][0], max: COUPON_BOUNDS[key][1], unit });
+const int = <K extends keyof typeof COUPON_BOUNDS>(key: K, unit: string) =>
+  integer("coupons", COUPON_DEFAULTS[key], { min: COUPON_BOUNDS[key][0], max: COUPON_BOUNDS[key][1], unit });
 
 /**
  * The settings of « coupons », a fragment the product adds to its registry (`@krizaka/coupons/settings`): the admin changes them
@@ -21,7 +22,9 @@ export const couponSettings = {
   "coupons.refundRestoresUse": flag("coupons", COUPON_DEFAULTS.refundRestoresUse),
 } as const satisfies Registry;
 
-type Reader = (key: keyof typeof couponSettings) => boolean | number | undefined | Promise<boolean | number | undefined>;
+type Reader = (
+  key: keyof typeof couponSettings,
+) => boolean | number | undefined | Promise<boolean | number | undefined>;
 
 /**
  * The module's settings as `createCoupons` takes them, from the product's accessor (`(key) => service.get(key, ctx)`).

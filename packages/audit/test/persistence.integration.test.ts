@@ -25,10 +25,18 @@ describe.runIf(enabled)("audit on PostgreSQL", () => {
   beforeAll(async () => {
     test = await createTestDatabase({
       connect: (database) => connectTo(database)(),
-      migrate: (connect) => migrate(connect, [
-        { version: "0001_accounts", sql: "CREATE TABLE accounts (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), email text NOT NULL)" },
-        { version: "0002_audit_1", sql: emitMigration(auditSchema, 1, { tables: { owner: "accounts" } }) },
-      ], { lockKey: 7401 }).then(() => undefined),
+      migrate: (connect) =>
+        migrate(
+          connect,
+          [
+            {
+              version: "0001_accounts",
+              sql: "CREATE TABLE accounts (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), email text NOT NULL)",
+            },
+            { version: "0002_audit_1", sql: emitMigration(auditSchema, 1, { tables: { owner: "accounts" } }) },
+          ],
+          { lockKey: 7401 },
+        ).then(() => undefined),
       prefix: "kzaudit",
     });
     connection = await connectTo(test.name)();
@@ -39,23 +47,31 @@ describe.runIf(enabled)("audit on PostgreSQL", () => {
   });
 
   const owner = async (n: number) => {
-    while (accounts.length <= n) accounts.push(((await queryOf(connection)<{ id: string }>("INSERT INTO accounts (email) VALUES ('o@test') RETURNING id"))[0]!).id);
+    while (accounts.length <= n)
+      accounts.push(
+        (await queryOf(connection)<{ id: string }>("INSERT INTO accounts (email) VALUES ('o@test') RETURNING id"))[0]!
+          .id,
+      );
     return accounts[n]!;
   };
   auditStoreContract("pg", () => dbAuditStore(queryOf(connection)), owner);
 
   it("writes nothing when the caller's transaction rolls back", async () => {
     const audit = createAudit({ clock: { now: () => new Date("2026-10-23T12:00:00Z") } });
-    await expect(transaction(connectTo(test.name), async (tx) => {
-      await audit.record(tx, { actorId: null, actorLabel: "system", action: "rolled.back" });
-      throw new Error("abort");
-    })).rejects.toThrow("abort");
+    await expect(
+      transaction(connectTo(test.name), async (tx) => {
+        await audit.record(tx, { actorId: null, actorLabel: "system", action: "rolled.back" });
+        throw new Error("abort");
+      }),
+    ).rejects.toThrow("abort");
     expect(await audit.list(queryOf(connection), { actionPrefix: "rolled." })).toEqual([]);
   });
 
   it("keeps the entry when its actor's account is deleted, with the actor detached", async () => {
     const audit = createAudit({ clock: { now: () => new Date("2026-10-23T12:00:00Z") } });
-    const [gone] = await queryOf(connection)<{ id: string }>("INSERT INTO accounts (email) VALUES ('gone@test') RETURNING id");
+    const [gone] = await queryOf(connection)<{ id: string }>(
+      "INSERT INTO accounts (email) VALUES ('gone@test') RETURNING id",
+    );
     await audit.record(queryOf(connection), { actorId: gone!.id, actorLabel: "Gone", action: "account.deleted_later" });
     await queryOf(connection)("DELETE FROM accounts WHERE id = $1", [gone!.id]);
     const [entry] = await audit.list(queryOf(connection), { actionPrefix: "account.deleted_later" });

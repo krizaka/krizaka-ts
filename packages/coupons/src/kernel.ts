@@ -45,7 +45,13 @@ export interface Kernel {
   settings(): Promise<CouponSettings>;
   store(query: Query): CouponStore;
   newId(): string;
-  record(tx: Query, actor: Actor, action: string, target: { type: string; id: string }, detail?: Record<string, unknown>): Promise<void>;
+  record(
+    tx: Query,
+    actor: Actor,
+    action: string,
+    target: { type: string; id: string },
+    detail?: Record<string, unknown>,
+  ): Promise<void>;
   announce(tx: Query, type: string, seed: string, payload: Record<string, unknown>): Promise<void>;
 }
 
@@ -57,7 +63,8 @@ export function makeKernel(deps: CouponsDeps): Kernel {
     settings: async () => checkSettings(typeof deps.settings === "function" ? await deps.settings() : deps.settings),
     store: storeFor,
     newId: deps.newId ?? randomUUID,
-    record: (tx, actor, action, target, detail = {}) => deps.audit.record(tx, { actorId: actor.id, actorLabel: actor.label, action, target, detail }),
+    record: (tx, actor, action, target, detail = {}) =>
+      deps.audit.record(tx, { actorId: actor.id, actorLabel: actor.label, action, target, detail }),
     async announce(tx, type, seed, payload) {
       await deps.outbox?.append(tx, { topic: COUPONS_TOPIC, type, payload, id: uuidOf(seed) });
     },

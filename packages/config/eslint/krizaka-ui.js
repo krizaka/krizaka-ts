@@ -19,7 +19,8 @@ export function krizakaUiRestrictedSyntax({ allow = [] } = {}) {
     },
     {
       selector: `${CLASSNAME} Literal[value=/${LIGHT_VARIANT_SOURCE}/]`,
-      message: "`light:` is forbidden in products: a theme is a set of tokens. A dark island? `.theme-dark` on the ancestor.",
+      message:
+        "`light:` is forbidden in products: a theme is a set of tokens. A dark island? `.theme-dark` on the ancestor.",
     },
     {
       selector: `${CLASSNAME} Literal[value=/${ARBITRARY_VAR_SOURCE}/]`,
@@ -42,12 +43,7 @@ export const krizakaUiRules = {
  * @param {{ allow?: string[], files?: string[], ignores?: string[], severity?: "error" | "warn" }} [options]
  * @returns {import("eslint").Linter.Config[]}
  */
-export function krizakaUi({
-  allow = [],
-  files = ["**/*.{jsx,tsx}"],
-  ignores = [],
-  severity = "error",
-} = {}) {
+export function krizakaUi({ allow = [], files = ["**/*.{jsx,tsx}"], ignores = [], severity = "error" } = {}) {
   return [
     {
       name: "krizaka/ui",

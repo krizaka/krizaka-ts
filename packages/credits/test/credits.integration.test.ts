@@ -36,7 +36,15 @@ describe.runIf(enabled)("credits: PostgreSQL", () => {
     return id;
   };
   const grantTo = (accountId: string, over: Partial<Parameters<ReturnType<typeof credits>["grant"]>[1]> = {}) =>
-    credits().grant(query, { accountId, amount: 5, expiresAt: new Date(T0.valueOf() + 30 * DAY), onExhausted: "stop", source: "coupon:it", idempotencyKey: randomUUID(), ...over });
+    credits().grant(query, {
+      accountId,
+      amount: 5,
+      expiresAt: new Date(T0.valueOf() + 30 * DAY),
+      onExhausted: "stop",
+      source: "coupon:it",
+      idempotencyKey: randomUUID(),
+      ...over,
+    });
   const inTx = <T>(work: (tx: Query) => Promise<T>) => transaction(connect, work);
   const settle = <T>(promises: Promise<T>[]) => Promise.allSettled(promises);
 
@@ -64,11 +72,21 @@ describe.runIf(enabled)("credits: PostgreSQL", () => {
       now = T0;
       const a = await newAccount();
       await grantTo(a, { amount: 1 });
-      const results = await settle(Array.from({ length: 20 }, (_, i) => inTx((tx) => credits().consume(tx, { accountId: a, amount: 1, reason: "audit", idempotencyKey: `last-${round}-${i}` }))));
+      const results = await settle(
+        Array.from({ length: 20 }, (_, i) =>
+          inTx((tx) =>
+            credits().consume(tx, { accountId: a, amount: 1, reason: "audit", idempotencyKey: `last-${round}-${i}` }),
+          ),
+        ),
+      );
       expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
-      for (const r of results) if (r.status === "rejected") expect((r.reason as { code: string }).code).toBe("CREDITS_EXHAUSTED");
+      for (const r of results)
+        if (r.status === "rejected") expect((r.reason as { code: string }).code).toBe("CREDITS_EXHAUSTED");
       expect((await credits().balance(query, a)).total).toBe(0);
-      const [row] = await query<{ least: string }>(`SELECT COALESCE(MIN(s), 0) AS least FROM (SELECT SUM(amount) AS s FROM ${schema}.entry WHERE account_id = $1 GROUP BY grant_id) t`, [a]);
+      const [row] = await query<{ least: string }>(
+        `SELECT COALESCE(MIN(s), 0) AS least FROM (SELECT SUM(amount) AS s FROM ${schema}.entry WHERE account_id = $1 GROUP BY grant_id) t`,
+        [a],
+      );
       expect(Number(row?.least)).toBe(0);
     }
   });
@@ -77,7 +95,13 @@ describe.runIf(enabled)("credits: PostgreSQL", () => {
     for (let round = 0; round < 10; round += 1) {
       const a = await newAccount();
       await grantTo(a, { amount: 5 });
-      const results = await Promise.all(Array.from({ length: 15 }, () => inTx((tx) => credits().consume(tx, { accountId: a, amount: 2, reason: "audit", idempotencyKey: `same-${round}` }))));
+      const results = await Promise.all(
+        Array.from({ length: 15 }, () =>
+          inTx((tx) =>
+            credits().consume(tx, { accountId: a, amount: 2, reason: "audit", idempotencyKey: `same-${round}` }),
+          ),
+        ),
+      );
       expect(results.filter((r) => !r.replayed)).toHaveLength(1);
       expect(new Set(results.map((r) => JSON.stringify(r.draws))).size).toBe(1);
       expect((await credits().balance(query, a)).total).toBe(3);
@@ -88,16 +112,27 @@ describe.runIf(enabled)("credits: PostgreSQL", () => {
     for (let round = 0; round < 5; round += 1) {
       const a = await newAccount();
       await grantTo(a, { amount: 50, capPerDay: 3 });
-      const results = await settle(Array.from({ length: 12 }, (_, i) => inTx((tx) => credits().consume(tx, { accountId: a, amount: 1, reason: "audit", idempotencyKey: `cap-${round}-${i}` }))));
+      const results = await settle(
+        Array.from({ length: 12 }, (_, i) =>
+          inTx((tx) =>
+            credits().consume(tx, { accountId: a, amount: 1, reason: "audit", idempotencyKey: `cap-${round}-${i}` }),
+          ),
+        ),
+      );
       expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(3);
-      for (const r of results) if (r.status === "rejected") expect((r.reason as { code: string }).code).toBe("CREDITS_CAP_DAY");
+      for (const r of results)
+        if (r.status === "rejected") expect((r.reason as { code: string }).code).toBe("CREDITS_CAP_DAY");
     }
   });
 
   it("HOLDS UNDER LOAD: ten concurrent holds of one credit on five credits give five", async () => {
     const a = await newAccount();
     await grantTo(a, { amount: 5 });
-    const results = await settle(Array.from({ length: 10 }, (_, i) => inTx((tx) => credits().hold(tx, { accountId: a, amount: 1, idempotencyKey: `hold-${i}` }))));
+    const results = await settle(
+      Array.from({ length: 10 }, (_, i) =>
+        inTx((tx) => credits().hold(tx, { accountId: a, amount: 1, idempotencyKey: `hold-${i}` })),
+      ),
+    );
     expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(5);
     expect(await credits().balance(query, a)).toMatchObject({ total: 5, held: 5, available: 0 });
   });
@@ -107,7 +142,14 @@ describe.runIf(enabled)("credits: PostgreSQL", () => {
     await expect(
       inTx(async (tx) => {
         await grantTo(a, { amount: 1 });
-        await credits().grant(tx, { accountId: a, amount: 2, expiresAt: new Date(T0.valueOf() + DAY), onExhausted: "stop", source: "s", idempotencyKey: "in-tx" });
+        await credits().grant(tx, {
+          accountId: a,
+          amount: 2,
+          expiresAt: new Date(T0.valueOf() + DAY),
+          onExhausted: "stop",
+          source: "s",
+          idempotencyKey: "in-tx",
+        });
         await credits().consume(tx, { accountId: a, amount: 5, reason: "audit", idempotencyKey: "too-much" });
       }),
     ).rejects.toMatchObject({ code: "CREDITS_EXHAUSTED" });
@@ -118,7 +160,9 @@ describe.runIf(enabled)("credits: PostgreSQL", () => {
   it("the ledger is append-only: an UPDATE or a DELETE of a line is refused by the database", async () => {
     const a = await newAccount();
     await grantTo(a);
-    await expect(pool.query(`UPDATE ${schema}.entry SET amount = 99 WHERE account_id = $1`, [a])).rejects.toThrow(/append-only/);
+    await expect(pool.query(`UPDATE ${schema}.entry SET amount = 99 WHERE account_id = $1`, [a])).rejects.toThrow(
+      /append-only/,
+    );
     await expect(pool.query(`DELETE FROM ${schema}.entry WHERE account_id = $1`, [a])).rejects.toThrow(/append-only/);
     expect((await credits().balance(query, a)).total).toBe(5);
   });
@@ -126,8 +170,17 @@ describe.runIf(enabled)("credits: PostgreSQL", () => {
   it("the database refuses what the rules refuse: a purchased pot that lapses, a zero line that is not an expiry, a duplicate key", async () => {
     const a = await newAccount();
     const g = await grantTo(a);
-    await expect(pool.query(`INSERT INTO ${schema}."grant" (id, account_id, bucket, amount, expires_at, on_exhausted, source, created_at) VALUES ($1, $2, 'purchased', 1, now(), 'stop', 's', now())`, [randomUUID(), a])).rejects.toThrow();
-    const line = (key: string, amount: number, type = "ADJUSTMENT") => pool.query(`INSERT INTO ${schema}.entry (id, account_id, grant_id, type, amount, reason, operation, idempotency_key, at) VALUES ($1, $2, $3, $4, $5, 'r', 'o', $6, now())`, [randomUUID(), a, g.grantId, type, amount, key]);
+    await expect(
+      pool.query(
+        `INSERT INTO ${schema}."grant" (id, account_id, bucket, amount, expires_at, on_exhausted, source, created_at) VALUES ($1, $2, 'purchased', 1, now(), 'stop', 's', now())`,
+        [randomUUID(), a],
+      ),
+    ).rejects.toThrow();
+    const line = (key: string, amount: number, type = "ADJUSTMENT") =>
+      pool.query(
+        `INSERT INTO ${schema}.entry (id, account_id, grant_id, type, amount, reason, operation, idempotency_key, at) VALUES ($1, $2, $3, $4, $5, 'r', 'o', $6, now())`,
+        [randomUUID(), a, g.grantId, type, amount, key],
+      );
     await expect(line("zero:0", 0)).rejects.toThrow();
     await line("zero:1", 0, "EXPIRY");
     await line("dup:0", 1);
@@ -153,7 +206,11 @@ describe.runIf(enabled)("credits: PostgreSQL", () => {
 
 describe("credits: the names it checks", () => {
   it("refuses an unsafe schema name before any SQL is written (a test that runs without a database)", async () => {
-    const credits = createCredits({ clock: { now: () => T0 }, settings: CREDITS_DEFAULTS, schema: "credits; DROP TABLE x" });
+    const credits = createCredits({
+      clock: { now: () => T0 },
+      settings: CREDITS_DEFAULTS,
+      schema: "credits; DROP TABLE x",
+    });
     await expect(credits.balance((async () => []) as unknown as Query, "a")).rejects.toThrow(/DB_UNSAFE_IDENTIFIER/);
   });
 });

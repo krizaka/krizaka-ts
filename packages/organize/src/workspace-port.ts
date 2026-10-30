@@ -68,16 +68,32 @@ export interface StatusMove {
 export interface WorkspaceStore {
   config(kind: string): Promise<StoredConfig | null>;
   /** Writes a configuration when the stored version is `expected` (null: none yet). Returns the new version, or null on a conflict. */
-  saveConfig(kind: string, config: KindConfig, expected: number | null, at: Date, by: string | null): Promise<number | null>;
+  saveConfig(
+    kind: string,
+    config: KindConfig,
+    expected: number | null,
+    at: Date,
+    by: string | null,
+  ): Promise<number | null>;
   /** Which of these ids are entities of the scope; with `lock`, their rows are locked until the transaction ends. */
   inScope(scope: string, kind: string, ids: readonly string[], options?: { lock?: boolean }): Promise<string[]>;
   /** Locks the scope's row until the transaction ends: a count and the insert it allows never race. */
   lockScope(scope: string): Promise<void>;
   tags(scope: string, kind: string): Promise<WorkspaceTag[]>;
   /** Throws OrganizeError `NAME_TAKEN` when the scope has that name for that kind (case ignored). */
-  addTag(scope: string, kind: string, tag: { name: string; marker: Marker; origin: TagOrigin }, at: Date): Promise<WorkspaceTag>;
+  addTag(
+    scope: string,
+    kind: string,
+    tag: { name: string; marker: Marker; origin: TagOrigin },
+    at: Date,
+  ): Promise<WorkspaceTag>;
   /** Null when the tag is not the scope's; throws `NAME_TAKEN` like `addTag`. */
-  updateTag(scope: string, kind: string, id: string, patch: { name?: string; marker?: Marker }): Promise<WorkspaceTag | null>;
+  updateTag(
+    scope: string,
+    kind: string,
+    id: string,
+    patch: { name?: string; marker?: Marker },
+  ): Promise<WorkspaceTag | null>;
   removeTag(scope: string, kind: string, id: string): Promise<boolean>;
   /** The tag ids each entity wears, in no order. */
   tagsOf(kind: string, entityIds: readonly string[]): Promise<Map<string, string[]>>;
@@ -93,13 +109,26 @@ export interface WorkspaceStore {
   view(scope: string, id: string): Promise<SavedView | null>;
   /** Throws `NAME_TAKEN` when the author has a view of that name for that kind. */
   addView(scope: string, view: Omit<SavedView, "id">, at: Date): Promise<SavedView>;
-  updateView(scope: string, id: string, patch: { name?: string; filters?: ViewFilters; shared?: boolean }): Promise<SavedView | null>;
+  updateView(
+    scope: string,
+    id: string,
+    patch: { name?: string; filters?: ViewFilters; shared?: boolean },
+  ): Promise<SavedView | null>;
   removeView(scope: string, id: string): Promise<boolean>;
 }
 
 /** The audit trail, by shape: `@krizaka/audit`'s `createAudit(…)` fits. */
 export interface AuditTrail {
-  record(query: Query, entry: { actorId: string | null; actorLabel: string; action: string; target?: { type: string; id: string } | null; detail?: Record<string, unknown> }): Promise<void>;
+  record(
+    query: Query,
+    entry: {
+      actorId: string | null;
+      actorLabel: string;
+      action: string;
+      target?: { type: string; id: string } | null;
+      detail?: Record<string, unknown>;
+    },
+  ): Promise<void>;
 }
 
 /** The status event (ADR-001's routing-key form). */

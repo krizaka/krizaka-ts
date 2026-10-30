@@ -4,7 +4,17 @@ import { ident } from "@krizaka/db";
 import { subHours } from "@krizaka/time";
 
 import { dbOutboxStore } from "./persistence";
-import { type ClaimOptions, type Clock, type FailOutcome, type NewMessage, type OutboxMessage, type OutboxSettings, type OutboxStats, type OutboxStore, type Query } from "./port";
+import {
+  type ClaimOptions,
+  type Clock,
+  type FailOutcome,
+  type NewMessage,
+  type OutboxMessage,
+  type OutboxSettings,
+  type OutboxStats,
+  type OutboxStore,
+  type Query,
+} from "./port";
 import { checkMessage, checkSettings } from "./rules";
 
 export interface OutboxDeps {
@@ -35,7 +45,8 @@ export interface Outbox {
 }
 
 const MAX_ERROR = 1000;
-const describe = (error: unknown) => (error instanceof Error ? `${error.name}: ${error.message}` : String(error)).slice(0, MAX_ERROR);
+const describe = (error: unknown) =>
+  (error instanceof Error ? `${error.name}: ${error.message}` : String(error)).slice(0, MAX_ERROR);
 
 /**
  * The outbox of a product.
@@ -45,23 +56,42 @@ const describe = (error: unknown) => (error instanceof Error ? `${error.name}: $
 export function createOutbox(deps: OutboxDeps): Outbox {
   const schema = ident(deps.schema ?? "outbox");
   const storeFor = deps.storeFor ?? ((query: Query) => dbOutboxStore(query, schema));
-  const settings = async () => checkSettings(typeof deps.settings === "function" ? await deps.settings() : deps.settings);
+  const settings = async () =>
+    checkSettings(typeof deps.settings === "function" ? await deps.settings() : deps.settings);
   return {
     async append(tx, message) {
       checkMessage(message);
       const now = deps.clock.now();
       const id = message.id ?? randomUUID();
-      const appended = await storeFor(tx).append({ id, topic: message.topic, type: message.type, payload: message.payload, createdAt: now, availableAt: message.availableAt ?? now });
+      const appended = await storeFor(tx).append({
+        id,
+        topic: message.topic,
+        type: message.type,
+        payload: message.payload,
+        createdAt: now,
+        availableAt: message.availableAt ?? now,
+      });
       return { id, appended };
     },
     async claim(query, options) {
       const s = await settings();
-      return storeFor(query).claim({ ...options, limit: options.limit ?? s.batchSize, leaseSeconds: options.leaseSeconds ?? s.leaseSeconds, maxAttempts: s.maxAttempts, now: deps.clock.now() });
+      return storeFor(query).claim({
+        ...options,
+        limit: options.limit ?? s.batchSize,
+        leaseSeconds: options.leaseSeconds ?? s.leaseSeconds,
+        maxAttempts: s.maxAttempts,
+        now: deps.clock.now(),
+      });
     },
     complete: (query, id, owner) => storeFor(query).complete(id, owner, deps.clock.now()),
     async fail(query, id, owner, error) {
       const s = await settings();
-      return storeFor(query).fail(id, owner, describe(error), { now: deps.clock.now(), maxAttempts: s.maxAttempts, backoffSeconds: s.backoffSeconds, backoffMaxSeconds: s.backoffMaxSeconds });
+      return storeFor(query).fail(id, owner, describe(error), {
+        now: deps.clock.now(),
+        maxAttempts: s.maxAttempts,
+        backoffSeconds: s.backoffSeconds,
+        backoffMaxSeconds: s.backoffMaxSeconds,
+      });
     },
     retryDead: (query, id) => storeFor(query).retryDead(id, deps.clock.now()),
     async purge(query) {

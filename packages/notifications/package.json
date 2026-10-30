@@ -1,6 +1,6 @@
 {
   "name": "@krizaka/notifications",
-  "version": "0.2.0",
+  "version": "0.2.2",
   "description": "The bell, channels and preferences for every Krizaka product: one notify() writes the in-app item and appends one outbox message per enabled channel (e-mail, push per device, live), respecting the account's matrix of categories by channels and per-category burst caps that hold under concurrency. The product declares its categories; the admin tunes defaults and caps. No push or realtime import, no wall clock.",
   "keywords": [
     "krizaka",
@@ -49,7 +49,7 @@
     "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsup",
     "lint": "eslint . --max-warnings 0 && tsc --noEmit",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run --coverage --coverage.provider=v8 --coverage.reporter=lcov --coverage.reporter=text-summary \"--coverage.include=src/**/*.ts\"",
     "check": "pnpm run lint && pnpm run test && pnpm run build",
     "prepublishOnly": "pnpm run build"
   },

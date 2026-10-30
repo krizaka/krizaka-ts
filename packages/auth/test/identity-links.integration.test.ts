@@ -14,7 +14,9 @@ describe.runIf(enabled)("identity links: PostgreSQL", () => {
     client = new pg.Client({ connectionString: process.env.DATABASE_URL });
     await client.connect();
     await client.query(`CREATE SCHEMA ${schema}; SET search_path TO ${schema}`);
-    await client.query("CREATE TABLE accounts (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), email text UNIQUE NOT NULL)");
+    await client.query(
+      "CREATE TABLE accounts (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), email text UNIQUE NOT NULL)",
+    );
     await client.query(identityLinksMigration());
     await client.query(identityLinksMigration()); // idempotent
   });
@@ -24,15 +26,29 @@ describe.runIf(enabled)("identity links: PostgreSQL", () => {
   });
   const accounts = new Map<number, string>();
   const account = async (n: number) => {
-    if (!accounts.has(n)) accounts.set(n, (await client.query("INSERT INTO accounts (email) VALUES ($1) RETURNING id", [`f-${n}-${Math.random().toString(36).slice(2)}@test`])).rows[0].id);
+    if (!accounts.has(n))
+      accounts.set(
+        n,
+        (
+          await client.query("INSERT INTO accounts (email) VALUES ($1) RETURNING id", [
+            `f-${n}-${Math.random().toString(36).slice(2)}@test`,
+          ])
+        ).rows[0].id,
+      );
     return accounts.get(n)!;
   };
-  identityLinkStoreContract("pg", () => dbIdentityLinks(async (sql, params) => (await client.query(sql, params as unknown[])).rows), account);
+  identityLinkStoreContract(
+    "pg",
+    () => dbIdentityLinks(async (sql, params) => (await client.query(sql, params as unknown[])).rows),
+    account,
+  );
 });
 
 describe("identity links: the table they need", () => {
   it("is the one the PostgreSQL store reads and writes (a test that runs without a database)", () => {
-    expect(identityLinksMigration()).toBe(identityLinksSchema.migrations[0]!.sql({ schema: "public", tables: { accounts: "accounts" } }));
+    expect(identityLinksMigration()).toBe(
+      identityLinksSchema.migrations[0]!.sql({ schema: "public", tables: { accounts: "accounts" } }),
+    );
     expect(identityLinksMigration()).toContain("CREATE TABLE IF NOT EXISTS external_identities");
   });
 });

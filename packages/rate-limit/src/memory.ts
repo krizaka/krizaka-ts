@@ -9,7 +9,7 @@ const OVERFLOW = "overflow";
 
 /**
  * Counters kept in this process: fine for one instance, and for tests; a second instance needs `dbLimitStore`. Behaves like the copies
- * Yomizaka, Akinaza and Kachizaka carried: when `maxKeys` live windows are held, the ended ones are dropped first, and if it is still
+ * Yomizaka and Akinaza carried: when `maxKeys` live windows are held, the ended ones are dropped first, and if it is still
  * full a new key shares ONE overflow window instead, so a flood of keys limits itself and never hands a blocked caller a fresh count.
  * @param options `maxKeys`: the most windows held
  */

@@ -1,0 +1,17 @@
+# Org security scan (krizaka/.github#324): gitleaks (secrets) and zizmor (GitHub Actions), reusable and pinned.
+name: Security scan
+
+on:
+  pull_request:
+  merge_group:
+  push:
+    branches: [main]
+
+permissions: {}
+
+jobs:
+  security:
+    name: Security scan
+    permissions:
+      contents: read
+    uses: krizaka/.github/.github/workflows/security-scan.yml@8a90a66bec6c227af139b39c6c33ba58b400b59a # main

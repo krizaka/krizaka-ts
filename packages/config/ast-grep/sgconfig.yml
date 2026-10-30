@@ -1,0 +1,11 @@
+# The shared ast-grep pack of @krizaka/config — used to test the pack's own rules (`pnpm test` runs `ast-grep test`).
+# A repository does NOT point here: it has its own sgconfig.yml whose ruleDirs name the sets it adopts
+# (see the README, « ast-grep pack »).
+ruleDirs:
+  - core
+  - web
+  - html
+testConfigs:
+  - testDir: rule-tests
+languageGlobs:
+  Tsx: ["*.ts", "*.mts"]

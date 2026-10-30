@@ -1,5 +1,33 @@
 # @krizaka/org
 
+## 0.5.0
+
+### Minor Changes
+
+- 32c80b5: Orazaka is "development" like every product of the family (krizaka-com#468): no product wears "devPreview" any more.
+
+### Patch Changes
+
+- d9f91aa: The family's open-source list names the lab Krizaka Lab, at lab.krizaka.com.
+
+## 0.4.0
+
+### Minor Changes
+
+- bdd0ec1: The cast has Orazaka: Éric (user), Mira (administrator) and Krizaka (the company as a customer), the accounts already deployed on dev, so the greeting never reads « qa_user » (krizaka/.github#356, krizaka/orazaka#473).
+
+## 0.3.1
+
+### Patch Changes
+
+- 8afbe46: The demo cast is Éric, Mira and Camille in each product, as the deployed QA accounts (Akinaza also Léa and her clients). Lost from 0.3.0: that last commit was pushed after the merge queue took the pull request.
+
+## 0.3.0
+
+### Minor Changes
+
+- 992862a: `cast`: the demo cast of the family (one fictitious person per role and product, with avatar and banner from the org defaults), `castOf`, `persona`, `personaByRole`, `castMedia` and `seedFingerprint`. Apps seed and record from it; no e-mail or password lives here.
+
 ## 0.2.1
 
 ### Patch Changes

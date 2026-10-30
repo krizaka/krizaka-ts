@@ -15,9 +15,25 @@ export interface MigrateOptions {
   historyTable?: string;
 }
 
-async function pending(connection: Connection, history: string, migrations: readonly ProductMigration[]): Promise<ProductMigration[]> {
-  await connection.query(`CREATE TABLE IF NOT EXISTS ${history} (version text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())`);
-  const done = new Set(((await connection.query(`SELECT version FROM ${history}`)).rows as { version: string }[]).map((r) => r.version));
+async function pending(
+  connection: Connection,
+  history: string,
+  migrations: readonly ProductMigration[],
+): Promise<ProductMigration[]> {
+  // `CREATE TABLE IF NOT EXISTS` is not atomic: runners under different lock keys on one database would both pass the check (23505).
+  await connection.query("BEGIN");
+  try {
+    await connection.query("SELECT pg_advisory_xact_lock(hashtextextended($1, 0))", [history]);
+    await connection.query(
+      `CREATE TABLE IF NOT EXISTS ${history} (version text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())`,
+    );
+    await connection.query("COMMIT");
+  } catch (error) {
+    await rethrowAfter(error, () => connection.query("ROLLBACK"));
+  }
+  const done = new Set(
+    ((await connection.query(`SELECT version FROM ${history}`)).rows as { version: string }[]).map((r) => r.version),
+  );
   return migrations.filter((m) => !done.has(m.version));
 }
 
@@ -42,7 +58,11 @@ async function applyOne(connection: Connection, history: string, migration: Prod
  * @throws the failing migration's error, after its rollback (the ones before it stay applied); an `AggregateError` if the
  *   rollback fails too
  */
-export async function migrate(connect: Connect, migrations: readonly ProductMigration[], options: MigrateOptions): Promise<string[]> {
+export async function migrate(
+  connect: Connect,
+  migrations: readonly ProductMigration[],
+  options: MigrateOptions,
+): Promise<string[]> {
   const history = ident(options.historyTable ?? "schema_migrations");
   const connection = await connect();
   const applied: string[] = [];

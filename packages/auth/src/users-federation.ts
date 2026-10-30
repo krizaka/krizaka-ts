@@ -1,7 +1,21 @@
-import { type CompleteOptions, type ExternalIdentity, type FederatedProvider, FEDERATION_CODE, FederationError, type IdentityProvider, isFederatedProvider, isLocalReturn, type StartedSignIn, type StartOptions } from "./federation";
+import {
+  type CompleteOptions,
+  type ExternalIdentity,
+  type FederatedProvider,
+  FEDERATION_CODE,
+  FederationError,
+  type IdentityProvider,
+  isFederatedProvider,
+  isLocalReturn,
+  type StartedSignIn,
+  type StartOptions,
+} from "./federation";
 
 /** The `fetch` the adapter calls krizaka-users with (injected: no global, no network in tests). */
-export type Fetcher = (url: string, init: { method: "POST"; headers: Record<string, string>; body: string }) => Promise<{ ok: boolean; status: number; json(): Promise<unknown> }>;
+export type Fetcher = (
+  url: string,
+  init: { method: "POST"; headers: Record<string, string>; body: string },
+) => Promise<{ ok: boolean; status: number; json(): Promise<unknown> }>;
 
 export interface UsersFederationOptions {
   /** The tenant host of the product: `https://auth.dev.akinaza.com`. */
@@ -21,7 +35,8 @@ export function parseExternalIdentity(body: unknown): ExternalIdentity {
   const o = (body ?? {}) as Record<string, unknown>;
   const issuer = text(o.issuer);
   const subject = text(o.subject);
-  if (!issuer || !subject) throw new FederationError(FEDERATION_CODE.unavailable, "krizaka-users answered without an issuer and a subject");
+  if (!issuer || !subject)
+    throw new FederationError(FEDERATION_CODE.unavailable, "krizaka-users answered without an issuer and a subject");
   return { issuer, subject, email: text(o.email), emailVerified: o.email_verified === true, name: text(o.name) };
 }
 
@@ -34,8 +49,10 @@ export function usersIdentityProvider({ baseUrl, appUrl, fetch }: UsersFederatio
   const app = appUrl.replace(/\/+$/, "");
   return {
     async start(provider, returnTo, options: StartOptions = {}): Promise<StartedSignIn> {
-      if (!isFederatedProvider(provider)) throw new FederationError(FEDERATION_CODE.unknownProvider, `Unknown provider ${String(provider)}`);
-      if (!isLocalReturn(returnTo)) throw new FederationError(FEDERATION_CODE.badReturn, "That return address is not allowed");
+      if (!isFederatedProvider(provider))
+        throw new FederationError(FEDERATION_CODE.unknownProvider, `Unknown provider ${String(provider)}`);
+      if (!isLocalReturn(returnTo))
+        throw new FederationError(FEDERATION_CODE.badReturn, "That return address is not allowed");
       const state = crypto.randomUUID();
       const query = new URLSearchParams({ return_to: `${app}${returnTo}`, state });
       if (options.codeChallenge) {
@@ -50,8 +67,10 @@ export function usersIdentityProvider({ baseUrl, appUrl, fetch }: UsersFederatio
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ code, ...(options.codeVerifier ? { code_verifier: options.codeVerifier } : {}) }),
       });
-      if (response.status === 400 || response.status === 401 || response.status === 404 || response.status === 410) throw new FederationError(FEDERATION_CODE.invalidCode, "That code is not valid");
-      if (!response.ok) throw new FederationError(FEDERATION_CODE.unavailable, `krizaka-users answered ${response.status}`);
+      if (response.status === 400 || response.status === 401 || response.status === 404 || response.status === 410)
+        throw new FederationError(FEDERATION_CODE.invalidCode, "That code is not valid");
+      if (!response.ok)
+        throw new FederationError(FEDERATION_CODE.unavailable, `krizaka-users answered ${response.status}`);
       return parseExternalIdentity(await response.json());
     },
   };

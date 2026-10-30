@@ -1,6 +1,6 @@
 {
   "name": "@krizaka/db",
-  "version": "0.2.0",
+  "version": "0.3.1",
   "description": "The database foundation of every Krizaka module: shared Query, Connection and Clock types, transactions, versioned and frozen module schemas embedded in the product's own migration sequence, a runner for products without one, and a test database helper. No database client: the product passes its own connection.",
   "keywords": [
     "krizaka",
@@ -44,7 +44,7 @@
     "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsup",
     "lint": "eslint . --max-warnings 0 && tsc --noEmit",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run --coverage --coverage.provider=v8 --coverage.reporter=lcov --coverage.reporter=text-summary \"--coverage.include=src/**/*.ts\"",
     "check": "pnpm run lint && pnpm run test && pnpm run build",
     "prepublishOnly": "pnpm run build"
   },

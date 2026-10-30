@@ -10,7 +10,10 @@ export const CREDIT_EVENT = { granted: "evt.credit.granted.v1", exhausted: "evt.
 
 /** The part of `@krizaka/outbox`'s `Outbox` this package needs: structural, so `credits` does not depend on `outbox`. */
 export interface OutboxPort {
-  append(tx: Query, message: { topic: string; type: string; payload: unknown; id?: string }): Promise<{ id: string; appended: boolean }>;
+  append(
+    tx: Query,
+    message: { topic: string; type: string; payload: unknown; id?: string },
+  ): Promise<{ id: string; appended: boolean }>;
 }
 
 /** A stable UUID (version 5 shaped) from a seed: announcing the same fact twice is one outbox message. */

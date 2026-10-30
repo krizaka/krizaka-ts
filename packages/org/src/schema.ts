@@ -14,7 +14,12 @@ const mark = {
   properties: { svg: httpsUrl, png64: httpsUrl, png256: httpsUrl, png512: httpsUrl, png1024: httpsUrl },
 } as const;
 const slug = { type: "string", pattern: "^[a-z0-9]+(-[a-z0-9]+)*$" } as const;
-const themed = { type: "object", additionalProperties: false, required: ["dark", "light"], properties: { dark: mark, light: mark } } as const;
+const themed = {
+  type: "object",
+  additionalProperties: false,
+  required: ["dark", "light"],
+  properties: { dark: mark, light: mark },
+} as const;
 const date = { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$" } as const;
 const semver = { type: "string", pattern: "^\\d+\\.\\d+\\.\\d+$" } as const;
 
@@ -34,7 +39,15 @@ const defaultItems = {
         type: "object",
         additionalProperties: false,
         required: ["webp"],
-        properties: { svg: httpsUrl, webp: { type: "object", minProperties: 1, propertyNames: { pattern: "^\\d+$" }, additionalProperties: httpsUrl } },
+        properties: {
+          svg: httpsUrl,
+          webp: {
+            type: "object",
+            minProperties: 1,
+            propertyNames: { pattern: "^\\d+$" },
+            additionalProperties: httpsUrl,
+          },
+        },
       },
     },
   },
@@ -47,7 +60,20 @@ export const orgSchema = {
   title: "Krizaka organisation — public facts",
   type: "object",
   additionalProperties: false,
-  required: ["$schema", "schemaVersion", "version", "updatedAt", "company", "brand", "people", "defaults", "products", "sites", "contact", "footer"],
+  required: [
+    "$schema",
+    "schemaVersion",
+    "version",
+    "updatedAt",
+    "company",
+    "brand",
+    "people",
+    "defaults",
+    "products",
+    "sites",
+    "contact",
+    "footer",
+  ],
   properties: {
     $schema: { type: "string" },
     schemaVersion: { enum: [1, 2] },
@@ -72,7 +98,15 @@ export const orgSchema = {
       type: "object",
       additionalProperties: false,
       required: ["name", "logo", "mark", "favicon", "appleTouchIcon", "socialPreview", "manifest"],
-      properties: { name: { type: "string", minLength: 1 }, logo: themed, mark: themed, favicon: httpsUrl, appleTouchIcon: httpsUrl, socialPreview: httpsUrl, manifest: httpsUrl },
+      properties: {
+        name: { type: "string", minLength: 1 },
+        logo: themed,
+        mark: themed,
+        favicon: httpsUrl,
+        appleTouchIcon: httpsUrl,
+        socialPreview: httpsUrl,
+        manifest: httpsUrl,
+      },
     },
     people: {
       type: "object",
@@ -85,12 +119,24 @@ export const orgSchema = {
             type: "object",
             additionalProperties: false,
             required: ["id", "kind", "svg", "webp256", "webp512", "alt"],
-            properties: { id: slug, kind: { enum: ["person", "plain"] }, svg: httpsUrl, webp256: httpsUrl, webp512: httpsUrl, alt: localized },
+            properties: {
+              id: slug,
+              kind: { enum: ["person", "plain"] },
+              svg: httpsUrl,
+              webp256: httpsUrl,
+              webp512: httpsUrl,
+              alt: localized,
+            },
           },
         },
         banners: {
           type: "array",
-          items: { type: "object", additionalProperties: false, required: ["id", "url", "alt"], properties: { id: slug, url: httpsUrl, alt: localized } },
+          items: {
+            type: "object",
+            additionalProperties: false,
+            required: ["id", "url", "alt"],
+            properties: { id: slug, url: httpsUrl, alt: localized },
+          },
         },
       },
     },
@@ -101,12 +147,19 @@ export const orgSchema = {
       properties: {
         version: { type: "string", pattern: "^v\\d+$" },
         base: httpsUrl,
-        rule: { type: "object", additionalProperties: false, required: ["pick", "description"], properties: { pick: { const: "fnv1a32-modulo" }, description: { type: "string", minLength: 1 } } },
+        rule: {
+          type: "object",
+          additionalProperties: false,
+          required: ["pick", "description"],
+          properties: { pick: { const: "fnv1a32-modulo" }, description: { type: "string", minLength: 1 } },
+        },
         kinds: {
           type: "object",
           additionalProperties: false,
           required: ["person", "folder", "organisation", "shop", "banner"],
-          properties: Object.fromEntries(["person", "folder", "organisation", "shop", "banner"].map((kind) => [kind, defaultItems])),
+          properties: Object.fromEntries(
+            ["person", "folder", "organisation", "shop", "banner"].map((kind) => [kind, defaultItems]),
+          ),
         },
       },
     },
@@ -117,20 +170,36 @@ export const orgSchema = {
         type: "object",
         additionalProperties: false,
         required: ["id", "name", "status", "url", "repo"],
-        properties: { id: slug, name: { type: "string", minLength: 1 }, status: { enum: ["development", "devPreview"] }, url: httpsUrl, repo: httpsUrl },
+        properties: {
+          id: slug,
+          name: { type: "string", minLength: 1 },
+          status: { enum: ["development", "devPreview"] },
+          url: httpsUrl,
+          repo: httpsUrl,
+        },
       },
     },
     sites: {
       type: "array",
       minItems: 1,
-      items: { type: "object", additionalProperties: false, required: ["id", "name", "url"], properties: { id: slug, name: { type: "string", minLength: 1 }, url: httpsUrl } },
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["id", "name", "url"],
+        properties: { id: slug, name: { type: "string", minLength: 1 }, url: httpsUrl },
+      },
     },
     contact: {
       type: "object",
       additionalProperties: false,
       required: ["page", "email"],
       properties: {
-        page: { type: "object", additionalProperties: false, required: ["fr", "en"], properties: { fr: httpsUrl, en: httpsUrl } },
+        page: {
+          type: "object",
+          additionalProperties: false,
+          required: ["fr", "en"],
+          properties: { fr: httpsUrl, en: httpsUrl },
+        },
         email: { type: ["string", "null"], format: "email" },
       },
     },
@@ -147,7 +216,16 @@ export const orgSchema = {
             type: "object",
             additionalProperties: false,
             required: ["id", "label", "url"],
-            properties: { id: { enum: ["privacy", "terms"] }, label: localized, url: { type: "object", additionalProperties: false, required: ["fr", "en"], properties: { fr: httpsUrl, en: httpsUrl } } },
+            properties: {
+              id: { enum: ["privacy", "terms"] },
+              label: localized,
+              url: {
+                type: "object",
+                additionalProperties: false,
+                required: ["fr", "en"],
+                properties: { fr: httpsUrl, en: httpsUrl },
+              },
+            },
           },
         },
       },

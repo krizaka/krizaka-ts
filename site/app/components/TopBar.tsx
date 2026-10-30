@@ -72,16 +72,38 @@ export default function TopBar({ firstPackage }: { firstPackage: string }) {
 
           <NavBar.Repo href={REPOSITORY_URL} label={b.githubAria} className="hidden lg:inline-flex" />
 
-          <Button type="button" variant="ghost" size="icon" shape="pill" onClick={toggleTheme} aria-label={theme === "dark" ? b.toLight : b.toDark} className="hidden h-9 w-9 md:inline-flex">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            shape="pill"
+            onClick={toggleTheme}
+            aria-label={theme === "dark" ? b.toLight : b.toDark}
+            className="hidden h-9 w-9 md:inline-flex"
+          >
             {theme === "dark" ? <SunIcon size={16} /> : <MoonIcon size={16} />}
           </Button>
 
           {/* Below md the language is in the mobile panel: the mark, the search and the toggle are all that fits at 360 px. */}
-          <NavBar.Language label={b.language} current={locale} languages={languages} linkAs={Link} className="hidden md:inline-flex" />
+          <NavBar.Language
+            label={b.language}
+            current={locale}
+            languages={languages}
+            linkAs={Link}
+            className="hidden md:inline-flex"
+          />
 
-          <NavBar.Mobile openLabel={b.menu} closeLabel={b.menu} className="max-h-[calc(100dvh-6rem)] gap-1 overflow-y-auto overscroll-contain p-3">
-            <NavBar.MobileLink asChild active={clean === "/start"}><Link href={start}>{b.start}</Link></NavBar.MobileLink>
-            <NavBar.MobileLink asChild active={clean !== "/" && clean !== "/start"}><Link href={packagesHref}>{b.packages}</Link></NavBar.MobileLink>
+          <NavBar.Mobile
+            openLabel={b.menu}
+            closeLabel={b.menu}
+            className="max-h-[calc(100dvh-6rem)] gap-1 overflow-y-auto overscroll-contain p-3"
+          >
+            <NavBar.MobileLink asChild active={clean === "/start"}>
+              <Link href={start}>{b.start}</Link>
+            </NavBar.MobileLink>
+            <NavBar.MobileLink asChild active={clean !== "/" && clean !== "/start"}>
+              <Link href={packagesHref}>{b.packages}</Link>
+            </NavBar.MobileLink>
             <NavBar.MobilePreferences label={b.preferences}>
               <Button type="button" variant="secondary" size="md" onClick={toggleTheme} className="min-h-11">
                 {theme === "dark" ? <SunIcon size={16} /> : <MoonIcon size={16} />}

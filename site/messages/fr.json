@@ -76,6 +76,12 @@
     "org": {
       "hook": "Les faits publics de Krizaka dans un seul JSON validé que lisent tous les pieds de page, sites et applications : identité légale, marques, produits en ligne, sites, ligne de pied de page."
     },
+    "architecture": {
+      "hook": "La vue C4 d’un dépôt générée depuis son code : conteneurs, composants, imports entre eux et services externes, en JSON et en texte, sur une copie locale."
+    },
+    "page-audit": {
+      "hook": "L’audit de page de toutes les apps : débordement, carte hors de son panneau, chevauchements et colonnes coupées, sur des routes, largeurs et thèmes, avec un auto-test."
+    },
     "db": {
       "hook": "La fondation base de données : types partagés, transactions, schémas de modules intégrés aux migrations du produit, base de test."
     },
@@ -105,6 +111,9 @@
     },
     "payments": {
       "hook": "Les paiements derrière un port : paiement avec rabais, webhooks vérifiés et appliqués une fois, remboursements et expiration, montants entiers."
+    },
+    "email-verification": {
+      "hook": "La preuve d’une adresse courriel pour les formulaires publics : un code à 6 chiffres valable 15 minutes, à usage unique, cinq essais, gardé sous forme de hachage salé ; le message n’est libéré qu’après le code."
     },
     "rate-limit": {
       "hook": "Des limites par action : des fenêtres fixes par adresse et par sujet, réglées par l’admin, comptées exactement en concurrence."
