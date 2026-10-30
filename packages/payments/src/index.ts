@@ -29,6 +29,7 @@ export * from "./port";
 export {
   assertCharge,
   assertTerms,
+  assertTrial,
   type PlanConfig,
   processorAdapter,
   type ProcessorConfig,
