@@ -500,45 +500,51 @@ function accessibilityProblems(where, result, fileLabels) {
   return problems;
 }
 
+/**
+ * The checks switched on by a flag of `problemsOf` (a flag that is off produces nothing). A table keeps the function short: each
+ * entry reads the page's result and says what the flag asks for.
+ */
+const FLAGGED_CHECKS = [
+  ["emptyMain", (where, result) => (result.emptyMain ? [`${where}: empty <main>`] : [])],
+  ["frame", (where, result) => frameProblems(where, result.frame)],
+  ["minAction", (where, result, minAction) => actionProblems(where, result.actions ?? [], minAction)],
+  ["boxes", (where, result) => boxProblems(where, result.boxes ?? [])],
+  ["landmarks", (where, result, landmarks) => landmarkProblems(where, result.landmarks, landmarks)],
+  [
+    "pictures",
+    (where, result) =>
+      result.brokenPictures?.length ? [`${where}: broken picture ${result.brokenPictures.join(", ")}`] : [],
+  ],
+  ["emptyControls", (where, result) => (result.emptyControls ?? []).map((c) => `${where}: ${c}`)],
+  [
+    "hardColors",
+    (where, result) =>
+      result.hardColors
+        ? [`${where}: ${result.hardColors} element(s) with a hard-coded colour in an inline style`]
+        : [],
+  ],
+  ["maps", (where, result, maps) => mapProblems(where, result.maps ?? [], maps)],
+  [
+    "controlOverlaps",
+    (where, result) =>
+      result.controlOverlaps?.length
+        ? [`${where}: controls overlap, one cannot be clicked (${result.controlOverlaps.join(", ")})`]
+        : [],
+  ],
+];
+
+function flaggedProblems(where, result, flags) {
+  return FLAGGED_CHECKS.flatMap(([flag, check]) => (flags[flag] ? check(where, result, flags[flag]) : []));
+}
+
 export function problemsOf(
   where,
   result,
-  {
-    errors = [],
-    h1 = false,
-    headerAction = false,
-    fileLabels = false,
-    status,
-    emptyMain = false,
-    frame = false,
-    minAction,
-    boxes = false,
-    landmarks,
-    pictures = false,
-    emptyControls = false,
-    hardColors = false,
-    maps = false,
-    controlOverlaps = false,
-  } = {},
+  { errors = [], h1 = false, headerAction = false, fileLabels = false, status, ...flags } = {},
 ) {
   return [
     ...statusProblems(where, status),
-    ...(emptyMain && result.emptyMain ? [`${where}: empty <main>`] : []),
-    ...(frame ? frameProblems(where, result.frame) : []),
-    ...(minAction ? actionProblems(where, result.actions ?? [], minAction) : []),
-    ...(boxes ? boxProblems(where, result.boxes ?? []) : []),
-    ...(landmarks ? landmarkProblems(where, result.landmarks, landmarks) : []),
-    ...(pictures && result.brokenPictures?.length
-      ? [`${where}: broken picture ${result.brokenPictures.join(", ")}`]
-      : []),
-    ...(emptyControls ? (result.emptyControls ?? []).map((c) => `${where}: ${c}`) : []),
-    ...(hardColors && result.hardColors
-      ? [`${where}: ${result.hardColors} element(s) with a hard-coded colour in an inline style`]
-      : []),
-    ...(maps ? mapProblems(where, result.maps ?? [], maps) : []),
-    ...(controlOverlaps && result.controlOverlaps?.length
-      ? [`${where}: controls overlap, one cannot be clicked (${result.controlOverlaps.join(", ")})`]
-      : []),
+    ...flaggedProblems(where, result, flags),
     ...errorsOf(where, errors),
     ...layoutProblems(where, result),
     ...(h1 ? namingProblems(where, result) : []),
