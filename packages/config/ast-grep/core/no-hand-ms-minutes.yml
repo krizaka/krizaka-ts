@@ -12,7 +12,7 @@ rule:
 constraints:
   N:
     not:
-      regex: '^60$'
+      regex: "^60$"
 fix: minutesToMilliseconds($N)
 ignores:
   - "**/node_modules/**"

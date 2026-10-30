@@ -7,9 +7,14 @@ rule:
     - pattern: $A / 100
     - pattern: $A * 100
     - pattern: Math.round($A * 100)
+  # a percentage compared (`off * 100 > amount * maxPercent`) is a ratio, not a conversion
+  not:
+    inside:
+      kind: binary_expression
+      regex: '\s[<>]=?\s'
 constraints:
   A:
-    regex: '(?i)(cents|minor|amount|price|total|money)'
+    regex: "(?i)(cents|minor|amount|price|total|money)"
 ignores:
   - "**/node_modules/**"
   - "**/*.test.ts"

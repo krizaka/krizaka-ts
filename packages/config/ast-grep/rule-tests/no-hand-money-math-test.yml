@@ -6,6 +6,8 @@ valid:
     const percent = ratio * 100;
   - |
     const pages = Math.ceil(count / 100);
+  - |
+    const tooMuch = coupon.amountOffMinor * 100 > amount * maxPercentOff;
 invalid:
   - |
     const amount = String(change.amountCents / 100);
