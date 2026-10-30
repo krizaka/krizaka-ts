@@ -17,6 +17,7 @@ export type {
   ConnectPort,
   DirectPaymentRequest,
 } from "./connect";
+export { type MemoryConnect,memoryConnect } from "./connect-memory";
 export { connectAdapter, type ConnectAdapterConfig } from "./connect-processor";
 export {
   type ConnectOutcome,

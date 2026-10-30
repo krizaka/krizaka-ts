@@ -104,3 +104,9 @@ await connect.refund(accountId, deposit.paymentRef, { key: `${bookingId}:ref`, a
 ## Migrating from krizaka-ui's 0.1/0.2
 
 `stripeAdapter` and `StripeAdapterConfig` are kept as aliases of `processorAdapter` and `ProcessorConfig`. `checkout` now answers `{ url, checkoutRef, expiresAt }`. `payment_paid` and `subscription_started` gained fields (never removed). `applyOnceInTransaction` writes to `payments.event` by default: pass `{ table: { schema: "public", table: "payment_events" } }` until `adoptPaymentEventsSql` has run. Environment: `PAYMENTS_PROVIDER`, `PAYMENTS_STRIPE_SECRET_KEY`, `PAYMENTS_STRIPE_WEBHOOK_SECRET`, as today (read by the product, never here).
+
+### Testing a Connect app
+
+`memoryConnect()` is the in-memory `ConnectPort` for your tests: same refusals as `connectAdapter` (typed `PaymentsError`), idempotent per key, and a deposit capture racing a release is serialised so exactly one wins and the other is refused with `PAYMENTS_NOT_HELD`. `activate(accountId)` plays the end of onboarding.
+
+An opt-in contract test runs the real adapter against the processor's test mode: set `PAYMENTS_CONTRACT_KEY` to a test-mode key (`sk_test_…` only; any other value is ignored) and run `pnpm --filter @krizaka/payments test`. Default CI never sets it.
