@@ -34,6 +34,10 @@
       "import": "./src/settle.mjs"
     },
     "./fixtures": "./src/fixtures.mjs",
+    "./journey": {
+      "types": "./src/journey.d.ts",
+      "import": "./src/journey.mjs"
+    },
     "./package.json": "./package.json",
     "./visual": {
       "types": "./src/visual.d.ts",

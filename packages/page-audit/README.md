@@ -63,3 +63,14 @@ defineJourneyTests({
 
 Baselines are taken in the official Playwright container by the shared workflows of krizaka/.github (`visual-regression.yml` to compare,
 `update-visual-baselines.yml` to commit them on a branch); never on a Mac.
+
+## The journey kit (0.6)
+
+`@krizaka/page-audit/journey` is the kit of the customer journeys (ADR-017, krizaka/.github#423). A product writes no copy of it.
+
+- **Catalogue**: `validateJourney` checks a row of `journeys/journeys.json` (kebab-case id, a promise, a persona of the seeded cast, platforms, steps, a budget of 90 s by default); `checkCatalogue` fails a file without a row, a row without a file, an id twice; `journeysByTag(index, "smoke")` picks what runs on every pull request; `budgetProblem` names a journey over its budget.
+- **Persona sign-in once per worker**: `personaSessions({ dir, signIn }).stateFor("eric")` signs the persona in on the first call and reuses the browser state after (parallel calls share one sign-in; one file per worker; a failed sign-in is not remembered).
+- **Seeded cast**: `seededPersona(cast, "eric")` reads a member or names who exists.
+- **Masks**: `journeyMaskSelectors({ extra })` = `time`, `[data-mask]`, `[data-date]`, `[data-testid$="-id"]`, `[data-run-id]` and the journey's own.
+- **Video hooks**: `videoContextOptions(journey, { dir })` records only the journeys with `video: true`; `videoFile(journey, "web")` names the file.
+- **Flake policy**: `assertNoRetries(playwrightConfig)` refuses retries above 0 (also per project); `quarantine(entries)` holds a named test with its reason and its issue, capped at one.
