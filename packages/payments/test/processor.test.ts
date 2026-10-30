@@ -95,6 +95,25 @@ describe("the processor's events, in the domain's words", () => {
     ).toMatchObject({ active: false });
     expect(translate(ev("customer.subscription.created", {}))).toMatchObject({ status: "", subscriptionId: "" });
   });
+  it("a subscription cancelled at the end of its period says so", () => {
+    expect(
+      translate(
+        ev("customer.subscription.updated", {
+          id: "sub_1",
+          status: "active",
+          customer: "cus_1",
+          cancel_at_period_end: true,
+          items: { data: [{ current_period_end: 1_900_000_000 }] },
+        }),
+      ),
+    ).toMatchObject({ active: true, cancelAtPeriodEnd: true, periodEnd: 1_900_000_000 });
+    expect(translate(ev("customer.subscription.updated", { id: "sub_1", status: "active" }))).toMatchObject({
+      cancelAtPeriodEnd: false,
+    });
+    expect(
+      translate(ev("customer.subscription.deleted", { id: "sub_1", cancel_at_period_end: true })),
+    ).toMatchObject({ active: false, cancelAtPeriodEnd: false });
+  });
   it("an unpaid, anonymous, unknown-mode or foreign event is ignored", () => {
     expect(
       translate(

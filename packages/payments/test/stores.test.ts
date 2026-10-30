@@ -77,6 +77,7 @@ describe("announcing a payment through the outbox", () => {
         status: "active",
         active: true,
         periodEnd: null,
+        cancelAtPeriodEnd: false,
       },
       {
         id: "e3",
