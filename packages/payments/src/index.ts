@@ -8,6 +8,22 @@ export {
   type StripeCall,
   stripeCall,
 } from "./catalogue";
+export type {
+  ConnectAccountStatus,
+  ConnectEvent,
+  ConnectHandlers,
+  ConnectPayment,
+  ConnectPaymentState,
+  ConnectPort,
+  DirectPaymentRequest,
+} from "./connect";
+export { connectAdapter,type ConnectAdapterConfig } from "./connect-stripe";
+export {
+  type ConnectOutcome,
+  type ConnectWebhookConfig,
+  handleConnectWebhook,
+  translateConnect,
+} from "./connect-webhook";
 export {
   announcePayment,
   applyOnce,

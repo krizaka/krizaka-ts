@@ -9,32 +9,51 @@ import { announcePayment, applyOnceInTransaction, dbDiscountStore, processorAdap
 import { transaction } from "@krizaka/db";
 
 const payments = processorAdapter({
-  secretKey, webhookSecret, // from the environment: PAYMENTS_STRIPE_SECRET_KEY, PAYMENTS_STRIPE_WEBHOOK_SECRET
+  secretKey,
+  webhookSecret, // from the environment: PAYMENTS_STRIPE_SECRET_KEY, PAYMENTS_STRIPE_WEBHOOK_SECRET
   plans: { pro: { lookupKey: "yomizaka.pro", mode: "subscription" } },
-  clock,                         // needed for expiresAt
+  clock, // needed for expiresAt
   discounts: dbDiscountStore(query), // needed for a discount
-  webhookToleranceSeconds,       // the admin's payments.webhookToleranceSeconds
+  webhookToleranceSeconds, // the admin's payments.webhookToleranceSeconds
 });
 
 // checkout, with a discount from the coupons module, a retry-safe key and a deadline
 const { url, checkoutRef, expiresAt } = await payments.checkout({
-  kind: "pro", customerId, accountId, successUrl, cancelUrl, locale: "fr",
-  discount: terms,                 // DiscountTerms: one Stripe coupon per (couponId, termsVersion)
-  idempotencyKey: redemptionId,    // a retry returns the same session
+  kind: "pro",
+  customerId,
+  accountId,
+  successUrl,
+  cancelUrl,
+  locale: "fr",
+  discount: terms, // DiscountTerms: one Stripe coupon per (couponId, termsVersion)
+  idempotencyKey: redemptionId, // a retry returns the same session
   metadata: { redemption_id: redemptionId },
-  expiresAt,                       // 31 minutes to 24 hours from now, else PAYMENTS_BAD_EXPIRY
+  expiresAt, // 31 minutes to 24 hours from now, else PAYMENTS_BAD_EXPIRY
 });
 
 // the webhook route: verify, translate, then record the event and its effect in ONE transaction
 const event = payments.parseWebhook(await req.text(), req.headers, Math.floor(clock.now().valueOf() / 1000)); // throws PaymentsError on a bad signature
-await applyOnceInTransaction((work) => transaction(connect, work), event, {
-  payment_paid: async (e, tx) => {
-    await coupons.redeem(tx, { redemptionId: e.metadata.redemption_id, checkoutRef: e.checkoutRef, paymentRef: e.paymentRef, amountPaid: e.amountTotal, amountDiscount: e.amountDiscount, currency: e.currency });
-    await announcePayment(tx, outbox, e); // evt.payment.paid.v1 on the « payments » topic, same transaction
+await applyOnceInTransaction(
+  (work) => transaction(connect, work),
+  event,
+  {
+    payment_paid: async (e, tx) => {
+      await coupons.redeem(tx, {
+        redemptionId: e.metadata.redemption_id,
+        checkoutRef: e.checkoutRef,
+        paymentRef: e.paymentRef,
+        amountPaid: e.amountTotal,
+        amountDiscount: e.amountDiscount,
+        currency: e.currency,
+      });
+      await announcePayment(tx, outbox, e); // evt.payment.paid.v1 on the « payments » topic, same transaction
+    },
+    checkout_expired: async (e, tx) => void (await coupons.release(tx, e.checkoutRef)),
+    payment_refunded: async (e, tx) =>
+      void (await coupons.refund(tx, { paymentRef: e.paymentRef, amountRefunded: e.amountRefunded })),
   },
-  checkout_expired: async (e, tx) => void (await coupons.release(tx, e.checkoutRef)),
-  payment_refunded: async (e, tx) => void (await coupons.refund(tx, { paymentRef: e.paymentRef, amountRefunded: e.amountRefunded })),
-}, { clock });
+  { clock },
+);
 ```
 
 ## What it gives
@@ -51,6 +70,36 @@ await applyOnceInTransaction((work) => transaction(connect, work), event, {
 - **Catalogue setup.** `krizaka-payments-setup --catalogue catalogue.json [--webhook-url …] [--secret-out file]` creates, idempotently, products, prices (tax exclusive), the customer portal and the webhook endpoint (now listening to `checkout.session.expired` and `charge.refunded` too; an older endpoint is updated). A changed amount is a new price that takes over the lookup key (`transfer_lookup_key`), so subscriptions already sold keep theirs. `plansFromPrices(entries, names)` builds the plans from the settings price catalogue: what is on sale, with a figure, in `month` / `year` / `once`.
 - **Formatting.** `formatMoney` / `formatPrice`: « $39 » in English, « 39 $ » in French; decimals only when there are some; any currency's exponent.
 - `eventStoreContract` and `discountStoreContract` (`@krizaka/payments/testkit`) are the contracts every store runs; `memoryEventStore()` and `memoryDiscountStore()` are for unit tests.
+
+## Connect: the merchant's own processor (Stripe Connect Standard)
+
+For a product whose customers are merchants (a shop taking its own clients' payments). Each shop connects **its own** Stripe account through Stripe-hosted onboarding; every charge is a **direct charge on that account** (`Stripe-Account`): the shop stays the merchant of record and Krizaka never holds the money. The library never reads env: the app passes the platform key, the webhook secret, the clock and the stores.
+
+```ts
+const connect = connectAdapter({ secretKey, fetch }); // ConnectPort
+const { accountId } = await connect.createAccount({ key: shopId, email, country: "ca" });
+const { url } = await connect.onboardingLink({ accountId, returnUrl, refreshUrl }); // redirect the owner
+const status = await connect.accountStatus(accountId); // chargesEnabled, detailsSubmitted, state: pending | restricted | active
+const { customerId } = await connect.createCustomer(accountId, { key, email });
+const { clientSecret } = await connect.saveCard(accountId, { key, customerId }); // the browser confirms it with the processor's form
+const deposit = await connect.pay(accountId, {
+  key: bookingId,
+  customerId,
+  paymentMethodRef,
+  amountMinor: 2000,
+  currency: "cad",
+  mode: "hold",
+});
+await connect.capture(accountId, deposit.paymentRef, { key: `${bookingId}:cap`, amountMinor: 1500 }); // or connect.release(...)
+await connect.refund(accountId, deposit.paymentRef, { key: `${bookingId}:ref`, amountMinor: 500 });
+```
+
+- **No card data.** There is no card number, CVC or expiry field anywhere in the port: a card is saved by the processor's own form (`saveCard` returns the `clientSecret` only) and used by reference.
+- **Money** is integer minor units; `mode: "capture"` takes the payment, `"hold"` authorises it (a deposit kept as a guarantee) until `capture` (all or part) or `release`. `applicationFeeMinor` is the platform's optional fee (0 by default, below the amount, else `PAYMENTS_BAD_FEE`).
+- **A refund never exceeds what was paid:** the adapter reads the payment and refuses above paid minus already refunded (`PAYMENTS_REFUND_EXCEEDS_PAID`), or a payment never captured (`PAYMENTS_NO_PAYMENT`). Every call takes an idempotency `key`.
+- **ONE Connect webhook** on the platform account (created once in config, its secret in the env; shops declare nothing): `handleConnectWebhook({ secret, clock, store, handlers }, rawBody, signatureHeader)` verifies the signature, routes by the event's `account`, applies each event once (`store.markSeen`, a replay is `duplicate`, a failing handler gives the id back). `handlers` (`account_updated`, `payment_paid`, `payment_held`, `payment_released`, `payment_refunded`, the refund total being cumulative) are **the only writers** of paid / refunded: a route never marks a booking paid itself. A notification without an `account` is the platform's own and is ignored.
+- **What a product must show the client before confirming** a deposit or a card on file: the amount, the cancellation and no-show policy, and the refund rules (Québec Consumer Protection Act; reviewed in the single lawyer review, krizaka/.github#250). The no-show fee is the product's decision (policy id and reason in its own audit); the library only moves the money.
+- Pre-authorised debit (PAD, Canada) is a later adapter step behind the same port.
 
 ## Migrating from krizaka-ui's 0.1/0.2
 

@@ -206,6 +206,9 @@ export const PAYMENTS_CODE = {
   badMoney: "PAYMENTS_BAD_MONEY",
   declined: "PAYMENTS_DECLINED",
   noPayment: "PAYMENTS_NO_PAYMENT",
+  badFee: "PAYMENTS_BAD_FEE",
+  refundExceedsPaid: "PAYMENTS_REFUND_EXCEEDS_PAID",
+  badAccount: "PAYMENTS_BAD_ACCOUNT",
 } as const;
 export type PaymentsCode = (typeof PAYMENTS_CODE)[keyof typeof PAYMENTS_CODE];
 
