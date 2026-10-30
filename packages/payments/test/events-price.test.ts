@@ -60,6 +60,7 @@ describe("events are applied once", () => {
       status: "active",
       active: true,
       periodEnd: null,
+      cancelAtPeriodEnd: false,
     };
     expect(await applyOnce(store, changed, { subscription_changed: async () => "ignored" as const })).toBe("ignored");
     expect(

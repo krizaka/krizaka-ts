@@ -65,6 +65,8 @@ export type PaymentEvent =
       status: string;
       active: boolean;
       periodEnd: number | null;
+      /** The subscription stays active until `periodEnd`, then ends: the customer cancelled and nothing renews. False once it has ended. */
+      cancelAtPeriodEnd: boolean;
     }
   | {
       id: string;

@@ -118,6 +118,7 @@ function translateSubscription(id: string, type: string, o: Obj, customerId: str
     status,
     active: LIVE.has(status),
     periodEnd: item?.current_period_end ?? (typeof o.current_period_end === "number" ? o.current_period_end : null),
+    cancelAtPeriodEnd: status !== "canceled" && o.cancel_at_period_end === true,
   };
 }
 
