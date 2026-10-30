@@ -6,7 +6,7 @@ import type {
   DirectPaymentRequest,
 } from "./connect";
 import { rawCall } from "./http";
-import { PAYMENTS_CODE, type PaymentsCode,PaymentsError } from "./port";
+import { PAYMENTS_CODE, type PaymentsCode, PaymentsError } from "./port";
 
 export interface ConnectAdapterConfig {
   /** The PLATFORM's secret key (sk_test_… in tests): the merchant is named per call by `Stripe-Account`. The library never reads env. */
@@ -46,12 +46,15 @@ const STATES: Record<string, ConnectPaymentState> = {
   canceled: "released",
 };
 
-const paymentOf = (pi: Json): ConnectPayment => ({
-  paymentRef: String(pi.id),
-  state: STATES[String(pi.status)] ?? "failed",
-  amountMinor: pi.status === "succeeded" ? Number(pi.amount_received ?? pi.amount) : Number(pi.amount),
-  currency: String(pi.currency),
-});
+const paymentOf = (pi: Json): ConnectPayment => {
+  const state = STATES[String(pi.status)] ?? "failed";
+  return {
+    paymentRef: String(pi.id),
+    state,
+    amountMinor: Number(state === "paid" ? (pi.amount_received ?? pi.amount) : pi.amount),
+    currency: String(pi.currency),
+  };
+};
 
 /** Stripe Connect Standard over `fetch`: direct charges on the connected account, no SDK. */
 export function connectAdapter(config: ConnectAdapterConfig): ConnectPort {
