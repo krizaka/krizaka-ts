@@ -54,6 +54,15 @@ describe("what counts as a problem on a rendered page", () => {
     assert.match(problemsOf("x", { ...fine, cutColumns: ["aside[activity] cut by div.grid"] })[0], /is cut off/);
     assert.deepEqual(problemsOf("x", { ...fine, overflowing: [], overlaps: [], cutColumns: [] }), []);
   });
+  it("two controls that overlap, when asked (akinaza#214)", () => {
+    const result = { ...fine, controlOverlaps: ["h3.kz-title over button.kz-row"] };
+    assert.match(
+      problemsOf("x", result, { controlOverlaps: true })[0],
+      /controls overlap, one cannot be clicked \(h3.kz-title over button.kz-row\)/,
+    );
+    assert.deepEqual(problemsOf("x", result), []);
+    assert.deepEqual(problemsOf("x", { ...fine, controlOverlaps: [] }, { controlOverlaps: true }), []);
+  });
   it("a console error, and a chip under 44 px", () => {
     assert.match(problemsOf("x", fine, { errors: ["React error #418"] })[0], /console error — React error #418/);
     assert.match(problemsOf("x", { ...fine, chips: [40, 48] })[0], /40 px tall/);

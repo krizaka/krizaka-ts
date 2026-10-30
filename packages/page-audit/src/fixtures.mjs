@@ -76,3 +76,12 @@ export const MAP_NO_CANVAS = page(
 );
 /** A map that is not drawn (display none: a closed tab, a small screen): nothing to measure. */
 export const MAP_HIDDEN = page(`<section><div class="maplibregl-map" style="display:none"></div></section>`);
+
+/** Two controls on top of each other: a title button over a row's button (akinaza#214, the composer's « Style » over « Réservation »). */
+export const CONTROLS_OVERLAP = page(
+  `<button style="display:block;width:200px;height:40px">Réservation</button><button style="display:block;width:200px;height:40px;margin-top:-20px;position:relative">Style</button>`,
+);
+/** Controls that sit side by side, a control inside a label, a hidden checkbox and a control scrolled out of its list: none overlaps. */
+export const CONTROLS_FINE = page(
+  `<div style="display:flex;gap:8px"><button style="width:100px;height:40px">A</button><button style="width:100px;height:40px">B</button></div><label style="display:block"><input type="checkbox"> Remember</label><div style="height:60px;overflow:auto"><button style="display:block;width:100px;height:40px">1</button><button style="display:block;width:100px;height:40px">2</button><button style="display:block;width:100px;height:40px">3</button></div><button style="display:block;width:100px;height:40px;margin-top:8px">After</button>`,
+);

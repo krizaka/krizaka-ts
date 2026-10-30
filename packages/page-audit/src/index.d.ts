@@ -21,6 +21,8 @@ export interface ProblemChecks {
   hardColors?: boolean;
   /** Empty maps (a GL / Leaflet / `[data-kz-map]` box under 120 px, no canvas, no loaded tile); `{ min, required }` to tune, `required` fails a page with no map. */
   maps?: boolean | { min?: number; required?: boolean };
+  /** Two interactive elements (buttons, links, inputs, radios…) that share pixels on screen, one not inside the other: one of them cannot be clicked. The box is cut by clipping and scrolling ancestors. */
+  controlOverlaps?: boolean;
 }
 export function problemsOf(where: string, result: Record<string, unknown>, checks?: ProblemChecks): string[];
 export function auditOptions<T extends object>(options?: T): T & { reducedMotion: "reduce" };
