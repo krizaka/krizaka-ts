@@ -1,0 +1,13 @@
+id: no-hand-intl-format
+valid:
+  - |
+    const date = formatDate(from, { locale, style: "long" });
+  - |
+    const list = new Intl.ListFormat(locale).format(names);
+invalid:
+  - |
+    const date = new Intl.DateTimeFormat(locale, { dateStyle: "long" }).format(new Date(from));
+  - |
+    const n = new Intl.NumberFormat("fr-CA").format(total);
+  - |
+    const day = when.toLocaleDateString(locale);

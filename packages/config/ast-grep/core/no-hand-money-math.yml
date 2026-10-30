@@ -1,0 +1,25 @@
+id: no-hand-money-math
+language: Tsx
+severity: error
+message: "No hand-made money conversion (`cents / 100`, `amount * 100`): money is integer minor units. Format with `formatMoney` of @krizaka/intl and edit with `moneyInputText` / the money field of @krizaka/ui. A missing function is added to the lib first."
+rule:
+  any:
+    - pattern: $A / 100
+    - pattern: $A * 100
+    - pattern: Math.round($A * 100)
+constraints:
+  A:
+    regex: '(?i)(cents|minor|amount|price|total|money)'
+ignores:
+  - "**/node_modules/**"
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+  - "**/*.stories.tsx"
+  - "**/__tests__/**"
+  - "**/tests/**"
+  - "**/e2e/**"
+  - "**/fixtures/**"
+  - "**/scripts/**"
+  - "**/tools/**"
+  - "**/intl/src/**"
+  - "packages/payments/**"

@@ -1,0 +1,15 @@
+id: no-hand-money-math
+valid:
+  - |
+    const shown = formatMoney(price.amountCents, { currency: "CAD", locale });
+  - |
+    const percent = ratio * 100;
+  - |
+    const pages = Math.ceil(count / 100);
+invalid:
+  - |
+    const amount = String(change.amountCents / 100);
+  - |
+    const cents = Math.round(Number(input) * 100) + priceTotal * 100;
+  - |
+    const dollars = minorUnits / 100;

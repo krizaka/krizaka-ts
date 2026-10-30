@@ -1,0 +1,22 @@
+id: no-hand-intl-format
+language: Tsx
+severity: error
+message: "No hand-made date or number format (`new Intl.DateTimeFormat`, `new Intl.NumberFormat`, `toLocaleDateString`): the same value must read the same in every product. Use `formatDate`, `formatMoney`, `formatNumber` of @krizaka/intl. A missing function is added to the lib first."
+rule:
+  any:
+    - pattern: new Intl.DateTimeFormat($$$ARGS)
+    - pattern: new Intl.NumberFormat($$$ARGS)
+    - pattern: $D.toLocaleDateString($$$ARGS)
+    - pattern: $D.toLocaleTimeString($$$ARGS)
+ignores:
+  - "**/node_modules/**"
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+  - "**/*.stories.tsx"
+  - "**/__tests__/**"
+  - "**/tests/**"
+  - "**/e2e/**"
+  - "**/fixtures/**"
+  - "**/scripts/**"
+  - "**/tools/**"
+  - "**/intl/src/**"

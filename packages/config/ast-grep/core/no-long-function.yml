@@ -1,0 +1,26 @@
+id: no-long-function
+language: Tsx
+severity: error
+message: "A function body over 60 lines does more than one job. Split it: name each step (a pure `planOf`, a `summaryOf`, one mutation), keep the handler a table of contents, and move the generic part into its @krizaka/* package. The krizaka-engineering skill, « Small functions with one job »."
+# 60 newlines inside the braces = a body of 61 lines or more (blank and comment lines count: a screen is a screen).
+rule:
+  kind: statement_block
+  regex: '\A(?:[^\n]*\n){60}'
+  inside:
+    any:
+      - kind: function_declaration
+      - kind: arrow_function
+      - kind: function_expression
+      - kind: method_definition
+      - kind: generator_function_declaration
+ignores:
+  - "**/node_modules/**"
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+  - "**/*.stories.tsx"
+  - "**/__tests__/**"
+  - "**/tests/**"
+  - "**/e2e/**"
+  - "**/fixtures/**"
+  - "**/scripts/**"
+  - "**/tools/**"
