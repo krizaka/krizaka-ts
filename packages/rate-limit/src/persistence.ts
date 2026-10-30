@@ -33,7 +33,10 @@ export function dbLimitStore(query: Query, options: { schema?: string } = {}): L
       return toHit(row!);
     },
     async peek(key, now) {
-      const [row] = await query<Row>(`SELECT count, reset_at FROM ${bucket} WHERE key = $1 AND reset_at > $2`, [key, now]);
+      const [row] = await query<Row>(`SELECT count, reset_at FROM ${bucket} WHERE key = $1 AND reset_at > $2`, [
+        key,
+        now,
+      ]);
       return row ? toHit(row) : null;
     },
     async set(key, count, seconds, now) {

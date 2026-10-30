@@ -1,15 +1,30 @@
 import { describe, expect, it } from "vitest";
 
-import { FROZEN_TIME, settleForShot, shotOptions, VIEWPORTS,visualContextOptions, visualMatrix } from "../src/visual.mjs";
+import {
+  FROZEN_TIME,
+  settleForShot,
+  shotOptions,
+  VIEWPORTS,
+  visualContextOptions,
+  visualMatrix,
+} from "../src/visual.mjs";
 
 describe("visualMatrix", () => {
   it("gives a name to every viewport × theme cell", () => {
     const names = visualMatrix({ name: "pricing" }).map((c) => c.snapshot);
-    expect(names).toEqual(["pricing-desktop-light.png", "pricing-desktop-dark.png", "pricing-phone-light.png", "pricing-phone-dark.png"]);
+    expect(names).toEqual([
+      "pricing-desktop-light.png",
+      "pricing-desktop-dark.png",
+      "pricing-phone-light.png",
+      "pricing-phone-dark.png",
+    ]);
   });
   it("keeps only the viewports a journey asks for, and names the first paint apart", () => {
     const cells = visualMatrix({ name: "home", viewports: ["phone"], firstPaint: true });
-    expect(cells.map((c) => c.snapshot)).toEqual(["home-first-paint-phone-light.png", "home-first-paint-phone-dark.png"]);
+    expect(cells.map((c) => c.snapshot)).toEqual([
+      "home-first-paint-phone-light.png",
+      "home-first-paint-phone-dark.png",
+    ]);
   });
   it("refuses an unknown viewport", () => {
     expect(() => visualMatrix({ name: "x", viewports: ["tv"] })).toThrow(/unknown viewport/);
@@ -19,10 +34,18 @@ describe("visualMatrix", () => {
 describe("visualContextOptions", () => {
   it("fixes what moves between two runs", () => {
     const o = visualContextOptions({ size: VIEWPORTS.phone, theme: "dark" });
-    expect(o).toMatchObject({ reducedMotion: "reduce", colorScheme: "dark", timezoneId: "America/Toronto", serviceWorkers: "block", javaScriptEnabled: true });
+    expect(o).toMatchObject({
+      reducedMotion: "reduce",
+      colorScheme: "dark",
+      timezoneId: "America/Toronto",
+      serviceWorkers: "block",
+      javaScriptEnabled: true,
+    });
   });
   it("can turn JavaScript off for the first paint", () => {
-    expect(visualContextOptions({ size: VIEWPORTS.phone, theme: "light", javaScript: false }).javaScriptEnabled).toBe(false);
+    expect(visualContextOptions({ size: VIEWPORTS.phone, theme: "light", javaScript: false }).javaScriptEnabled).toBe(
+      false,
+    );
   });
 });
 
@@ -46,7 +69,11 @@ describe("settleForShot", () => {
   });
   it("freezes the page and waits for the faces when scripts run", async () => {
     const calls = [];
-    const page = { addStyleTag: async () => calls.push("style"), evaluate: async () => calls.push("evaluate"), waitForFunction: async () => calls.push("settled") };
+    const page = {
+      addStyleTag: async () => calls.push("style"),
+      evaluate: async () => calls.push("evaluate"),
+      waitForFunction: async () => calls.push("settled"),
+    };
     await settleForShot(page);
     expect(calls).toEqual(["style", "evaluate", "settled", "evaluate"]);
   });

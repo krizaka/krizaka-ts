@@ -4,7 +4,9 @@ import type { NewSession, Session, SessionStore } from "./sessions";
  * An in-memory session store, for unit tests and demos. `accountOf` plays the accounts table: it answers the account of an id, or null
  * when it does not exist or is not active.
  */
-export function memorySessionStore<Account>(accountOf: (accountId: string) => Account | null): SessionStore<Account> & { rows(): readonly NewSession[] } {
+export function memorySessionStore<Account>(
+  accountOf: (accountId: string) => Account | null,
+): SessionStore<Account> & { rows(): readonly NewSession[] } {
   const rows = new Map<string, NewSession & { id: string }>();
   let next = 0;
   return {

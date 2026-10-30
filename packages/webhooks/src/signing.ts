@@ -19,14 +19,26 @@ export function signBody(secret: string, body: string, atSeconds: number): strin
 export type VerifyResult = { ok: true } | { ok: false; reason: "missing" | "malformed" | "stale" | "mismatch" };
 
 /** Checks a signature header over the raw body: well-formed, not older than the tolerance (or from the future), and equal in constant time. Any of several `v1` values may match (a secret being rotated). */
-export function verifySignature(secret: string, body: string, header: string | null | undefined, nowSeconds: number): VerifyResult {
+export function verifySignature(
+  secret: string,
+  body: string,
+  header: string | null | undefined,
+  nowSeconds: number,
+): VerifyResult {
   if (!header) return { ok: false, reason: "missing" };
   try {
     verifyPayload(body, header, secret, nowSeconds);
     return { ok: true };
   } catch (error) {
     if (!(error instanceof PaymentsError)) throw error;
-    return { ok: false, reason: error.message.startsWith("Missing") ? "malformed" : error.message.startsWith("Timestamp") ? "stale" : "mismatch" };
+    return {
+      ok: false,
+      reason: error.message.startsWith("Missing")
+        ? "malformed"
+        : error.message.startsWith("Timestamp")
+          ? "stale"
+          : "mismatch",
+    };
   }
 }
 

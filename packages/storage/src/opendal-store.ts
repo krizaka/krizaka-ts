@@ -54,8 +54,10 @@ const kindOf = (message: string) => /^([A-Za-z]+) \(/.exec(message)?.[1] ?? "";
 export function storageErrorOf(error: unknown, auth: "keys" | "oauth" | "none", what: string): StorageError {
   if (error instanceof StorageError) return error;
   const kind = kindOf(error instanceof Error ? error.message : String(error));
-  if (kind === "PermissionDenied" && auth === "oauth") return new StorageError(STORAGE_CODE.disconnected, "The cloud no longer accepts this connection");
-  if (kind === "ConfigInvalid" || kind === "Unsupported") return new StorageError(STORAGE_CODE.badConfig, `The provider's settings are not valid (${kind})`);
+  if (kind === "PermissionDenied" && auth === "oauth")
+    return new StorageError(STORAGE_CODE.disconnected, "The cloud no longer accepts this connection");
+  if (kind === "ConfigInvalid" || kind === "Unsupported")
+    return new StorageError(STORAGE_CODE.badConfig, `The provider's settings are not valid (${kind})`);
   return new StorageError(STORAGE_CODE.provider, `The provider refused the ${what} (${kind || "unknown"})`);
 }
 
@@ -63,10 +65,11 @@ const isNotFound = (error: unknown) => error instanceof Error && kindOf(error.me
 
 let binding: Promise<typeof import("opendal")> | null = null;
 /** The native module is loaded on first use, never at import: a product that opens no OpenDAL provider never loads it. */
-const loadOpendal = () => (binding ??= import("opendal").catch(() => {
-  binding = null;
-  throw new StorageError(STORAGE_CODE.badConfig, "This provider needs the optional dependency `opendal`");
-}));
+const loadOpendal = () =>
+  (binding ??= import("opendal").catch(() => {
+    binding = null;
+    throw new StorageError(STORAGE_CODE.badConfig, "This provider needs the optional dependency `opendal`");
+  }));
 
 /** The port, plus a streaming read for large files (the port reads whole files): OpenDAL's reader as a Node stream. */
 export interface OpendalObjectStore extends ObjectStore {
@@ -81,15 +84,23 @@ export interface OpendalObjectStore extends ObjectStore {
  * @throws StorageError `STORAGE_BAD_CONFIG` (unknown service, local service without `allowLocal`), `STORAGE_BAD_ENDPOINT`
  */
 export async function opendalStore(input: OpendalStoreOptions): Promise<OpendalObjectStore> {
-  const service = (OPENDAL_SERVICES as Record<string, (typeof OPENDAL_SERVICES)[OpendalService] | undefined>)[input.service];
+  const service = (OPENDAL_SERVICES as Record<string, (typeof OPENDAL_SERVICES)[OpendalService] | undefined>)[
+    input.service
+  ];
   if (!service) throw new StorageError(STORAGE_CODE.badConfig, `Unknown file service: ${input.service}`);
-  if (service.local && !input.allowLocal) throw new StorageError(STORAGE_CODE.badConfig, `${input.service} reads the server's own disk or memory: development only`);
-  if (service.auth === "oauth" && !input.accessToken) throw new StorageError(STORAGE_CODE.badConfig, `${input.service} needs a connected account`);
+  if (service.local && !input.allowLocal)
+    throw new StorageError(
+      STORAGE_CODE.badConfig,
+      `${input.service} reads the server's own disk or memory: development only`,
+    );
+  if (service.auth === "oauth" && !input.accessToken)
+    throw new StorageError(STORAGE_CODE.badConfig, `${input.service} needs a connected account`);
   const options: Record<string, string> = { ...input.options };
   if (service.endpoint && options[service.endpoint] !== undefined) {
     const allowLocal = input.allowLocal === true;
     options[service.endpoint] = checkEndpoint(options[service.endpoint]!, { allowLocal });
-    if (!allowLocal) await checkEndpointDns(options[service.endpoint]!, input.resolve ? { resolve: input.resolve } : {});
+    if (!allowLocal)
+      await checkEndpointDns(options[service.endpoint]!, input.resolve ? { resolve: input.resolve } : {});
   }
   const { Operator: OperatorClass } = await loadOpendal();
   const prefix = trimSlashes(input.prefix ?? "");
@@ -101,7 +112,10 @@ export async function opendalStore(input: OpendalStoreOptions): Promise<OpendalO
     const token = input.accessToken ? await input.accessToken() : null;
     if (!current || current.token !== token) {
       try {
-        current = { token, op: new OperatorClass(input.service, token === null ? options : { ...options, access_token: token }) };
+        current = {
+          token,
+          op: new OperatorClass(input.service, token === null ? options : { ...options, access_token: token }),
+        };
       } catch (error) {
         throw storageErrorOf(error, auth, "connection");
       }
@@ -122,7 +136,11 @@ export async function opendalStore(input: OpendalStoreOptions): Promise<OpendalO
     async put(key, bytes, meta) {
       const path = pathOf(key);
       await run("upload", async (op) => {
-        await op.write(path, Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength), op.capability().writeWithContentType ? { contentType: meta.contentType } : undefined);
+        await op.write(
+          path,
+          Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength),
+          op.capability().writeWithContentType ? { contentType: meta.contentType } : undefined,
+        );
       });
     },
     async get(key) {
@@ -141,7 +159,9 @@ export async function opendalStore(input: OpendalStoreOptions): Promise<OpendalO
     },
     async list(under) {
       const root = prefix === "" ? "" : `${prefix}/`;
-      const entries = await run("listing", (op) => op.list(root === "" ? "/" : root, { recursive: true }), { value: [] });
+      const entries = await run("listing", (op) => op.list(root === "" ? "/" : root, { recursive: true }), {
+        value: [],
+      });
       const out: ObjectInfo[] = [];
       for (const entry of entries) {
         const meta = entry.metadata();
@@ -152,7 +172,9 @@ export async function opendalStore(input: OpendalStoreOptions): Promise<OpendalO
     },
     async signedUrl(key, ttlSeconds) {
       const path = pathOf(key);
-      return run("signed link", async (op) => (op.capability().presignRead ? (await op.presignRead(path, ttlSeconds)).url : null));
+      return run("signed link", async (op) =>
+        op.capability().presignRead ? (await op.presignRead(path, ttlSeconds)).url : null,
+      );
     },
     publicUrl: () => null,
     async readStream(key) {

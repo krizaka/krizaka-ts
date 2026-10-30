@@ -66,7 +66,8 @@ export function checkWorkspaceRanges(manifests) {
   for (const m of manifests) {
     for (const field of FIELDS) {
       for (const [name, range] of Object.entries(m[field] ?? {})) {
-        if (own.has(name) && !String(range).startsWith("workspace:")) bad.push(`${m.name} -> ${name}@${range} (${field})`);
+        if (own.has(name) && !String(range).startsWith("workspace:"))
+          bad.push(`${m.name} -> ${name}@${range} (${field})`);
       }
     }
   }

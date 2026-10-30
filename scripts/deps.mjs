@@ -13,9 +13,36 @@ import { fileURLToPath } from "node:url";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 /** The packages with TypeScript sources, and the folders of their sources (`config` is the preset itself: it has none). */
-export const PACKAGES = Object.freeze(Object.fromEntries(
-  ["api-keys", "architecture", "audit", "auth", "brief", "coupons", "credits", "db", "email-verification", "mail", "notifications", "orazaka-client", "org", "organize", "outbox", "page-audit", "payments", "privacy", "rate-limit", "settings", "storage", "time", "video", "webhooks"].map((name) => [`packages/${name}`, ["src"]]),
-));
+export const PACKAGES = Object.freeze(
+  Object.fromEntries(
+    [
+      "api-keys",
+      "architecture",
+      "audit",
+      "auth",
+      "brief",
+      "coupons",
+      "credits",
+      "db",
+      "email-verification",
+      "mail",
+      "notifications",
+      "orazaka-client",
+      "org",
+      "organize",
+      "outbox",
+      "page-audit",
+      "payments",
+      "privacy",
+      "rate-limit",
+      "settings",
+      "storage",
+      "time",
+      "video",
+      "webhooks",
+    ].map((name) => [`packages/${name}`, ["src"]]),
+  ),
+);
 
 /** The packages of the repository that own a `src` folder: a new one cannot escape the cruise (scripts/deps.test.mjs). */
 export function packagesWithSources(root = ROOT) {
@@ -30,7 +57,9 @@ function run(command, workspace) {
   const config = join(ROOT, ".dependency-cruiser.cjs");
   // node itself runs the tool by its path (no PATH lookup): the root installs @krizaka/config, and the tool finds depcruise from `cwd`.
   const tool = join(ROOT, "node_modules", "@krizaka", "config", "bin", "krizaka-known-violations.mjs");
-  return spawnSync(process.execPath, [tool, command, "--config", config, ...folders], { cwd, stdio: "inherit" }).status ?? 1;
+  return (
+    spawnSync(process.execPath, [tool, command, "--config", config, ...folders], { cwd, stdio: "inherit" }).status ?? 1
+  );
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

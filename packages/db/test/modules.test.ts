@@ -1,12 +1,27 @@
 import { describe, expect, it } from "vitest";
 
-import { adoptMigration, assertModules, checksumOf, DB_CODE, DbError, defineModule, emitMigration, ident, type Query } from "../src";
+import {
+  adoptMigration,
+  assertModules,
+  checksumOf,
+  DB_CODE,
+  DbError,
+  defineModule,
+  emitMigration,
+  ident,
+  type Query,
+} from "../src";
 
 const audit = defineModule({
   module: "audit",
   tables: ["owner"],
   migrations: [
-    { version: 1, name: "entries", sql: (c) => `CREATE TABLE ${c.schema}.entry (id bigserial PRIMARY KEY, actor_id uuid REFERENCES ${c.tables.owner}(id) ON DELETE SET NULL);` },
+    {
+      version: 1,
+      name: "entries",
+      sql: (c) =>
+        `CREATE TABLE ${c.schema}.entry (id bigserial PRIMARY KEY, actor_id uuid REFERENCES ${c.tables.owner}(id) ON DELETE SET NULL);`,
+    },
     { version: 2, name: "action index", sql: (c) => `CREATE INDEX entry_action ON ${c.schema}.entry (id);` },
   ],
 });
@@ -29,14 +44,20 @@ describe("a module schema", () => {
   });
 
   it("lets a module that predates ADR-001 keep its tables in another schema by default (`public`), which the product may still rename", () => {
-    const legacy = defineModule({ module: "legacy", schema: "public", migrations: [{ version: 1, name: "t", sql: () => "CREATE TABLE IF NOT EXISTS t (id int);" }] });
+    const legacy = defineModule({
+      module: "legacy",
+      schema: "public",
+      migrations: [{ version: 1, name: "t", sql: () => "CREATE TABLE IF NOT EXISTS t (id int);" }],
+    });
     expect(emitMigration(legacy, 1, { tables: {} })).toContain("CREATE SCHEMA IF NOT EXISTS public;");
     expect(emitMigration(legacy, 1, { tables: {}, schema: "kz" })).toContain("CREATE SCHEMA IF NOT EXISTS kz;");
     expect(() => defineModule({ module: "legacy", schema: "Bad Schema", migrations: [] })).toThrow(DbError);
   });
 
   it("refuses versions that are not 1, 2, 3… in order, and a module name that is not an identifier", () => {
-    expect(() => defineModule({ module: "x", migrations: [{ version: 2, name: "a", sql: () => "" }] })).toThrow(/1, 2, 3/);
+    expect(() => defineModule({ module: "x", migrations: [{ version: 2, name: "a", sql: () => "" }] })).toThrow(
+      /1, 2, 3/,
+    );
     expect(() => defineModule({ module: "Bad-Name", migrations: [] })).toThrow(DbError);
   });
 
@@ -57,7 +78,12 @@ describe("a module schema", () => {
 describe("emitting a version into the product's sequence", () => {
   it("creates the schema and the marker table, runs the version's SQL, then writes its marker", () => {
     const sql = emitMigration(audit, 1, context);
-    const order = ["CREATE TABLE IF NOT EXISTS public.krizaka_module_versions", "CREATE SCHEMA IF NOT EXISTS audit;", "CREATE TABLE audit.entry", "INSERT INTO public.krizaka_module_versions"];
+    const order = [
+      "CREATE TABLE IF NOT EXISTS public.krizaka_module_versions",
+      "CREATE SCHEMA IF NOT EXISTS audit;",
+      "CREATE TABLE audit.entry",
+      "INSERT INTO public.krizaka_module_versions",
+    ];
     const positions = order.map((part) => sql.indexOf(part));
     expect(positions.every((p) => p >= 0)).toBe(true);
     expect([...positions].sort((a, b) => a - b)).toEqual(positions);
@@ -80,7 +106,10 @@ describe("emitting a version into the product's sequence", () => {
 
 describe("the boot check", () => {
   const markers = (rows: { module: string; version: number; checksum: string }[]): Query =>
-    (async (sql: string) => (sql.includes("to_regclass") ? [{ present: rows.length > 0 ? "public.krizaka_module_versions" : null }] : rows)) as Query;
+    (async (sql: string) =>
+      sql.includes("to_regclass")
+        ? [{ present: rows.length > 0 ? "public.krizaka_module_versions" : null }]
+        : rows) as Query;
 
   it("passes when every version the code knows is in the database", async () => {
     const rows = [1, 2].map((version) => ({ module: "audit", version, checksum: checksumOf(audit, version, context) }));
@@ -89,15 +118,27 @@ describe("the boot check", () => {
 
   it("lists every missing version", async () => {
     const rows = [{ module: "audit", version: 1, checksum: checksumOf(audit, 1, context) }];
-    await expect(assertModules(markers(rows), [{ schema: audit, context }])).rejects.toMatchObject({ code: DB_CODE.missingModules, details: ["audit v2"] });
+    await expect(assertModules(markers(rows), [{ schema: audit, context }])).rejects.toMatchObject({
+      code: DB_CODE.missingModules,
+      details: ["audit v2"],
+    });
   });
 
   it("refuses a version whose SQL changed after it was applied", async () => {
-    const rows = [1, 2].map((version) => ({ module: "audit", version, checksum: version === 1 ? "0".repeat(64) : checksumOf(audit, version, context) }));
-    await expect(assertModules(markers(rows), [{ schema: audit, context }])).rejects.toMatchObject({ code: DB_CODE.frozenChanged, details: ["audit v1"] });
+    const rows = [1, 2].map((version) => ({
+      module: "audit",
+      version,
+      checksum: version === 1 ? "0".repeat(64) : checksumOf(audit, version, context),
+    }));
+    await expect(assertModules(markers(rows), [{ schema: audit, context }])).rejects.toMatchObject({
+      code: DB_CODE.frozenChanged,
+      details: ["audit v1"],
+    });
   });
 
   it("says every version is missing on a database that never ran a module", async () => {
-    await expect(assertModules(markers([]), [{ schema: audit, context }])).rejects.toMatchObject({ details: ["audit v1", "audit v2"] });
+    await expect(assertModules(markers([]), [{ schema: audit, context }])).rejects.toMatchObject({
+      details: ["audit v1", "audit v2"],
+    });
   });
 });

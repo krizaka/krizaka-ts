@@ -15,7 +15,14 @@ describe("browser-safe entries import no node built-in", () => {
   for (const { dir, manifest } of packages) {
     for (const entry of manifest.krizaka.browserSafe) {
       it(`${manifest.name}${entry.slice(1)}`, async () => {
-        const result = await build({ entryPoints: [join("packages", dir, "src", `${entry.slice(2)}.ts`)], bundle: true, write: false, platform: "browser", format: "esm", logLevel: "silent" }).then(
+        const result = await build({
+          entryPoints: [join("packages", dir, "src", `${entry.slice(2)}.ts`)],
+          bundle: true,
+          write: false,
+          platform: "browser",
+          format: "esm",
+          logLevel: "silent",
+        }).then(
           () => null,
           (error) => error,
         );

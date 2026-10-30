@@ -3,7 +3,14 @@ import { randomUUID } from "node:crypto";
 import { expect, it } from "vitest";
 
 import type { Coupons } from "./coupons";
-import { type Actor, COUPON_DEFAULTS, type CouponSettings, type CreditsPort, type NewCoupon, type Query } from "./index";
+import {
+  type Actor,
+  COUPON_DEFAULTS,
+  type CouponSettings,
+  type CreditsPort,
+  type NewCoupon,
+  type Query,
+} from "./index";
 
 /** What a store (through the module) is run against: the module on that store, a clock the test moves, and fakes for its neighbours. */
 export interface CouponsHarness {
@@ -19,11 +26,18 @@ export interface CouponsHarness {
   /** The messages appended to the outbox so far. */
   announced(): { type: string; id: string | undefined; payload: Record<string, unknown> }[];
   /** The audit actions recorded so far, with their target. */
-  audited(): { action: string; target: { type: string; id: string } | null | undefined; detail: Record<string, unknown> | undefined }[];
+  audited(): {
+    action: string;
+    target: { type: string; id: string } | null | undefined;
+    detail: Record<string, unknown> | undefined;
+  }[];
   /** The credits ledger's calls (a fake, or the real one wrapped to record). */
   credits: { granted: Parameters<CreditsPort["grant"]>[1][]; expired: string[] };
   /** The limiter: the attempts counted, and a way to refuse the next ones. */
-  limiter: { attempts: { action: string; ip: string | null | undefined; subject: string | null | undefined }[]; refuse(retryAfterSeconds: number | null): void };
+  limiter: {
+    attempts: { action: string; ip: string | null | undefined; subject: string | null | undefined }[];
+    refuse(retryAfterSeconds: number | null): void;
+  };
 }
 
 /** Midday on 26 October 2026 in Toronto: the day the scenarios start on. */
@@ -73,19 +87,45 @@ async function code(work: Promise<unknown>): Promise<string> {
  * `coupons.enabled` on.
  */
 export function couponsContract(name: string, make: () => Promise<CouponsHarness>) {
-  const ctx = (accountId: string, over: Record<string, unknown> = {}) => ({ mode: "checkout" as const, accountId, plan: "pro", amountMinor: 10_000, currency: "cad", ...over });
+  const ctx = (accountId: string, over: Record<string, unknown> = {}) => ({
+    mode: "checkout" as const,
+    accountId,
+    plan: "pro",
+    amountMinor: 10_000,
+    currency: "cad",
+    ...over,
+  });
   const apply = (h: CouponsHarness, codeTyped: string, accountId: string, over: Record<string, unknown> = {}) =>
-    h.coupons.apply(h.tx, { code: codeTyped, accountId, plan: "pro", amountMinor: 10_000, currency: "cad", idempotencyKey: randomUUID(), ...over });
-  const made = async (h: CouponsHarness, over: Partial<NewCoupon> = {}) => h.coupons.admin.create(h.tx, ADMIN, discount({ currency: "cad", ...over }));
-  const paid = (redemptionId: string, over: Record<string, unknown> = {}) => ({ redemptionId, paymentRef: `pi_${randomUUID().slice(0, 8)}`, amountPaidMinor: 8000, amountDiscountMinor: 2000, currency: "cad", ...over });
+    h.coupons.apply(h.tx, {
+      code: codeTyped,
+      accountId,
+      plan: "pro",
+      amountMinor: 10_000,
+      currency: "cad",
+      idempotencyKey: randomUUID(),
+      ...over,
+    });
+  const made = async (h: CouponsHarness, over: Partial<NewCoupon> = {}) =>
+    h.coupons.admin.create(h.tx, ADMIN, discount({ currency: "cad", ...over }));
+  const paid = (redemptionId: string, over: Record<string, unknown> = {}) => ({
+    redemptionId,
+    paymentRef: `pi_${randomUUID().slice(0, 8)}`,
+    amountPaidMinor: 8000,
+    amountDiscountMinor: 2000,
+    currency: "cad",
+    ...over,
+  });
 
   it(`${name}: creates a coupon, reads its code without case, spaces or hyphens, refuses a taken code, and audits`, async () => {
     const h = await make();
     const c = await h.coupons.admin.create(h.tx, ADMIN, discount({ code: "Summer-2026" }));
     expect(c).toMatchObject({ code: "Summer-2026", codeKey: "SUMMER2026", status: "active", termsVersion: 1 });
-    expect(await code(h.coupons.admin.create(h.tx, ADMIN, discount({ code: "summer 2026" })))).toBe("COUPON_CODE_TAKEN");
+    expect(await code(h.coupons.admin.create(h.tx, ADMIN, discount({ code: "summer 2026" })))).toBe(
+      "COUPON_CODE_TAKEN",
+    );
     const a = await h.newAccount();
-    for (const typed of [" summer-2026 ", "SUMMER 2026", "summer_2026"]) expect(await h.coupons.validate(h.tx, typed, ctx(a))).toMatchObject({ ok: true, coupon: { id: c.id } });
+    for (const typed of [" summer-2026 ", "SUMMER 2026", "summer_2026"])
+      expect(await h.coupons.validate(h.tx, typed, ctx(a))).toMatchObject({ ok: true, coupon: { id: c.id } });
     expect(h.audited().map((e) => e.action)).toEqual(["coupon.created"]);
     expect(h.audited()[0]).toMatchObject({ target: { type: "coupon", id: c.id }, detail: { code: "Summer-2026" } });
   });
@@ -116,7 +156,12 @@ export function couponsContract(name: string, make: () => Promise<CouponsHarness
     await h.coupons.admin.archive(h.tx, ADMIN, c.id);
     expect(await h.coupons.validate(h.tx, c.code, ctx(a))).toEqual({ ok: false, code: "COUPON_PAUSED" });
     expect(await code(h.coupons.admin.resume(h.tx, ADMIN, c.id))).toBe("COUPON_BAD_INPUT");
-    expect(h.audited().map((e) => e.action)).toEqual(["coupon.created", "coupon.paused", "coupon.resumed", "coupon.archived"]);
+    expect(h.audited().map((e) => e.action)).toEqual([
+      "coupon.created",
+      "coupon.paused",
+      "coupon.resumed",
+      "coupon.archived",
+    ]);
   });
 
   it(`${name}: refuses with a typed code: unknown, kind, plan, minimum, currency, new customers, provider, too large, disabled`, async () => {
@@ -131,7 +176,13 @@ export function couponsContract(name: string, make: () => Promise<CouponsHarness
     h.setSettings({ maxPercentOff: 70 }); // a coupon is created within the bound, then the admin lowers it
     const big = await made(h, { percentOffBp: 6000 });
     h.setSettings({ maxPercentOff: 50 });
-    const fixed = await made(h, { percentOffBp: null, amountOffMinor: 6000, currency: "cad", duration: "once", durationMonths: null });
+    const fixed = await made(h, {
+      percentOffBp: null,
+      amountOffMinor: 6000,
+      currency: "cad",
+      duration: "once",
+      durationMonths: null,
+    });
     const cr = await h.coupons.admin.create(h.tx, ADMIN, credit());
     expect(await refusal("NOPE")).toBe("COUPON_UNKNOWN");
     expect(await refusal("???")).toBe("COUPON_UNKNOWN");
@@ -163,8 +214,16 @@ export function couponsContract(name: string, make: () => Promise<CouponsHarness
       { action: "couponAttempt", ip: undefined, subject: a },
     ]);
     h.limiter.refuse(42);
-    expect(await h.coupons.validate(h.tx, c.code, ctx(a))).toEqual({ ok: false, code: "COUPON_RATE_LIMITED", retryAfterSeconds: 42 });
-    await expect(apply(h, c.code, a)).rejects.toMatchObject({ code: "COUPON_RATE_LIMITED", status: 429, retryAfterSeconds: 42 });
+    expect(await h.coupons.validate(h.tx, c.code, ctx(a))).toEqual({
+      ok: false,
+      code: "COUPON_RATE_LIMITED",
+      retryAfterSeconds: 42,
+    });
+    await expect(apply(h, c.code, a)).rejects.toMatchObject({
+      code: "COUPON_RATE_LIMITED",
+      status: 429,
+      retryAfterSeconds: 42,
+    });
     h.limiter.refuse(null);
     expect((await h.coupons.validate(h.tx, c.code, ctx(a))).ok).toBe(true);
   });
@@ -173,9 +232,27 @@ export function couponsContract(name: string, make: () => Promise<CouponsHarness
     const h = await make();
     const a = await h.newAccount();
     const pct = await made(h);
-    const fixed = await made(h, { percentOffBp: null, amountOffMinor: 500, currency: "cad", duration: "once", durationMonths: null });
-    expect(await h.coupons.validate(h.tx, pct.code, ctx(a))).toMatchObject({ ok: true, effect: { kind: "discount", percentOffBp: 2000, duration: "repeating", durationMonths: 3, discountMinor: 2000, payableMinor: 8000 } });
-    expect(await h.coupons.validate(h.tx, fixed.code, ctx(a, { amountMinor: 3900 }))).toMatchObject({ effect: { discountMinor: 500, payableMinor: 3400, amountOffMinor: 500 } });
+    const fixed = await made(h, {
+      percentOffBp: null,
+      amountOffMinor: 500,
+      currency: "cad",
+      duration: "once",
+      durationMonths: null,
+    });
+    expect(await h.coupons.validate(h.tx, pct.code, ctx(a))).toMatchObject({
+      ok: true,
+      effect: {
+        kind: "discount",
+        percentOffBp: 2000,
+        duration: "repeating",
+        durationMonths: 3,
+        discountMinor: 2000,
+        payableMinor: 8000,
+      },
+    });
+    expect(await h.coupons.validate(h.tx, fixed.code, ctx(a, { amountMinor: 3900 }))).toMatchObject({
+      effect: { discountMinor: 500, payableMinor: 3400, amountOffMinor: 500 },
+    });
   });
 
   it(`${name}: reserves a use under the counting rule: reserved uses count until their deadline, released ones never`, async () => {
@@ -204,7 +281,13 @@ export function couponsContract(name: string, make: () => Promise<CouponsHarness
     expect(again).toMatchObject({ redemptionId: first.redemptionId, replayed: true });
     expect(await code(apply(h, c.code, a2, { idempotencyKey: "co-1" }))).toBe("COUPON_KEY_REUSED");
     expect(await code(apply(h, other.code, a1, { idempotencyKey: "co-1" }))).toBe("COUPON_KEY_REUSED");
-    expect(first.discount).toEqual({ couponId: c.id, termsVersion: 1, percentOffBp: 2000, duration: "repeating", durationMonths: 3 });
+    expect(first.discount).toEqual({
+      couponId: c.id,
+      termsVersion: 1,
+      percentOffBp: 2000,
+      duration: "repeating",
+      durationMonths: 3,
+    });
     expect(first.effect).toMatchObject({ discountMinor: 2000, payableMinor: 8000 });
     expect(first.reservedUntil).toEqual(at(HOUR));
   });
@@ -212,8 +295,20 @@ export function couponsContract(name: string, make: () => Promise<CouponsHarness
   it(`${name}: hands the provider terms for an amount-off coupon with its currency`, async () => {
     const h = await make();
     const a = await h.newAccount();
-    const c = await made(h, { percentOffBp: null, amountOffMinor: 500, currency: "cad", duration: "once", durationMonths: null });
-    expect((await apply(h, c.code, a)).discount).toEqual({ couponId: c.id, termsVersion: 1, amountOffMinor: 500, currency: "cad", duration: "once" });
+    const c = await made(h, {
+      percentOffBp: null,
+      amountOffMinor: 500,
+      currency: "cad",
+      duration: "once",
+      durationMonths: null,
+    });
+    expect((await apply(h, c.code, a)).discount).toEqual({
+      couponId: c.id,
+      termsVersion: 1,
+      amountOffMinor: 500,
+      currency: "cad",
+      duration: "once",
+    });
   });
 
   it(`${name}: confirms a use once, from the checkout's metadata or from the session when the attach never ran`, async () => {
@@ -226,12 +321,38 @@ export function couponsContract(name: string, make: () => Promise<CouponsHarness
     expect(await h.coupons.redeem(h.tx, p1)).toBe("already");
     const r2 = await apply(h, c.code, a2);
     await h.coupons.attachCheckout(h.tx, r2.redemptionId, "cs_2", at(2 * HOUR));
-    expect(await h.coupons.redeem(h.tx, { checkoutRef: "cs_2", paymentRef: "pi_2", amountPaidMinor: 8000, amountDiscountMinor: 2000, currency: "cad" })).toBe("confirmed");
+    expect(
+      await h.coupons.redeem(h.tx, {
+        checkoutRef: "cs_2",
+        paymentRef: "pi_2",
+        amountPaidMinor: 8000,
+        amountDiscountMinor: 2000,
+        currency: "cad",
+      }),
+    ).toBe("confirmed");
     const r3 = await apply(h, c.code, a3);
     expect(await h.coupons.redeem(h.tx, paid(r3.redemptionId, { paymentRef: "pi_1" }))).toBe("already");
-    expect(await h.coupons.redeem(h.tx, { redemptionId: randomUUID(), checkoutRef: "cs_none", paymentRef: "pi_x", amountPaidMinor: 1, amountDiscountMinor: 0, currency: "cad" })).toBe("unknown");
-    const [row] = (await h.coupons.admin.redemptions(h.tx, { couponId: c.id, status: "confirmed" })).filter((r) => r.id === r1.redemptionId);
-    expect(row).toMatchObject({ status: "confirmed", paymentRef: "pi_1", amountPaidMinor: 8000, amountDiscountMinor: 2000, overLimit: false, accountId: a1 });
+    expect(
+      await h.coupons.redeem(h.tx, {
+        redemptionId: randomUUID(),
+        checkoutRef: "cs_none",
+        paymentRef: "pi_x",
+        amountPaidMinor: 1,
+        amountDiscountMinor: 0,
+        currency: "cad",
+      }),
+    ).toBe("unknown");
+    const [row] = (await h.coupons.admin.redemptions(h.tx, { couponId: c.id, status: "confirmed" })).filter(
+      (r) => r.id === r1.redemptionId,
+    );
+    expect(row).toMatchObject({
+      status: "confirmed",
+      paymentRef: "pi_1",
+      amountPaidMinor: 8000,
+      amountDiscountMinor: 2000,
+      overLimit: false,
+      accountId: a1,
+    });
   });
 
   it(`${name}: attaching the session makes the reservation outlive it`, async () => {
@@ -256,7 +377,10 @@ export function couponsContract(name: string, make: () => Promise<CouponsHarness
     expect(await h.coupons.redeem(h.tx, paid(r1.redemptionId))).toBe("confirmed");
     const late = (await h.coupons.admin.redemptions(h.tx, { couponId: c.id })).find((r) => r.id === r1.redemptionId);
     expect(late).toMatchObject({ status: "confirmed", overLimit: true });
-    expect(await h.coupons.validate(h.tx, c.code, ctx(await h.newAccount()))).toEqual({ ok: false, code: "COUPON_EXHAUSTED" });
+    expect(await h.coupons.validate(h.tx, c.code, ctx(await h.newAccount()))).toEqual({
+      ok: false,
+      code: "COUPON_EXHAUSTED",
+    });
   });
 
   it(`${name}: the sweeper releases reservations past their deadline, and a released one is not released twice`, async () => {
@@ -298,7 +422,12 @@ export function couponsContract(name: string, make: () => Promise<CouponsHarness
     expect(await code(apply(h, b.code, a2))).toBe("COUPON_EXHAUSTED");
     await h.coupons.refund(h.tx, { invoiceRef: "pi_b", amountRefunded: 8000 });
     expect((await apply(h, b.code, a2)).replayed).toBe(false);
-    expect(h.announced().filter((m) => m.type === "evt.coupon.refunded.v1").map((m) => m.payload.useRestored)).toEqual([false, false, false, true]);
+    expect(
+      h
+        .announced()
+        .filter((m) => m.type === "evt.coupon.refunded.v1")
+        .map((m) => m.payload.useRestored),
+    ).toEqual([false, false, false, true]);
   });
 
   it(`${name}: the terms are locked after the first use; the rules stay editable; a change is audited with before and after`, async () => {
@@ -311,19 +440,33 @@ export function couponsContract(name: string, make: () => Promise<CouponsHarness
     expect(await code(h.coupons.admin.update(h.tx, ADMIN, c.id, { percentOffBp: 3000 }))).toBe("COUPON_TERMS_LOCKED");
     const after = await h.coupons.admin.update(h.tx, ADMIN, c.id, { maxRedemptions: 10, endsAt: at(5 * HOUR) });
     expect(after).toMatchObject({ maxRedemptions: 10, percentOffBp: 1500 });
-    expect(await h.coupons.admin.update(h.tx, ADMIN, c.id, { maxRedemptions: 10 })).toMatchObject({ maxRedemptions: 10 });
+    expect(await h.coupons.admin.update(h.tx, ADMIN, c.id, { maxRedemptions: 10 })).toMatchObject({
+      maxRedemptions: 10,
+    });
     expect(await code(h.coupons.admin.update(h.tx, ADMIN, c.id, { endsAt: START }))).toBe("COUPON_BAD_INPUT");
-    const entry = h.audited().filter((e) => e.action === "coupon.updated").at(-1)!;
-    expect(entry.detail).toMatchObject({ changed: ["maxRedemptions", "endsAt"], before: { maxRedemptions: null, endsAt: null }, after: { maxRedemptions: 10 } });
-    expect(await code(h.coupons.admin.update(h.tx, ADMIN, randomUUID(), { maxRedemptions: 1 }))).toBe("COUPON_NOT_FOUND");
+    const entry = h
+      .audited()
+      .filter((e) => e.action === "coupon.updated")
+      .at(-1)!;
+    expect(entry.detail).toMatchObject({
+      changed: ["maxRedemptions", "endsAt"],
+      before: { maxRedemptions: null, endsAt: null },
+      after: { maxRedemptions: 10 },
+    });
+    expect(await code(h.coupons.admin.update(h.tx, ADMIN, randomUUID(), { maxRedemptions: 1 }))).toBe(
+      "COUPON_NOT_FOUND",
+    );
   });
 
   it(`${name}: the admin cannot create what the rules refuse: a free discount, a fixed amount forever, a credit coupon without a cap of its own`, async () => {
     const h = await make();
-    const bad = (over: Partial<NewCoupon>) => code(h.coupons.admin.create(h.tx, ADMIN, discount({ currency: "cad", ...over })));
+    const bad = (over: Partial<NewCoupon>) =>
+      code(h.coupons.admin.create(h.tx, ADMIN, discount({ currency: "cad", ...over })));
     expect(await bad({ percentOffBp: 10_000 })).toBe("COUPON_BAD_INPUT");
     expect(await bad({ percentOffBp: 5001 })).toBe("COUPON_BAD_INPUT");
-    expect(await bad({ percentOffBp: null, amountOffMinor: 500, duration: "forever", durationMonths: null })).toBe("COUPON_BAD_INPUT");
+    expect(await bad({ percentOffBp: null, amountOffMinor: 500, duration: "forever", durationMonths: null })).toBe(
+      "COUPON_BAD_INPUT",
+    );
     expect(await bad({ percentOffBp: null, amountOffMinor: null })).toBe("COUPON_BAD_INPUT");
     expect(await bad({ amountOffMinor: 5 })).toBe("COUPON_BAD_INPUT");
     expect(await bad({ duration: "once" })).toBe("COUPON_BAD_INPUT");
@@ -346,18 +489,51 @@ export function couponsContract(name: string, make: () => Promise<CouponsHarness
   it(`${name}: a credit coupon grants capped credits that expire, once per key, and the use counts`, async () => {
     const h = await make();
     const [a, b] = [await h.newAccount(), await h.newAccount()];
-    const c = await h.coupons.admin.create(h.tx, ADMIN, credit({ capPerMonth: 12, maxRedemptions: 1, onExhausted: "fallback_paid" }));
-    expect(await h.coupons.validate(h.tx, c.code, { mode: "redeem", accountId: a })).toMatchObject({ ok: true, effect: { kind: "credit", credits: 20, capPerDay: 5, capPerMonth: 12, validDays: 30, onExhausted: "fallback_paid" } });
+    const c = await h.coupons.admin.create(
+      h.tx,
+      ADMIN,
+      credit({ capPerMonth: 12, maxRedemptions: 1, onExhausted: "fallback_paid" }),
+    );
+    expect(await h.coupons.validate(h.tx, c.code, { mode: "redeem", accountId: a })).toMatchObject({
+      ok: true,
+      effect: {
+        kind: "credit",
+        credits: 20,
+        capPerDay: 5,
+        capPerMonth: 12,
+        validDays: 30,
+        onExhausted: "fallback_paid",
+      },
+    });
     const got = await h.coupons.redeemCredit(h.tx, { code: c.code, accountId: a, idempotencyKey: "rc-1" });
     expect(got).toMatchObject({ credits: 20, replayed: false });
     expect(got.expiresAt).toEqual(at(30 * 24 * HOUR));
-    expect(h.credits.granted).toEqual([{ accountId: a, amount: 20, capPerDay: 5, capPerMonth: 12, expiresAt: at(30 * 24 * HOUR), onExhausted: "fallback_paid", source: `coupon:${got.redemptionId}`, idempotencyKey: `coupon-${got.redemptionId}` }]);
-    expect((await h.coupons.redeemCredit(h.tx, { code: c.code, accountId: a, idempotencyKey: "rc-1" })).replayed).toBe(true);
+    expect(h.credits.granted).toEqual([
+      {
+        accountId: a,
+        amount: 20,
+        capPerDay: 5,
+        capPerMonth: 12,
+        expiresAt: at(30 * 24 * HOUR),
+        onExhausted: "fallback_paid",
+        source: `coupon:${got.redemptionId}`,
+        idempotencyKey: `coupon-${got.redemptionId}`,
+      },
+    ]);
+    expect((await h.coupons.redeemCredit(h.tx, { code: c.code, accountId: a, idempotencyKey: "rc-1" })).replayed).toBe(
+      true,
+    );
     expect(h.credits.granted).toHaveLength(1);
-    expect(await code(h.coupons.redeemCredit(h.tx, { code: c.code, accountId: b, idempotencyKey: "rc-1" }))).toBe("COUPON_KEY_REUSED");
-    expect(await code(h.coupons.redeemCredit(h.tx, { code: c.code, accountId: b, idempotencyKey: "rc-2" }))).toBe("COUPON_EXHAUSTED");
+    expect(await code(h.coupons.redeemCredit(h.tx, { code: c.code, accountId: b, idempotencyKey: "rc-1" }))).toBe(
+      "COUPON_KEY_REUSED",
+    );
+    expect(await code(h.coupons.redeemCredit(h.tx, { code: c.code, accountId: b, idempotencyKey: "rc-2" }))).toBe(
+      "COUPON_EXHAUSTED",
+    );
     const kind = await made(h);
-    expect(await code(h.coupons.redeemCredit(h.tx, { code: kind.code, accountId: b, idempotencyKey: "rc-3" }))).toBe("COUPON_KIND");
+    expect(await code(h.coupons.redeemCredit(h.tx, { code: kind.code, accountId: b, idempotencyKey: "rc-3" }))).toBe(
+      "COUPON_KIND",
+    );
     expect(await code(apply(h, c.code, b))).toBe("COUPON_KIND");
   });
 
@@ -369,7 +545,9 @@ export function couponsContract(name: string, make: () => Promise<CouponsHarness
     await h.coupons.revoke(h.tx, ADMIN, got.redemptionId);
     await h.coupons.revoke(h.tx, ADMIN, got.redemptionId);
     expect(h.credits.expired).toEqual([got.grantId]);
-    expect(await code(h.coupons.redeemCredit(h.tx, { code: c.code, accountId: b, idempotencyKey: "rc-2" }))).toBe("COUPON_EXHAUSTED");
+    expect(await code(h.coupons.redeemCredit(h.tx, { code: c.code, accountId: b, idempotencyKey: "rc-2" }))).toBe(
+      "COUPON_EXHAUSTED",
+    );
     const d = await made(h);
     const r = await apply(h, d.code, a);
     expect(await code(h.coupons.revoke(h.tx, ADMIN, r.redemptionId))).toBe("COUPON_NOT_REVOCABLE");
@@ -380,7 +558,10 @@ export function couponsContract(name: string, make: () => Promise<CouponsHarness
   it(`${name}: announces the redemption with the partner and the amounts, and the last allowed use, once each`, async () => {
     const h = await make();
     const [a1, a2] = [await h.newAccount(), await h.newAccount()];
-    const partner = await h.coupons.admin.partners.create(h.tx, ADMIN, { displayName: "Marie Tremblay", contactEmail: "Marie@Example.com" });
+    const partner = await h.coupons.admin.partners.create(h.tx, ADMIN, {
+      displayName: "Marie Tremblay",
+      contactEmail: "Marie@Example.com",
+    });
     const c = await made(h, { purpose: "partner", partnerId: partner.id, maxRedemptions: 2 });
     for (const [i, a] of [a1, a2].entries()) {
       const r = await apply(h, c.code, a);
@@ -388,26 +569,65 @@ export function couponsContract(name: string, make: () => Promise<CouponsHarness
     }
     const redeemed = h.announced().filter((m) => m.type === "evt.coupon.redeemed.v1");
     expect(redeemed).toHaveLength(2);
-    expect(redeemed[0]!.payload).toMatchObject({ couponId: c.id, kind: "discount", purpose: "partner", partnerId: partner.id, amountPaidMinor: 8000, amountDiscountMinor: 2000, currency: "cad", credits: null, overLimit: false });
+    expect(redeemed[0]!.payload).toMatchObject({
+      couponId: c.id,
+      kind: "discount",
+      purpose: "partner",
+      partnerId: partner.id,
+      amountPaidMinor: 8000,
+      amountDiscountMinor: 2000,
+      currency: "cad",
+      credits: null,
+      overLimit: false,
+    });
     expect(h.announced().filter((m) => m.type === "evt.coupon.exhausted.v1")).toHaveLength(1);
   });
 
   it(`${name}: partners: the view is net of refunds and never names a customer; erasing keeps the numbers and blanks the person`, async () => {
     const h = await make();
     const [a1, a2] = [await h.newAccount(), await h.newAccount()];
-    const partner = await h.coupons.admin.partners.create(h.tx, ADMIN, { displayName: "Marie Tremblay", contactEmail: "marie@example.com" });
+    const partner = await h.coupons.admin.partners.create(h.tx, ADMIN, {
+      displayName: "Marie Tremblay",
+      contactEmail: "marie@example.com",
+    });
     const other = await h.coupons.admin.partners.create(h.tx, ADMIN, { displayName: "Paul" });
     const c = await made(h, { purpose: "partner", partnerId: partner.id });
     const d = await h.coupons.admin.create(h.tx, ADMIN, credit({ purpose: "partner", partnerId: partner.id }));
     const r1 = await apply(h, c.code, a1);
-    await h.coupons.redeem(h.tx, paid(r1.redemptionId, { paymentRef: "pi_p1", amountPaidMinor: 10_000, amountDiscountMinor: 2000 }));
+    await h.coupons.redeem(
+      h.tx,
+      paid(r1.redemptionId, { paymentRef: "pi_p1", amountPaidMinor: 10_000, amountDiscountMinor: 2000 }),
+    );
     await h.coupons.refund(h.tx, { paymentRef: "pi_p1", amountRefunded: 1000 });
     await h.coupons.redeemCredit(h.tx, { code: d.code, accountId: a2, idempotencyKey: "rc-p" });
     const report = await h.coupons.admin.partners.report(h.tx, ADMIN, partner.id);
-    expect(report).toEqual(expect.arrayContaining([{ couponId: c.id, code: c.code, currency: "cad", redemptions: 1, discountMinor: 2000, revenueMinor: 9000, creditsGranted: 0 }, { couponId: d.id, code: d.code, currency: null, redemptions: 1, discountMinor: 0, revenueMinor: 0, creditsGranted: 20 }]));
+    expect(report).toEqual(
+      expect.arrayContaining([
+        {
+          couponId: c.id,
+          code: c.code,
+          currency: "cad",
+          redemptions: 1,
+          discountMinor: 2000,
+          revenueMinor: 9000,
+          creditsGranted: 0,
+        },
+        {
+          couponId: d.id,
+          code: d.code,
+          currency: null,
+          redemptions: 1,
+          discountMinor: 0,
+          revenueMinor: 0,
+          creditsGranted: 20,
+        },
+      ]),
+    );
     expect(JSON.stringify(report)).not.toContain(a1);
     expect(await h.coupons.admin.partners.report(h.tx, ADMIN, other.id)).toEqual([]);
-    expect(await h.coupons.admin.partners.report(h.tx, ADMIN, partner.id, { from: at(HOUR), to: at(2 * HOUR) })).toEqual([]);
+    expect(
+      await h.coupons.admin.partners.report(h.tx, ADMIN, partner.id, { from: at(HOUR), to: at(2 * HOUR) }),
+    ).toEqual([]);
     expect(h.audited().filter((e) => e.action === "partner.report_read")).toHaveLength(3);
     expect(await code(h.coupons.admin.partners.report(h.tx, ADMIN, randomUUID()))).toBe("COUPON_PARTNER_NOT_FOUND");
 
@@ -419,14 +639,20 @@ export function couponsContract(name: string, make: () => Promise<CouponsHarness
     expect((await h.coupons.admin.partners.erase(h.tx, ADMIN, partner.id)).erasedAt).toEqual(erased.erasedAt);
     expect((await h.coupons.admin.partners.export(h.tx, partner.id)).rows).toHaveLength(2);
     expect((await h.coupons.admin.partners.list(h.tx)).map((p) => p.id)).toEqual([other.id]);
-    expect((await h.coupons.admin.partners.list(h.tx, { includeArchived: true })).map((p) => p.id)).toEqual(expect.arrayContaining([partner.id, other.id]));
+    expect((await h.coupons.admin.partners.list(h.tx, { includeArchived: true })).map((p) => p.id)).toEqual(
+      expect.arrayContaining([partner.id, other.id]),
+    );
   });
 
   it(`${name}: partners: a name and a well-formed e-mail, archive and restore`, async () => {
     const h = await make();
     expect(await code(h.coupons.admin.partners.create(h.tx, ADMIN, { displayName: "" }))).toBe("COUPON_BAD_INPUT");
-    expect(await code(h.coupons.admin.partners.create(h.tx, ADMIN, { displayName: "x".repeat(81) }))).toBe("COUPON_BAD_INPUT");
-    expect(await code(h.coupons.admin.partners.create(h.tx, ADMIN, { displayName: "Marie", contactEmail: "nope" }))).toBe("COUPON_BAD_INPUT");
+    expect(await code(h.coupons.admin.partners.create(h.tx, ADMIN, { displayName: "x".repeat(81) }))).toBe(
+      "COUPON_BAD_INPUT",
+    );
+    expect(
+      await code(h.coupons.admin.partners.create(h.tx, ADMIN, { displayName: "Marie", contactEmail: "nope" })),
+    ).toBe("COUPON_BAD_INPUT");
     const p = await h.coupons.admin.partners.create(h.tx, ADMIN, { displayName: " Marie " });
     expect(p).toMatchObject({ displayName: "Marie", contactEmail: null, status: "active" });
     expect((await h.coupons.admin.partners.archive(h.tx, ADMIN, p.id)).status).toBe("archived");
@@ -437,11 +663,30 @@ export function couponsContract(name: string, make: () => Promise<CouponsHarness
 
   it(`${name}: a price drop pauses the fixed-amount coupons that would now be too large, and only those`, async () => {
     const h = await make();
-    const small = await made(h, { percentOffBp: null, amountOffMinor: 1000, currency: "cad", duration: "once", durationMonths: null, plans: ["pro"] });
-    const other = await made(h, { percentOffBp: null, amountOffMinor: 1000, currency: "cad", duration: "once", durationMonths: null, plans: ["audit"] });
+    const small = await made(h, {
+      percentOffBp: null,
+      amountOffMinor: 1000,
+      currency: "cad",
+      duration: "once",
+      durationMonths: null,
+      plans: ["pro"],
+    });
+    const other = await made(h, {
+      percentOffBp: null,
+      amountOffMinor: 1000,
+      currency: "cad",
+      duration: "once",
+      durationMonths: null,
+      plans: ["audit"],
+    });
     const percent = await made(h);
     expect(await h.coupons.admin.checkPrices(h.tx, [{ plan: "pro", amountMinor: 2000, currency: "cad" }])).toEqual([]);
-    expect(await h.coupons.admin.checkPrices(h.tx, [{ plan: "pro", amountMinor: 1999, currency: "cad" }, { plan: "pro", amountMinor: 100, currency: "usd" }])).toEqual([small.id]);
+    expect(
+      await h.coupons.admin.checkPrices(h.tx, [
+        { plan: "pro", amountMinor: 1999, currency: "cad" },
+        { plan: "pro", amountMinor: 100, currency: "usd" },
+      ]),
+    ).toEqual([small.id]);
     expect((await h.coupons.admin.get(h.tx, small.id))?.status).toBe("paused");
     expect((await h.coupons.admin.get(h.tx, other.id))?.status).toBe("active");
     expect((await h.coupons.admin.get(h.tx, percent.id))?.status).toBe("active");

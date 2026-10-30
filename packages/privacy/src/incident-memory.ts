@@ -20,7 +20,10 @@ export function memoryIncidentStore(): IncidentStore {
       return found ? structuredClone(found) : null;
     },
     async list(scope) {
-      return [...rows.values()].filter((i) => i.scope === scope).sort((a, b) => a.awareAt.valueOf() - b.awareAt.valueOf() || a.id.localeCompare(b.id)).map((i) => structuredClone(i));
+      return [...rows.values()]
+        .filter((i) => i.scope === scope)
+        .sort((a, b) => a.awareAt.valueOf() - b.awareAt.valueOf() || a.id.localeCompare(b.id))
+        .map((i) => structuredClone(i));
     },
   };
 }

@@ -21,7 +21,8 @@ export const THEMES = ["dark", "light"];
 function measure() {
   const width = document.documentElement.clientWidth;
   const out = [];
-  if (document.documentElement.scrollWidth > width + 1) out.push(`the document is ${document.documentElement.scrollWidth}px wide in a ${width}px window`);
+  if (document.documentElement.scrollWidth > width + 1)
+    out.push(`the document is ${document.documentElement.scrollWidth}px wide in a ${width}px window`);
   const scrolls = (el) => {
     for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
       const o = getComputedStyle(p).overflowX;
@@ -31,11 +32,19 @@ function measure() {
   };
   for (const el of document.body.querySelectorAll("*")) {
     const r = el.getBoundingClientRect();
-    if (!r.width || !r.height || r.right <= width + 1 && r.left >= -1) continue;
+    if (!r.width || !r.height || (r.right <= width + 1 && r.left >= -1)) continue;
     const style = getComputedStyle(el);
-    if (style.visibility === "hidden" || style.display === "none" || style.position === "fixed" || style.clipPath !== "none") continue;
+    if (
+      style.visibility === "hidden" ||
+      style.display === "none" ||
+      style.position === "fixed" ||
+      style.clipPath !== "none"
+    )
+      continue;
     if (scrolls(el)) continue;
-    out.push(`<${el.tagName.toLowerCase()}${el.className && typeof el.className === "string" ? "." + el.className.trim().split(/\s+/)[0] : ""}> spans ${Math.round(r.left)}→${Math.round(r.right)} in a ${width}px window`);
+    out.push(
+      `<${el.tagName.toLowerCase()}${el.className && typeof el.className === "string" ? "." + el.className.trim().split(/\s+/)[0] : ""}> spans ${Math.round(r.left)}→${Math.round(r.right)} in a ${width}px window`,
+    );
     if (out.length > 6) break;
   }
   return out;
@@ -65,7 +74,11 @@ async function main() {
   const problems = [];
   for (const theme of THEMES) {
     for (const width of WIDTHS) {
-      const context = await browser.newContext({ viewport: { width, height: 900 }, reducedMotion: "reduce", colorScheme: theme });
+      const context = await browser.newContext({
+        viewport: { width, height: 900 },
+        reducedMotion: "reduce",
+        colorScheme: theme,
+      });
       await context.addInitScript((t) => localStorage.setItem("kz-theme", t), theme);
       const page = await context.newPage();
       for (const path of PAGES) problems.push(...(await checkPage(page, { base, path, width, theme, shots })));
@@ -77,7 +90,9 @@ async function main() {
     console.error(problems.map((p) => `check-overflow: ${p}`).join("\n"));
     process.exit(1);
   }
-  console.log(`check-overflow: ${PAGES.length} pages × ${WIDTHS.length} widths × ${THEMES.length} themes, no horizontal overflow`);
+  console.log(
+    `check-overflow: ${PAGES.length} pages × ${WIDTHS.length} widths × ${THEMES.length} themes, no horizontal overflow`,
+  );
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) await main();

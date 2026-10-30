@@ -5,7 +5,10 @@ import { isTrustedPublisherMissing } from "./npm-publish-error.mjs";
 
 const script = readFileSync(new URL("./publish-packages.sh", import.meta.url), "utf8");
 const workflow = readFileSync(new URL("../.github/workflows/release.yml", import.meta.url), "utf8");
-const commands = workflow.split("\n").filter((l) => !l.trim().startsWith("#")).join("\n");
+const commands = workflow
+  .split("\n")
+  .filter((l) => !l.trim().startsWith("#"))
+  .join("\n");
 
 describe("publish-packages.sh", () => {
   it("tries OIDC first, then NPM_TOKEN only on an auth error, with a warning", () => {
@@ -19,9 +22,17 @@ describe("publish-packages.sh", () => {
     expect(script).toMatch(/turbo run build --filter='\.\/packages\/\*'/);
   });
   it("retries auth failures with the token and fails on any other error", () => {
-    for (const l of ["npm error code ENEEDAUTH", "npm error 404 Not Found - PUT https://registry.npmjs.org/@krizaka%2fui", "package not found"])
+    for (const l of [
+      "npm error code ENEEDAUTH",
+      "npm error 404 Not Found - PUT https://registry.npmjs.org/@krizaka%2fui",
+      "package not found",
+    ])
       expect(isTrustedPublisherMissing(l)).toBe(true);
-    for (const l of ["npm error code E403 cannot publish over the previously published versions", "npm error code E500", "ETIMEDOUT"])
+    for (const l of [
+      "npm error code E403 cannot publish over the previously published versions",
+      "npm error code E500",
+      "ETIMEDOUT",
+    ])
       expect(isTrustedPublisherMissing(l)).toBe(false);
   });
 });

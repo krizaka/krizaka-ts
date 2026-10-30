@@ -54,9 +54,11 @@ export interface CheckResult {
 }
 
 const PURPOSES = ["COURT_RECORDS", "CREDIT", "IDENTITY"] as const;
-const shape = (what: string) => new OrazakaError(ORAZAKA_CODE.shape, `Orazaka's answer has an unexpected shape: ${what}`);
+const shape = (what: string) =>
+  new OrazakaError(ORAZAKA_CODE.shape, `Orazaka's answer has an unexpected shape: ${what}`);
 const text = (v: unknown): string | null => (typeof v === "string" ? v : null);
-const oneOf = <T extends string>(list: readonly T[], v: unknown): T | null => (list as readonly unknown[]).includes(v) ? (v as T) : null;
+const oneOf = <T extends string>(list: readonly T[], v: unknown): T | null =>
+  (list as readonly unknown[]).includes(v) ? (v as T) : null;
 
 /** Reads a check's answer from the edge's JSON; anything else is `ORAZAKA_SHAPE`. */
 export function parseCheck(body: unknown): CheckResult {
@@ -66,6 +68,7 @@ export function parseCheck(body: unknown): CheckResult {
   const category = oneOf(CHECK_CATEGORY, o.category ?? "NONE");
   if (!purpose || !outcome || !category) throw shape("a check needs a known purpose, outcome and category");
   const refusal = o.refusal === undefined || o.refusal === null ? null : oneOf(CHECK_REFUSAL, o.refusal);
-  if ((outcome === "REFUSED") !== (refusal !== null)) throw shape("a refusal comes with REFUSED, and REFUSED with a refusal");
+  if ((outcome === "REFUSED") !== (refusal !== null))
+    throw shape("a refusal comes with REFUSED, and REFUSED with a refusal");
   return { purpose, outcome, refusal, category, providerRef: text(o.providerRef), runId: text(o.runId) };
 }

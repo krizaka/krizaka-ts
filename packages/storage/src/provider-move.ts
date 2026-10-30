@@ -33,7 +33,12 @@ export const sha256Hex = (bytes: Uint8Array): string => createHash("sha256").upd
  * recorded at upload, put to the new one, read it back and compare the SHA-256, only then switch the row. A mismatch or a failure
  * lands in `failed` (the worker's dead letters) and the row is never switched.
  */
-export async function moveBatch(input: { catalog: ObjectCatalog; from: { id: string; store: ObjectStore }; to: { id: string; store: ObjectStore }; limit: number }): Promise<MoveResult> {
+export async function moveBatch(input: {
+  catalog: ObjectCatalog;
+  from: { id: string; store: ObjectStore };
+  to: { id: string; store: ObjectStore };
+  limit: number;
+}): Promise<MoveResult> {
   const result: MoveResult = { copied: 0, verified: 0, switched: 0, failed: [], left: 0 };
   for (const object of await input.catalog.pending(input.from.id, input.limit)) {
     try {
@@ -43,7 +48,8 @@ export async function moveBatch(input: { catalog: ObjectCatalog; from: { id: str
       await input.to.store.put(object.key, old.bytes, { contentType: object.contentType });
       result.copied += 1;
       const back = await input.to.store.get(object.key);
-      if (!back || sha256Hex(back.bytes) !== object.sha256) throw new Error("the new copy does not match the SHA-256 after reading it back");
+      if (!back || sha256Hex(back.bytes) !== object.sha256)
+        throw new Error("the new copy does not match the SHA-256 after reading it back");
       result.verified += 1;
       if (await input.catalog.switchProvider(object.id, input.from.id, input.to.id)) result.switched += 1;
     } catch (error) {
@@ -58,7 +64,12 @@ export async function moveBatch(input: { catalog: ObjectCatalog; from: { id: str
  * Reads from the provider the row names, and falls back to the older providers while a move is running. The old provider is
  * `retiring` and keeps reading until no row reaches it; a missing file is never an error while another store holds it.
  */
-export async function readDual(input: { key: string; providerId: string; fallbackIds: readonly string[]; open: (providerId: string) => Promise<ObjectStore> }) {
+export async function readDual(input: {
+  key: string;
+  providerId: string;
+  fallbackIds: readonly string[];
+  open: (providerId: string) => Promise<ObjectStore>;
+}) {
   for (const id of [input.providerId, ...input.fallbackIds.filter((f) => f !== input.providerId)]) {
     const found = await (await input.open(id)).get(input.key);
     if (found) return { ...found, providerId: id };

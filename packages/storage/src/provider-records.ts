@@ -38,7 +38,13 @@ CREATE TABLE ${c.schema}.default_provider (
   ],
 });
 
-export const PROVIDER_STATUS = { draft: "draft", verified: "verified", active: "active", retiring: "retiring", disabled: "disabled" } as const;
+export const PROVIDER_STATUS = {
+  draft: "draft",
+  verified: "verified",
+  active: "active",
+  retiring: "retiring",
+  disabled: "disabled",
+} as const;
 export type ProviderStatus = (typeof PROVIDER_STATUS)[keyof typeof PROVIDER_STATUS];
 
 /** The last connection test: steps and the residency it found, never a value. */
@@ -73,7 +79,15 @@ export interface ProviderStore {
   get(id: string): Promise<ProviderRecord | null>;
   /** Every provider of a scope (or all), oldest first. */
   list(scope?: string): Promise<ProviderRecord[]>;
-  update(id: string, patch: Partial<Pick<ProviderRecord, "label" | "coordinates" | "sealedCredentials" | "keyId" | "status" | "lastTest" | "updatedAt">>): Promise<ProviderRecord | null>;
+  update(
+    id: string,
+    patch: Partial<
+      Pick<
+        ProviderRecord,
+        "label" | "coordinates" | "sealedCredentials" | "keyId" | "status" | "lastTest" | "updatedAt"
+      >
+    >,
+  ): Promise<ProviderRecord | null>;
   setDefault(scope: string, dataKind: string, providerId: string): Promise<void>;
   defaultFor(scope: string, dataKind: string): Promise<string | null>;
   defaults(scope: string): Promise<Record<string, string>>;

@@ -26,7 +26,10 @@ export function pageMetadata(locale: Locale, path: string, title: string, descri
     metadataBase: new URL(SITE_URL),
     alternates: {
       canonical: url,
-      languages: { ...Object.fromEntries(LOCALES.map((l) => [l, absoluteUrl(l, path)])), "x-default": absoluteUrl("en", path) },
+      languages: {
+        ...Object.fromEntries(LOCALES.map((l) => [l, absoluteUrl(l, path)])),
+        "x-default": absoluteUrl("en", path),
+      },
     },
     openGraph: {
       type: path === "/" ? "website" : "article",
@@ -52,7 +55,10 @@ export function pageMetadata(locale: Locale, path: string, title: string, descri
 export function articleJsonLd(locale: Locale, path: string, title: string, description: string) {
   const t = getDictionary(locale);
   const url = absoluteUrl(locale, path);
-  const crumbs = [{ name: t.site.name, url: absoluteUrl(locale, "/") }, ...(path === "/" ? [] : [{ name: title, url }])];
+  const crumbs = [
+    { name: t.site.name, url: absoluteUrl(locale, "/") },
+    ...(path === "/" ? [] : [{ name: title, url }]),
+  ];
   return [
     {
       "@context": "https://schema.org",
@@ -102,7 +108,13 @@ export function homeJsonLd(locale: Locale) {
 /** The home: the WebSite and the source code it documents (Krizaka TypeScript), both published by the Krizaka Organization.
     No SearchAction: the search is a dialog (⌘K) over a static index, there is no search URL to declare. */
 function runtime(): string {
-  const node = [...new Set(packages().map((p) => p.node).filter(Boolean))];
+  const node = [
+    ...new Set(
+      packages()
+        .map((p) => p.node)
+        .filter(Boolean),
+    ),
+  ];
   return node.length === 1 ? `Node.js ${node[0]}` : "Node.js";
 }
 

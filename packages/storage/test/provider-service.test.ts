@@ -3,7 +3,15 @@ import { randomBytes } from "node:crypto";
 import { describe, expect, it } from "vitest";
 
 import { type FetchLike, memoryObjectStore, type ObjectStore } from "../src/node";
-import { type AuditNote, createProviderService, memoryProviderStore, moveBatch, type ObjectCatalog, readDual, sha256Hex } from "../src/provider-admin";
+import {
+  type AuditNote,
+  createProviderService,
+  memoryProviderStore,
+  moveBatch,
+  type ObjectCatalog,
+  readDual,
+  sha256Hex,
+} from "../src/provider-admin";
 import { providerStoreContract } from "../src/testkit";
 
 providerStoreContract("memory", () => memoryProviderStore());
@@ -13,7 +21,13 @@ function fakeS3(failPut = false) {
   const files = new Map<string, Uint8Array>();
   const call: FetchLike = async (url, init) => {
     const u = new URL(url);
-    const respond = (status: number, body = "", bytes?: Uint8Array) => ({ ok: status < 300, status, headers: { get: () => null }, arrayBuffer: async () => new Uint8Array(bytes ?? new TextEncoder().encode(body)).buffer as ArrayBuffer, text: async () => body });
+    const respond = (status: number, body = "", bytes?: Uint8Array) => ({
+      ok: status < 300,
+      status,
+      headers: { get: () => null },
+      arrayBuffer: async () => new Uint8Array(bytes ?? new TextEncoder().encode(body)).buffer as ArrayBuffer,
+      text: async () => body,
+    });
     if (init.method === "PUT") {
       if (failPut) return respond(403);
       files.set(u.pathname, new Uint8Array(init.body ?? []));
@@ -26,7 +40,10 @@ function fakeS3(failPut = false) {
     if (u.searchParams.get("list-type")) {
       const prefix = `${u.pathname}/${u.searchParams.get("prefix") ?? ""}`;
       const keys = [...files].filter(([p]) => p.startsWith(prefix));
-      return respond(200, `<ListBucketResult><IsTruncated>false</IsTruncated>${keys.map(([p, b]) => `<Contents><Key>${p.slice(u.pathname.length + 1)}</Key><Size>${b.length}</Size></Contents>`).join("")}</ListBucketResult>`);
+      return respond(
+        200,
+        `<ListBucketResult><IsTruncated>false</IsTruncated>${keys.map(([p, b]) => `<Contents><Key>${p.slice(u.pathname.length + 1)}</Key><Size>${b.length}</Size></Contents>`).join("")}</ListBucketResult>`,
+      );
     }
     const found = files.get(u.pathname);
     return found ? respond(200, "", found) : respond(404);
@@ -58,7 +75,13 @@ function setup(over: { failPut?: boolean; references?: (id: string) => Promise<n
   return { service, notes, store, s3 };
 }
 
-const spaces = (label: string, extra: Record<string, string> = {}) => ({ scope: "org", kind: "s3", label, coordinates: coords, credentials: { ...creds, ...extra } });
+const spaces = (label: string, extra: Record<string, string> = {}) => ({
+  scope: "org",
+  kind: "s3",
+  label,
+  coordinates: coords,
+  credentials: { ...creds, ...extra },
+});
 
 describe("provider service", () => {
   it("creates a draft and never returns a secret, only set / not set", async () => {
@@ -69,19 +92,28 @@ describe("provider service", () => {
     const everything = JSON.stringify([created, await service.list("org"), notes]);
     expect(everything).not.toContain("super-secret-value");
     expect(everything).not.toContain("AKIA-SECRET-ID");
-    expect(notes[0]).toMatchObject({ action: "storage.provider_created", detail: { credentials: { accessKeyId: "changed", secretAccessKey: "changed" } } });
+    expect(notes[0]).toMatchObject({
+      action: "storage.provider_created",
+      detail: { credentials: { accessKeyId: "changed", secretAccessKey: "changed" } },
+    });
   });
 
   it("refuses unknown fields, and a user scope for a kind that is admin-only", async () => {
     const { service } = setup();
-    await expect(service.create(admin, { ...spaces("x"), coordinates: { ...coords, bogus: "1" } })).rejects.toMatchObject({ code: "STORAGE_BAD_CONFIG" });
-    await expect(service.create(admin, { scope: "user:u1", kind: "bunny", label: "x", coordinates: {}, credentials: {} })).rejects.toMatchObject({ code: "STORAGE_BAD_CONFIG" });
+    await expect(
+      service.create(admin, { ...spaces("x"), coordinates: { ...coords, bogus: "1" } }),
+    ).rejects.toMatchObject({ code: "STORAGE_BAD_CONFIG" });
+    await expect(
+      service.create(admin, { scope: "user:u1", kind: "bunny", label: "x", coordinates: {}, credentials: {} }),
+    ).rejects.toMatchObject({ code: "STORAGE_BAD_CONFIG" });
   });
 
   it("only a green test verifies; only a verified provider becomes a default", async () => {
     const { service } = setup();
     const p = await service.create(admin, spaces("Spaces"));
-    await expect(service.setDefault(admin, p.id, "org", "documents")).rejects.toMatchObject({ code: "STORAGE_PROVIDER_NOT_VERIFIED" });
+    await expect(service.setDefault(admin, p.id, "org", "documents")).rejects.toMatchObject({
+      code: "STORAGE_PROVIDER_NOT_VERIFIED",
+    });
     const tested = await service.test(admin, p.id);
     expect(tested.status).toBe("verified");
     expect(tested.lastTest).toMatchObject({ ok: true, residency: { key: "canada-on" } });
@@ -124,7 +156,9 @@ describe("provider service", () => {
     const bad = setup({ failPut: true });
     const q = await bad.service.create(admin, spaces("A"));
     const sealed = (await bad.store.get(q.id))!.sealedCredentials;
-    await expect(bad.service.changeKey(admin, q.id, { secretAccessKey: "x" })).rejects.toMatchObject({ code: "STORAGE_TEST_FAILED" });
+    await expect(bad.service.changeKey(admin, q.id, { secretAccessKey: "x" })).rejects.toMatchObject({
+      code: "STORAGE_TEST_FAILED",
+    });
     expect((await bad.store.get(q.id))!.sealedCredentials).toBe(sealed);
   });
 
@@ -141,7 +175,13 @@ describe("provider service", () => {
 
   it("bootstraps from the environment once, active and audited; then the environment chooses nothing", async () => {
     const { service, notes } = setup();
-    const env = { kind: "s3", coordinates: coords, credentials: creds, label: "From environment", dataKinds: ["documents"] };
+    const env = {
+      kind: "s3",
+      coordinates: coords,
+      credentials: creds,
+      label: "From environment",
+      dataKinds: ["documents"],
+    };
     const first = await service.bootstrap(env);
     expect(first).toMatchObject({ status: "active", source: "env" });
     expect(notes.at(-1)).toMatchObject({ action: "storage.provider_imported", actor: { label: "system" } });
@@ -182,7 +222,16 @@ describe("the move", () => {
       ["o3", { key: "d/3.pdf", provider: "old", text: "three" }],
     ]);
     const catalog: ObjectCatalog = {
-      pending: async (id, limit) => [...rows].filter(([, r]) => r.provider === id).slice(0, limit).map(([oid, r]) => ({ id: oid, key: r.key, contentType: "application/pdf", sha256: sha256Hex(body(r.text)) })),
+      pending: async (id, limit) =>
+        [...rows]
+          .filter(([, r]) => r.provider === id)
+          .slice(0, limit)
+          .map(([oid, r]) => ({
+            id: oid,
+            key: r.key,
+            contentType: "application/pdf",
+            sha256: sha256Hex(body(r.text)),
+          })),
       remaining: async (id) => [...rows.values()].filter((r) => r.provider === id).length,
       switchProvider: async (oid, from, to) => {
         const row = rows.get(oid)!;
@@ -191,7 +240,14 @@ describe("the move", () => {
         return true;
       },
     };
-    return { oldStore, newStore, rows, catalog, from: { id: "old", store: oldStore }, to: { id: "new", store: newStore } };
+    return {
+      oldStore,
+      newStore,
+      rows,
+      catalog,
+      from: { id: "old", store: oldStore },
+      to: { id: "new", store: newStore },
+    };
   }
 
   it("copies, verifies the SHA-256 and switches, in bounded batches, resumable", async () => {
@@ -208,7 +264,10 @@ describe("the move", () => {
     const w = world();
     await w.oldStore.put("d/1.pdf", body("TAMPERED"), { contentType: "application/pdf" });
     await w.oldStore.put("d/3.pdf", body("three"), { contentType: "application/pdf" });
-    const lying: ObjectStore = { ...w.newStore, get: async (k) => (k === "d/3.pdf" ? { bytes: body("other"), contentType: "x" } : w.newStore.get(k)) };
+    const lying: ObjectStore = {
+      ...w.newStore,
+      get: async (k) => (k === "d/3.pdf" ? { bytes: body("other"), contentType: "x" } : w.newStore.get(k)),
+    };
     const out = await moveBatch({ catalog: w.catalog, from: w.from, to: { id: "new", store: lying }, limit: 10 });
     expect(out.failed.map((f) => f.id)).toEqual(["o1", "o2", "o3"]);
     expect(out.switched).toBe(0);
@@ -219,7 +278,9 @@ describe("the move", () => {
     const w = world();
     await w.oldStore.put("d/1.pdf", body("one"), { contentType: "application/pdf" });
     const open = async (id: string) => (id === "old" ? w.oldStore : w.newStore);
-    expect(await readDual({ key: "d/1.pdf", providerId: "new", fallbackIds: ["old"], open })).toMatchObject({ providerId: "old" });
+    expect(await readDual({ key: "d/1.pdf", providerId: "new", fallbackIds: ["old"], open })).toMatchObject({
+      providerId: "old",
+    });
     expect(await readDual({ key: "d/9.pdf", providerId: "new", fallbackIds: ["old"], open })).toBeNull();
   });
 });

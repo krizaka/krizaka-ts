@@ -17,7 +17,14 @@ export async function missingPackages(packages, visible) {
 }
 
 /** Retries `check` over `delays` (ms) until nothing is missing; returns the packages still missing. */
-export async function waitForPackages(packages, visible, { delays = [0, 10_000, 20_000, 40_000, 60_000, 60_000, 60_000], sleep = (ms) => new Promise((r) => setTimeout(r, ms)) } = {}) {
+export async function waitForPackages(
+  packages,
+  visible,
+  {
+    delays = [0, 10_000, 20_000, 40_000, 60_000, 60_000, 60_000],
+    sleep = (ms) => new Promise((r) => setTimeout(r, ms)),
+  } = {},
+) {
   let missing = packages;
   for (const d of delays) {
     if (d) await sleep(d);
@@ -29,7 +36,9 @@ export async function waitForPackages(packages, visible, { delays = [0, 10_000, 
 
 async function visibleOnNpm(name, version) {
   try {
-    const response = await fetch(`https://registry.npmjs.org/${encodeURIComponent(name)}/${version}`, { headers: { "cache-control": "no-cache" } });
+    const response = await fetch(`https://registry.npmjs.org/${encodeURIComponent(name)}/${version}`, {
+      headers: { "cache-control": "no-cache" },
+    });
     return response.ok;
   } catch {
     return false;

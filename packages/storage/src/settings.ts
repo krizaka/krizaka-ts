@@ -19,7 +19,11 @@ const MB = 1024 * 1024;
 export const storageSettings = {
   "storage.provider": choice("storage", STORAGE_PROVIDERS, STORAGE_DEFAULTS.provider),
   "storage.maxMegabytes": integer("storage", STORAGE_DEFAULTS.maxMegabytes, { min: 1, max: 2048, unit: "MB" }),
-  "storage.signedUrlSeconds": integer("storage", STORAGE_DEFAULTS.signedUrlSeconds, { min: 30, max: 86_400, unit: "seconds" }),
+  "storage.signedUrlSeconds": integer("storage", STORAGE_DEFAULTS.signedUrlSeconds, {
+    min: 30,
+    max: 86_400,
+    unit: "seconds",
+  }),
   "storage.endpoint": text("storage", "", { empty: true }),
   "storage.region": text("storage", "", { empty: true }),
   "storage.bucket": text("storage", "", { empty: true }),
@@ -77,7 +81,10 @@ export async function readStorageSettings(read: Reader): Promise<StorageSettings
   };
 }
 
-export const limitsOf = (s: StorageSettings): StorageLimits => ({ maxBytes: s.maxMegabytes * MB, signedUrlSeconds: s.signedUrlSeconds });
+export const limitsOf = (s: StorageSettings): StorageLimits => ({
+  maxBytes: s.maxMegabytes * MB,
+  signedUrlSeconds: s.signedUrlSeconds,
+});
 
 /** The credentials the product reads from its environment and passes in. */
 export interface StorageSecrets {
@@ -97,17 +104,33 @@ export interface StorageSecrets {
  * against our own network (`checkEndpoint`) unless `allowLocalEndpoint` (development).
  * @throws StorageError `STORAGE_BAD_CONFIG` or `STORAGE_BAD_ENDPOINT`
  */
-export function storeFromSettings(s: StorageSettings, secrets: StorageSecrets, deps: { fetch: FetchLike; clock: Clock; allowLocalEndpoint?: boolean }): ObjectStore {
+export function storeFromSettings(
+  s: StorageSettings,
+  secrets: StorageSecrets,
+  deps: { fetch: FetchLike; clock: Clock; allowLocalEndpoint?: boolean },
+): ObjectStore {
   const need = (value: string | undefined, what: string) => {
-    if (!value) throw new StorageError(STORAGE_CODE.badConfig, `storage.provider is ${s.provider} but ${what} is not set`);
+    if (!value)
+      throw new StorageError(STORAGE_CODE.badConfig, `storage.provider is ${s.provider} but ${what} is not set`);
     return value;
   };
-  const optional = <K extends string>(key: K, value: string): Partial<Record<K, string>> => (value === "" ? {} : ({ [key]: value } as Record<K, string>));
-  if (s.provider === "local") return folderStore({ root: need(secrets.root, "the folder"), ...optional("publicBaseUrl", s.publicBaseUrl) });
+  const optional = <K extends string>(key: K, value: string): Partial<Record<K, string>> =>
+    value === "" ? {} : ({ [key]: value } as Record<K, string>);
+  if (s.provider === "local")
+    return folderStore({ root: need(secrets.root, "the folder"), ...optional("publicBaseUrl", s.publicBaseUrl) });
   if (s.provider === "http") {
     const endpoint = need(s.endpoint, "storage.endpoint");
-    if (/[/:]/.test(endpoint)) throw new StorageError(STORAGE_CODE.badEndpoint, "the http endpoint is a host name only");
-    return remoteStore({ endpoint, zone: need(s.zone, "storage.zone"), accessKey: need(secrets.accessKey, "the zone password"), ...optional("prefix", s.prefix), ...optional("pullHostname", s.pullHostname), ...optional("tokenKey", secrets.tokenKey ?? ""), ...deps });
+    if (/[/:]/.test(endpoint))
+      throw new StorageError(STORAGE_CODE.badEndpoint, "the http endpoint is a host name only");
+    return remoteStore({
+      endpoint,
+      zone: need(s.zone, "storage.zone"),
+      accessKey: need(secrets.accessKey, "the zone password"),
+      ...optional("prefix", s.prefix),
+      ...optional("pullHostname", s.pullHostname),
+      ...optional("tokenKey", secrets.tokenKey ?? ""),
+      ...deps,
+    });
   }
   return bucketStore({
     endpoint: checkEndpoint(need(s.endpoint, "storage.endpoint"), deps.allowLocalEndpoint ? { allowLocal: true } : {}),

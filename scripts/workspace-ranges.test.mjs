@@ -16,7 +16,8 @@ describe("a package of this repository is depended on through workspace:, never 
     for (const m of manifests) {
       for (const field of ["dependencies", "devDependencies", "peerDependencies", "optionalDependencies"]) {
         for (const [name, range] of Object.entries(m[field] ?? {})) {
-          if (own.has(name) && field !== "peerDependencies" && !String(range).startsWith("workspace:")) bad.push(`${m.name} -> ${name}@${range} (${field})`);
+          if (own.has(name) && field !== "peerDependencies" && !String(range).startsWith("workspace:"))
+            bad.push(`${m.name} -> ${name}@${range} (${field})`);
         }
       }
     }

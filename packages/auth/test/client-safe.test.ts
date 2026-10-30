@@ -10,13 +10,24 @@ import { describe, expect, it, vi } from "vitest";
 const COLD_IMPORT_TIMEOUT_MS = 30_000;
 
 describe("the barrel loads where node:crypto has no scrypt", () => {
-  it("does not touch scrypt until a password is hashed", async () => {
-    vi.resetModules();
-    vi.doMock("node:crypto", async (original) => ({ ...(await original<typeof import("node:crypto")>()), default: {} }));
-    vi.doMock("node:util", () => ({ promisify: () => { throw new TypeError('The "original" argument must be of type Function'); } }));
-    const barrel = await import("../src/index");
-    expect(typeof barrel.can).toBe("function");
-    vi.doUnmock("node:crypto");
-    vi.doUnmock("node:util");
-  }, COLD_IMPORT_TIMEOUT_MS);
+  it(
+    "does not touch scrypt until a password is hashed",
+    async () => {
+      vi.resetModules();
+      vi.doMock("node:crypto", async (original) => ({
+        ...(await original<typeof import("node:crypto")>()),
+        default: {},
+      }));
+      vi.doMock("node:util", () => ({
+        promisify: () => {
+          throw new TypeError('The "original" argument must be of type Function');
+        },
+      }));
+      const barrel = await import("../src/index");
+      expect(typeof barrel.can).toBe("function");
+      vi.doUnmock("node:crypto");
+      vi.doUnmock("node:util");
+    },
+    COLD_IMPORT_TIMEOUT_MS,
+  );
 });

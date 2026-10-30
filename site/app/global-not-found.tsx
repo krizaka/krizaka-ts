@@ -12,7 +12,11 @@ export default function GlobalNotFound() {
   const en = getDictionary("en").notFound;
   const fr = getDictionary("fr").notFound;
   return (
-    <html lang="en" className={cn(textFace.variable, displayFace.variable, monoFace.variable, "dark")} suppressHydrationWarning>
+    <html
+      lang="en"
+      className={cn(textFace.variable, displayFace.variable, monoFace.variable, "dark")}
+      suppressHydrationWarning
+    >
       <head>
         <ThemeScript defaultMode="dark" />
       </head>
@@ -22,12 +26,16 @@ export default function GlobalNotFound() {
             <section lang="en">
               <h1>{en.title}</h1>
               <p>{en.body}</p>
-              <p><a href="/">{en.back}</a></p>
+              <p>
+                <a href="/">{en.back}</a>
+              </p>
             </section>
             <section lang="fr">
               <h2>{fr.title}</h2>
               <p>{fr.body}</p>
-              <p><a href="/fr/">{fr.back}</a></p>
+              <p>
+                <a href="/fr/">{fr.back}</a>
+              </p>
             </section>
           </main>
         </ThemeProvider>

@@ -8,7 +8,13 @@ import { filterSql, type WorkspaceDecl, workspaceMigration } from "../src";
 import { DECISION, INVOICE_STATE } from "./fixtures";
 
 /** Akinaza's shape (demo): invoices scoped to a shop, their derived state read by a SQL function of the product. */
-const INVOICE_STATE_SQL_DECL: WorkspaceDecl = { scope: "shops", users: "accounts", kinds: { invoice: { table: "invoices", scopeColumn: "shop_id", textColumns: ["number"], stateSql: "invoice_state(e.id)" } } };
+const INVOICE_STATE_SQL_DECL: WorkspaceDecl = {
+  scope: "shops",
+  users: "accounts",
+  kinds: {
+    invoice: { table: "invoices", scopeColumn: "shop_id", textColumns: ["number"], stateSql: "invoice_state(e.id)" },
+  },
+};
 
 describe("the workspace migration", () => {
   it("puts the layer in its own schema, with real foreign keys per kind", () => {
@@ -29,24 +35,48 @@ describe("the workspace migration", () => {
   });
 
   it("lets only safe identifiers reach SQL", () => {
-    expect(() => workspaceMigration({ ...INVOICE_STATE_SQL_DECL, schema: "organize; DROP" })).toThrow(/safe SQL identifier/);
-    expect(() => workspaceMigration({ ...INVOICE_STATE_SQL_DECL, kinds: { "In-voice": { table: "invoices" } } })).toThrow(/safe SQL identifier/);
-    expect(() => workspaceMigration({ ...INVOICE_STATE_SQL_DECL, kinds: { invoice: { table: "invoices", textColumns: ["name; --"] } } })).toThrow(/safe SQL identifier/);
+    expect(() => workspaceMigration({ ...INVOICE_STATE_SQL_DECL, schema: "organize; DROP" })).toThrow(
+      /safe SQL identifier/,
+    );
+    expect(() =>
+      workspaceMigration({ ...INVOICE_STATE_SQL_DECL, kinds: { "In-voice": { table: "invoices" } } }),
+    ).toThrow(/safe SQL identifier/);
+    expect(() =>
+      workspaceMigration({
+        ...INVOICE_STATE_SQL_DECL,
+        kinds: { invoice: { table: "invoices", textColumns: ["name; --"] } },
+      }),
+    ).toThrow(/safe SQL identifier/);
   });
 });
 
 describe("filterSql", () => {
   it("is empty without filters, numbers its parameters from `from`, and passes values as parameters only", () => {
     expect(filterSql(INVOICE_STATE_SQL_DECL, "invoice", {}, { from: 3 })).toEqual({ sql: "", params: [] });
-    const where = filterSql(INVOICE_STATE_SQL_DECL, "invoice", { q: "x' OR 1=1 --", status: ["overdue"] }, { from: 3, status: INVOICE_STATE });
+    const where = filterSql(
+      INVOICE_STATE_SQL_DECL,
+      "invoice",
+      { q: "x' OR 1=1 --", status: ["overdue"] },
+      { from: 3, status: INVOICE_STATE },
+    );
     expect(where.sql).toBe(" AND (invoice_state(e.id)) = ANY($3::text[]) AND (e.number ILIKE $4)");
     expect(where.params).toEqual([["overdue"], "%x' OR 1=1 --%"]);
   });
 
   it("ignores what the kind does not declare", () => {
     const decl = { ...INVOICE_STATE_SQL_DECL, kinds: { invoice: { table: "invoices", scopeColumn: "shop_id" } } };
-    expect(filterSql(decl, "invoice", { q: "x", from: "2026-10-01", collection: "11111111-1111-4111-8111-111111111111", status: ["paid"] }, { from: 1, status: INVOICE_STATE })).toEqual({ sql: "", params: [] });
-    expect(filterSql(decl, "invoice", { status: ["a_decider"] }, { from: 1, status: DECISION }).params).toEqual(["a_decider", ["a_decider"]]);
+    expect(
+      filterSql(
+        decl,
+        "invoice",
+        { q: "x", from: "2026-10-01", collection: "11111111-1111-4111-8111-111111111111", status: ["paid"] },
+        { from: 1, status: INVOICE_STATE },
+      ),
+    ).toEqual({ sql: "", params: [] });
+    expect(filterSql(decl, "invoice", { status: ["a_decider"] }, { from: 1, status: DECISION }).params).toEqual([
+      "a_decider",
+      ["a_decider"],
+    ]);
     expect(() => filterSql(decl, "client", {}, { from: 1 })).toThrow(expect.objectContaining({ code: "BAD_REQUEST" }));
   });
 });
@@ -63,6 +93,15 @@ describe("the contract entry", () => {
       for (const [, path] of text.matchAll(/from "\.\/([^"]+)"/g)) walk(`${path}.ts`);
     };
     walk("contract.ts");
-    expect([...seen].sort()).toEqual(["config.ts", "contract.ts", "errors.ts", "port.ts", "rules.ts", "status-sets.ts", "views.ts", "workspace-port.ts"]);
+    expect([...seen].sort()).toEqual([
+      "config.ts",
+      "contract.ts",
+      "errors.ts",
+      "port.ts",
+      "rules.ts",
+      "status-sets.ts",
+      "views.ts",
+      "workspace-port.ts",
+    ]);
   });
 });

@@ -33,7 +33,19 @@ export interface PlaybackUrls {
   poster: string;
 }
 
-export const VIDEO_STATUS = { queued: "queued", processing: "processing", encoding: "encoding", ready: "ready", playable: "playable", failed: "failed", uploading: "uploading", uploaded: "uploaded", uploadFailed: "upload_failed", captions: "captions_generated", metadata: "metadata_generated" } as const;
+export const VIDEO_STATUS = {
+  queued: "queued",
+  processing: "processing",
+  encoding: "encoding",
+  ready: "ready",
+  playable: "playable",
+  failed: "failed",
+  uploading: "uploading",
+  uploaded: "uploaded",
+  uploadFailed: "upload_failed",
+  captions: "captions_generated",
+  metadata: "metadata_generated",
+} as const;
 export type VideoStatus = (typeof VIDEO_STATUS)[keyof typeof VIDEO_STATUS];
 
 /** What a provider's webhook says happened to one video. */

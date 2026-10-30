@@ -9,8 +9,16 @@ const read = (f) => readFileSync(new URL(`../${f}`, import.meta.url), "utf8");
 
 test("the Cahier faces, loaded by next/font/local", () => {
   const fonts = read("app/fonts.ts");
-  for (const f of ["young-serif-latin-400.woff2", "atkinson-hyperlegible-next-latin-wght.woff2", "courier-prime-latin-400.woff2"]) assert.ok(fonts.includes(f), f);
-  assert.doesNotMatch(fonts + read("app/globals.css"), /inter-latin|plus-jakarta|jetbrains-mono|"Plus Jakarta Sans"|"JetBrains Mono"/);
+  for (const f of [
+    "young-serif-latin-400.woff2",
+    "atkinson-hyperlegible-next-latin-wght.woff2",
+    "courier-prime-latin-400.woff2",
+  ])
+    assert.ok(fonts.includes(f), f);
+  assert.doesNotMatch(
+    fonts + read("app/globals.css"),
+    /inter-latin|plus-jakarta|jetbrains-mono|"Plus Jakarta Sans"|"JetBrains Mono"/,
+  );
 });
 
 test("no template tell in the site's own styles", () => {

@@ -9,7 +9,9 @@ export async function rethrowAfter(error: unknown, cleanup: () => Promise<unknow
   try {
     await cleanup();
   } catch (cleanupError) {
-    throw new AggregateError([error, cleanupError], "the work failed, and its cleanup failed too", { cause: cleanupError });
+    throw new AggregateError([error, cleanupError], "the work failed, and its cleanup failed too", {
+      cause: cleanupError,
+    });
   }
   throw error;
 }

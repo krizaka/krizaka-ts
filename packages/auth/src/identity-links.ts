@@ -46,7 +46,10 @@ export function memoryIdentityLinks(): IdentityLinkStore {
       return true;
     },
     async list(accountId) {
-      return [...rows.values()].filter((r) => r.accountId === accountId).sort((a, b) => compareAsc(a.linkedAt, b.linkedAt)).map(({ issuer, subject, linkedAt }) => ({ issuer, subject, linkedAt }));
+      return [...rows.values()]
+        .filter((r) => r.accountId === accountId)
+        .sort((a, b) => compareAsc(a.linkedAt, b.linkedAt))
+        .map(({ issuer, subject, linkedAt }) => ({ issuer, subject, linkedAt }));
     },
   };
 }
@@ -63,7 +66,10 @@ export function identityLinksMigration(): string {
 export function dbIdentityLinks(query: Query): IdentityLinkStore {
   return {
     async find(issuer, subject) {
-      const [row] = await query<{ account_id: string }>("SELECT account_id FROM external_identities WHERE issuer = $1 AND subject = $2", [issuer, subject]);
+      const [row] = await query<{ account_id: string }>(
+        "SELECT account_id FROM external_identities WHERE issuer = $1 AND subject = $2",
+        [issuer, subject],
+      );
       return row?.account_id ?? null;
     },
     async link(accountId, issuer, subject, now) {
@@ -77,11 +83,17 @@ export function dbIdentityLinks(query: Query): IdentityLinkStore {
       if (rows.length === 0) throw new IdentityLinkError();
     },
     async unlink(accountId, issuer, subject) {
-      const rows = await query("DELETE FROM external_identities WHERE issuer = $1 AND subject = $2 AND account_id = $3 RETURNING 1", [issuer, subject, accountId]);
+      const rows = await query(
+        "DELETE FROM external_identities WHERE issuer = $1 AND subject = $2 AND account_id = $3 RETURNING 1",
+        [issuer, subject, accountId],
+      );
       return rows.length > 0;
     },
     async list(accountId) {
-      const rows = await query<{ issuer: string; subject: string; linked_at: Date }>("SELECT issuer, subject, linked_at FROM external_identities WHERE account_id = $1 ORDER BY linked_at, issuer, subject", [accountId]);
+      const rows = await query<{ issuer: string; subject: string; linked_at: Date }>(
+        "SELECT issuer, subject, linked_at FROM external_identities WHERE account_id = $1 ORDER BY linked_at, issuer, subject",
+        [accountId],
+      );
       return rows.map((r) => ({ issuer: r.issuer, subject: r.subject, linkedAt: r.linked_at }));
     },
   };

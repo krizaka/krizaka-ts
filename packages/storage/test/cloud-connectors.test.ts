@@ -4,7 +4,16 @@ import type { AddressInfo } from "node:net";
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { CLOUD_CONNECTORS, cloudConnector, connectionAccessToken, type ConnectorApp, finishConnection, refreshConnection, revokeConnection, startConnection } from "../src/cloud-connectors";
+import {
+  CLOUD_CONNECTORS,
+  cloudConnector,
+  connectionAccessToken,
+  type ConnectorApp,
+  finishConnection,
+  refreshConnection,
+  revokeConnection,
+  startConnection,
+} from "../src/cloud-connectors";
 import { openEnvelope, sealEnvelope } from "../src/vault";
 
 /** A fake OAuth 2 server: issues a code for a PKCE challenge, checks the verifier, rotates refresh tokens, revokes (RFC 7009 and bearer). */
@@ -24,11 +33,13 @@ function fakeOAuth() {
     req.on("data", (c: Buffer) => chunks.push(c));
     req.on("end", () => {
       const body = new URLSearchParams(Buffer.concat(chunks).toString());
-      const send = (status: number, json: unknown) => res.writeHead(status, { "content-type": "application/json" }).end(JSON.stringify(json));
+      const send = (status: number, json: unknown) =>
+        res.writeHead(status, { "content-type": "application/json" }).end(JSON.stringify(json));
       if (req.url === "/token" && body.get("grant_type") === "authorization_code") {
         const challenge = codes.get(body.get("code") ?? "");
         const verifier = body.get("code_verifier") ?? "";
-        if (!challenge || createHash("sha256").update(verifier).digest("base64url") !== challenge) return send(400, { error: "invalid_grant" });
+        if (!challenge || createHash("sha256").update(verifier).digest("base64url") !== challenge)
+          return send(400, { error: "invalid_grant" });
         codes.delete(body.get("code")!);
         return send(200, issue());
       }
@@ -71,8 +82,17 @@ describe("cloud connectors through Arctic (authorization code + PKCE, refresh, r
     base = `http://127.0.0.1:${(oauth.server.address() as AddressInfo).port}`;
   });
   afterAll(() => new Promise<void>((done) => oauth.server.close(() => done())));
-  const app: ConnectorApp = { clientId: "demo-client", clientSecret: "demo-secret", redirectUri: "https://app.example.test/connect/callback" };
-  const fake = (name: keyof typeof CLOUD_CONNECTORS, style: "rfc7009" | "bearer" = "rfc7009") => cloudConnector(name, { authorize: `${base}/authorize`, token: `${base}/token`, revoke: { style, url: `${base}/${style === "bearer" ? "bearer-revoke" : "revoke"}` } });
+  const app: ConnectorApp = {
+    clientId: "demo-client",
+    clientSecret: "demo-secret",
+    redirectUri: "https://app.example.test/connect/callback",
+  };
+  const fake = (name: keyof typeof CLOUD_CONNECTORS, style: "rfc7009" | "bearer" = "rfc7009") =>
+    cloudConnector(name, {
+      authorize: `${base}/authorize`,
+      token: `${base}/token`,
+      revoke: { style, url: `${base}/${style === "bearer" ? "bearer-revoke" : "revoke"}` },
+    });
 
   it("each provider is a line of data with its narrowest file scope and its OpenDAL service", () => {
     expect(Object.keys(CLOUD_CONNECTORS)).toEqual(["dropbox", "google-drive", "onedrive"]);
@@ -107,23 +127,34 @@ describe("cloud connectors through Arctic (authorization code + PKCE, refresh, r
 
     const renewed = await refreshConnection(connector, app, refreshToken);
     expect(renewed.refreshToken).not.toBe(refreshToken); // rotated
-    await expect(refreshConnection(connector, app, refreshToken)).rejects.toMatchObject({ code: "STORAGE_DISCONNECTED" });
+    await expect(refreshConnection(connector, app, refreshToken)).rejects.toMatchObject({
+      code: "STORAGE_DISCONNECTED",
+    });
 
     await revokeConnection(connector, app, renewed.refreshToken!);
     expect(oauth.revoked).toContain(`rfc7009:${renewed.refreshToken}`);
-    await expect(refreshConnection(connector, app, renewed.refreshToken!)).rejects.toMatchObject({ code: "STORAGE_DISCONNECTED" });
+    await expect(refreshConnection(connector, app, renewed.refreshToken!)).rejects.toMatchObject({
+      code: "STORAGE_DISCONNECTED",
+    });
   });
 
   it("a wrong verifier is refused (PKCE), as a lost connection", async () => {
     const connector = fake("dropbox", "bearer");
     const { url } = startConnection(connector, app);
-    await expect(finishConnection(connector, app, { code: oauth.consent(url), verifier: "not-the-verifier-not-the-verifier-0123456789" })).rejects.toMatchObject({ code: "STORAGE_DISCONNECTED" });
+    await expect(
+      finishConnection(connector, app, {
+        code: oauth.consent(url),
+        verifier: "not-the-verifier-not-the-verifier-0123456789",
+      }),
+    ).rejects.toMatchObject({ code: "STORAGE_DISCONNECTED" });
   });
 
   it("Dropbox revokes with the access token as a bearer; OneDrive has no endpoint and only forgets", async () => {
     await revokeConnection(fake("dropbox", "bearer"), app, "access-x");
     expect(oauth.revoked).toContain("bearer:Bearer access-x");
-    await expect(revokeConnection(cloudConnector("onedrive", { token: `${base}/token` }), app, "access-y")).resolves.toBeUndefined();
+    await expect(
+      revokeConnection(cloudConnector("onedrive", { token: `${base}/token` }), app, "access-y"),
+    ).resolves.toBeUndefined();
   });
 
   it("connectionAccessToken caches until a minute before expiry, reseals a rotated token, then reports the disconnect", async () => {
@@ -132,7 +163,13 @@ describe("cloud connectors through Arctic (authorization code + PKCE, refresh, r
     const first = await finishConnection(connector, app, { code: oauth.consent(url), verifier });
     let now = new Date("2026-10-28T12:00:00Z");
     const rotated: string[] = [];
-    const token = connectionAccessToken({ connector, app, refreshToken: first.refreshToken!, clock: { now: () => now }, onRotate: async (t) => void rotated.push(t) });
+    const token = connectionAccessToken({
+      connector,
+      app,
+      refreshToken: first.refreshToken!,
+      clock: { now: () => now },
+      onRotate: async (t) => void rotated.push(t),
+    });
     const a = await token();
     expect(await token()).toBe(a); // cached
     expect(rotated).toHaveLength(1);
@@ -143,6 +180,8 @@ describe("cloud connectors through Arctic (authorization code + PKCE, refresh, r
 
   it("an unreachable provider is a provider failure, not a disconnect", async () => {
     const connector = cloudConnector("dropbox", { token: "http://127.0.0.1:1/token" });
-    await expect(refreshConnection(connector, app, "refresh-z")).rejects.toMatchObject({ code: "STORAGE_PROVIDER_FAILED" });
+    await expect(refreshConnection(connector, app, "refresh-z")).rejects.toMatchObject({
+      code: "STORAGE_PROVIDER_FAILED",
+    });
   });
 });

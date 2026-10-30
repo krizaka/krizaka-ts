@@ -10,7 +10,8 @@ export type FederatedProvider = "google" | "apple" | "facebook";
 /** The providers the port knows; anything else is refused before it reaches the adapter. */
 export const FEDERATED_PROVIDERS: readonly FederatedProvider[] = ["google", "apple", "facebook"];
 
-export const isFederatedProvider = (value: unknown): value is FederatedProvider => FEDERATED_PROVIDERS.includes(value as FederatedProvider);
+export const isFederatedProvider = (value: unknown): value is FederatedProvider =>
+  FEDERATED_PROVIDERS.includes(value as FederatedProvider);
 
 /** Who the provider says the person is. `issuer` + `subject` identify them for good; the address can change. */
 export interface ExternalIdentity {
@@ -68,10 +69,15 @@ export class FederationError extends Error {
 }
 
 /** The S256 challenge of a PKCE verifier: base64url(SHA-256(verifier)). A native app computes it; the adapter and the in-memory provider check it. */
-export const pkceChallenge = (verifier: string): string => crypto.createHash("sha256").update(verifier).digest("base64url");
+export const pkceChallenge = (verifier: string): string =>
+  crypto.createHash("sha256").update(verifier).digest("base64url");
 
 /** A return address stays on the product: a path (`/fr/account`), never `//host` or a scheme. */
-export const isLocalReturn = (returnTo: string): boolean => returnTo.startsWith("/") && !returnTo.startsWith("//") && !returnTo.includes("\\") && [...returnTo].every((c) => c.charCodeAt(0) > 31);
+export const isLocalReturn = (returnTo: string): boolean =>
+  returnTo.startsWith("/") &&
+  !returnTo.startsWith("//") &&
+  !returnTo.includes("\\") &&
+  [...returnTo].every((c) => c.charCodeAt(0) > 31);
 
 /** An in-memory provider: the tests' adapter, and the reference the contract is written against. */
 export function memoryIdentityProvider(): IdentityProvider & {
@@ -82,8 +88,10 @@ export function memoryIdentityProvider(): IdentityProvider & {
   let counter = 0;
   return {
     async start(provider, returnTo) {
-      if (!isFederatedProvider(provider)) throw new FederationError(FEDERATION_CODE.unknownProvider, `Unknown provider ${String(provider)}`);
-      if (!isLocalReturn(returnTo)) throw new FederationError(FEDERATION_CODE.badReturn, "That return address is not allowed");
+      if (!isFederatedProvider(provider))
+        throw new FederationError(FEDERATION_CODE.unknownProvider, `Unknown provider ${String(provider)}`);
+      if (!isLocalReturn(returnTo))
+        throw new FederationError(FEDERATION_CODE.badReturn, "That return address is not allowed");
       counter += 1;
       const state = `state-${counter}`;
       return { url: `https://auth.test/${provider}/start?state=${state}`, state };
@@ -92,7 +100,11 @@ export function memoryIdentityProvider(): IdentityProvider & {
       const entry = pending.get(code);
       pending.delete(code); // single use, whatever happens next
       if (!entry) throw new FederationError(FEDERATION_CODE.invalidCode, "That code is not valid");
-      if (entry.challenge !== null && (!options.codeVerifier || pkceChallenge(options.codeVerifier) !== entry.challenge)) throw new FederationError(FEDERATION_CODE.invalidCode, "That code is not valid");
+      if (
+        entry.challenge !== null &&
+        (!options.codeVerifier || pkceChallenge(options.codeVerifier) !== entry.challenge)
+      )
+        throw new FederationError(FEDERATION_CODE.invalidCode, "That code is not valid");
       return entry.identity;
     },
     issue(identity, challenge) {

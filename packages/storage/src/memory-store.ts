@@ -28,6 +28,7 @@ export function memoryObjectStore(options: { publicBaseUrl?: string } = {}): Obj
     async signedUrl() {
       return null;
     },
-    publicUrl: (key) => (options.publicBaseUrl ? `${trimSlashes(options.publicBaseUrl, "end")}/${assertKey(key)}` : null),
+    publicUrl: (key) =>
+      options.publicBaseUrl ? `${trimSlashes(options.publicBaseUrl, "end")}/${assertKey(key)}` : null,
   };
 }

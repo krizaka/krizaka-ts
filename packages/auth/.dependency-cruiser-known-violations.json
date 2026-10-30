@@ -4,10 +4,7 @@
     "from": "src/accounts.ts",
     "to": "node_modules/date-fns/index.cjs",
     "unresolvedTo": "date-fns",
-    "dependencyTypes": [
-      "npm",
-      "import"
-    ],
+    "dependencyTypes": ["npm", "import"],
     "rule": {
       "severity": "error",
       "name": "krizaka-first-dates"
@@ -18,10 +15,7 @@
     "from": "src/identity-links.ts",
     "to": "node_modules/date-fns/index.cjs",
     "unresolvedTo": "date-fns",
-    "dependencyTypes": [
-      "npm",
-      "import"
-    ],
+    "dependencyTypes": ["npm", "import"],
     "rule": {
       "severity": "error",
       "name": "krizaka-first-dates"
@@ -32,10 +26,7 @@
     "from": "src/roles.ts",
     "to": "node_modules/date-fns/index.cjs",
     "unresolvedTo": "date-fns",
-    "dependencyTypes": [
-      "npm",
-      "import"
-    ],
+    "dependencyTypes": ["npm", "import"],
     "rule": {
       "severity": "error",
       "name": "krizaka-first-dates"

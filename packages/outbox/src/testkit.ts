@@ -7,11 +7,32 @@ import { FAIL_STATE, type OutboxStore } from "./port";
 const T0 = new Date("2026-10-26T12:00:00.000Z");
 const at = (seconds: number) => new Date(T0.valueOf() + seconds * 1000);
 const RULES = { maxAttempts: 3, backoffSeconds: 30, backoffMaxSeconds: 100 };
-const claimFor = (store: OutboxStore, owner: string, seconds: number, over: { topic?: string; limit?: number; lease?: number } = {}) =>
-  store.claim({ owner, limit: over.limit ?? 10, leaseSeconds: over.lease ?? 60, maxAttempts: RULES.maxAttempts, now: at(seconds), ...(over.topic === undefined ? {} : { topic: over.topic }) });
+const claimFor = (
+  store: OutboxStore,
+  owner: string,
+  seconds: number,
+  over: { topic?: string; limit?: number; lease?: number } = {},
+) =>
+  store.claim({
+    owner,
+    limit: over.limit ?? 10,
+    leaseSeconds: over.lease ?? 60,
+    maxAttempts: RULES.maxAttempts,
+    now: at(seconds),
+    ...(over.topic === undefined ? {} : { topic: over.topic }),
+  });
 const put = (store: OutboxStore, over: { id?: string; topic?: string; availableAt?: Date; payload?: unknown } = {}) => {
   const id = over.id ?? randomUUID();
-  return store.append({ id, topic: over.topic ?? "mail", type: "evt.mail.requested.v1", payload: over.payload ?? { to: "a@b.c" }, createdAt: T0, availableAt: over.availableAt ?? T0 }).then(() => id);
+  return store
+    .append({
+      id,
+      topic: over.topic ?? "mail",
+      type: "evt.mail.requested.v1",
+      payload: over.payload ?? { to: "a@b.c" },
+      createdAt: T0,
+      availableAt: over.availableAt ?? T0,
+    })
+    .then(() => id);
 };
 
 /** What every `OutboxStore` adapter must do: the same behaviour behind the same port. `make` gives an empty store. */
@@ -19,8 +40,26 @@ export function outboxStoreContract(name: string, make: () => OutboxStore | Prom
   it(`${name}: appends a message once, whatever the number of appends of its id`, async () => {
     const store = await make();
     const id = randomUUID();
-    expect(await store.append({ id, topic: "mail", type: "evt.mail.requested.v1", payload: { n: 1 }, createdAt: T0, availableAt: T0 })).toBe(true);
-    expect(await store.append({ id, topic: "mail", type: "evt.mail.requested.v1", payload: { n: 2 }, createdAt: T0, availableAt: T0 })).toBe(false);
+    expect(
+      await store.append({
+        id,
+        topic: "mail",
+        type: "evt.mail.requested.v1",
+        payload: { n: 1 },
+        createdAt: T0,
+        availableAt: T0,
+      }),
+    ).toBe(true);
+    expect(
+      await store.append({
+        id,
+        topic: "mail",
+        type: "evt.mail.requested.v1",
+        payload: { n: 2 },
+        createdAt: T0,
+        availableAt: T0,
+      }),
+    ).toBe(false);
     const [only, ...rest] = await claimFor(store, "w1", 0);
     expect(rest).toEqual([]);
     expect(only).toMatchObject({ id, topic: "mail", type: "evt.mail.requested.v1", payload: { n: 1 }, attempts: 1 });
@@ -59,10 +98,16 @@ export function outboxStoreContract(name: string, make: () => OutboxStore | Prom
     const store = await make();
     const id = await put(store);
     await claimFor(store, "w", 0);
-    expect(await store.fail(id, "w", "boom", { now: at(1), ...RULES })).toEqual({ state: "retry", availableAt: at(31) }); // 30 s
+    expect(await store.fail(id, "w", "boom", { now: at(1), ...RULES })).toEqual({
+      state: "retry",
+      availableAt: at(31),
+    }); // 30 s
     expect(await claimFor(store, "w", 30)).toEqual([]);
     expect((await claimFor(store, "w", 31))[0]).toMatchObject({ id, attempts: 2 });
-    expect(await store.fail(id, "w", "boom", { now: at(40), ...RULES })).toEqual({ state: "retry", availableAt: at(100) }); // 60 s
+    expect(await store.fail(id, "w", "boom", { now: at(40), ...RULES })).toEqual({
+      state: "retry",
+      availableAt: at(100),
+    }); // 60 s
     expect((await claimFor(store, "w", 100))[0]).toMatchObject({ id, attempts: 3 });
     expect(await store.fail(id, "w", "boom", { now: at(110), ...RULES })).toEqual({ state: "dead" });
     expect(await claimFor(store, "w", 100_000)).toEqual([]);
@@ -115,7 +160,7 @@ export function outboxStoreContract(name: string, make: () => OutboxStore | Prom
     expect(await claimFor(store, "w", 0, { topic: "later" })).toEqual([]);
     expect(await claimFor(store, "w", 0, { topic: "mail", limit: 1 })).toHaveLength(1);
     expect(await claimFor(store, "w", 0, { topic: "mail" })).toHaveLength(1);
-    expect((await claimFor(store, "w", 500, { topic: "later" }))).toHaveLength(1);
+    expect(await claimFor(store, "w", 500, { topic: "later" })).toHaveLength(1);
     expect(await claimFor(store, "w", 0, { topic: "other" })).toHaveLength(1);
   });
 

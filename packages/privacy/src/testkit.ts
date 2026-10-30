@@ -10,8 +10,24 @@ const at = (seconds: number) => new Date(T0.valueOf() + seconds * 1000);
 const ERIC: Subject = { kind: "account", id: "11111111-1111-4111-8111-111111111111" };
 const CLIENT: Subject = { kind: "client", id: "c-42" };
 
-const consent = (subject: Subject, purpose: string, granted: boolean, seconds: number): ConsentRecord => ({ id: randomUUID(), subject, purpose, version: "2026-10-01", granted, means: "checkbox", at: at(seconds) });
-const request = (subject: Subject, kind: PrivacyRequest["kind"], seconds: number): PrivacyRequest => ({ id: randomUUID(), subject, kind, status: "requested", requestedAt: at(seconds), completedAt: null, failure: null });
+const consent = (subject: Subject, purpose: string, granted: boolean, seconds: number): ConsentRecord => ({
+  id: randomUUID(),
+  subject,
+  purpose,
+  version: "2026-10-01",
+  granted,
+  means: "checkbox",
+  at: at(seconds),
+});
+const request = (subject: Subject, kind: PrivacyRequest["kind"], seconds: number): PrivacyRequest => ({
+  id: randomUUID(),
+  subject,
+  kind,
+  status: "requested",
+  requestedAt: at(seconds),
+  completedAt: null,
+  failure: null,
+});
 
 /** What every `PrivacyStore` adapter must do: the same behaviour behind the same port. `make` gives an empty store. */
 export function privacyStoreContract(name: string, make: () => PrivacyStore | Promise<PrivacyStore>) {
@@ -62,7 +78,11 @@ export function privacyStoreContract(name: string, make: () => PrivacyStore | Pr
     await store.finishRequest(broke.id, { status: "failed", at: at(11), failure: "CONTRIBUTOR_FAILED" });
     expect(await store.getRequest(done.id)).toMatchObject({ kind: "export", status: "completed", failure: null });
     expect((await store.getRequest(done.id))!.completedAt!.toISOString()).toBe(at(3).toISOString());
-    expect(await store.getRequest(broke.id)).toMatchObject({ kind: "erasure", status: "failed", failure: "CONTRIBUTOR_FAILED" });
+    expect(await store.getRequest(broke.id)).toMatchObject({
+      kind: "erasure",
+      status: "failed",
+      failure: "CONTRIBUTOR_FAILED",
+    });
     expect(await store.getRequest(randomUUID())).toBeNull();
     expect((await store.requestsOf(ERIC)).map((r) => r.id)).toEqual([broke.id, done.id]); // newest first
     expect(await store.requestsOf(CLIENT)).toEqual([]);
@@ -96,7 +116,19 @@ const incident = (scope: string, overrides: Partial<Incident> = {}): Incident =>
 export function incidentStoreContract(name: string, make: () => IncidentStore | Promise<IncidentStore>) {
   it(`${name}: writes an entry and reads it back whole, dates included`, async () => {
     const store = await make();
-    const assessed = incident("t1", { status: "assessed", assessment: { sensitivity: "high", consequences: "medium", likelihood: "high", seriousInjury: true, rationale: "Leases.", assessedAt: at(5), assessedBy: "dpo" }, caiNotice: { sentAt: at(9), channel: "form", reference: "CAI-1" } });
+    const assessed = incident("t1", {
+      status: "assessed",
+      assessment: {
+        sensitivity: "high",
+        consequences: "medium",
+        likelihood: "high",
+        seriousInjury: true,
+        rationale: "Leases.",
+        assessedAt: at(5),
+        assessedBy: "dpo",
+      },
+      caiNotice: { sentAt: at(9), channel: "form", reference: "CAI-1" },
+    });
     await store.insert(assessed);
     expect(await store.get("t1", assessed.id)).toEqual(assessed);
   });

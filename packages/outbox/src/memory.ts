@@ -26,7 +26,20 @@ export function memoryOutboxStore(): OutboxStore & { rows(): readonly Readonly<R
   return {
     async append(m) {
       if (rows.has(m.id)) return false;
-      rows.set(m.id, { id: m.id, topic: m.topic, type: m.type, payload: structuredClone(m.payload), createdAt: m.createdAt, availableAt: m.availableAt, attempts: 0, leasedUntil: null, leaseOwner: null, deliveredAt: null, deadAt: null, lastError: null });
+      rows.set(m.id, {
+        id: m.id,
+        topic: m.topic,
+        type: m.type,
+        payload: structuredClone(m.payload),
+        createdAt: m.createdAt,
+        availableAt: m.availableAt,
+        attempts: 0,
+        leasedUntil: null,
+        leaseOwner: null,
+        deliveredAt: null,
+        deadAt: null,
+        lastError: null,
+      });
       return true;
     },
     async claim({ topic, owner, limit, leaseSeconds, maxAttempts, now }) {
@@ -39,14 +52,30 @@ export function memoryOutboxStore(): OutboxStore & { rows(): readonly Readonly<R
         }
       }
       const due = [...rows.values()]
-        .filter((r) => open(r) && r.attempts < maxAttempts && !isAfter(r.availableAt, now) && !leaseValid(r, now) && (topic === undefined || r.topic === topic))
-        .sort((a, b) => a.availableAt.valueOf() - b.availableAt.valueOf() || a.createdAt.valueOf() - b.createdAt.valueOf())
+        .filter(
+          (r) =>
+            open(r) &&
+            r.attempts < maxAttempts &&
+            !isAfter(r.availableAt, now) &&
+            !leaseValid(r, now) &&
+            (topic === undefined || r.topic === topic),
+        )
+        .sort(
+          (a, b) => a.availableAt.valueOf() - b.availableAt.valueOf() || a.createdAt.valueOf() - b.createdAt.valueOf(),
+        )
         .slice(0, limit);
       return due.map((r): OutboxMessage => {
         r.attempts += 1;
         r.leasedUntil = addSeconds(now, leaseSeconds);
         r.leaseOwner = owner;
-        return { id: r.id, topic: r.topic, type: r.type, payload: structuredClone(r.payload), occurredAt: r.createdAt, attempts: r.attempts };
+        return {
+          id: r.id,
+          topic: r.topic,
+          type: r.type,
+          payload: structuredClone(r.payload),
+          occurredAt: r.createdAt,
+          attempts: r.attempts,
+        };
       });
     },
     async complete(id, owner, now) {

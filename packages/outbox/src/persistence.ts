@@ -50,7 +50,14 @@ export function dbOutboxStore(query: Query, schema = "outbox"): OutboxStore {
         [addSeconds(now, leaseSeconds), owner, now, maxAttempts, topic ?? null, limit],
       );
       return rows
-        .map((r): OutboxMessage => ({ id: r.id, topic: r.topic, type: r.event_type, payload: r.payload, occurredAt: new Date(r.created_at), attempts: Number(r.attempts) }))
+        .map((r): OutboxMessage => ({
+          id: r.id,
+          topic: r.topic,
+          type: r.event_type,
+          payload: r.payload,
+          occurredAt: new Date(r.created_at),
+          attempts: Number(r.attempts),
+        }))
         .sort((a, b) => a.occurredAt.valueOf() - b.occurredAt.valueOf());
     },
     async complete(id, owner, now) {
@@ -72,14 +79,21 @@ export function dbOutboxStore(query: Query, schema = "outbox"): OutboxStore {
         [id, owner, error, now, maxAttempts, backoffSeconds, backoffMaxSeconds],
       );
       if (!row) return { state: FAIL_STATE.lost };
-      return row.dead_at ? { state: FAIL_STATE.dead } : { state: FAIL_STATE.retry, availableAt: new Date(row.available_at) };
+      return row.dead_at
+        ? { state: FAIL_STATE.dead }
+        : { state: FAIL_STATE.retry, availableAt: new Date(row.available_at) };
     },
     async retryDead(id, now) {
-      const rows = await query(`UPDATE ${message} SET dead_at = NULL, attempts = 0, available_at = $2 WHERE id = $1 AND dead_at IS NOT NULL RETURNING 1`, [id, now]);
+      const rows = await query(
+        `UPDATE ${message} SET dead_at = NULL, attempts = 0, available_at = $2 WHERE id = $1 AND dead_at IS NOT NULL RETURNING 1`,
+        [id, now],
+      );
       return rows.length > 0;
     },
     async purgeBefore(before) {
-      const rows = await query(`DELETE FROM ${message} WHERE COALESCE(delivered_at, dead_at) < $1 RETURNING 1`, [before]);
+      const rows = await query(`DELETE FROM ${message} WHERE COALESCE(delivered_at, dead_at) < $1 RETURNING 1`, [
+        before,
+      ]);
       return rows.length;
     },
     async stats(now): Promise<OutboxStats> {
@@ -91,7 +105,12 @@ export function dbOutboxStore(query: Query, schema = "outbox"): OutboxStore {
            FROM ${message}`,
         [now],
       );
-      return { pending: row?.pending ?? 0, leased: row?.leased ?? 0, delivered: row?.delivered ?? 0, dead: row?.dead ?? 0 };
+      return {
+        pending: row?.pending ?? 0,
+        leased: row?.leased ?? 0,
+        delivered: row?.delivered ?? 0,
+        dead: row?.dead ?? 0,
+      };
     },
   };
 }

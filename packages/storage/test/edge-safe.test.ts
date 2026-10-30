@@ -7,7 +7,15 @@ const entry = (name: string) => resolve(import.meta.dirname, "../src", name);
 
 /** Bundle an entry the way an Edge or browser build would: Node built-ins are not available, so any `node:` or `fs` import fails or shows up. */
 async function bundle(file: string) {
-  return build({ entryPoints: [entry(file)], bundle: true, write: false, platform: "browser", format: "esm", metafile: true, logLevel: "silent" });
+  return build({
+    entryPoints: [entry(file)],
+    bundle: true,
+    write: false,
+    platform: "browser",
+    format: "esm",
+    metafile: true,
+    logLevel: "silent",
+  });
 }
 
 describe("the default entry is safe on Edge and in the browser", () => {

@@ -18,7 +18,9 @@ test("every package that tests with vitest writes an lcov report", () => {
 
 test("the workflow, the Sonar properties and turbo agree on where the reports are", () => {
   expect(read(".github/workflows/ci.yml")).toMatch(/sonar-coverage-paths: packages\/\*\/coverage\/lcov\.info/);
-  expect(read("sonar-project.properties")).toMatch(/^sonar\.javascript\.lcov\.reportPaths=packages\/\*\/coverage\/lcov\.info$/m);
+  expect(read("sonar-project.properties")).toMatch(
+    /^sonar\.javascript\.lcov\.reportPaths=packages\/\*\/coverage\/lcov\.info$/m,
+  );
   expect(JSON.parse(read("turbo.json")).tasks.test.outputs).toEqual(["coverage/**"]);
 });
 

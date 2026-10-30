@@ -3,7 +3,14 @@ import { createHash } from "node:crypto";
 import { adoptMigration, checksumOf, emitMigration } from "@krizaka/db";
 import { describe, expect, it } from "vitest";
 
-import { organizeMigration, type OrganizeSchema, organizeSchema, type WorkspaceDecl, workspaceMigration, workspaceSchema } from "../src";
+import {
+  organizeMigration,
+  type OrganizeSchema,
+  organizeSchema,
+  type WorkspaceDecl,
+  workspaceMigration,
+  workspaceSchema,
+} from "../src";
 
 const sha = (text: string) => createHash("sha256").update(text).digest("hex");
 
@@ -21,17 +28,31 @@ const RICH: OrganizeSchema = {
   tags: "labels",
   collectionTags: "folder_labels",
   defaultName: { fr: "Mes dossiers", en: "My folders" },
-  kinds: { file: { table: "files", ownerColumn: "user_id", tagTable: "file_labels", tagColumn: "file_id" }, note: { table: "notes", inCollection: false } },
+  kinds: {
+    file: { table: "files", ownerColumn: "user_id", tagTable: "file_labels", tagColumn: "file_id" },
+    note: { table: "notes", inCollection: false },
+  },
 };
-const WORKSPACE: WorkspaceDecl = { scope: "shops", users: "accounts", kinds: { invoice: { table: "invoices", scopeColumn: "shop_id", textColumns: ["number"], stateSql: "invoice_state(e.id)" }, file: { table: "files" } } };
+const WORKSPACE: WorkspaceDecl = {
+  scope: "shops",
+  users: "accounts",
+  kinds: {
+    invoice: { table: "invoices", scopeColumn: "shop_id", textColumns: ["number"], stateSql: "invoice_state(e.id)" },
+    file: { table: "files" },
+  },
+};
 const none = { schema: "public", tables: {} };
 
 describe("the organize schemas", () => {
   it("version 1 is byte-identical to the SQL shipped before the module schemas", () => {
     expect(sha(organizeSchema(DEFAULT).migrations[0]!.sql(none))).toBe(BEFORE.organizeDefault);
     expect(sha(organizeSchema(RICH).migrations[0]!.sql(none))).toBe(BEFORE.organizeRich);
-    expect(sha(workspaceSchema(WORKSPACE).migrations[0]!.sql({ schema: "organize", tables: {} }))).toBe(BEFORE.workspace);
-    expect(sha(workspaceSchema({ ...WORKSPACE, schema: "ws" }).migrations[0]!.sql({ schema: "ws", tables: {} }))).toBe(BEFORE.workspaceSchema);
+    expect(sha(workspaceSchema(WORKSPACE).migrations[0]!.sql({ schema: "organize", tables: {} }))).toBe(
+      BEFORE.workspace,
+    );
+    expect(sha(workspaceSchema({ ...WORKSPACE, schema: "ws" }).migrations[0]!.sql({ schema: "ws", tables: {} }))).toBe(
+      BEFORE.workspaceSchema,
+    );
   });
 
   it("keeps the old functions as wrappers over version 1", () => {
@@ -44,12 +65,16 @@ describe("the organize schemas", () => {
   it("is frozen; the collections are adopted in `public`, the workspace layer lives in its own schema", () => {
     expect(checksumOf(organizeSchema(DEFAULT), 1, { tables: {} })).toBe(BEFORE.organizeDefault);
     expect(checksumOf(workspaceSchema(WORKSPACE), 1, { tables: {} })).toBe(BEFORE.workspace);
-    expect(adoptMigration(organizeSchema(DEFAULT), 1, { tables: {} })).toContain(`('organize', 1, '${BEFORE.organizeDefault}')`);
+    expect(adoptMigration(organizeSchema(DEFAULT), 1, { tables: {} })).toContain(
+      `('organize', 1, '${BEFORE.organizeDefault}')`,
+    );
     expect(emitMigration(workspaceSchema(WORKSPACE), 1, { tables: {} })).toContain("CREATE TABLE organize.kind_config");
     expect(workspaceSchema({ ...WORKSPACE, schema: "ws" }).schema).toBe("ws");
   });
 
   it("refuses a declaration with an unsafe name when the SQL is generated", () => {
-    expect(() => emitMigration(organizeSchema({ kinds: { shop: { table: "shops; DROP" } } }), 1, { tables: {} })).toThrow(/safe SQL identifier/);
+    expect(() =>
+      emitMigration(organizeSchema({ kinds: { shop: { table: "shops; DROP" } } }), 1, { tables: {} }),
+    ).toThrow(/safe SQL identifier/);
   });
 });

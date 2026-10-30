@@ -4,7 +4,15 @@ import { addHours, addMinutes } from "date-fns";
 import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { accountsMigration, dbAccounts, emailChangeMail, isEmailChangeToken, type Mail, passwordResetMail, type Query } from "../src";
+import {
+  accountsMigration,
+  dbAccounts,
+  emailChangeMail,
+  isEmailChangeToken,
+  type Mail,
+  passwordResetMail,
+  type Query,
+} from "../src";
 
 /** The account adapter against a real PostgreSQL (CI's service; locally ORGANIZE_DB_IT=1 DATABASE_URL=…), in a schema of its own. */
 const enabled = process.env.ORGANIZE_DB_IT === "1" && !!process.env.DATABASE_URL;
@@ -12,7 +20,10 @@ const enabled = process.env.ORGANIZE_DB_IT === "1" && !!process.env.DATABASE_URL
 const NOW = new Date();
 const PASSWORD = "correct-horse-battery";
 const hash = (token: string) => crypto.createHash("sha256").update(`t:${token}`).digest("hex");
-const passwords = { hash: async (p: string) => `h:${p}`, verify: async (p: string, stored: string) => stored === `h:${p}` };
+const passwords = {
+  hash: async (p: string) => `h:${p}`,
+  verify: async (p: string, stored: string) => stored === `h:${p}`,
+};
 
 describe("the e-mail change mail and token", () => {
   it("is in the person's language, names the product, carries the link and its validity", () => {
@@ -47,7 +58,7 @@ describe.runIf(enabled)("the account service on PostgreSQL", () => {
   const mails: Mail[] = [];
   const issued: string[] = [];
   /** A real transaction on its own connection (the product's pool does this), in the test's schema. */
-  const transaction = async <T,>(work: (q: Query) => Promise<T>): Promise<T> => {
+  const transaction = async <T>(work: (q: Query) => Promise<T>): Promise<T> => {
     const c = new pg.Client({ connectionString: process.env.DATABASE_URL });
     await c.connect();
     try {
@@ -91,18 +102,31 @@ describe.runIf(enabled)("the account service on PostgreSQL", () => {
   const last = () => issued[issued.length - 1]!;
   const account = async () => {
     const email = `p-${Math.random().toString(36).slice(2)}@test.example`;
-    const [row] = await query<{ id: string }>("INSERT INTO accounts (email, password_hash, locale) VALUES ($1, $2, 'fr') RETURNING id", [email, await passwords.hash(PASSWORD)]);
+    const [row] = await query<{ id: string }>(
+      "INSERT INTO accounts (email, password_hash, locale) VALUES ($1, $2, 'fr') RETURNING id",
+      [email, await passwords.hash(PASSWORD)],
+    );
     return { id: row!.id, email };
   };
-  const session = async (id: string, label: string, expires = "1 day") => (await query<{ id: string }>(`INSERT INTO sessions (account_id, token_hash, expires_at, ip, user_agent) VALUES ($1, $2, now() + interval '${expires}', '203.0.113.9', $3) RETURNING id`, [id, `${label}${Math.random()}`, `agent-${label}`]))[0]!.id;
+  const session = async (id: string, label: string, expires = "1 day") =>
+    (
+      await query<{ id: string }>(
+        `INSERT INTO sessions (account_id, token_hash, expires_at, ip, user_agent) VALUES ($1, $2, now() + interval '${expires}', '203.0.113.9', $3) RETURNING id`,
+        [id, `${label}${Math.random()}`, `agent-${label}`],
+      )
+    )[0]!.id;
 
   beforeAll(async () => {
     client = new pg.Client({ connectionString: process.env.DATABASE_URL });
     await client.connect();
     await client.query(`CREATE SCHEMA ${schemaName}; SET search_path TO ${schemaName}`);
     query = async (sql, params) => (await client.query(sql, params as unknown[])).rows as never;
-    await client.query("CREATE TABLE accounts (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), email text UNIQUE NOT NULL, locale text NOT NULL DEFAULT 'fr', password_hash text, created_at timestamptz NOT NULL DEFAULT now())");
-    await client.query("CREATE TABLE sessions (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), account_id uuid NOT NULL REFERENCES accounts(id) ON DELETE CASCADE, token_hash text UNIQUE NOT NULL, created_at timestamptz NOT NULL DEFAULT now(), expires_at timestamptz NOT NULL, ip text, user_agent text)");
+    await client.query(
+      "CREATE TABLE accounts (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), email text UNIQUE NOT NULL, locale text NOT NULL DEFAULT 'fr', password_hash text, created_at timestamptz NOT NULL DEFAULT now())",
+    );
+    await client.query(
+      "CREATE TABLE sessions (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), account_id uuid NOT NULL REFERENCES accounts(id) ON DELETE CASCADE, token_hash text UNIQUE NOT NULL, created_at timestamptz NOT NULL DEFAULT now(), expires_at timestamptz NOT NULL, ip text, user_agent text)",
+    );
     await client.query("INSERT INTO accounts (email) VALUES ('before@test.example')");
     await client.query(accountsMigration({ backfillVerified: true }));
     await client.query(accountsMigration({ backfillVerified: true })); // twice: safe
@@ -113,16 +137,36 @@ describe.runIf(enabled)("the account service on PostgreSQL", () => {
   });
 
   it("an account that existed before the migration is verified; a new one is not", async () => {
-    expect(await query("SELECT 1 FROM accounts WHERE email = 'before@test.example' AND email_verified_at IS NOT NULL")).toHaveLength(1);
+    expect(
+      await query("SELECT 1 FROM accounts WHERE email = 'before@test.example' AND email_verified_at IS NOT NULL"),
+    ).toHaveLength(1);
     const { id } = await account();
     expect((await service().profile(id)).emailVerified).toBe(false);
   });
 
   it("reads and updates the profile: a trimmed name, the language, a theme, an avatar seed", async () => {
     const { id, email } = await account();
-    expect(await service().profile(id)).toMatchObject({ email, name: null, locale: "fr", theme: null, avatarSeed: null, pendingEmail: null });
-    expect(await service().updateProfile(id, { name: "  Éric   Tremblay ", locale: "en", theme: "dark", avatarSeed: "plain-3" })).toMatchObject({ name: "Éric Tremblay", locale: "en", theme: "dark", avatarSeed: "plain-3" });
-    expect(await service().updateProfile(id, { name: null, theme: null })).toMatchObject({ name: null, theme: null, locale: "en" });
+    expect(await service().profile(id)).toMatchObject({
+      email,
+      name: null,
+      locale: "fr",
+      theme: null,
+      avatarSeed: null,
+      pendingEmail: null,
+    });
+    expect(
+      await service().updateProfile(id, {
+        name: "  Éric   Tremblay ",
+        locale: "en",
+        theme: "dark",
+        avatarSeed: "plain-3",
+      }),
+    ).toMatchObject({ name: "Éric Tremblay", locale: "en", theme: "dark", avatarSeed: "plain-3" });
+    expect(await service().updateProfile(id, { name: null, theme: null })).toMatchObject({
+      name: null,
+      theme: null,
+      locale: "en",
+    });
     await expect(service().updateProfile(id, { name: "x".repeat(81) })).rejects.toMatchObject({ status: 400 });
     await expect(service().updateProfile(id, { theme: "neon" as never })).rejects.toMatchObject({ status: 400 });
   });
@@ -131,7 +175,10 @@ describe.runIf(enabled)("the account service on PostgreSQL", () => {
     const { id } = await account();
     mails.length = 0;
     const next = `n-${Math.random().toString(36).slice(2)}@test.example`;
-    await expect(service().requestEmailChange(id, { newEmail: next, password: "wrong" }, NOW)).rejects.toMatchObject({ status: 403, code: "WRONG_PASSWORD" });
+    await expect(service().requestEmailChange(id, { newEmail: next, password: "wrong" }, NOW)).rejects.toMatchObject({
+      status: 403,
+      code: "WRONG_PASSWORD",
+    });
     await service().requestEmailChange(id, { newEmail: next.toUpperCase(), password: PASSWORD }, NOW);
     expect(mails).toHaveLength(1);
     expect(mails[0]!.to).toBe(next);
@@ -146,12 +193,21 @@ describe.runIf(enabled)("the account service on PostgreSQL", () => {
   it("a link that expired, or is not a link, changes nothing; a taken address answers the same and mails nothing", async () => {
     const a = await account();
     const b = await account();
-    await service().requestEmailChange(a.id, { newEmail: `e-${Math.random().toString(36).slice(2)}@test.example`, password: PASSWORD }, NOW);
+    await service().requestEmailChange(
+      a.id,
+      { newEmail: `e-${Math.random().toString(36).slice(2)}@test.example`, password: PASSWORD },
+      NOW,
+    );
     expect(await service().confirmEmailChange(last(), addHours(NOW, 48))).toBe("INVALID");
     expect(await service().confirmEmailChange("garbage", NOW)).toBe("INVALID");
-    for (const bad of ["not-an-email", "a@b", "@x.y", "a b@c.d", "a@@c.d", "a@c."]) await expect(service().requestEmailChange(a.id, { newEmail: bad, password: PASSWORD }, NOW)).rejects.toMatchObject({ status: 400 });
+    for (const bad of ["not-an-email", "a@b", "@x.y", "a b@c.d", "a@@c.d", "a@c."])
+      await expect(
+        service().requestEmailChange(a.id, { newEmail: bad, password: PASSWORD }, NOW),
+      ).rejects.toMatchObject({ status: 400 });
     mails.length = 0;
-    await expect(service().requestEmailChange(a.id, { newEmail: b.email, password: PASSWORD }, NOW)).resolves.toBeUndefined();
+    await expect(
+      service().requestEmailChange(a.id, { newEmail: b.email, password: PASSWORD }, NOW),
+    ).resolves.toBeUndefined();
     expect(mails).toHaveLength(0);
   });
 
@@ -169,7 +225,10 @@ describe.runIf(enabled)("the account service on PostgreSQL", () => {
     expect(mails[0]!.locale).toBe("fr");
     expect(mails[0]!.text).toContain(`/fr/reset-password?token=${encodeURIComponent(last())}`);
     // A password that breaks the rules does not use the link up.
-    await expect(service().resetPassword(last(), "short", NOW)).rejects.toMatchObject({ status: 400, code: "PASSWORD_TOO_SHORT" });
+    await expect(service().resetPassword(last(), "short", NOW)).rejects.toMatchObject({
+      status: 400,
+      code: "PASSWORD_TOO_SHORT",
+    });
     expect(await service().resetPassword("garbage", "another-long-password", NOW)).toBe("INVALID");
     expect(await service().resetPassword(last(), "another-long-password", addMinutes(NOW, 31))).toBe("INVALID");
     const first = last();
@@ -188,11 +247,27 @@ describe.runIf(enabled)("the account service on PostgreSQL", () => {
     await Promise.all([service().requestPasswordReset(email, NOW), service().requestPasswordReset(email, NOW)]);
     expect(mails).toHaveLength(2);
     const tokens = issued.slice(-2);
-    expect((await query<{ n: string }>("SELECT count(*)::text AS n FROM password_resets WHERE account_id = $1 AND used_at IS NULL", [id]))[0]!.n).toBe("1");
+    expect(
+      (
+        await query<{ n: string }>(
+          "SELECT count(*)::text AS n FROM password_resets WHERE account_id = $1 AND used_at IS NULL",
+          [id],
+        )
+      )[0]!.n,
+    ).toBe("1");
     hashFails = 1;
-    await expect(Promise.all(tokens.map((t) => service().resetPassword(t, "another-long-password", NOW)))).rejects.toThrow("hashing failed");
+    await expect(
+      Promise.all(tokens.map((t) => service().resetPassword(t, "another-long-password", NOW))),
+    ).rejects.toThrow("hashing failed");
     expect(await query("SELECT 1 FROM sessions WHERE account_id = $1", [id])).toHaveLength(1);
-    expect((await query<{ n: string }>("SELECT count(*)::text AS n FROM password_resets WHERE account_id = $1 AND used_at IS NULL", [id]))[0]!.n).toBe("1");
+    expect(
+      (
+        await query<{ n: string }>(
+          "SELECT count(*)::text AS n FROM password_resets WHERE account_id = $1 AND used_at IS NULL",
+          [id],
+        )
+      )[0]!.n,
+    ).toBe("1");
     const outcomes = await Promise.all(tokens.map((t) => service().resetPassword(t, "another-long-password", NOW)));
     expect(outcomes.filter((o) => o === "CHANGED")).toHaveLength(1);
     expect(await query("SELECT 1 FROM sessions WHERE account_id = $1", [id])).toHaveLength(0);
@@ -202,17 +277,26 @@ describe.runIf(enabled)("the account service on PostgreSQL", () => {
     const { id } = await account();
     const keep = await session(id, "keep");
     await session(id, "other");
-    await expect(service().changePassword(id, { current: "wrong", next: "another-long-password" }, keep)).rejects.toMatchObject({ status: 403 });
-    await expect(service().changePassword(id, { current: PASSWORD, next: "short" }, keep)).rejects.toMatchObject({ code: "PASSWORD_TOO_SHORT" });
+    await expect(
+      service().changePassword(id, { current: "wrong", next: "another-long-password" }, keep),
+    ).rejects.toMatchObject({ status: 403 });
+    await expect(service().changePassword(id, { current: PASSWORD, next: "short" }, keep)).rejects.toMatchObject({
+      code: "PASSWORD_TOO_SHORT",
+    });
     await service().changePassword(id, { current: PASSWORD, next: "another-long-password" }, keep);
-    expect((await query<{ id: string }>("SELECT id FROM sessions WHERE account_id = $1", [id])).map((s) => s.id)).toEqual([keep]);
+    expect(
+      (await query<{ id: string }>("SELECT id FROM sessions WHERE account_id = $1", [id])).map((s) => s.id),
+    ).toEqual([keep]);
   });
 
   it("lists the live sessions (the current one flagged, an expired one left out) and signs the others out", async () => {
     const { id } = await account();
     const here = await session(id, "here");
     await session(id, "there");
-    await query("INSERT INTO sessions (account_id, token_hash, expires_at) VALUES ($1, $2, now() - interval '1 day')", [id, `old${Math.random()}`]);
+    await query("INSERT INTO sessions (account_id, token_hash, expires_at) VALUES ($1, $2, now() - interval '1 day')", [
+      id,
+      `old${Math.random()}`,
+    ]);
     const list = await service().sessions(id, new Date(), here);
     expect(list).toHaveLength(2);
     expect(list.filter((s) => s.current).map((s) => s.id)).toEqual([here]);

@@ -1,4 +1,16 @@
-import { AVAILABILITY, type Availability, type Price, type PriceEntry, PriceError, priceSchema, type PricesDefinition, SEED_FROM, seedVersionId, UNIT, type Unit } from "./prices";
+import {
+  AVAILABILITY,
+  type Availability,
+  type Price,
+  type PriceEntry,
+  PriceError,
+  priceSchema,
+  type PricesDefinition,
+  SEED_FROM,
+  seedVersionId,
+  UNIT,
+  type Unit,
+} from "./prices";
 import type { Actor } from "./service";
 
 /** A version an administrator scheduled: the price in force from `effectiveFrom`, and the one it replaced at that date. */
@@ -49,10 +61,22 @@ const split = (key: string) => {
   const dot = key.indexOf(".");
   return { product: key.slice(0, dot), plan: key.slice(dot + 1) };
 };
-const toEntry = (key: string, price: Price, versionId: string, effectiveFrom: Date): PriceEntry => ({ key, ...split(key), ...price, versionId, effectiveFrom });
+const toEntry = (key: string, price: Price, versionId: string, effectiveFrom: Date): PriceEntry => ({
+  key,
+  ...split(key),
+  ...price,
+  versionId,
+  effectiveFrom,
+});
 const fromStored = (v: StoredPriceVersion) => toEntry(v.key, v.price, v.id, v.effectiveFrom);
 /** In force at `at`: the latest date not after it; for the same date, the last scheduled. */
-const inForce = (versions: StoredPriceVersion[], at: Date) => versions.filter((v) => v.effectiveFrom <= at).reduce<StoredPriceVersion | undefined>((best, v) => (!best || v.effectiveFrom >= best.effectiveFrom ? v : best), undefined);
+const inForce = (versions: StoredPriceVersion[], at: Date) =>
+  versions
+    .filter((v) => v.effectiveFrom <= at)
+    .reduce<StoredPriceVersion | undefined>(
+      (best, v) => (!best || v.effectiveFrom >= best.effectiveFrom ? v : best),
+      undefined,
+    );
 
 export function priceCatalogue(prices: PricesDefinition, store: PriceStore): PriceCatalogue {
   const known = (key: string) => {
@@ -78,18 +102,38 @@ export function priceCatalogue(prices: PricesDefinition, store: PriceStore): Pri
 
     async schedule(actor, key, change, effectiveFrom, now) {
       known(key);
-      if (!(effectiveFrom instanceof Date) || Number.isNaN(effectiveFrom.getTime()) || effectiveFrom < now) throw new PriceError(400, "BAD_DATE", "A price changes from now or later, never in the past");
+      if (!(effectiveFrom instanceof Date) || Number.isNaN(effectiveFrom.getTime()) || effectiveFrom < now)
+        throw new PriceError(400, "BAD_DATE", "A price changes from now or later, never in the past");
       const current = await entry(key, effectiveFrom);
       const { key: _k, product: _p, plan: _pl, versionId: _v, effectiveFrom: _e, ...before } = current;
       const parsed = priceSchema.safeParse({ ...before, ...change });
       if (!parsed.success) throw new PriceError(400, "BAD_VALUE", `Not a valid price for ${key}`);
-      return fromStored(await store.insert({ key, price: parsed.data, before, effectiveFrom, createdAt: now, actorLabel: actor.label }, actor));
+      return fromStored(
+        await store.insert(
+          { key, price: parsed.data, before, effectiveFrom, createdAt: now, actorLabel: actor.label },
+          actor,
+        ),
+      );
     },
 
     async history(key) {
       const versions = await store.versions(known(key));
-      const lines = versions.map((v) => ({ versionId: v.id, at: v.createdAt.toISOString(), actorLabel: v.actorLabel, effectiveFrom: v.effectiveFrom.toISOString(), before: v.before, after: v.price }));
-      const seed = { versionId: seedVersionId(key), at: SEED_FROM.toISOString(), actorLabel: "seed", effectiveFrom: SEED_FROM.toISOString(), before: null, after: prices.defaultOf(key) };
+      const lines = versions.map((v) => ({
+        versionId: v.id,
+        at: v.createdAt.toISOString(),
+        actorLabel: v.actorLabel,
+        effectiveFrom: v.effectiveFrom.toISOString(),
+        before: v.before,
+        after: v.price,
+      }));
+      const seed = {
+        versionId: seedVersionId(key),
+        at: SEED_FROM.toISOString(),
+        actorLabel: "seed",
+        effectiveFrom: SEED_FROM.toISOString(),
+        before: null,
+        after: prices.defaultOf(key),
+      };
       return [...lines.reverse(), seed];
     },
 
@@ -117,12 +161,18 @@ export function memoryPriceStore(): PriceStore {
 export interface PricesDescription {
   units: Unit[];
   availabilities: Availability[];
-  entries: (Omit<PriceEntry, "effectiveFrom"> & { effectiveFrom: string; upcoming: (Price & { versionId: string; effectiveFrom: string })[] })[];
+  entries: (Omit<PriceEntry, "effectiveFrom"> & {
+    effectiveFrom: string;
+    upcoming: (Price & { versionId: string; effectiveFrom: string })[];
+  })[];
 }
 export async function describePrices(catalogue: PriceCatalogue, at: Date): Promise<PricesDescription> {
   const iso = <T extends { effectiveFrom: Date }>(e: T) => ({ ...e, effectiveFrom: e.effectiveFrom.toISOString() });
   const entries = await Promise.all(
-    (await catalogue.catalogue(at)).map(async (e) => ({ ...iso(e), upcoming: (await catalogue.upcoming(e.key, at)).map(({ key: _k, product: _p, plan: _pl, ...v }) => iso(v)) })),
+    (await catalogue.catalogue(at)).map(async (e) => ({
+      ...iso(e),
+      upcoming: (await catalogue.upcoming(e.key, at)).map(({ key: _k, product: _p, plan: _pl, ...v }) => iso(v)),
+    })),
   );
   return { units: Object.values(UNIT), availabilities: Object.values(AVAILABILITY), entries };
 }

@@ -1,4 +1,4 @@
-export { auditContributor,type AuditTrail } from "./contributors";
+export { auditContributor, type AuditTrail } from "./contributors";
 export * from "./incident";
 export { memoryIncidentStore } from "./incident-memory";
 export { dbIncidentStore } from "./incident-persistence";

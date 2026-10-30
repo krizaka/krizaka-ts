@@ -1,4 +1,3 @@
-
 import { STORAGE_CODE, StorageError } from "./port";
 
 // @fixed: S3's own limit on a key; a longer one is refused by every provider
@@ -41,7 +40,9 @@ export interface Layout {
 }
 
 export function defineLayout(prefixes: readonly string[]): Layout {
-  for (const p of prefixes) if (!p.endsWith("/")) throw new StorageError(STORAGE_CODE.badPrefix, `layout prefix « ${p} » must end with a slash`);
+  for (const p of prefixes)
+    if (!p.endsWith("/"))
+      throw new StorageError(STORAGE_CODE.badPrefix, `layout prefix « ${p} » must end with a slash`);
   const sorted = [...prefixes].sort((a, b) => b.length - a.length);
   const prefixOf = (key: string) => sorted.find((p) => key.startsWith(p)) ?? null;
   return {
@@ -49,7 +50,8 @@ export function defineLayout(prefixes: readonly string[]): Layout {
     prefixOf,
     check(key) {
       assertKey(key);
-      if (prefixOf(key) === null) throw new StorageError(STORAGE_CODE.badPrefix, `« ${key.slice(0, 80)} » is under no declared prefix`);
+      if (prefixOf(key) === null)
+        throw new StorageError(STORAGE_CODE.badPrefix, `« ${key.slice(0, 80)} » is under no declared prefix`);
       return key;
     },
   };
@@ -71,4 +73,5 @@ const TYPES: Record<string, string> = {
 };
 
 /** The content type a file name suggests, for stores that do not keep one. Never a security decision: see `sniffType`. */
-export const typeOfName = (key: string): string => TYPES[key.split(".").pop()?.toLowerCase() ?? ""] ?? "application/octet-stream";
+export const typeOfName = (key: string): string =>
+  TYPES[key.split(".").pop()?.toLowerCase() ?? ""] ?? "application/octet-stream";

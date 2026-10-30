@@ -12,7 +12,9 @@ export default function InstallTabs({ names, locale }: { names: string; locale: 
       tabs={MANAGERS.map((m) => ({
         id: m.id,
         label: m.id,
-        content: <CodeBlock code={m.command(names)} language="bash" file={t.file} copyLabel={t.copy} copiedLabel={t.copied} />,
+        content: (
+          <CodeBlock code={m.command(names)} language="bash" file={t.file} copyLabel={t.copy} copiedLabel={t.copied} />
+        ),
       }))}
     />
   );

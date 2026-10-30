@@ -1,5 +1,12 @@
 import { type CouponAdmin, makeAdmin } from "./admin";
-import { type Applied, type ApplyInput, type CreditRedemption, makeFlows, type RedeemInput, type Validation } from "./flows";
+import {
+  type Applied,
+  type ApplyInput,
+  type CreditRedemption,
+  makeFlows,
+  type RedeemInput,
+  type Validation,
+} from "./flows";
 import { type CouponsDeps, makeKernel } from "./kernel";
 import type { Actor, Query } from "./port";
 import type { CheckoutContext } from "./rules";
@@ -19,9 +26,15 @@ export interface Coupons {
   /** The sweeper: frees the reservations past their deadline. */
   releaseExpired(tx: Query): Promise<number>;
   /** A refund (cumulative amount). Gives the use back only on a full refund with `coupons.refundRestoresUse`. */
-  refund(tx: Query, input: { paymentRef?: string | null; invoiceRef?: string | null; amountRefunded: number }): Promise<"refunded" | "already" | "unknown">;
+  refund(
+    tx: Query,
+    input: { paymentRef?: string | null; invoiceRef?: string | null; amountRefunded: number },
+  ): Promise<"refunded" | "already" | "unknown">;
   /** Redeems a credit code: the same rules, then a capped grant in the credits ledger, in the same transaction. Idempotent by key. */
-  redeemCredit(tx: Query, input: { code: string; accountId: string; idempotencyKey: string; ip?: string | null; hasPaidBefore?: boolean }): Promise<CreditRedemption>;
+  redeemCredit(
+    tx: Query,
+    input: { code: string; accountId: string; idempotencyKey: string; ip?: string | null; hasPaidBefore?: boolean },
+  ): Promise<CreditRedemption>;
   /** The admin revokes a credit redemption: what is left of its grant is written off; credits already spent are never taken back. */
   revoke(tx: Query, actor: Actor, redemptionId: string): Promise<void>;
   admin: CouponAdmin;

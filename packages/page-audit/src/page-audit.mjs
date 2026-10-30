@@ -10,8 +10,12 @@ const nameOf = (el) => {
   const id = el.dataset?.testid;
   return el.tagName.toLowerCase() + (id ? "[" + id + "]" : "") + "." + className(el, 2);
 };
-const scrolls = (el) => ["auto", "scroll"].includes(getComputedStyle(el).overflowY) || ["auto", "scroll"].includes(getComputedStyle(el).overflowX);
-const meets = (ra, rb) => Math.min(ra.right, rb.right) - Math.max(ra.left, rb.left) > 2 && Math.min(ra.bottom, rb.bottom) - Math.max(ra.top, rb.top) > 2;
+const scrolls = (el) =>
+  ["auto", "scroll"].includes(getComputedStyle(el).overflowY) ||
+  ["auto", "scroll"].includes(getComputedStyle(el).overflowX);
+const meets = (ra, rb) =>
+  Math.min(ra.right, rb.right) - Math.max(ra.left, rb.left) > 2 &&
+  Math.min(ra.bottom, rb.bottom) - Math.max(ra.top, rb.top) > 2;
 const apart = (a, b) => !a.contains(b) && !b.contains(a);
 
 /** An element that pokes out only matters when nothing clips it: decorative layers (aria-hidden) and anything inside a clipping or scrolling ancestor are meant to extend. */
@@ -27,7 +31,12 @@ function wideOf(doc) {
   return [...document.querySelectorAll("body *")]
     .filter((el) => {
       const r = el.getBoundingClientRect();
-      return r.width > 0 && getComputedStyle(el).visibility !== "hidden" && (r.right > doc.clientWidth + 1 || r.left < -1) && !clipped(el);
+      return (
+        r.width > 0 &&
+        getComputedStyle(el).visibility !== "hidden" &&
+        (r.right > doc.clientWidth + 1 || r.left < -1) &&
+        !clipped(el)
+      );
     })
     .slice(0, 3)
     .map((el) => `${el.tagName.toLowerCase()}.${String(el.className).split(" ").slice(0, 3).join(".")}`);
@@ -36,12 +45,21 @@ function wideOf(doc) {
 /** A button's accessible name: its text, aria-label, aria-labelledby, title — or a <label for> pointing at it (a checkbox, a switch). */
 function named(b) {
   const labelled = !!b.id && !!document.querySelector(`label[for="${CSS.escape(b.id)}"]`);
-  return !!((b.textContent || "").trim() || b.getAttribute("aria-label") || b.getAttribute("aria-labelledby") || b.title || labelled);
+  return !!(
+    (b.textContent || "").trim() ||
+    b.getAttribute("aria-label") ||
+    b.getAttribute("aria-labelledby") ||
+    b.title ||
+    labelled
+  );
 }
 
 function unnamedOf() {
   const unnamed = [...document.querySelectorAll("button")].filter((b) => !named(b));
-  return { unnamedButtons: unnamed.length, unnamedSamples: unnamed.slice(0, 2).map((b) => b.outerHTML.slice(0, 160).replace(/\s+/g, " ")) };
+  return {
+    unnamedButtons: unnamed.length,
+    unnamedSamples: unnamed.slice(0, 2).map((b) => b.outerHTML.slice(0, 160).replace(/\s+/g, " ")),
+  };
 }
 
 function headerActionOf(doc) {
@@ -68,7 +86,14 @@ function keptBetween(el, panel) {
 }
 
 function notDrawn(el, r) {
-  return r.width === 0 || r.height === 0 || getComputedStyle(el).position === "fixed" || !!el.closest(ARIA_HIDDEN) || !!el.closest("[data-radix-popper-content-wrapper]") || folded(el);
+  return (
+    r.width === 0 ||
+    r.height === 0 ||
+    getComputedStyle(el).position === "fixed" ||
+    !!el.closest(ARIA_HIDDEN) ||
+    !!el.closest("[data-radix-popper-content-wrapper]") ||
+    folded(el)
+  );
 }
 
 function runsOut(el, panel, box) {
@@ -96,10 +121,14 @@ function spillOf(panels) {
 function overlapsOf(panels, spill) {
   const overlaps = [];
   for (const el of spill) {
-    for (const other of panels) if (apart(el, other) && meets(el.getBoundingClientRect(), other.getBoundingClientRect())) overlaps.push(`${nameOf(el)} over ${nameOf(other)}`);
+    for (const other of panels)
+      if (apart(el, other) && meets(el.getBoundingClientRect(), other.getBoundingClientRect()))
+        overlaps.push(`${nameOf(el)} over ${nameOf(other)}`);
   }
   panels.forEach((a, i) => {
-    for (const b of panels.slice(i + 1)) if (apart(a, b) && meets(a.getBoundingClientRect(), b.getBoundingClientRect())) overlaps.push(`${nameOf(a)} over ${nameOf(b)}`);
+    for (const b of panels.slice(i + 1))
+      if (apart(a, b) && meets(a.getBoundingClientRect(), b.getBoundingClientRect()))
+        overlaps.push(`${nameOf(a)} over ${nameOf(b)}`);
   });
   return overlaps;
 }
@@ -138,16 +167,27 @@ function isTopBar(el, width) {
   const pos = getComputedStyle(el).position;
   if (pos !== "fixed" && pos !== "sticky") return false;
   const r = topBoxOf(el).getBoundingClientRect();
-  return r.width > width * 0.5 && r.height > 8 && r.height < 200 && r.top < 160 && r.bottom > 0 && !el.closest("[data-top-chrome]");
+  return (
+    r.width > width * 0.5 &&
+    r.height > 8 &&
+    r.height < 200 &&
+    r.top < 160 &&
+    r.bottom > 0 &&
+    !el.closest("[data-top-chrome]")
+  );
 }
 
 function chromeOverlapsOf(doc) {
-  const chrome = [...document.querySelectorAll("[data-top-chrome]")].filter((el) => el.getBoundingClientRect().height > 0);
+  const chrome = [...document.querySelectorAll("[data-top-chrome]")].filter(
+    (el) => el.getBoundingClientRect().height > 0,
+  );
   const bars = [...document.querySelectorAll("body *")].filter((el) => isTopBar(el, doc.clientWidth)).map(topBoxOf);
   const stack = [...chrome, ...bars];
   const found = [];
   stack.forEach((a, i) => {
-    for (const b of stack.slice(i + 1)) if (apart(a, b) && meets(a.getBoundingClientRect(), b.getBoundingClientRect())) found.push(`${nameOf(a)} / ${nameOf(b)}`);
+    for (const b of stack.slice(i + 1))
+      if (apart(a, b) && meets(a.getBoundingClientRect(), b.getBoundingClientRect()))
+        found.push(`${nameOf(a)} / ${nameOf(b)}`);
   });
   return found;
 }
@@ -158,7 +198,14 @@ function clipsOf() {
     .filter((el) => {
       const r = el.getBoundingClientRect();
       const style = getComputedStyle(el);
-      return r.width > 4 && r.height > 4 && ["hidden", "clip"].includes(style.overflowX) && style.textOverflow !== "ellipsis" && el.scrollWidth > el.clientWidth + 1 && !clipped(el);
+      return (
+        r.width > 4 &&
+        r.height > 4 &&
+        ["hidden", "clip"].includes(style.overflowX) &&
+        style.textOverflow !== "ellipsis" &&
+        el.scrollWidth > el.clientWidth + 1 &&
+        !clipped(el)
+      );
     })
     .slice(0, 3)
     .map(nameOf);
@@ -185,12 +232,16 @@ function wrappedOf() {
 /** The whole measure of a page. Decorative layers (aria-hidden), fixed elements and anything inside a scroller are left out of the layout probes (yomizaka#435). */
 /** A heading with no text (and no image or labelled icon) says nothing to a screen reader. */
 function emptyHeadingsOf() {
-  return [...document.querySelectorAll("h1, h2, h3")].filter((h) => !(h.textContent || "").trim() && !h.querySelector("img, svg[aria-label]")).length;
+  return [...document.querySelectorAll("h1, h2, h3")].filter(
+    (h) => !(h.textContent || "").trim() && !h.querySelector("img, svg[aria-label]"),
+  ).length;
 }
 
 /** A file input that no label, `aria-label` or title names. */
 function unlabelledFilesOf() {
-  return [...document.querySelectorAll("input[type=file]")].filter((i) => !(i.getAttribute("aria-label") || i.getAttribute("aria-labelledby") || i.title || i.labels?.length)).length;
+  return [...document.querySelectorAll("input[type=file]")].filter(
+    (i) => !(i.getAttribute("aria-label") || i.getAttribute("aria-labelledby") || i.title || i.labels?.length),
+  ).length;
 }
 
 /** `<main>` with no text at all: the page answered but drew nothing (a route that fell through, a failed fetch). */
@@ -200,7 +251,9 @@ function emptyMainOf() {
 
 /** Height of every action of the page's main (a button-styled link): the tap targets the responsive guard keeps over `minAction`. */
 function actionsOf() {
-  return [...document.querySelectorAll("main a[class*='kz-button'], main a[data-slot='button'], main .kz-button")].filter((a) => a.getBoundingClientRect().width > 0).map((a) => Math.round(a.getBoundingClientRect().height));
+  return [...document.querySelectorAll("main a[class*='kz-button'], main a[data-slot='button'], main .kz-button")]
+    .filter((a) => a.getBoundingClientRect().width > 0)
+    .map((a) => Math.round(a.getBoundingClientRect().height));
 }
 
 /**
@@ -213,7 +266,12 @@ function frameOf(doc) {
   const rail = [...shell.querySelectorAll("nav")].find((n) => getComputedStyle(n).position === "sticky");
   return {
     top: Math.round(shell.getBoundingClientRect().top + window.scrollY),
-    forced: Math.round(Math.max(Number.parseFloat(getComputedStyle(shell).minHeight) || 0, rail ? rail.getBoundingClientRect().height : 0)),
+    forced: Math.round(
+      Math.max(
+        Number.parseFloat(getComputedStyle(shell).minHeight) || 0,
+        rail ? rail.getBoundingClientRect().height : 0,
+      ),
+    ),
     viewport: doc.clientHeight,
   };
 }
@@ -221,15 +279,24 @@ function frameOf(doc) {
 /** A landmark (`main`, `aside`, `header`, `nav`) whose content is wider than its own box, with nothing to scroll it. */
 function boxesOf() {
   return [...document.querySelectorAll("main, aside, header, nav")]
-    .filter((box) => getComputedStyle(box).overflowX === "visible" && box.scrollWidth > box.clientWidth + 1 && box.clientWidth > 0)
+    .filter(
+      (box) =>
+        getComputedStyle(box).overflowX === "visible" && box.scrollWidth > box.clientWidth + 1 && box.clientWidth > 0,
+    )
     .slice(0, 3)
     .map((box) => `<${box.tagName.toLowerCase()}> ${box.scrollWidth}px in ${box.clientWidth}px`);
 }
 
 /** The family contract of the page chrome: the page's own footers (not those of an article or a dialog), whether the first names Krizaka, a navigation landmark. */
 function landmarksOf() {
-  const footers = [...document.querySelectorAll("footer")].filter((f) => !f.closest("main, article, section, dialog, [role=dialog]"));
-  return { footers: footers.length, footerNamesKrizaka: /krizaka/i.test(footers[0]?.textContent || ""), nav: !!document.querySelector("nav") };
+  const footers = [...document.querySelectorAll("footer")].filter(
+    (f) => !f.closest("main, article, section, dialog, [role=dialog]"),
+  );
+  return {
+    footers: footers.length,
+    footerNamesKrizaka: /krizaka/i.test(footers[0]?.textContent || ""),
+    nav: !!document.querySelector("nav"),
+  };
 }
 
 /** A picture drawn at a real size that never loaded. */
@@ -250,15 +317,27 @@ function emptyControlsOf() {
     const box = el.getBoundingClientRect();
     const style = getComputedStyle(el);
     if (style.visibility === "hidden" || style.display === "none") continue;
-    if (box.width > 0 && box.height > 0 && box.height < 4) found.push(`collapsed control ${(el.getAttribute("aria-label") || el.textContent || "").trim().slice(0, 30)}`);
-    else if (box.width > 24 && box.height > 24 && !el.textContent?.trim() && !el.getAttribute("aria-label") && !el.getAttribute("aria-labelledby") && !el.querySelector("img, svg, video, picture, canvas")) found.push("empty tile");
+    if (box.width > 0 && box.height > 0 && box.height < 4)
+      found.push(`collapsed control ${(el.getAttribute("aria-label") || el.textContent || "").trim().slice(0, 30)}`);
+    else if (
+      box.width > 24 &&
+      box.height > 24 &&
+      !el.textContent?.trim() &&
+      !el.getAttribute("aria-label") &&
+      !el.getAttribute("aria-labelledby") &&
+      !el.querySelector("img, svg, video, picture, canvas")
+    )
+      found.push("empty tile");
   }
   return [...new Set(found)].slice(0, 3);
 }
 
 /** Elements whose inline style carries a colour that is not a token (`var(--kz-*)`). */
 function hardColorsOf() {
-  return [...document.querySelectorAll("[style]")].filter((e) => /#[0-9a-f]{3,8}\b|rgba?\(/i.test(e.getAttribute("style") || "") && !/var\(/.test(e.getAttribute("style") || "")).length;
+  return [...document.querySelectorAll("[style]")].filter(
+    (e) =>
+      /#[0-9a-f]{3,8}\b|rgba?\(/i.test(e.getAttribute("style") || "") && !/var\(/.test(e.getAttribute("style") || ""),
+  ).length;
 }
 
 /**
@@ -268,19 +347,36 @@ function hardColorsOf() {
  */
 function mapsOf() {
   return [...document.querySelectorAll(".maplibregl-map, .mapboxgl-map, .leaflet-container, [data-kz-map]")]
-    .filter((el) => el.getClientRects().length > 0 && !el.closest(ARIA_HIDDEN) && !folded(el) && !el.parentElement?.closest(".maplibregl-map, .mapboxgl-map, .leaflet-container, [data-kz-map]"))
+    .filter(
+      (el) =>
+        el.getClientRects().length > 0 &&
+        !el.closest(ARIA_HIDDEN) &&
+        !folded(el) &&
+        !el.parentElement?.closest(".maplibregl-map, .mapboxgl-map, .leaflet-container, [data-kz-map]"),
+    )
     .map((el) => {
       const box = el.getBoundingClientRect();
       const canvas = el.querySelector("canvas")?.getBoundingClientRect();
-      return { name: nameOf(el), width: Math.round(box.width), height: Math.round(box.height), canvas: !!canvas && canvas.width > 0 && canvas.height > 0, leaflet: el.classList.contains("leaflet-container"), tiles: el.querySelectorAll(".leaflet-tile-loaded").length };
+      return {
+        name: nameOf(el),
+        width: Math.round(box.width),
+        height: Math.round(box.height),
+        canvas: !!canvas && canvas.width > 0 && canvas.height > 0,
+        leaflet: el.classList.contains("leaflet-container"),
+        tiles: el.querySelectorAll(".leaflet-tile-loaded").length,
+      };
     });
 }
 
 function measurePage() {
   const doc = document.documentElement;
-  const panels = [...document.querySelectorAll("[data-panel], main section, main [role=region]")].filter((el) => !el.closest(ARIA_HIDDEN) && !folded(el));
+  const panels = [...document.querySelectorAll("[data-panel], main section, main [role=region]")].filter(
+    (el) => !el.closest(ARIA_HIDDEN) && !folded(el),
+  );
   const { overflowing, spill } = spillOf(panels);
-  const chips = [...document.querySelectorAll('[data-testid="audience-picker"] a')].map((a) => Math.round(a.getBoundingClientRect().height));
+  const chips = [...document.querySelectorAll('[data-testid="audience-picker"] a')].map((a) =>
+    Math.round(a.getBoundingClientRect().height),
+  );
   return {
     h1: document.querySelectorAll("h1").length,
     scrollWidth: doc.scrollWidth,
@@ -310,7 +406,44 @@ function measurePage() {
   };
 }
 
-const PROBES = [tooTall, wrappedOf, className, nameOf, scrolls, meets, apart, clipped, wideOf, named, unnamedOf, headerActionOf, folded, keptBetween, notDrawn, runsOut, spillOf, overlapsOf, cutBy, cutColumnsOf, topBoxOf, isTopBar, chromeOverlapsOf, clipsOf, emptyHeadingsOf, unlabelledFilesOf, emptyMainOf, actionsOf, frameOf, boxesOf, landmarksOf, brokenPicturesOf, emptyControlsOf, hardColorsOf, mapsOf, measurePage];
+const PROBES = [
+  tooTall,
+  wrappedOf,
+  className,
+  nameOf,
+  scrolls,
+  meets,
+  apart,
+  clipped,
+  wideOf,
+  named,
+  unnamedOf,
+  headerActionOf,
+  folded,
+  keptBetween,
+  notDrawn,
+  runsOut,
+  spillOf,
+  overlapsOf,
+  cutBy,
+  cutColumnsOf,
+  topBoxOf,
+  isTopBar,
+  chromeOverlapsOf,
+  clipsOf,
+  emptyHeadingsOf,
+  unlabelledFilesOf,
+  emptyMainOf,
+  actionsOf,
+  frameOf,
+  boxesOf,
+  landmarksOf,
+  brokenPicturesOf,
+  emptyControlsOf,
+  hardColorsOf,
+  mapsOf,
+  measurePage,
+];
 
 /** The expression Playwright runs in the page (`page.evaluate(auditPage)`): the probes, serialised together, then the measure. */
 export const auditPage = `(() => {\nconst ARIA_HIDDEN = ${JSON.stringify(ARIA_HIDDEN)};\n${PROBES.map((f) => `const ${f.name} = ${f.toString()};`).join("\n")}\nreturn measurePage();\n})()`;
@@ -323,11 +456,31 @@ export const auditPage = `(() => {\nconst ARIA_HIDDEN = ${JSON.stringify(ARIA_HI
 function accessibilityProblems(where, result, fileLabels) {
   const problems = [];
   if (result.emptyHeadings) problems.push(`${where}: ${result.emptyHeadings} empty heading(s)`);
-  if (fileLabels && result.unlabelledFiles) problems.push(`${where}: ${result.unlabelledFiles} file input(s) without a label`);
+  if (fileLabels && result.unlabelledFiles)
+    problems.push(`${where}: ${result.unlabelledFiles} file input(s) without a label`);
   return problems;
 }
 
-export function problemsOf(where, result, { errors = [], h1 = false, headerAction = false, fileLabels = false, status, emptyMain = false, frame = false, minAction, boxes = false, landmarks, pictures = false, emptyControls = false, hardColors = false, maps = false } = {}) {
+export function problemsOf(
+  where,
+  result,
+  {
+    errors = [],
+    h1 = false,
+    headerAction = false,
+    fileLabels = false,
+    status,
+    emptyMain = false,
+    frame = false,
+    minAction,
+    boxes = false,
+    landmarks,
+    pictures = false,
+    emptyControls = false,
+    hardColors = false,
+    maps = false,
+  } = {},
+) {
   return [
     ...statusProblems(where, status),
     ...(emptyMain && result.emptyMain ? [`${where}: empty <main>`] : []),
@@ -335,9 +488,13 @@ export function problemsOf(where, result, { errors = [], h1 = false, headerActio
     ...(minAction ? actionProblems(where, result.actions ?? [], minAction) : []),
     ...(boxes ? boxProblems(where, result.boxes ?? []) : []),
     ...(landmarks ? landmarkProblems(where, result.landmarks, landmarks) : []),
-    ...(pictures && result.brokenPictures?.length ? [`${where}: broken picture ${result.brokenPictures.join(", ")}`] : []),
+    ...(pictures && result.brokenPictures?.length
+      ? [`${where}: broken picture ${result.brokenPictures.join(", ")}`]
+      : []),
     ...(emptyControls ? (result.emptyControls ?? []).map((c) => `${where}: ${c}`) : []),
-    ...(hardColors && result.hardColors ? [`${where}: ${result.hardColors} element(s) with a hard-coded colour in an inline style`] : []),
+    ...(hardColors && result.hardColors
+      ? [`${where}: ${result.hardColors} element(s) with a hard-coded colour in an inline style`]
+      : []),
     ...(maps ? mapProblems(where, result.maps ?? [], maps) : []),
     ...errorsOf(where, errors),
     ...layoutProblems(where, result),
@@ -361,7 +518,8 @@ function mapProblems(where, found, option) {
   const out = [];
   for (const m of found) {
     if (m.width < min || m.height < min) out.push(`${where}: the map ${m.name} is ${m.width}x${m.height} px (empty)`);
-    else if (m.leaflet ? m.tiles === 0 : !m.canvas) out.push(`${where}: the map ${m.name} ${m.leaflet ? "has no loaded tile" : "has no canvas"}`);
+    else if (m.leaflet ? m.tiles === 0 : !m.canvas)
+      out.push(`${where}: the map ${m.name} ${m.leaflet ? "has no loaded tile" : "has no canvas"}`);
   }
   return out;
 }
@@ -373,15 +531,23 @@ function errorsOf(where, errors) {
 /** Overflow, elements past the edge, boxes that cover or cut one another, a token wrapped per character, the error state. */
 function layoutProblems(where, result) {
   const problems = [];
-  if (result.scrollWidth > result.clientWidth) problems.push(`${where}: scrollWidth ${result.scrollWidth} > ${result.clientWidth} (${result.wide.join(", ")})`);
+  if (result.scrollWidth > result.clientWidth)
+    problems.push(`${where}: scrollWidth ${result.scrollWidth} > ${result.clientWidth} (${result.wide.join(", ")})`);
   else if (result.wide.length) problems.push(`${where}: elements past the edge (${result.wide.join(", ")})`);
-  const lists = [[result.overflowing, "overflows its panel"], [result.overlaps, "covers a neighbouring section"], [result.cutColumns, "is cut off"]];
+  const lists = [
+    [result.overflowing, "overflows its panel"],
+    [result.overlaps, "covers a neighbouring section"],
+    [result.cutColumns, "is cut off"],
+  ];
   for (const [list, words] of lists) {
     if (list?.length) problems.push(`${where}: ${words} (${list.join(", ")})`);
   }
-  if (result.wrapped?.length) problems.push(`${where}: a token wraps one character per line (${result.wrapped.join(", ")}) — truncate it`);
-  if (result.segmentError) problems.push(`${where}: the page rendered its error state (segment-error), e.g. React #441`);
-  if (result.chromeOverlaps?.length) problems.push(`${where}: the top chrome chromeOverlaps (${result.chromeOverlaps.slice(0, 2).join(", ")})`);
+  if (result.wrapped?.length)
+    problems.push(`${where}: a token wraps one character per line (${result.wrapped.join(", ")}) — truncate it`);
+  if (result.segmentError)
+    problems.push(`${where}: the page rendered its error state (segment-error), e.g. React #441`);
+  if (result.chromeOverlaps?.length)
+    problems.push(`${where}: the top chrome chromeOverlaps (${result.chromeOverlaps.slice(0, 2).join(", ")})`);
   if (result.clips?.length) problems.push(`${where}: content cut inside its box (${result.clips.join(", ")})`);
   return problems;
 }
@@ -416,7 +582,9 @@ function statusProblems(where, status) {
 /** The signed-in frame forces a scroll when what it asks of the screen (its shell, its rail) does not fit under what is above it. */
 function frameProblems(where, frame) {
   if (!frame || frame.top + frame.forced <= frame.viewport + 1) return [];
-  return [`${where}: the frame forces a scroll (starts at ${frame.top} px and asks ${frame.forced} px of a ${frame.viewport} px screen)`];
+  return [
+    `${where}: the frame forces a scroll (starts at ${frame.top} px and asks ${frame.forced} px of a ${frame.viewport} px screen)`,
+  ];
 }
 
 /** A button-styled action under `min` px tall is hard to tap. */
@@ -432,7 +600,8 @@ function boxProblems(where, boxes) {
 function landmarkProblems(where, found, kind) {
   const problems = [];
   if (kind === "public") {
-    if (found.footers !== 1) problems.push(`${where}: ${found.footers} page footers (one « A Krizaka product » footer expected)`);
+    if (found.footers !== 1)
+      problems.push(`${where}: ${found.footers} page footers (one « A Krizaka product » footer expected)`);
     else if (!found.footerNamesKrizaka) problems.push(`${where}: the footer does not name Krizaka`);
   } else if (found.footers > 1) problems.push(`${where}: ${found.footers} page footers (at most one)`);
   if (kind !== "auth" && !found.nav) problems.push(`${where}: no <nav> landmark`);

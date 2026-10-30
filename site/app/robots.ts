@@ -6,8 +6,21 @@ export const dynamic = "force-static";
 /* The AI crawlers and search bots the whole Krizaka family welcomes, so the documentation can be cited as a source in
    AI answers. The same list on every site (www.krizaka.com/AGENTS.md §2.4, krizaka-seo-family of @krizaka/config). */
 const CRAWLERS = [
-  "Googlebot", "Google-Extended", "Bingbot", "GPTBot", "OAI-SearchBot", "ChatGPT-User", "PerplexityBot", "Perplexity-User",
-  "Claude-SearchBot", "Claude-User", "ClaudeBot", "anthropic-ai", "Applebot", "Applebot-Extended", "CCBot",
+  "Googlebot",
+  "Google-Extended",
+  "Bingbot",
+  "GPTBot",
+  "OAI-SearchBot",
+  "ChatGPT-User",
+  "PerplexityBot",
+  "Perplexity-User",
+  "Claude-SearchBot",
+  "Claude-User",
+  "ClaudeBot",
+  "anthropic-ai",
+  "Applebot",
+  "Applebot-Extended",
+  "CCBot",
 ];
 
 export default function robots(): MetadataRoute.Robots {

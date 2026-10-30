@@ -11,7 +11,21 @@ import type { Query } from "./port";
 import { cleanName, isId } from "./rules";
 import { checkMove, stateOf, STATUS_MODE, type StatusSet } from "./status-sets";
 import { checkViewFilters, type ViewFilters } from "./views";
-import { type Actor, type AuditTrail, type Clock, type EntityState, type SavedView, STATUS_CHANGED_EVENT, type StatusMove, type StoredConfig, TAG_ORIGIN, type Transaction, type WorkspaceEvents, type WorkspaceStore, type WorkspaceTag } from "./workspace-port";
+import {
+  type Actor,
+  type AuditTrail,
+  type Clock,
+  type EntityState,
+  type SavedView,
+  STATUS_CHANGED_EVENT,
+  type StatusMove,
+  type StoredConfig,
+  TAG_ORIGIN,
+  type Transaction,
+  type WorkspaceEvents,
+  type WorkspaceStore,
+  type WorkspaceTag,
+} from "./workspace-port";
 
 // @fixed: the most entities one bulk action touches; a longer selection is several calls
 export const BULK_MAX = 200;
@@ -65,14 +79,25 @@ async function configOf(store: WorkspaceStore, kind: string): Promise<KindConfig
 }
 
 /** Every id is an entity of the scope, or nothing happens: an id of another scope says nothing about it (404). */
-async function owned(store: WorkspaceStore, scope: string, kind: string, raw: readonly string[], lock = false): Promise<string[]> {
+async function owned(
+  store: WorkspaceStore,
+  scope: string,
+  kind: string,
+  raw: readonly string[],
+  lock = false,
+): Promise<string[]> {
   const list = ids(raw);
   const found = await store.inScope(scope, kind, list, { lock });
   if (found.length !== list.length) throw new OrganizeError(ORGANIZE_CODE.notFound);
   return list;
 }
 
-async function scopeTags(store: WorkspaceStore, scope: string, kind: string, tagIds: readonly string[]): Promise<string[]> {
+async function scopeTags(
+  store: WorkspaceStore,
+  scope: string,
+  kind: string,
+  tagIds: readonly string[],
+): Promise<string[]> {
   const wanted = [...new Set(tagIds)];
   if (wanted.some((t) => !isId(t))) throw new OrganizeError(ORGANIZE_CODE.notFound, "Unknown tag");
   const mine = new Set((await store.tags(scope, kind)).map((t) => t.id));
@@ -91,7 +116,11 @@ async function authored(store: WorkspaceStore, scope: string, actor: Actor, id: 
  * Which entities make a move and which are skipped, with why: the state the user saw (`expect`), then the set's rules. One entity
  * is refused instead of skipped. Pure: the service stores, audits and emits what it returns.
  */
-function planMoves(set: StatusSet, entities: readonly { id: string; from: string }[], move: { to: string; role: string; expect?: string; reason?: string | null }) {
+function planMoves(
+  set: StatusSet,
+  entities: readonly { id: string; from: string }[],
+  move: { to: string; role: string; expect?: string; reason?: string | null },
+) {
   const single = entities.length === 1;
   const out = { moved: [] as { id: string; from: string }[], skipped: [] as { id: string; code: string }[] };
   const skip = (id: string, error: OrganizeError) => {
@@ -99,7 +128,10 @@ function planMoves(set: StatusSet, entities: readonly { id: string; from: string
     out.skipped.push({ id, code: error.code });
   };
   for (const { id, from } of entities) {
-    const problem = move.expect !== undefined && from !== move.expect ? new OrganizeError(ORGANIZE_CODE.stale) : moveProblem(set, from, move);
+    const problem =
+      move.expect !== undefined && from !== move.expect
+        ? new OrganizeError(ORGANIZE_CODE.stale)
+        : moveProblem(set, from, move);
     if (problem) skip(id, problem);
     else out.moved.push({ id, from });
   }
@@ -107,7 +139,11 @@ function planMoves(set: StatusSet, entities: readonly { id: string; from: string
 }
 
 /** Why one entity cannot make a move (`ALREADY` when it is there), or null. A bad reason is the caller's mistake: it is thrown. */
-function moveProblem(set: StatusSet, from: string, move: { to: string; role: string; reason?: string | null }): OrganizeError | null {
+function moveProblem(
+  set: StatusSet,
+  from: string,
+  move: { to: string; role: string; reason?: string | null },
+): OrganizeError | null {
   try {
     checkMove(set, { from, to: move.to, role: move.role, reason: move.reason });
     return null;
@@ -119,9 +155,16 @@ function moveProblem(set: StatusSet, from: string, move: { to: string; role: str
 
 export function createWorkspace(deps: WorkspaceDeps) {
   const newId = deps.newId ?? (() => crypto.randomUUID());
-  const audit = (tx: Query, actor: Actor, action: string, target: { type: string; id: string }, detail: Record<string, unknown>) =>
+  const audit = (
+    tx: Query,
+    actor: Actor,
+    action: string,
+    target: { type: string; id: string },
+    detail: Record<string, unknown>,
+  ) =>
     deps.audit?.record(tx, { actorId: actor.id, actorLabel: actor.label, action, target, detail }) ?? Promise.resolve();
-  const run = <T>(work: (tx: Query, store: WorkspaceStore) => Promise<T>) => deps.transaction((tx) => work(tx, deps.storeFor(tx)));
+  const run = <T>(work: (tx: Query, store: WorkspaceStore) => Promise<T>) =>
+    deps.transaction((tx) => work(tx, deps.storeFor(tx)));
 
   const writer = (config: KindConfig, actor: Actor) => {
     if (!config.tags.writers.includes(actor.role)) throw new OrganizeError(ORGANIZE_CODE.forbidden);
@@ -158,16 +201,33 @@ export function createWorkspace(deps: WorkspaceDeps) {
       }),
   };
 
-  async function apply(tx: Query, store: WorkspaceStore, actor: Actor, kind: string, entities: string[], change: { add: string[]; remove: string[] | "all-other" }) {
+  async function apply(
+    tx: Query,
+    store: WorkspaceStore,
+    actor: Actor,
+    kind: string,
+    entities: string[],
+    change: { add: string[]; remove: string[] | "all-other" },
+  ) {
     const current = await store.tagsOf(kind, entities);
     const plans = entities.map((id) => {
       const has = new Set(current.get(id) ?? []);
-      const remove = change.remove === "all-other" ? [...has].filter((t) => !change.add.includes(t)) : change.remove.filter((t) => has.has(t));
+      const remove =
+        change.remove === "all-other"
+          ? [...has].filter((t) => !change.add.includes(t))
+          : change.remove.filter((t) => has.has(t));
       return { id, added: change.add.filter((t) => !has.has(t)), removed: remove };
     });
-    await store.unlink(kind, plans.flatMap((p) => p.removed.map((tagId) => ({ entityId: p.id, tagId }))));
-    await store.link(kind, plans.flatMap((p) => p.added.map((tagId) => ({ entityId: p.id, tagId }))));
-    for (const p of plans.filter((x) => x.added.length + x.removed.length > 0)) await audit(tx, actor, "organize.tags_changed", { type: kind, id: p.id }, { added: p.added, removed: p.removed });
+    await store.unlink(
+      kind,
+      plans.flatMap((p) => p.removed.map((tagId) => ({ entityId: p.id, tagId }))),
+    );
+    await store.link(
+      kind,
+      plans.flatMap((p) => p.added.map((tagId) => ({ entityId: p.id, tagId }))),
+    );
+    for (const p of plans.filter((x) => x.added.length + x.removed.length > 0))
+      await audit(tx, actor, "organize.tags_changed", { type: kind, id: p.id }, { added: p.added, removed: p.removed });
     return plans.filter((x) => x.added.length + x.removed.length > 0).length;
   }
 
@@ -179,26 +239,53 @@ export function createWorkspace(deps: WorkspaceDeps) {
         const presets = (await configOf(store, kind)).tags.presets[variant] ?? [];
         await store.lockScope(scope);
         const have = new Set((await store.tags(scope, kind)).map((t) => t.name.toLowerCase()));
-        for (const p of presets.filter((x) => !have.has(x.name.toLowerCase()))) await store.addTag(scope, kind, { name: p.name, marker: p.marker, origin: TAG_ORIGIN.preset }, deps.clock.now());
+        for (const p of presets.filter((x) => !have.has(x.name.toLowerCase())))
+          await store.addTag(
+            scope,
+            kind,
+            { name: p.name, marker: p.marker, origin: TAG_ORIGIN.preset },
+            deps.clock.now(),
+          );
         return store.tags(scope, kind);
       }),
-    create: (scope: string, actor: Actor, kind: string, input: { name: string; marker: Marker }): Promise<WorkspaceTag> =>
+    create: (
+      scope: string,
+      actor: Actor,
+      kind: string,
+      input: { name: string; marker: Marker },
+    ): Promise<WorkspaceTag> =>
       run(async (tx, store) => {
         const cfg = await configOf(store, kind);
         writer(cfg, actor);
-        if (!cfg.tags.userTags) throw new OrganizeError(ORGANIZE_CODE.forbidden, "Only the administrator's tags exist here");
+        if (!cfg.tags.userTags)
+          throw new OrganizeError(ORGANIZE_CODE.forbidden, "Only the administrator's tags exist here");
         const clean = { name: name(input.name), marker: marker(input.marker) };
         await store.lockScope(scope);
         if ((await store.tags(scope, kind)).length >= cfg.tags.max) throw new OrganizeError(ORGANIZE_CODE.tagLimit);
         const tag = await store.addTag(scope, kind, { ...clean, origin: TAG_ORIGIN.user }, deps.clock.now());
-        await audit(tx, actor, "organize.tag_created", { type: "organize_tag", id: tag.id }, { kind, name: tag.name, marker: tag.marker });
+        await audit(
+          tx,
+          actor,
+          "organize.tag_created",
+          { type: "organize_tag", id: tag.id },
+          { kind, name: tag.name, marker: tag.marker },
+        );
         return tag;
       }),
-    update: (scope: string, actor: Actor, kind: string, id: string, patch: { name?: string; marker?: Marker }): Promise<WorkspaceTag> =>
+    update: (
+      scope: string,
+      actor: Actor,
+      kind: string,
+      id: string,
+      patch: { name?: string; marker?: Marker },
+    ): Promise<WorkspaceTag> =>
       run(async (_tx, store) => {
         writer(await configOf(store, kind), actor);
         if (!isId(id)) throw new OrganizeError(ORGANIZE_CODE.notFound);
-        const tag = await store.updateTag(scope, kind, id, { name: patch.name === undefined ? undefined : name(patch.name), marker: patch.marker === undefined ? undefined : marker(patch.marker) });
+        const tag = await store.updateTag(scope, kind, id, {
+          name: patch.name === undefined ? undefined : name(patch.name),
+          marker: patch.marker === undefined ? undefined : marker(patch.marker),
+        });
         if (!tag) throw new OrganizeError(ORGANIZE_CODE.notFound);
         return tag;
       }),
@@ -214,10 +301,22 @@ export function createWorkspace(deps: WorkspaceDeps) {
         const mine = await store.inScope(scope, kind, readable(entityIds));
         const byId = new Map((await store.tags(scope, kind)).map((t) => [t.id, t]));
         const worn = await store.tagsOf(kind, mine);
-        return new Map(mine.map((id) => [id, (worn.get(id) ?? []).flatMap((t) => (byId.has(t) ? [byId.get(t)!] : [])).sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()))]));
+        return new Map(
+          mine.map((id) => [
+            id,
+            (worn.get(id) ?? [])
+              .flatMap((t) => (byId.has(t) ? [byId.get(t)!] : []))
+              .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase())),
+          ]),
+        );
       }),
     /** Bulk tag and untag: one transaction, one audit line per entity that changed. Returns how many changed. */
-    apply: (scope: string, actor: Actor, kind: string, input: { ids: readonly string[]; add?: readonly string[]; remove?: readonly string[] }): Promise<number> =>
+    apply: (
+      scope: string,
+      actor: Actor,
+      kind: string,
+      input: { ids: readonly string[]; add?: readonly string[]; remove?: readonly string[] },
+    ): Promise<number> =>
       run(async (tx, store) => {
         writer(await configOf(store, kind), actor);
         const entities = await owned(store, scope, kind, input.ids);
@@ -230,7 +329,10 @@ export function createWorkspace(deps: WorkspaceDeps) {
       run(async (tx, store) => {
         writer(await configOf(store, kind), actor);
         const entities = await owned(store, scope, kind, [entityId]);
-        return apply(tx, store, actor, kind, entities, { add: await scopeTags(store, scope, kind, tagIds), remove: "all-other" });
+        return apply(tx, store, actor, kind, entities, {
+          add: await scopeTags(store, scope, kind, tagIds),
+          remove: "all-other",
+        });
       }),
   };
 
@@ -248,20 +350,49 @@ export function createWorkspace(deps: WorkspaceDeps) {
      * handed to the product's consequence, all in one transaction. One entity with `expect` (the state the user saw) is refused
      * `STALE` when it changed; in bulk, what cannot move is `skipped` with its code.
      */
-    move: (scope: string, actor: Actor, kind: string, input: { ids: readonly string[]; to: string; expect?: string; reason?: string | null }): Promise<MoveResult> =>
+    move: (
+      scope: string,
+      actor: Actor,
+      kind: string,
+      input: { ids: readonly string[]; to: string; expect?: string; reason?: string | null },
+    ): Promise<MoveResult> =>
       run(async (tx, store) => {
         const set = editableSet(await configOf(store, kind));
         const target = stateOf(set, input.to);
         if (!target) throw bad("Not a state of the set");
         const entities = await owned(store, scope, kind, input.ids, true);
         const stored = await store.states(kind, entities);
-        const out = planMoves(set, entities.map((id) => ({ id, from: stored.get(id)?.state ?? set.initial })), { ...input, role: actor.role });
+        const out = planMoves(
+          set,
+          entities.map((id) => ({ id, from: stored.get(id)?.state ?? set.initial })),
+          { ...input, role: actor.role },
+        );
         const at = deps.clock.now();
-        const moved = out.moved.map((m) => ({ scope, kind, entityId: m.id, from: m.from, to: input.to, final: target.final === true, reason: input.reason ?? null, at }));
+        const moved = out.moved.map((m) => ({
+          scope,
+          kind,
+          entityId: m.id,
+          from: m.from,
+          to: input.to,
+          final: target.final === true,
+          reason: input.reason ?? null,
+          at,
+        }));
         for (const m of moved) {
           await store.setState(kind, m.entityId, m.to, m.at, actor.id);
-          await audit(tx, actor, "organize.status_changed", { type: kind, id: m.entityId }, { set: set.key, from: m.from, to: m.to, final: m.final, ...(m.reason ? { reason: m.reason } : {}) });
-          await deps.events?.append(tx, { id: newId(), type: STATUS_CHANGED_EVENT, scope, payload: { ...m, at: m.at.toISOString() } });
+          await audit(
+            tx,
+            actor,
+            "organize.status_changed",
+            { type: kind, id: m.entityId },
+            { set: set.key, from: m.from, to: m.to, final: m.final, ...(m.reason ? { reason: m.reason } : {}) },
+          );
+          await deps.events?.append(tx, {
+            id: newId(),
+            type: STATUS_CHANGED_EVENT,
+            scope,
+            payload: { ...m, at: m.at.toISOString() },
+          });
         }
         if (moved.length > 0) await deps.onMoved?.(tx, moved);
         return { moved, skipped: out.skipped };
@@ -281,18 +412,39 @@ export function createWorkspace(deps: WorkspaceDeps) {
         const saved = await store.views(scope, kind, member(actor));
         return { system: cfg.views, workspace: saved.filter((v) => v.shared), mine: saved.filter((v) => !v.shared) };
       }),
-    create: (scope: string, actor: Actor, kind: string, input: { name: string; filters: ViewFilters; shared?: boolean }): Promise<SavedView> =>
+    create: (
+      scope: string,
+      actor: Actor,
+      kind: string,
+      input: { name: string; filters: ViewFilters; shared?: boolean },
+    ): Promise<SavedView> =>
       run(async (_tx, store) => {
         const cfg = await configOf(store, kind);
         const filters = checkViewFilters(input.filters, cfg.status);
-        return store.addView(scope, { kind, authorId: member(actor), name: name(input.name), filters, shared: input.shared === true }, deps.clock.now());
+        return store.addView(
+          scope,
+          { kind, authorId: member(actor), name: name(input.name), filters, shared: input.shared === true },
+          deps.clock.now(),
+        );
       }),
-    update: (scope: string, actor: Actor, id: string, patch: { name?: string; filters?: ViewFilters; shared?: boolean }): Promise<SavedView> =>
+    update: (
+      scope: string,
+      actor: Actor,
+      id: string,
+      patch: { name?: string; filters?: ViewFilters; shared?: boolean },
+    ): Promise<SavedView> =>
       run(async (_tx, store) => {
         const found = await authored(store, scope, actor, id);
-        const filters = patch.filters === undefined ? undefined : checkViewFilters(patch.filters, (await configOf(store, found.kind)).status);
+        const filters =
+          patch.filters === undefined
+            ? undefined
+            : checkViewFilters(patch.filters, (await configOf(store, found.kind)).status);
         if (patch.shared !== undefined && typeof patch.shared !== "boolean") throw bad("shared is true or false");
-        return (await store.updateView(scope, id, { name: patch.name === undefined ? undefined : name(patch.name), filters, shared: patch.shared }))!;
+        return (await store.updateView(scope, id, {
+          name: patch.name === undefined ? undefined : name(patch.name),
+          filters,
+          shared: patch.shared,
+        }))!;
       }),
     remove: (scope: string, actor: Actor, id: string): Promise<void> =>
       run(async (_tx, store) => {

@@ -3,7 +3,7 @@ import crypto from "node:crypto";
 import type { Query } from "@krizaka/db";
 import { addHours } from "date-fns";
 
-import { can, type RoleModel,ROLES_CODE, RolesError } from "./roles-model";
+import { can, type RoleModel, ROLES_CODE, RolesError } from "./roles-model";
 
 export { can, defineRoles, type RoleModel, ROLES_CODE, type RolesCode, RolesError } from "./roles-model";
 
@@ -45,12 +45,20 @@ export function createRoles<Role extends string, Permission extends string>(deps
     return role;
   };
   const newToken = deps.token ?? (() => `${deps.tokenPrefix}1.${crypto.randomBytes(32).toString("base64url")}`);
-  const owners = (scopeId: string) => query<{ account_id: string }>("SELECT account_id FROM memberships WHERE scope_id = $1 AND role = $2", [scopeId, ownerRole()]);
+  const owners = (scopeId: string) =>
+    query<{ account_id: string }>("SELECT account_id FROM memberships WHERE scope_id = $1 AND role = $2", [
+      scopeId,
+      ownerRole(),
+    ]);
   /** The role that cannot disappear: the first of the model that manages every role. */
-  const ownerRole = (): Role => model.roles.find((r) => model.roles.every((x) => model.manages[r].includes(x) || x === r)) ?? model.roles[0]!;
+  const ownerRole = (): Role =>
+    model.roles.find((r) => model.roles.every((x) => model.manages[r].includes(x) || x === r)) ?? model.roles[0]!;
 
   async function roleOf(accountId: string, scopeId: string): Promise<Role | null> {
-    const [row] = await query<{ role: Role }>("SELECT role FROM memberships WHERE scope_id = $1 AND account_id = $2", [scopeId, accountId]);
+    const [row] = await query<{ role: Role }>("SELECT role FROM memberships WHERE scope_id = $1 AND account_id = $2", [
+      scopeId,
+      accountId,
+    ]);
     return row?.role ?? null;
   }
 
@@ -60,7 +68,12 @@ export function createRoles<Role extends string, Permission extends string>(deps
 
     /** Every scope the person belongs to, with their role in it. */
     async scopesOf(accountId: string): Promise<{ scopeId: string; role: Role }[]> {
-      return (await query<{ scope_id: string; role: Role }>("SELECT scope_id, role FROM memberships WHERE account_id = $1 ORDER BY created_at", [accountId])).map((r) => ({ scopeId: r.scope_id, role: r.role }));
+      return (
+        await query<{ scope_id: string; role: Role }>(
+          "SELECT scope_id, role FROM memberships WHERE account_id = $1 ORDER BY created_at",
+          [accountId],
+        )
+      ).map((r) => ({ scopeId: r.scope_id, role: r.role }));
     },
 
     /** The person's role in the scope if it holds the permission; otherwise `NOT_A_MEMBER` (404: nothing tells the scope exists) or `FORBIDDEN`. */
@@ -81,11 +94,23 @@ export function createRoles<Role extends string, Permission extends string>(deps
     },
 
     async members(scopeId: string): Promise<Member<Role>[]> {
-      const rows = await query<{ account_id: string; email: string; name: string | null; role: Role; created_at: Date }>(
+      const rows = await query<{
+        account_id: string;
+        email: string;
+        name: string | null;
+        role: Role;
+        created_at: Date;
+      }>(
         "SELECT m.account_id, a.email, a.name, m.role, m.created_at FROM memberships m JOIN accounts a ON a.id = m.account_id WHERE m.scope_id = $1 ORDER BY m.created_at",
         [scopeId],
       );
-      return rows.map((r) => ({ accountId: r.account_id, email: r.email, name: r.name, role: r.role, since: r.created_at }));
+      return rows.map((r) => ({
+        accountId: r.account_id,
+        email: r.email,
+        name: r.name,
+        role: r.role,
+        since: r.created_at,
+      }));
     },
 
     /** Changes someone's role. The actor must manage both the current and the new role; the last owner can never be demoted. */
@@ -94,8 +119,10 @@ export function createRoles<Role extends string, Permission extends string>(deps
       const mine = await roleOf(actor.id, scopeId);
       const current = await roleOf(target, scopeId);
       if (!mine || !current) throw new RolesError(ROLES_CODE.notMember);
-      if (!model.manages[mine].includes(current) || !model.manages[mine].includes(role as Role)) throw new RolesError(ROLES_CODE.notAllowed);
-      if (current === ownerRole() && role !== current && (await owners(scopeId)).length <= 1) throw new RolesError(ROLES_CODE.lastOwner);
+      if (!model.manages[mine].includes(current) || !model.manages[mine].includes(role as Role))
+        throw new RolesError(ROLES_CODE.notAllowed);
+      if (current === ownerRole() && role !== current && (await owners(scopeId)).length <= 1)
+        throw new RolesError(ROLES_CODE.lastOwner);
       await query("UPDATE memberships SET role = $3 WHERE scope_id = $1 AND account_id = $2", [scopeId, target, role]);
     },
 
@@ -110,37 +137,74 @@ export function createRoles<Role extends string, Permission extends string>(deps
     },
 
     /** Invites an e-mail address with a role the actor manages. The token is in the answer once (the product mails it); only its hash is kept. A new invitation for the same address replaces the pending one. */
-    async invite(scopeId: string, actor: { id: string }, input: { email: string; role: string }, now: Date): Promise<{ token: string; invitation: Invitation<Role> }> {
+    async invite(
+      scopeId: string,
+      actor: { id: string },
+      input: { email: string; role: string },
+      now: Date,
+    ): Promise<{ token: string; invitation: Invitation<Role> }> {
       const role = mustKnow(input.role);
       const mine = await roleOf(actor.id, scopeId);
       if (!mine) throw new RolesError(ROLES_CODE.notMember);
       if (!model.manages[mine].includes(role)) throw new RolesError(ROLES_CODE.notAllowed);
       const email = input.email.trim().toLowerCase();
-      await query("UPDATE invitations SET used_at = $3 WHERE scope_id = $1 AND email = $2 AND used_at IS NULL", [scopeId, email, now]);
+      await query("UPDATE invitations SET used_at = $3 WHERE scope_id = $1 AND email = $2 AND used_at IS NULL", [
+        scopeId,
+        email,
+        now,
+      ]);
       const token = newToken();
       const [row] = await query<{ id: string; created_at: Date; expires_at: Date }>(
         "INSERT INTO invitations (id, scope_id, email, role, token_hash, invited_by, created_at, expires_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, created_at, expires_at",
-        [crypto.randomUUID(), scopeId, email, role, deps.tokenHash(token), actor.id, now, addHours(now, deps.inviteTtlHours)],
+        [
+          crypto.randomUUID(),
+          scopeId,
+          email,
+          role,
+          deps.tokenHash(token),
+          actor.id,
+          now,
+          addHours(now, deps.inviteTtlHours),
+        ],
       );
-      return { token, invitation: { id: row!.id, email, role, createdAt: row!.created_at, expiresAt: row!.expires_at } };
+      return {
+        token,
+        invitation: { id: row!.id, email, role, createdAt: row!.created_at, expiresAt: row!.expires_at },
+      };
     },
 
     async pendingInvitations(scopeId: string, now: Date): Promise<Invitation<Role>[]> {
-      const rows = await query<{ id: string; email: string; role: Role; created_at: Date; expires_at: Date }>("SELECT id, email, role, created_at, expires_at FROM invitations WHERE scope_id = $1 AND used_at IS NULL AND expires_at > $2 ORDER BY created_at", [scopeId, now]);
-      return rows.map((r) => ({ id: r.id, email: r.email, role: r.role, createdAt: r.created_at, expiresAt: r.expires_at }));
+      const rows = await query<{ id: string; email: string; role: Role; created_at: Date; expires_at: Date }>(
+        "SELECT id, email, role, created_at, expires_at FROM invitations WHERE scope_id = $1 AND used_at IS NULL AND expires_at > $2 ORDER BY created_at",
+        [scopeId, now],
+      );
+      return rows.map((r) => ({
+        id: r.id,
+        email: r.email,
+        role: r.role,
+        createdAt: r.created_at,
+        expiresAt: r.expires_at,
+      }));
     },
 
     async revokeInvitation(scopeId: string, actor: { id: string }, invitationId: string, now: Date): Promise<void> {
       const mine = await roleOf(actor.id, scopeId);
       if (!mine) throw new RolesError(ROLES_CODE.notMember);
-      const [row] = await query<{ role: Role }>("SELECT role FROM invitations WHERE id = $1 AND scope_id = $2 AND used_at IS NULL", [invitationId, scopeId]);
+      const [row] = await query<{ role: Role }>(
+        "SELECT role FROM invitations WHERE id = $1 AND scope_id = $2 AND used_at IS NULL",
+        [invitationId, scopeId],
+      );
       if (!row) throw new RolesError(ROLES_CODE.inviteInvalid);
       if (!model.manages[mine].includes(row.role)) throw new RolesError(ROLES_CODE.notAllowed);
       await query("UPDATE invitations SET used_at = $2 WHERE id = $1", [invitationId, now]);
     },
 
     /** The signed-in account takes the invitation: it must have been sent to this account's address; the link works once and expires. */
-    async acceptInvitation(token: string, account: { id: string; email: string }, now: Date): Promise<{ scopeId: string; role: Role }> {
+    async acceptInvitation(
+      token: string,
+      account: { id: string; email: string },
+      now: Date,
+    ): Promise<{ scopeId: string; role: Role }> {
       const [row] = await query<{ id: string; scope_id: string; email: string; role: Role; invited_by: string | null }>(
         "SELECT id, scope_id, email, role, invited_by FROM invitations WHERE token_hash = $1 AND used_at IS NULL AND expires_at > $2",
         [deps.tokenHash(token), now],
@@ -150,9 +214,18 @@ export function createRoles<Role extends string, Permission extends string>(deps
       await query("UPDATE invitations SET used_at = $2 WHERE id = $1", [row.id, now]);
       const current = await roleOf(account.id, row.scope_id);
       // already in: keep the higher role (an invitation never demotes)
-      if (!current || (model.manages[current].length < model.manages[row.role].length)) await query("INSERT INTO memberships (scope_id, account_id, role, invited_by, created_at) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (scope_id, account_id) DO UPDATE SET role = excluded.role", [row.scope_id, account.id, row.role, row.invited_by, now]);
-      return { scopeId: row.scope_id, role: (!current || model.manages[current].length < model.manages[row.role].length ? row.role : current) as Role };
+      if (!current || model.manages[current].length < model.manages[row.role].length)
+        await query(
+          "INSERT INTO memberships (scope_id, account_id, role, invited_by, created_at) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (scope_id, account_id) DO UPDATE SET role = excluded.role",
+          [row.scope_id, account.id, row.role, row.invited_by, now],
+        );
+      return {
+        scopeId: row.scope_id,
+        role: (!current || model.manages[current].length < model.manages[row.role].length ? row.role : current) as Role,
+      };
     },
   };
 }
-export type Roles<Role extends string = string, Permission extends string = string> = ReturnType<typeof createRoles<Role, Permission>>;
+export type Roles<Role extends string = string, Permission extends string = string> = ReturnType<
+  typeof createRoles<Role, Permission>
+>;

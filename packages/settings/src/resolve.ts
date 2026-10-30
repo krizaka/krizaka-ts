@@ -1,4 +1,4 @@
-import { type Def, type Scope,SCOPES_BY_SPECIFICITY } from "./registry";
+import { type Def, type Scope, SCOPES_BY_SPECIFICITY } from "./registry";
 
 /** What each scope has set for one key (absent = not overridden there). */
 export type Layers = Partial<Record<Scope, unknown>>;

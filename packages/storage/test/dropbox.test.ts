@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 
-import { dropboxAuthorizeUrl, dropboxStore, exchangeDropboxCode, type FetchLike, openProvider, pkcePair, refreshDropboxToken, revokeDropbox } from "../src/node";
+import {
+  dropboxAuthorizeUrl,
+  dropboxStore,
+  exchangeDropboxCode,
+  type FetchLike,
+  openProvider,
+  pkcePair,
+  refreshDropboxToken,
+  revokeDropbox,
+} from "../src/node";
 import { objectStoreContract } from "../src/testkit";
 
 interface Arg {
@@ -19,12 +28,29 @@ function fakeDropbox(options: { revoked?: boolean } = {}) {
     log.push(u.pathname);
     const reply = (status: number, body: unknown = "", bytes?: Uint8Array) => {
       const text = typeof body === "string" ? body : JSON.stringify(body);
-      return { ok: status < 300, status, headers: { get: () => null }, arrayBuffer: async () => new Uint8Array(bytes ?? new TextEncoder().encode(text)).buffer as ArrayBuffer, text: async () => text };
+      return {
+        ok: status < 300,
+        status,
+        headers: { get: () => null },
+        arrayBuffer: async () => new Uint8Array(bytes ?? new TextEncoder().encode(text)).buffer as ArrayBuffer,
+        text: async () => text,
+      };
     };
     const text = init.body ? new TextDecoder().decode(init.body) : "";
-    if (u.pathname === "/oauth2/token") return options.revoked ? reply(400, { error: "invalid_grant" }) : reply(200, { access_token: "AT", refresh_token: text.includes("authorization_code") ? "RT" : undefined, expires_in: 14400 });
+    if (u.pathname === "/oauth2/token")
+      return options.revoked
+        ? reply(400, { error: "invalid_grant" })
+        : reply(200, {
+            access_token: "AT",
+            refresh_token: text.includes("authorization_code") ? "RT" : undefined,
+            expires_in: 14400,
+          });
     if (init.headers.authorization !== "Bearer AT") return reply(401);
-    const arg = init.headers["dropbox-api-arg"] ? (JSON.parse(init.headers["dropbox-api-arg"]) as Arg) : (text ? (JSON.parse(text) as Arg) : ({} as Arg));
+    const arg = init.headers["dropbox-api-arg"]
+      ? (JSON.parse(init.headers["dropbox-api-arg"]) as Arg)
+      : text
+        ? (JSON.parse(text) as Arg)
+        : ({} as Arg);
     const notFound = () => reply(409, { error_summary: "path/not_found/.." });
     switch (u.pathname) {
       case "/2/files/upload":
@@ -44,12 +70,16 @@ function fakeDropbox(options: { revoked?: boolean } = {}) {
       case "/2/files/download":
         return files.has(arg.path.toLowerCase()) ? reply(200, "", files.get(arg.path.toLowerCase())) : notFound();
       case "/2/files/get_metadata":
-        return files.has(arg.path.toLowerCase()) ? reply(200, { size: files.get(arg.path.toLowerCase())!.length }) : notFound();
+        return files.has(arg.path.toLowerCase())
+          ? reply(200, { size: files.get(arg.path.toLowerCase())!.length })
+          : notFound();
       case "/2/files/delete_v2":
         return files.delete(arg.path.toLowerCase()) ? reply(200, {}) : notFound();
       case "/2/files/list_folder": {
         const root = arg.path.toLowerCase();
-        const entries = [...files].filter(([p]) => p.startsWith(`${root}/`)).map(([p, b]) => ({ ".tag": "file", path_display: p, size: b.length }));
+        const entries = [...files]
+          .filter(([p]) => p.startsWith(`${root}/`))
+          .map(([p, b]) => ({ ".tag": "file", path_display: p, size: b.length }));
         return reply(200, { entries, has_more: false, cursor: "c" });
       }
       case "/2/auth/token/revoke":
@@ -62,7 +92,8 @@ function fakeDropbox(options: { revoked?: boolean } = {}) {
 }
 
 const clock = { now: () => new Date("2026-10-28T12:00:00Z") };
-const make = () => dropboxStore({ clientId: "cid", refreshToken: "RT", prefix: "yomizaka", fetch: fakeDropbox().call, clock });
+const make = () =>
+  dropboxStore({ clientId: "cid", refreshToken: "RT", prefix: "yomizaka", fetch: fakeDropbox().call, clock });
 
 objectStoreContract("dropbox", make);
 
@@ -106,21 +137,46 @@ describe("Dropbox OAuth 2 with PKCE", () => {
     const { verifier, challenge } = pkcePair(() => new Uint8Array(32).fill(1));
     expect(verifier).toHaveLength(43);
     expect(challenge).not.toBe(verifier);
-    const url = new URL(dropboxAuthorizeUrl({ clientId: "cid", redirectUri: "https://app.example.com/cb", challenge, state: "st" }));
+    const url = new URL(
+      dropboxAuthorizeUrl({ clientId: "cid", redirectUri: "https://app.example.com/cb", challenge, state: "st" }),
+    );
     expect(url.origin + url.pathname).toBe("https://www.dropbox.com/oauth2/authorize");
-    expect(Object.fromEntries(url.searchParams)).toMatchObject({ client_id: "cid", response_type: "code", code_challenge_method: "S256", token_access_type: "offline", state: "st", code_challenge: challenge });
+    expect(Object.fromEntries(url.searchParams)).toMatchObject({
+      client_id: "cid",
+      response_type: "code",
+      code_challenge_method: "S256",
+      token_access_type: "offline",
+      state: "st",
+      code_challenge: challenge,
+    });
   });
 
   it("exchanges the code, refreshes, revokes; a revoked refresh token is STORAGE_DISCONNECTED", async () => {
     const dbx = fakeDropbox();
-    expect(await exchangeDropboxCode(dbx.call, { clientId: "cid", code: "c", verifier: "v", redirectUri: "https://app.example.com/cb" })).toMatchObject({ accessToken: "AT", refreshToken: "RT" });
-    expect(await refreshDropboxToken(dbx.call, { clientId: "cid", refreshToken: "RT" })).toMatchObject({ accessToken: "AT" });
+    expect(
+      await exchangeDropboxCode(dbx.call, {
+        clientId: "cid",
+        code: "c",
+        verifier: "v",
+        redirectUri: "https://app.example.com/cb",
+      }),
+    ).toMatchObject({ accessToken: "AT", refreshToken: "RT" });
+    expect(await refreshDropboxToken(dbx.call, { clientId: "cid", refreshToken: "RT" })).toMatchObject({
+      accessToken: "AT",
+    });
     await expect(revokeDropbox(dbx.call, "AT")).resolves.toBeUndefined();
-    await expect(refreshDropboxToken(fakeDropbox({ revoked: true }).call, { clientId: "cid", refreshToken: "RT" })).rejects.toMatchObject({ code: "STORAGE_DISCONNECTED" });
+    await expect(
+      refreshDropboxToken(fakeDropbox({ revoked: true }).call, { clientId: "cid", refreshToken: "RT" }),
+    ).rejects.toMatchObject({ code: "STORAGE_DISCONNECTED" });
   });
 
   it("opens as a registered kind with no claim about where the files are", async () => {
-    const opened = await openProvider("dropbox", { clientId: "cid" }, { refreshToken: "RT" }, { runtime: "server", environment: "prod", fetch: fakeDropbox().call, clock });
+    const opened = await openProvider(
+      "dropbox",
+      { clientId: "cid" },
+      { refreshToken: "RT" },
+      { runtime: "server", environment: "prod", fetch: fakeDropbox().call, clock },
+    );
     expect(opened.residency.key).toBe("user-cloud");
   });
 });

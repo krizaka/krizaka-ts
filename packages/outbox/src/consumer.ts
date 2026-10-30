@@ -17,8 +17,18 @@ import { ident, type Query } from "@krizaka/db";
  * @param schema the Postgres schema of the module, default `outbox`
  * @returns `applied` the first time, `duplicate` after
  */
-export async function consumeOnce(tx: Query, consumer: string, messageId: string, now: Date, effect: () => Promise<void>, schema = "outbox"): Promise<"applied" | "duplicate"> {
-  const rows = await tx(`INSERT INTO ${ident(schema)}.processed (consumer, message_id, processed_at) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING RETURNING 1`, [consumer, messageId, now]);
+export async function consumeOnce(
+  tx: Query,
+  consumer: string,
+  messageId: string,
+  now: Date,
+  effect: () => Promise<void>,
+  schema = "outbox",
+): Promise<"applied" | "duplicate"> {
+  const rows = await tx(
+    `INSERT INTO ${ident(schema)}.processed (consumer, message_id, processed_at) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING RETURNING 1`,
+    [consumer, messageId, now],
+  );
   if (rows.length === 0) return "duplicate";
   await effect();
   return "applied";

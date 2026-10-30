@@ -28,7 +28,8 @@ export function memoryWorkspaceStore(entities: Map<string, Map<string, string>> 
     if (exists) throw new OrganizeError(ORGANIZE_CODE.nameTaken);
   };
   const sameName = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
-  const tagOf = (scope: string, kind: string, id: string) => tags.find((t) => t.scope === scope && t.row.kind === kind && t.row.id === id);
+  const tagOf = (scope: string, kind: string, id: string) =>
+    tags.find((t) => t.scope === scope && t.row.kind === kind && t.row.id === id);
   const viewOf = (scope: string, id: string) => views.find((v) => v.scope === scope && v.row.id === id);
   const forgetTag = (id: string) => {
     for (const set of links.values()) set.delete(id);
@@ -53,7 +54,10 @@ export function memoryWorkspaceStore(entities: Map<string, Map<string, string>> 
       // One process, one event loop: nothing to lock.
     },
     async tags(scope, kind) {
-      return tags.filter((t) => t.scope === scope && t.row.kind === kind).map((t) => copy(t.row)).sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+      return tags
+        .filter((t) => t.scope === scope && t.row.kind === kind)
+        .map((t) => copy(t.row))
+        .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
     },
     async addTag(scope, kind, tag) {
       taken(tags.some((t) => t.scope === scope && t.row.kind === kind && sameName(t.row.name, tag.name)));
@@ -64,8 +68,17 @@ export function memoryWorkspaceStore(entities: Map<string, Map<string, string>> 
     async updateTag(scope, kind, id, patch) {
       const found = tagOf(scope, kind, id);
       if (!found) return null;
-      if (patch.name !== undefined) taken(tags.some((t) => t !== found && t.scope === scope && t.row.kind === kind && sameName(t.row.name, patch.name!)));
-      Object.assign(found.row, patch.name === undefined ? {} : { name: patch.name }, patch.marker === undefined ? {} : { marker: patch.marker });
+      if (patch.name !== undefined)
+        taken(
+          tags.some(
+            (t) => t !== found && t.scope === scope && t.row.kind === kind && sameName(t.row.name, patch.name!),
+          ),
+        );
+      Object.assign(
+        found.row,
+        patch.name === undefined ? {} : { name: patch.name },
+        patch.marker === undefined ? {} : { marker: patch.marker },
+      );
       return copy(found.row);
     },
     async removeTag(scope, kind, id) {
@@ -76,11 +89,16 @@ export function memoryWorkspaceStore(entities: Map<string, Map<string, string>> 
       return true;
     },
     async tagsOf(kind, entityIds) {
-      return new Map(entityIds.flatMap((id) => (links.get(key(kind, id))?.size ? [[id, [...links.get(key(kind, id))!]] as const] : [])));
+      return new Map(
+        entityIds.flatMap((id) =>
+          links.get(key(kind, id))?.size ? [[id, [...links.get(key(kind, id))!]] as const] : [],
+        ),
+      );
     },
     async link(kind, pairs) {
       for (const p of pairs) {
-        if (!tags.some((t) => t.row.id === p.tagId && t.row.kind === kind)) throw new Error("foreign key: the tag is not of this kind");
+        if (!tags.some((t) => t.row.id === p.tagId && t.row.kind === kind))
+          throw new Error("foreign key: the tag is not of this kind");
         links.set(key(kind, p.entityId), (links.get(key(kind, p.entityId)) ?? new Set()).add(p.tagId));
       }
     },
@@ -88,7 +106,9 @@ export function memoryWorkspaceStore(entities: Map<string, Map<string, string>> 
       for (const p of pairs) links.get(key(kind, p.entityId))?.delete(p.tagId);
     },
     async states(kind, entityIds) {
-      return new Map(entityIds.flatMap((id) => (states.has(key(kind, id)) ? [[id, copy(states.get(key(kind, id))!)] as const] : [])));
+      return new Map(
+        entityIds.flatMap((id) => (states.has(key(kind, id)) ? [[id, copy(states.get(key(kind, id))!)] as const] : [])),
+      );
     },
     async setState(kind, entityId, state, at) {
       states.set(key(kind, entityId), { state, changedAt: at });
@@ -108,7 +128,15 @@ export function memoryWorkspaceStore(entities: Map<string, Map<string, string>> 
       return found ? copy(found.row) : null;
     },
     async addView(scope, view) {
-      taken(views.some((v) => v.scope === scope && v.row.kind === view.kind && v.row.authorId === view.authorId && sameName(v.row.name, view.name)));
+      taken(
+        views.some(
+          (v) =>
+            v.scope === scope &&
+            v.row.kind === view.kind &&
+            v.row.authorId === view.authorId &&
+            sameName(v.row.name, view.name),
+        ),
+      );
       const row: SavedView = { id: crypto.randomUUID(), ...copy(view) };
       views.push({ scope, row });
       return copy(row);
@@ -116,7 +144,17 @@ export function memoryWorkspaceStore(entities: Map<string, Map<string, string>> 
     async updateView(scope, id, patch) {
       const found = viewOf(scope, id);
       if (!found) return null;
-      if (patch.name !== undefined) taken(views.some((v) => v !== found && v.scope === scope && v.row.kind === found.row.kind && v.row.authorId === found.row.authorId && sameName(v.row.name, patch.name!)));
+      if (patch.name !== undefined)
+        taken(
+          views.some(
+            (v) =>
+              v !== found &&
+              v.scope === scope &&
+              v.row.kind === found.row.kind &&
+              v.row.authorId === found.row.authorId &&
+              sameName(v.row.name, patch.name!),
+          ),
+        );
       Object.assign(found.row, Object.fromEntries(Object.entries(copy(patch)).filter(([, v]) => v !== undefined)));
       return copy(found.row);
     },

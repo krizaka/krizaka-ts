@@ -31,23 +31,151 @@ export const CAST_VERSION = 1;
 
 export const CAST: readonly CastPersona[] = [
   // The same three people as the deployed QA accounts (Eric, Mira, Camille) in each product, so a laptop and the dev deployment hold the same names.
-  { id: "eric", product: "yomizaka", firstName: "Éric", displayName: "Éric Tremblay", role: "member", locale: "fr", avatar: "community-lead", workspace: "rosemont-villeray" },
-  { id: "mira", product: "yomizaka", firstName: "Mira", displayName: "Mira Haddad", role: "admin", locale: "fr", avatar: "ai-builder", workspace: "administration" },
-  { id: "camille", product: "yomizaka", firstName: "Camille", displayName: "Camille Tremblay", role: "member", locale: "fr", avatar: "visual-artist", workspace: "rosemont-villeray" },
+  {
+    id: "eric",
+    product: "yomizaka",
+    firstName: "Éric",
+    displayName: "Éric Tremblay",
+    role: "member",
+    locale: "fr",
+    avatar: "community-lead",
+    workspace: "rosemont-villeray",
+  },
+  {
+    id: "mira",
+    product: "yomizaka",
+    firstName: "Mira",
+    displayName: "Mira Haddad",
+    role: "admin",
+    locale: "fr",
+    avatar: "ai-builder",
+    workspace: "administration",
+  },
+  {
+    id: "camille",
+    product: "yomizaka",
+    firstName: "Camille",
+    displayName: "Camille Tremblay",
+    role: "member",
+    locale: "fr",
+    avatar: "visual-artist",
+    workspace: "rosemont-villeray",
+  },
   // Orazaka: the accounts already deployed on dev. Éric is the user (ORAZAKA_USER_*, APP_QA_ORAZAKA_PERSONA_*), Mira the administrator
   // (ORAZAKA_ADMIN_*, APP_QA_ORAZAKA_MIRA_*), Krizaka the company as an SME customer (APP_QA_ORAZAKA_KRIZAKA_*). The greeting reads the name: never « qa_user ».
-  { id: "eric", product: "orazaka", firstName: "Éric", displayName: "Éric Tremblay", role: "member", locale: "fr", avatar: "community-lead", workspace: "demo" },
-  { id: "mira", product: "orazaka", firstName: "Mira", displayName: "Mira Haddad", role: "admin", locale: "fr", avatar: "ai-builder", workspace: "administration" },
-  { id: "krizaka", product: "orazaka", firstName: "Krizaka", displayName: "Krizaka", role: "member", locale: "fr", avatar: "tech-architect", workspace: "demo" },
+  {
+    id: "eric",
+    product: "orazaka",
+    firstName: "Éric",
+    displayName: "Éric Tremblay",
+    role: "member",
+    locale: "fr",
+    avatar: "community-lead",
+    workspace: "demo",
+  },
+  {
+    id: "mira",
+    product: "orazaka",
+    firstName: "Mira",
+    displayName: "Mira Haddad",
+    role: "admin",
+    locale: "fr",
+    avatar: "ai-builder",
+    workspace: "administration",
+  },
+  {
+    id: "krizaka",
+    product: "orazaka",
+    firstName: "Krizaka",
+    displayName: "Krizaka",
+    role: "member",
+    locale: "fr",
+    avatar: "tech-architect",
+    workspace: "demo",
+  },
   // Akinaza: Éric owns the Krizaka studio, Léa is the Saint-Henri walker, Camille is her first client, Mira administers.
-  { id: "eric", product: "akinaza", firstName: "Éric", displayName: "Éric Tremblay", role: "owner", locale: "fr", avatar: "community-lead", banner: "creator-loft-studio", workspace: "krizaka-studio" },
-  { id: "mira", product: "akinaza", firstName: "Mira", displayName: "Mira Haddad", role: "admin", locale: "fr", avatar: "ai-builder", workspace: "administration" },
-  { id: "lea", product: "akinaza", firstName: "Léa", displayName: "Léa Beaulieu", role: "owner", locale: "fr", avatar: "studio-maker", banner: "cafe-maker-studio", workspace: "saint-henri" },
-  { id: "camille", product: "akinaza", firstName: "Camille", displayName: "Camille Tremblay", role: "client", locale: "fr", avatar: "visual-artist", workspace: "saint-henri" },
-  { id: "jordan", product: "akinaza", firstName: "Jordan", displayName: "Jordan Lee", role: "client", locale: "en", avatar: "tech-architect", workspace: "saint-henri" },
-  { id: "nadia", product: "akinaza", firstName: "Nadia", displayName: "Nadia Benali", role: "client", locale: "fr", avatar: "digital-creator", workspace: "saint-henri" },
-  { id: "etienne", product: "akinaza", firstName: "Étienne", displayName: "Étienne Gagnon", role: "client", locale: "fr", avatar: "boom-bap", workspace: "saint-henri" },
-  { id: "sofia", product: "akinaza", firstName: "Sofia", displayName: "Sofia Rossi", role: "client", locale: "en", avatar: "salon-tattoo-maker", workspace: "saint-henri" },
+  {
+    id: "eric",
+    product: "akinaza",
+    firstName: "Éric",
+    displayName: "Éric Tremblay",
+    role: "owner",
+    locale: "fr",
+    avatar: "community-lead",
+    banner: "creator-loft-studio",
+    workspace: "krizaka-studio",
+  },
+  {
+    id: "mira",
+    product: "akinaza",
+    firstName: "Mira",
+    displayName: "Mira Haddad",
+    role: "admin",
+    locale: "fr",
+    avatar: "ai-builder",
+    workspace: "administration",
+  },
+  {
+    id: "lea",
+    product: "akinaza",
+    firstName: "Léa",
+    displayName: "Léa Beaulieu",
+    role: "owner",
+    locale: "fr",
+    avatar: "studio-maker",
+    banner: "cafe-maker-studio",
+    workspace: "saint-henri",
+  },
+  {
+    id: "camille",
+    product: "akinaza",
+    firstName: "Camille",
+    displayName: "Camille Tremblay",
+    role: "client",
+    locale: "fr",
+    avatar: "visual-artist",
+    workspace: "saint-henri",
+  },
+  {
+    id: "jordan",
+    product: "akinaza",
+    firstName: "Jordan",
+    displayName: "Jordan Lee",
+    role: "client",
+    locale: "en",
+    avatar: "tech-architect",
+    workspace: "saint-henri",
+  },
+  {
+    id: "nadia",
+    product: "akinaza",
+    firstName: "Nadia",
+    displayName: "Nadia Benali",
+    role: "client",
+    locale: "fr",
+    avatar: "digital-creator",
+    workspace: "saint-henri",
+  },
+  {
+    id: "etienne",
+    product: "akinaza",
+    firstName: "Étienne",
+    displayName: "Étienne Gagnon",
+    role: "client",
+    locale: "fr",
+    avatar: "boom-bap",
+    workspace: "saint-henri",
+  },
+  {
+    id: "sofia",
+    product: "akinaza",
+    firstName: "Sofia",
+    displayName: "Sofia Rossi",
+    role: "client",
+    locale: "en",
+    avatar: "salon-tattoo-maker",
+    workspace: "saint-henri",
+  },
 ];
 
 /** The personas of a product, in cast order. */
@@ -56,7 +184,12 @@ export const castOf = (product: CastProduct): readonly CastPersona[] => CAST.fil
 /** One persona by product and id; throws on an unknown one (a seed or a recording naming a person the cast lacks is a bug). */
 export function persona(product: CastProduct, id: string): CastPersona {
   const found = CAST.find((p) => p.product === product && p.id === id);
-  if (!found) throw new Error(`cast: no persona "${id}" in ${product} (known: ${castOf(product).map((p) => p.id).join(", ")})`);
+  if (!found)
+    throw new Error(
+      `cast: no persona "${id}" in ${product} (known: ${castOf(product)
+        .map((p) => p.id)
+        .join(", ")})`,
+    );
   return found;
 }
 

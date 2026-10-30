@@ -7,7 +7,10 @@ import { hashAddress } from "./rules";
  */
 export function emailPorts(store: MailStore, clock: Clock) {
   return {
-    log: { record: (entry: Omit<DeliveryEntry, "at"> & { at?: string }) => store.record({ ...entry, at: entry.at ? new Date(entry.at) : clock.now() }) },
+    log: {
+      record: (entry: Omit<DeliveryEntry, "at"> & { at?: string }) =>
+        store.record({ ...entry, at: entry.at ? new Date(entry.at) : clock.now() }),
+    },
     suppression: {
       has: (email: string) => store.isSuppressed(hashAddress(email)),
       add: async (email: string, reason: SuppressionReason): Promise<void> => {
@@ -20,4 +23,3 @@ export function emailPorts(store: MailStore, clock: Clock) {
     },
   };
 }
-

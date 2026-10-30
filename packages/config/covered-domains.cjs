@@ -42,9 +42,18 @@ const ruleName = (domain) => `krizaka-first-${typeof domain === "string" ? domai
 /** The table of the page « Use Krizaka first » (Markdown), generated from the map. */
 function coveredDomainsMarkdown() {
   const rows = coveredDomains.map(
-    (domain) => `| ${domain.title} | ${domain.use} | ${domain.refused.map((entry) => `\`${entry}\``).join(", ")} | \`${ruleName(domain)}\` |`,
+    (domain) =>
+      `| ${domain.title} | ${domain.use} | ${domain.refused.map((entry) => `\`${entry}\``).join(", ")} | \`${ruleName(domain)}\` |`,
   );
   return ["| Domain | Use | Refused in an app | Rule |", "| :-- | :-- | :-- | :-- |", ...rows].join("\n");
 }
 
-module.exports = { coveredDomains, domainMessage, domainPattern, coveredDomainsMarkdown, MISSING_FUNCTION, refusedPattern, ruleName };
+module.exports = {
+  coveredDomains,
+  domainMessage,
+  domainPattern,
+  coveredDomainsMarkdown,
+  MISSING_FUNCTION,
+  refusedPattern,
+  ruleName,
+};

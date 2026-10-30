@@ -13,7 +13,12 @@ const read = (...p) => readFileSync(join(...p), "utf8");
 /** The published packages of the repository (folders of packages/ with a non-private package.json). */
 export function repositoryPackages(repo = join(SITE, "..")) {
   return readdirSync(join(repo, "packages"), { withFileTypes: true })
-    .filter((d) => d.isDirectory() && existsSync(join(repo, "packages", d.name, "package.json")) && !JSON.parse(read(repo, "packages", d.name, "package.json")).private)
+    .filter(
+      (d) =>
+        d.isDirectory() &&
+        existsSync(join(repo, "packages", d.name, "package.json")) &&
+        !JSON.parse(read(repo, "packages", d.name, "package.json")).private,
+    )
     .map((d) => d.name);
 }
 
@@ -23,7 +28,9 @@ const INSTALL_TABS = /^<InstallTabs name="@krizaka\/[a-z0-9-]+" \/>$/m;
 function missingPages(dir, slugs) {
   const errors = [];
   for (const slug of slugs) {
-    for (const file of [`${slug}.mdx`, `${slug}.fr.mdx`]) if (!existsSync(join(dir, file))) errors.push(`${file}: missing${slug === "start" ? "" : " (run `npm run gen`)"}`);
+    for (const file of [`${slug}.mdx`, `${slug}.fr.mdx`])
+      if (!existsSync(join(dir, file)))
+        errors.push(`${file}: missing${slug === "start" ? "" : " (run `npm run gen`)"}`);
   }
   return errors;
 }
@@ -31,7 +38,10 @@ function missingPages(dir, slugs) {
 /** Each language's sidebar lists every package. */
 function unlistedPackages(dir, ids) {
   const errors = [];
-  for (const [name, locale] of [["meta.json", "en"], ["meta.fr.json", "fr"]]) {
+  for (const [name, locale] of [
+    ["meta.json", "en"],
+    ["meta.fr.json", "fr"],
+  ]) {
     if (!existsSync(join(dir, name))) {
       errors.push(`${name}: missing (run \`npm run gen\`)`);
       continue;
@@ -47,8 +57,11 @@ function packageMessages(messages, ids) {
   const errors = [];
   for (const locale of ["en", "fr"]) {
     const dictionary = JSON.parse(read(messages, `${locale}.json`));
-    for (const id of ids) if (!dictionary.packages?.[id]?.hook) errors.push(`messages/${locale}.json: packages.${id}.hook is missing — a package needs its one line`);
-    for (const id of Object.keys(dictionary.packages ?? {})) if (!ids.includes(id)) errors.push(`messages/${locale}.json: packages.${id} is not a package of the repository`);
+    for (const id of ids)
+      if (!dictionary.packages?.[id]?.hook)
+        errors.push(`messages/${locale}.json: packages.${id}.hook is missing — a package needs its one line`);
+    for (const id of Object.keys(dictionary.packages ?? {}))
+      if (!ids.includes(id)) errors.push(`messages/${locale}.json: packages.${id} is not a package of the repository`);
   }
   return errors;
 }
@@ -56,14 +69,18 @@ function packageMessages(messages, ids) {
 const facts = (src) => ({
   fences: [...src.matchAll(/^```(\w*)/gm)].map((m) => m[1]).join(","),
   components: [...src.matchAll(/^<([A-Z]\w+)[^>]*>/gm)].map((m) => m[0]).join(","),
-  links: [...src.matchAll(/\]\((\/[^)#]*)/g)].map((m) => m[1]).sort((x, y) => x.localeCompare(y)).join(","),
+  links: [...src.matchAll(/\]\((\/[^)#]*)/g)]
+    .map((m) => m[1])
+    .sort((x, y) => x.localeCompare(y))
+    .join(","),
 });
 
 /** One page, in one language: a title and a description in its front matter, and no Mermaid. */
 function pageProblems(src, file) {
   const errors = [];
   const head = /^---\n([\s\S]*?)\n---\n/.exec(src)?.[1] ?? "";
-  for (const key of ["title", "description"]) if (!new RegExp(`^${key}:\\s*\\S`, "m").test(head)) errors.push(`${file}: no ${key} in the front matter`);
+  for (const key of ["title", "description"])
+    if (!new RegExp(`^${key}:\\s*\\S`, "m").test(head)) errors.push(`${file}: no ${key} in the front matter`);
   if (src.includes("```mermaid")) errors.push(`${file}: Mermaid is not used on this site`);
   return errors;
 }
@@ -74,16 +91,23 @@ function pairProblems(dir, slug) {
   const b = read(dir, `${slug}.fr.mdx`);
   const errors = [...pageProblems(a, `${slug}.mdx`), ...pageProblems(b, `${slug}.fr.mdx`)];
   if (slug !== "start") {
-    if (!INSTALL_TABS.test(a) || !INSTALL_TABS.test(b)) errors.push(`${slug}: no install command (InstallTabs) in both languages`);
+    if (!INSTALL_TABS.test(a) || !INSTALL_TABS.test(b))
+      errors.push(`${slug}: no install command (InstallTabs) in both languages`);
     return errors;
   }
   const fa = facts(a);
   const fb = facts(b);
-  for (const key of Object.keys(fa)) if (fa[key] !== fb[key]) errors.push(`start: the French page differs in its ${key} (${fa[key] || "none"} ≠ ${fb[key] || "none"})`);
+  for (const key of Object.keys(fa))
+    if (fa[key] !== fb[key])
+      errors.push(`start: the French page differs in its ${key} (${fa[key] || "none"} ≠ ${fb[key] || "none"})`);
   return errors;
 }
 
-export function checkContent({ dir = join(SITE, "content", "docs"), ids = repositoryPackages(), messages = join(SITE, "messages") } = {}) {
+export function checkContent({
+  dir = join(SITE, "content", "docs"),
+  ids = repositoryPackages(),
+  messages = join(SITE, "messages"),
+} = {}) {
   const slugs = ["start", ...ids];
   const pairs = slugs.filter((s) => existsSync(join(dir, `${s}.mdx`)) && existsSync(join(dir, `${s}.fr.mdx`)));
   return [

@@ -49,7 +49,8 @@ async function report(onError: AuditDeps["onError"], error: unknown, entry: Audi
 export function createAudit(deps: AuditDeps): Audit {
   const schema = ident(deps.schema ?? "audit");
   const storeFor = deps.storeFor ?? ((query: Query) => dbAuditStore(query, schema));
-  const record = async (query: Query, entry: AuditEntryInput) => storeFor(query).insert(toInsert(entry, deps.clock.now(), deps.allowedActions));
+  const record = async (query: Query, entry: AuditEntryInput) =>
+    storeFor(query).insert(toInsert(entry, deps.clock.now(), deps.allowedActions));
   return {
     record,
     async recordQuietly(query, entry) {

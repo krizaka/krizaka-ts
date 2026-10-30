@@ -7,9 +7,20 @@ import { auditContext, auditOptions, loadSettled, resizeSettled, withoutViewTran
 describe("the helper", () => {
   it("emulates reduced motion whatever the caller passes, and keeps the caller's options", async () => {
     assert.deepEqual(auditOptions(), { reducedMotion: "reduce" });
-    assert.deepEqual(auditOptions({ colorScheme: "light", reducedMotion: "no-preference" }), { colorScheme: "light", reducedMotion: "reduce" });
+    assert.deepEqual(auditOptions({ colorScheme: "light", reducedMotion: "no-preference" }), {
+      colorScheme: "light",
+      reducedMotion: "reduce",
+    });
     let seen;
-    await auditContext({ newContext: async (o) => { seen = o; return { addInitScript: async () => {} }; } }, { viewport: { width: 360, height: 800 } });
+    await auditContext(
+      {
+        newContext: async (o) => {
+          seen = o;
+          return { addInitScript: async () => {} };
+        },
+      },
+      { viewport: { width: 360, height: 800 } },
+    );
     assert.deepEqual(seen, { viewport: { width: 360, height: 800 }, reducedMotion: "reduce" });
   });
   it("loads, waits for the faces, then waits for the transition to end, in that order", async () => {
@@ -41,7 +52,15 @@ describe("the helper", () => {
   it("waits on a condition (no active view transition), with a bound, not on a sleep", async () => {
     let predicate;
     let opts;
-    await loadSettled({ url: () => "about:blank", goto: async () => {}, evaluate: async () => {}, waitForFunction: async (fn, _arg, o) => ((predicate = fn), (opts = o)) }, "http://x");
+    await loadSettled(
+      {
+        url: () => "about:blank",
+        goto: async () => {},
+        evaluate: async () => {},
+        waitForFunction: async (fn, _arg, o) => ((predicate = fn), (opts = o)),
+      },
+      "http://x",
+    );
     assert.match(String(predicate), /activeViewTransition/);
     assert.match(String(predicate), /:active-view-transition/);
     assert.ok(opts.timeout > 0);

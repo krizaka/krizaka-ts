@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { createEmailVerification, memoryCodeStore, VERIFICATION_CODE, VerificationError, verificationMail } from "../src";
+import {
+  createEmailVerification,
+  memoryCodeStore,
+  VERIFICATION_CODE,
+  VerificationError,
+  verificationMail,
+} from "../src";
 import { codeStoreContract } from "../src/testkit";
 
 const SECRET = "x".repeat(40);
@@ -33,7 +39,10 @@ describe("email verification", () => {
     const ok = await v.confirm({ challengeId: issued.challengeId, address: "ada@example.com", code: "777 777" });
     expect(ok).toEqual({ ok: true, payload: { message: "hello" } });
     // single use
-    expect(await v.confirm({ challengeId: issued.challengeId, address: "ada@example.com", code: "777777" })).toEqual({ ok: false, reason: "unknown" });
+    expect(await v.confirm({ challengeId: issued.challengeId, address: "ada@example.com", code: "777777" })).toEqual({
+      ok: false,
+      reason: "unknown",
+    });
   });
 
   it("never stores the code or the address, only a salted hash", async () => {
@@ -65,7 +74,9 @@ describe("email verification", () => {
     const { v, clock } = setup();
     const issued = await v.issue({ address: "ada@example.com", payload: {} });
     clock.at = new Date(T0.valueOf() + 15 * 60_000 + 1);
-    expect(await v.confirm({ challengeId: issued.challengeId, address: "ada@example.com", code: issued.code })).toEqual({ ok: false, reason: "expired" });
+    expect(await v.confirm({ challengeId: issued.challengeId, address: "ada@example.com", code: issued.code })).toEqual(
+      { ok: false, reason: "expired" },
+    );
   });
 
   it("two concurrent confirmations release the payload once", async () => {
@@ -78,10 +89,19 @@ describe("email verification", () => {
 
   it("an unknown id and a bad address are refused; a short secret or bad settings throw", async () => {
     const { v } = setup();
-    expect(await v.confirm({ challengeId: "nope", address: "a@b.c", code: "123456" })).toEqual({ ok: false, reason: "unknown" });
-    await expect(v.issue({ address: "not-an-address", payload: {} })).rejects.toMatchObject({ code: VERIFICATION_CODE.badAddress });
-    expect(() => createEmailVerification({ store: memoryCodeStore(), secret: "short", now: () => T0 })).toThrow(VerificationError);
-    expect(() => createEmailVerification({ store: memoryCodeStore(), secret: SECRET, now: () => T0, settings: { codeLength: 2 } })).toThrow(/codeLength/);
+    expect(await v.confirm({ challengeId: "nope", address: "a@b.c", code: "123456" })).toEqual({
+      ok: false,
+      reason: "unknown",
+    });
+    await expect(v.issue({ address: "not-an-address", payload: {} })).rejects.toMatchObject({
+      code: VERIFICATION_CODE.badAddress,
+    });
+    expect(() => createEmailVerification({ store: memoryCodeStore(), secret: "short", now: () => T0 })).toThrow(
+      VerificationError,
+    );
+    expect(() =>
+      createEmailVerification({ store: memoryCodeStore(), secret: SECRET, now: () => T0, settings: { codeLength: 2 } }),
+    ).toThrow(/codeLength/);
   });
 
   it("purges the expired challenges", async () => {

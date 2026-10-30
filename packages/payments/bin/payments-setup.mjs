@@ -16,7 +16,11 @@ if (!file) throw new Error("--catalogue <file.json> is required");
 
 const { call, mode } = stripeCall({ secretKey: key });
 console.log(`mode: ${mode}`);
-const result = await ensureCatalogue(call, JSON.parse(readFileSync(file, "utf8")), { mode, owner: args.includes("--i-am-the-owner"), webhookUrl: flag("webhook-url") });
+const result = await ensureCatalogue(call, JSON.parse(readFileSync(file, "utf8")), {
+  mode,
+  owner: args.includes("--i-am-the-owner"),
+  webhookUrl: flag("webhook-url"),
+});
 for (const p of result.prices) console.log(`price ${p.lookupKey}: ${p.status}`);
 console.log(`portal configuration: ${result.portal}`);
 if (result.webhook?.status === "exists") console.log("webhook: exists — its signing secret is not shown again");

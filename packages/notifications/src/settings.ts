@@ -14,7 +14,8 @@ export interface CategoryDeclaration {
 
 export type Declared = Record<string, CategoryDeclaration>;
 
-const burstOf = (d: CategoryDeclaration) => d.burst ?? { max: NOTIFICATION_DEFAULTS.burstMax, windowSeconds: NOTIFICATION_DEFAULTS.burstWindowSeconds };
+const burstOf = (d: CategoryDeclaration) =>
+  d.burst ?? { max: NOTIFICATION_DEFAULTS.burstMax, windowSeconds: NOTIFICATION_DEFAULTS.burstWindowSeconds };
 
 /**
  * The settings of « notifications » for the categories a product declares, a fragment it adds to its registry
@@ -25,15 +26,29 @@ const burstOf = (d: CategoryDeclaration) => d.burst ?? { max: NOTIFICATION_DEFAU
  */
 export function notificationSettings(declared: Declared): Registry {
   const registry: Registry = {
-    "notifications.retentionDays": integer("notifications", NOTIFICATION_DEFAULTS.retentionDays, { min: NOTIFICATION_BOUNDS.retentionDays[0], max: NOTIFICATION_BOUNDS.retentionDays[1], unit: "days" }),
+    "notifications.retentionDays": integer("notifications", NOTIFICATION_DEFAULTS.retentionDays, {
+      min: NOTIFICATION_BOUNDS.retentionDays[0],
+      max: NOTIFICATION_BOUNDS.retentionDays[1],
+      unit: "days",
+    }),
   };
   for (const [name, d] of Object.entries(declared)) {
-    if (!CATEGORY_NAME.test(name)) throw new NotificationError(NOTIFICATION_CODE.badConfig, `category « ${name} » must be a camel-case word`);
+    if (!CATEGORY_NAME.test(name))
+      throw new NotificationError(NOTIFICATION_CODE.badConfig, `category « ${name} » must be a camel-case word`);
     const group = `notifications.${name}`;
-    if (!d.locked) for (const channel of CHANNELS) registry[`notifications.${name}.${channel}`] = flag(group, d.defaults[channel]);
+    if (!d.locked)
+      for (const channel of CHANNELS) registry[`notifications.${name}.${channel}`] = flag(group, d.defaults[channel]);
     const burst = burstOf(d);
-    registry[`notifications.${name}.burstMax`] = integer(group, burst.max, { min: NOTIFICATION_BOUNDS.burstMax[0], max: NOTIFICATION_BOUNDS.burstMax[1], unit: "notifications" });
-    registry[`notifications.${name}.burstWindowSeconds`] = integer(group, burst.windowSeconds, { min: NOTIFICATION_BOUNDS.burstWindowSeconds[0], max: NOTIFICATION_BOUNDS.burstWindowSeconds[1], unit: "seconds" });
+    registry[`notifications.${name}.burstMax`] = integer(group, burst.max, {
+      min: NOTIFICATION_BOUNDS.burstMax[0],
+      max: NOTIFICATION_BOUNDS.burstMax[1],
+      unit: "notifications",
+    });
+    registry[`notifications.${name}.burstWindowSeconds`] = integer(group, burst.windowSeconds, {
+      min: NOTIFICATION_BOUNDS.burstWindowSeconds[0],
+      max: NOTIFICATION_BOUNDS.burstWindowSeconds[1],
+      unit: "seconds",
+    });
   }
   return registry;
 }
@@ -59,7 +74,15 @@ export async function readNotificationConfig(declared: Declared, read: Reader): 
       }
     }
     const burst = burstOf(d);
-    categories[name] = { locked: d.locked ?? false, defaults, burstMax: await number(`notifications.${name}.burstMax`, burst.max), burstWindowSeconds: await number(`notifications.${name}.burstWindowSeconds`, burst.windowSeconds) };
+    categories[name] = {
+      locked: d.locked ?? false,
+      defaults,
+      burstMax: await number(`notifications.${name}.burstMax`, burst.max),
+      burstWindowSeconds: await number(`notifications.${name}.burstWindowSeconds`, burst.windowSeconds),
+    };
   }
-  return { categories, retentionDays: await number("notifications.retentionDays", NOTIFICATION_DEFAULTS.retentionDays) };
+  return {
+    categories,
+    retentionDays: await number("notifications.retentionDays", NOTIFICATION_DEFAULTS.retentionDays),
+  };
 }

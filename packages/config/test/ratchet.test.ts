@@ -11,9 +11,22 @@ const FIXTURE = fileURLToPath(new URL("./fixtures/repo", import.meta.url));
 const BIN = fileURLToPath(new URL("../bin/krizaka-ratchet.mjs", import.meta.url));
 const UI = { palette: 6, light: 3, arbitraryVar: 2, classNameTemplate: 2 };
 // lib/use-data.ts (fetch in a client effect ×2, data loaded in an effect ×1, + lib/server-data.ts ×1, @tanstack ×2) · features/forms.tsx (a table, a form of two fields)
-const STACK = { fetchInClientEffect: 2, asyncInEffect: 2, derivedStateInEffect: 0, directTanstackImport: 2, localTableOrForm: 2, retiredImport: 0, routeStateSelection: 0, cognitiveComplexity: 0, sonar: 0, codeRules: 0 };
+const STACK = {
+  fetchInClientEffect: 2,
+  asyncInEffect: 2,
+  derivedStateInEffect: 0,
+  directTanstackImport: 2,
+  localTableOrForm: 2,
+  retiredImport: 0,
+  routeStateSelection: 0,
+  cognitiveComplexity: 0,
+  sonar: 0,
+  codeRules: 0,
+};
 const TOTAL = { ...UI, ...STACK };
-const STACK_GLOBS = ["app", "components", "src", "lib", "hooks", "features"].map((d) => `${d}/**/*.{js,jsx,mjs,ts,tsx,mts}`);
+const STACK_GLOBS = ["app", "components", "src", "lib", "hooks", "features"].map(
+  (d) => `${d}/**/*.{js,jsx,mjs,ts,tsx,mts}`,
+);
 
 let root: string;
 beforeEach(() => {
@@ -41,7 +54,9 @@ describe("countSource", () => {
   });
 
   it("ignores roles, unknown families and words that only end in light", () => {
-    expect(countSource(`"bg-surface-1 text-fg-secondary text-accent bg-white/10 twilight: bg-lime-500 text-zinc"`)).toEqual({
+    expect(
+      countSource(`"bg-surface-1 text-fg-secondary text-accent bg-white/10 twilight: bg-lime-500 text-zinc"`),
+    ).toEqual({
       palette: 0,
       light: 0,
       arbitraryVar: 0,
@@ -59,7 +74,10 @@ describe("countStackSource", () => {
     const effect = `useEffect(() => { fetch(a); window.fetch(b); refetch(); }, []);\nconst f = () => fetch(c);`;
     expect(countStackSource(`"use client";\n${effect}`).fetchInClientEffect).toBe(2);
     expect(countStackSource(`// a "use client" word in a comment\n${effect}`).fetchInClientEffect).toBe(0);
-    expect(countStackSource(`/* header */\n'use client'\nReact.useLayoutEffect(() => void krizakaFetch(u))`).fetchInClientEffect).toBe(1);
+    expect(
+      countStackSource(`/* header */\n'use client'\nReact.useLayoutEffect(() => void krizakaFetch(u))`)
+        .fetchInClientEffect,
+    ).toBe(1);
   });
 
   it("counts the effects that load data and the effects that only set state, in any file", () => {
@@ -158,7 +176,10 @@ describe("runRatchet", () => {
   it("--update keeps a counter it does not measure, and says so (the 0.11.0 regression: pageTemplate was dropped)", async () => {
     await runRatchet({ root, mode: "init" });
     const file = ratchetFile();
-    writeFileSync(join(root, "lint-ratchet.json"), JSON.stringify({ ...file, counters: { ...file.counters, pageTemplate: 38 } }));
+    writeFileSync(
+      join(root, "lint-ratchet.json"),
+      JSON.stringify({ ...file, counters: { ...file.counters, pageTemplate: 38 } }),
+    );
     rmSync(join(root, "app/settings/panel.tsx")); // something to lower, so the file is rewritten
     const result = await runRatchet({ root, mode: "update" });
     expect(result).toMatchObject({ ok: true, written: true, unmeasured: ["pageTemplate"] });
@@ -176,13 +197,21 @@ describe("runRatchet", () => {
     expect(check).toMatchObject({ ok: true, written: false, added: Object.keys(STACK) });
     const update = await runRatchet({ root, mode: "update" });
     expect(update).toMatchObject({ ok: true, written: true });
-    expect(ratchetFile()).toEqual({ globs: ["app/**/*.tsx"], stackGlobs: STACK_GLOBS, counters: { ...APP_UI, ...STACK } });
+    expect(ratchetFile()).toEqual({
+      globs: ["app/**/*.tsx"],
+      stackGlobs: STACK_GLOBS,
+      counters: { ...APP_UI, ...STACK },
+    });
   });
 
   it("fails when a stack debt goes up, and reads `retire` and `maxFormFields` from the file", async () => {
     writeFileSync(
       join(root, "lint-ratchet.json"),
-      JSON.stringify({ retire: ["framer-motion"], maxFormFields: 2, counters: { ...TOTAL, localTableOrForm: 1, retiredImport: 1 } }),
+      JSON.stringify({
+        retire: ["framer-motion"],
+        maxFormFields: 2,
+        counters: { ...TOTAL, localTableOrForm: 1, retiredImport: 1 },
+      }),
     );
     expect((await runRatchet({ root })).ok).toBe(true); // the two-field form is allowed with maxFormFields 2
     addDebt(`"use client";\nimport { m } from "framer-motion/m";\nuseEffect(() => { fetch("/a"); }, []);`);
@@ -250,7 +279,6 @@ describe("the routeStateSelection counter", () => {
     expect(countStackSource(local).routeStateSelection).toBe(2);
   });
 });
-
 
 describe("runRatchet file argument", () => {
   it("refuses a ratchet file outside the root or that is not .json", async () => {
@@ -343,12 +371,15 @@ describe("sonar (eslint-plugin-sonarjs recommended, one counter per rule)", () =
 });
 
 describe("code rules (braces, depth, nested callbacks, console; krizaka/.github#422)", () => {
-  const DEEP = "export function f(a: number[]) {\n  for (const x of a) {\n    if (x) {\n      for (const y of a) {\n        if (y) { return y; }\n      }\n    }\n  }\n}\n";
+  const DEEP =
+    "export function f(a: number[]) {\n  for (const x of a) {\n    if (x) {\n      for (const y of a) {\n        if (y) { return y; }\n      }\n    }\n  }\n}\n";
   it("counts a function nested three levels deep", () => {
     expect(countCodeRules(DEEP, "lib/x.ts")).toEqual({ "code/max-depth": 2 });
   });
   it("counts a statement without braces", () => {
-    expect(countCodeRules("export const f = (a: boolean) => { if (a) return 1; return 2; };\n", "lib/x.ts")).toEqual({ "code/curly": 1 });
+    expect(countCodeRules("export const f = (a: boolean) => { if (a) return 1; return 2; };\n", "lib/x.ts")).toEqual({
+      "code/curly": 1,
+    });
   });
   it("counts console only in runtime code", () => {
     const source = "export function f() { console.log(1); }\n";

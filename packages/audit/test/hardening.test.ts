@@ -3,7 +3,10 @@ import { describe, expect, it } from "vitest";
 import { AUDIT_CODE, createAudit, dbAuditStore, memoryAuditStore } from "../src";
 
 /** Inputs that reach the trail from an HTTP request must be refused the same way by every store, before any SQL. */
-const audit = createAudit({ storeFor: () => memoryAuditStore(), clock: { now: () => new Date("2026-10-23T10:00:00Z") } });
+const audit = createAudit({
+  storeFor: () => memoryAuditStore(),
+  clock: { now: () => new Date("2026-10-23T10:00:00Z") },
+});
 const none = async () => [];
 
 describe("the admin's filters are checked before any store", () => {
@@ -13,7 +16,11 @@ describe("the admin's filters are checked before any store", () => {
     }
     const sql: string[] = [];
     const params: unknown[][] = [];
-    await dbAuditStore(async (text, values) => { sql.push(text); params.push([...(values ?? [])]); return []; }).list({ limit: 10_000 });
+    await dbAuditStore(async (text, values) => {
+      sql.push(text);
+      params.push([...(values ?? [])]);
+      return [];
+    }).list({ limit: 10_000 });
     expect(sql[0]).not.toContain("10000");
     expect(params[0]).toContain(200);
   });
@@ -25,8 +32,12 @@ describe("the admin's filters are checked before any store", () => {
 
 describe("what is recorded is checked the same way for every store", () => {
   it("refuses an IP that is not an address", async () => {
-    await expect(audit.record(none, { actorId: null, actorLabel: "system", action: "x.y", ip: "not-an-ip" })).rejects.toMatchObject({ code: AUDIT_CODE.badIp });
-    await expect(audit.record(none, { actorId: null, actorLabel: "system", action: "x.y", ip: "2001:db8::1" })).resolves.toBeUndefined();
+    await expect(
+      audit.record(none, { actorId: null, actorLabel: "system", action: "x.y", ip: "not-an-ip" }),
+    ).rejects.toMatchObject({ code: AUDIT_CODE.badIp });
+    await expect(
+      audit.record(none, { actorId: null, actorLabel: "system", action: "x.y", ip: "2001:db8::1" }),
+    ).resolves.toBeUndefined();
   });
 });
 

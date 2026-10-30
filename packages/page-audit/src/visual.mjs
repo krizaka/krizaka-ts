@@ -31,7 +31,12 @@ export function visualMatrix(journey, { viewports = VIEWPORTS, themes = VISUAL_T
     if (!viewports[viewport]) throw new Error(`unknown viewport « ${viewport} » in journey « ${journey.name} »`);
     for (const theme of themes) {
       const suffix = journey.firstPaint ? "-first-paint" : "";
-      cells.push({ viewport, size: viewports[viewport], theme, snapshot: `${journey.name}${suffix}-${viewport}-${theme}.png` });
+      cells.push({
+        viewport,
+        size: viewports[viewport],
+        theme,
+        snapshot: `${journey.name}${suffix}-${viewport}-${theme}.png`,
+      });
     }
   }
   return cells;
@@ -53,7 +58,8 @@ export function visualContextOptions({ size, theme, javaScript = true, storageSt
 }
 
 /** The style every capture carries: nothing moves, nothing blinks. */
-export const FREEZE_CSS = "*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important;scroll-behavior:auto!important}";
+export const FREEZE_CSS =
+  "*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important;scroll-behavior:auto!important}";
 
 /** Runs before the page's own scripts: the theme the app reads, no View Transition. */
 export const initVisualPage = ({ theme, themeKey }) => {
@@ -106,11 +112,23 @@ export function shotOptions({ mask = [], page } = {}) {
  * now: the instant of the browser clock (default FROZEN_TIME); an app whose seed stamps rows with the day of the run passes that moment.
  * signIn(page, { base }): signs the persona in; its cookies are kept and reused by every signed-in capture of the worker.
  */
-export function defineJourneyTests({ test, expect, journeys, signIn, base, viewports = VIEWPORTS, themes = VISUAL_THEMES, themeKey = "kz-theme", now = FROZEN_TIME }) {
+export function defineJourneyTests({
+  test,
+  expect,
+  journeys,
+  signIn,
+  base,
+  viewports = VIEWPORTS,
+  themes = VISUAL_THEMES,
+  themeKey = "kz-theme",
+  now = FROZEN_TIME,
+}) {
   let session;
   const sessionState = (browser) => {
     session ??= (async () => {
-      const context = await browser.newContext(visualContextOptions({ size: viewports.desktop ?? Object.values(viewports)[0], theme: "light" }));
+      const context = await browser.newContext(
+        visualContextOptions({ size: viewports.desktop ?? Object.values(viewports)[0], theme: "light" }),
+      );
       const page = await context.newPage();
       await signIn(page, { base });
       const state = await context.storageState();
@@ -121,17 +139,24 @@ export function defineJourneyTests({ test, expect, journeys, signIn, base, viewp
   };
   for (const journey of journeys) {
     for (const cell of visualMatrix(journey, { viewports, themes })) {
-      test(`${journey.name} · ${cell.viewport} · ${cell.theme}${journey.firstPaint ? " · first paint" : ""}`, async ({ browser, baseURL }) => {
+      test(`${journey.name} · ${cell.viewport} · ${cell.theme}${journey.firstPaint ? " · first paint" : ""}`, async ({
+        browser,
+        baseURL,
+      }) => {
         const origin = base ?? baseURL;
         const javaScript = !(journey.firstPaint === true);
         const storageState = journey.session ? await sessionState(browser) : undefined;
-        const context = await browser.newContext(visualContextOptions({ size: cell.size, theme: cell.theme, javaScript, storageState }));
+        const context = await browser.newContext(
+          visualContextOptions({ size: cell.size, theme: cell.theme, javaScript, storageState }),
+        );
         try {
           const page = await context.newPage();
           await prepareVisualPage(page, { theme: cell.theme, themeKey, now });
           for (const pattern of journey.firstPaint?.hold ?? []) await page.route(pattern, () => undefined);
           const path = typeof journey.path === "function" ? await journey.path(page, { origin }) : journey.path;
-          await page.goto(new URL(path, origin).toString(), { waitUntil: journey.firstPaint ? "domcontentloaded" : "load" });
+          await page.goto(new URL(path, origin).toString(), {
+            waitUntil: journey.firstPaint ? "domcontentloaded" : "load",
+          });
           if (typeof journey.ready === "string") await page.locator(journey.ready).first().waitFor();
           else if (journey.ready) await journey.ready(page);
           await settleForShot(page, { javaScript });

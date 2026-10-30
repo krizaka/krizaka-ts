@@ -1,7 +1,14 @@
 import { differenceInMinutes } from "date-fns";
 import { describe, expect, it } from "vitest";
 
-import { type AccountDeps, dbAccounts, type Mail, PASSWORD_RESET_TTL_MINUTES, passwordResetMail, type Query } from "../src";
+import {
+  type AccountDeps,
+  dbAccounts,
+  type Mail,
+  PASSWORD_RESET_TTL_MINUTES,
+  passwordResetMail,
+  type Query,
+} from "../src";
 
 const NOW = new Date("2026-10-24T12:00:00.000Z");
 
@@ -9,7 +16,7 @@ const NOW = new Date("2026-10-24T12:00:00.000Z");
 function harness(extra: Partial<AccountDeps> = {}) {
   const inserts: unknown[][] = [];
   const mails: Mail[] = [];
-  const query: Query = async <T,>(sql: string, params?: unknown[]) => {
+  const query: Query = async <T>(sql: string, params?: unknown[]) => {
     if (sql.startsWith("SELECT id, locale FROM accounts")) return [{ id: "a1", locale: "fr" }] as T[];
     if (sql.startsWith("INSERT INTO password_resets")) inserts.push(params ?? []);
     return [] as T[];
@@ -41,7 +48,11 @@ describe("the password reset link's lifetime", () => {
   it("hands the link to the product as data (kind, url, minutes), beside the text", async () => {
     const { deps, mails } = harness({ passwordResetTtlMinutes: 45 });
     await dbAccounts(deps).requestPasswordReset("a@b.test", NOW);
-    expect(mails[0]!.link).toEqual({ kind: "passwordReset", url: expect.stringMatching(/^https:\/\/www\.example\.test\/fr\/reset-password\?token=ex1\./), minutes: 45 });
+    expect(mails[0]!.link).toEqual({
+      kind: "passwordReset",
+      url: expect.stringMatching(/^https:\/\/www\.example\.test\/fr\/reset-password\?token=ex1\./),
+      minutes: 45,
+    });
     expect(mails[0]!.text).toContain(mails[0]!.link!.url);
   });
 
@@ -61,9 +72,12 @@ describe("the password reset link's lifetime", () => {
     expect(() => dbAccounts(harness({ passwordResetTtlMinutes: 1440 }).deps)).not.toThrow();
   });
 
-  it.each([4, 1441, 0, -30, 30.5, Number.NaN, Number.POSITIVE_INFINITY])("refuses %s when the service is made", (value) => {
-    expect(() => dbAccounts(harness({ passwordResetTtlMinutes: value }).deps)).toThrow(/passwordResetTtlMinutes/);
-  });
+  it.each([4, 1441, 0, -30, 30.5, Number.NaN, Number.POSITIVE_INFINITY])(
+    "refuses %s when the service is made",
+    (value) => {
+      expect(() => dbAccounts(harness({ passwordResetTtlMinutes: value }).deps)).toThrow(/passwordResetTtlMinutes/);
+    },
+  );
 
   it("the mail function refuses an out-of-range value too", () => {
     expect(() => passwordResetMail("P", "en", "https://u", 4)).toThrow(/passwordResetTtlMinutes/);

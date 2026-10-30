@@ -21,7 +21,9 @@ if (process.argv.includes("--self-test")) {
 } else {
   const base = arg("base", "http://localhost:3000");
   const has = (name) => process.argv.includes(`--${name}`);
-  const routes = has("sitemap") ? await routesFromSitemap(base, { first: list(arg("routes"), ["/"]), limit: Number(arg("limit", 14)) }) : list(arg("routes"), ["/"]);
+  const routes = has("sitemap")
+    ? await routesFromSitemap(base, { first: list(arg("routes"), ["/"]), limit: Number(arg("limit", 14)) })
+    : list(arg("routes"), ["/"]);
   if (!routes) {
     console.error(`Nothing answers at ${base}/sitemap.xml`);
     process.exit(2);
@@ -29,7 +31,21 @@ if (process.argv.includes("--self-test")) {
   const [app, baseline] = (arg("a11y") ?? "").split(":");
   const widths = list(arg("widths"), WIDTHS).map(Number);
   const themes = list(arg("themes"), THEMES);
-  const problems = await auditRoutes({ base, routes, widths, themes, themeKey: arg("theme-key", "kz-theme"), shots: arg("shots"), a11y: baseline ? { app, baseline } : undefined, checks: { h1: has("h1"), status: has("status"), emptyMain: has("empty-main"), minAction: arg("min-action") ? Number(arg("min-action")) : undefined } });
+  const problems = await auditRoutes({
+    base,
+    routes,
+    widths,
+    themes,
+    themeKey: arg("theme-key", "kz-theme"),
+    shots: arg("shots"),
+    a11y: baseline ? { app, baseline } : undefined,
+    checks: {
+      h1: has("h1"),
+      status: has("status"),
+      emptyMain: has("empty-main"),
+      minAction: arg("min-action") ? Number(arg("min-action")) : undefined,
+    },
+  });
   if (problems.length) {
     console.error(`${problems.length} page problem(s):\n  ${problems.join("\n  ")}`);
     process.exit(1);

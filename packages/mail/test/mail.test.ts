@@ -3,12 +3,39 @@ import { createHmac } from "node:crypto";
 import { createOutbox, drainOnce, memoryOutboxStore, OUTBOX_DEFAULTS } from "@krizaka/outbox";
 import { describe, expect, it } from "vitest";
 
-import { checkMessage, createMail, emailPorts, type FetchLike, hashAddress, logProvider, MAIL_CODE, MAIL_DEFAULTS, mailgunProvider, type MailMessage, type MailProvider, memoryMailStore, type OutgoingMail, parseMailgunWebhook, parseResendWebhook, providerFor, resendProvider } from "../src";
+import {
+  checkMessage,
+  createMail,
+  emailPorts,
+  type FetchLike,
+  hashAddress,
+  logProvider,
+  MAIL_CODE,
+  MAIL_DEFAULTS,
+  mailgunProvider,
+  type MailMessage,
+  type MailProvider,
+  memoryMailStore,
+  type OutgoingMail,
+  parseMailgunWebhook,
+  parseResendWebhook,
+  providerFor,
+  resendProvider,
+} from "../src";
 import { mailStoreContract, T0 } from "../src/testkit";
 
 mailStoreContract("memory", () => memoryMailStore());
 
-const message = (over: Partial<MailMessage> = {}): MailMessage => ({ to: "ana@example.com", subject: "Reset your password", text: "Open the link.", category: "transactional", template: "password-reset", locale: "en", idempotencyKey: "reset:1", ...over });
+const message = (over: Partial<MailMessage> = {}): MailMessage => ({
+  to: "ana@example.com",
+  subject: "Reset your password",
+  text: "Open the link.",
+  category: "transactional",
+  template: "password-reset",
+  locale: "en",
+  idempotencyKey: "reset:1",
+  ...over,
+});
 const tx = async () => [];
 
 /** A mail module on the memory outbox and store, a provider that records, and a clock the test moves. */
@@ -19,9 +46,19 @@ function harness(provider?: Partial<MailProvider>) {
   const outboxStore = memoryOutboxStore();
   const outbox = createOutbox({ clock, settings: OUTBOX_DEFAULTS, storeFor: () => outboxStore });
   const sent: OutgoingMail[] = [];
-  const real: MailProvider = { name: "fake", send: provider?.send ?? (async (m) => (sent.push(m), { messageId: `<${sent.length}>` })) };
-  const mail = createMail({ clock, outbox, settings: { ...MAIL_DEFAULTS, from: "Krizaka <no-reply@krizaka.com>", replyTo: "help@krizaka.com" }, store, provider: real });
-  const drain = () => drainOnce({ outbox, query: tx, owner: "w1", topic: "mail", deliver: (m) => mail.deliver(m).then(() => undefined) });
+  const real: MailProvider = {
+    name: "fake",
+    send: provider?.send ?? (async (m) => (sent.push(m), { messageId: `<${sent.length}>` })),
+  };
+  const mail = createMail({
+    clock,
+    outbox,
+    settings: { ...MAIL_DEFAULTS, from: "Krizaka <no-reply@krizaka.com>", replyTo: "help@krizaka.com" },
+    store,
+    provider: real,
+  });
+  const drain = () =>
+    drainOnce({ outbox, query: tx, owner: "w1", topic: "mail", deliver: (m) => mail.deliver(m).then(() => undefined) });
   return { mail, store, sent, drain, advance: (s: number) => void (now = new Date(now.valueOf() + s * 1000)) };
 }
 
@@ -31,9 +68,18 @@ describe("the queue and the worker", () => {
     expect(await h.mail.queue(tx, message())).toMatchObject({ queued: true });
     expect(await h.drain()).toMatchObject({ claimed: 1, delivered: 1 });
     expect(h.sent).toHaveLength(1);
-    expect(h.sent[0]).toMatchObject({ to: "ana@example.com", from: "Krizaka <no-reply@krizaka.com>", replyTo: "help@krizaka.com" });
+    expect(h.sent[0]).toMatchObject({
+      to: "ana@example.com",
+      from: "Krizaka <no-reply@krizaka.com>",
+      replyTo: "help@krizaka.com",
+    });
     const [line] = await h.store.recent(5);
-    expect(line).toMatchObject({ status: "sent", messageId: "<1>", to: hashAddress("ana@example.com"), detail: "fake" });
+    expect(line).toMatchObject({
+      status: "sent",
+      messageId: "<1>",
+      to: hashAddress("ana@example.com"),
+      detail: "fake",
+    });
     expect(JSON.stringify(line)).not.toContain("ana@example.com");
   });
 
@@ -97,7 +143,9 @@ describe("the queue and the worker", () => {
 
   it("refuses a payload that is not a mail", async () => {
     const h = harness();
-    await expect(h.mail.deliver({ id: "x", payload: { hello: 1 } })).rejects.toMatchObject({ code: MAIL_CODE.badMessage });
+    await expect(h.mail.deliver({ id: "x", payload: { hello: 1 } })).rejects.toMatchObject({
+      code: MAIL_CODE.badMessage,
+    });
   });
 });
 
@@ -110,7 +158,9 @@ describe("the rules", () => {
     ["an upper-case category", { category: "Transactional" }],
     ["a bad locale", { locale: "english" }],
   ])("refuses %s", (_what, over) => {
-    expect(() => checkMessage(message(over))).toThrow(expect.objectContaining({ code: expect.stringMatching(/^MAIL_BAD_/) }));
+    expect(() => checkMessage(message(over))).toThrow(
+      expect.objectContaining({ code: expect.stringMatching(/^MAIL_BAD_/) }),
+    );
   });
   it("hashes an address by its normal form", () => {
     expect(hashAddress(" A@B.co ")).toBe(hashAddress("a@b.co"));
@@ -118,26 +168,45 @@ describe("the rules", () => {
   });
 });
 
-const out: OutgoingMail = { ...message(), from: "Krizaka <no-reply@krizaka.com>", html: "<p>Hi</p>", replyTo: "help@krizaka.com" };
+const out: OutgoingMail = {
+  ...message(),
+  from: "Krizaka <no-reply@krizaka.com>",
+  html: "<p>Hi</p>",
+  replyTo: "help@krizaka.com",
+};
 const capture = (status = 200, body = '{"id":"<m1>"}') => {
   const calls: { url: string; headers: Record<string, string>; body: string }[] = [];
-  const fetch: FetchLike = async (url, init) => (calls.push({ url, headers: init.headers, body: init.body }), { ok: status < 300, status, text: async () => body });
+  const fetch: FetchLike = async (url, init) => (
+    calls.push({ url, headers: init.headers, body: init.body }),
+    { ok: status < 300, status, text: async () => body }
+  );
   return { calls, fetch };
 };
 
 describe("the providers", () => {
   it("mailgun posts a form to the domain's messages endpoint with basic auth", async () => {
     const c = capture();
-    expect(await mailgunProvider({ apiKey: "key-1", domain: "mg.krizaka.com", fetch: c.fetch }).send(out)).toEqual({ messageId: "<m1>" });
+    expect(await mailgunProvider({ apiKey: "key-1", domain: "mg.krizaka.com", fetch: c.fetch }).send(out)).toEqual({
+      messageId: "<m1>",
+    });
     const call = c.calls[0]!;
     expect(call.url).toBe("https://api.mailgun.net/v3/mg.krizaka.com/messages");
     expect(call.headers.authorization).toBe(`Basic ${Buffer.from("api:key-1").toString("base64")}`);
     const form = new URLSearchParams(call.body);
-    expect(Object.fromEntries(form)).toMatchObject({ from: out.from, to: out.to, subject: out.subject, text: out.text, html: "<p>Hi</p>", "h:Reply-To": "help@krizaka.com" });
+    expect(Object.fromEntries(form)).toMatchObject({
+      from: out.from,
+      to: out.to,
+      subject: out.subject,
+      text: out.text,
+      html: "<p>Hi</p>",
+      "h:Reply-To": "help@krizaka.com",
+    });
   });
   it("mailgun uses the EU endpoint when told", async () => {
     const c = capture();
-    await mailgunProvider({ apiKey: "k", domain: "d.eu", apiUrl: "https://api.eu.mailgun.net/", fetch: c.fetch }).send(out);
+    await mailgunProvider({ apiKey: "k", domain: "d.eu", apiUrl: "https://api.eu.mailgun.net/", fetch: c.fetch }).send(
+      out,
+    );
     expect(c.calls[0]!.url).toBe("https://api.eu.mailgun.net/v3/d.eu/messages");
   });
   it("resend posts JSON with a bearer key and the idempotency key", async () => {
@@ -146,11 +215,19 @@ describe("the providers", () => {
     const call = c.calls[0]!;
     expect(call.url).toBe("https://api.resend.com/emails");
     expect(call.headers).toMatchObject({ authorization: "Bearer re_key", "idempotency-key": "reset:1" });
-    expect(JSON.parse(call.body)).toMatchObject({ from: out.from, to: [out.to], reply_to: "help@krizaka.com", html: "<p>Hi</p>" });
+    expect(JSON.parse(call.body)).toMatchObject({
+      from: out.from,
+      to: [out.to],
+      reply_to: "help@krizaka.com",
+      html: "<p>Hi</p>",
+    });
   });
   it.each([["mailgun"], ["resend"]] as const)("%s throws on a non-2xx answer, so the outbox retries", async (kind) => {
     const c = capture(500, "boom");
-    const p = kind === "mailgun" ? mailgunProvider({ apiKey: "k", domain: "d", fetch: c.fetch }) : resendProvider({ apiKey: "k", fetch: c.fetch });
+    const p =
+      kind === "mailgun"
+        ? mailgunProvider({ apiKey: "k", domain: "d", fetch: c.fetch })
+        : resendProvider({ apiKey: "k", fetch: c.fetch });
     await expect(p.send(out)).rejects.toMatchObject({ code: MAIL_CODE.provider });
   });
   it("log writes one line without the body", async () => {
@@ -176,14 +253,28 @@ describe("the webhooks", () => {
   const mailgun = (event: Record<string, unknown>, over: { signature?: string } = {}) => {
     const timestamp = String(now);
     const token = "tok123";
-    const signature = over.signature ?? createHmac("sha256", key).update(timestamp + token).digest("hex");
+    const signature =
+      over.signature ??
+      createHmac("sha256", key)
+        .update(timestamp + token)
+        .digest("hex");
     return JSON.stringify({ signature: { timestamp, token, signature }, "event-data": event });
   };
   it("mailgun: a permanent failure, a complaint and an unsubscribe suppress; a temporary failure and a delivery do not", () => {
-    expect(parseMailgunWebhook(mailgun({ event: "failed", severity: "permanent", recipient: "a@b.co" }), key, now)).toEqual({ address: "a@b.co", reason: "bounce" });
-    expect(parseMailgunWebhook(mailgun({ event: "complained", recipient: "a@b.co" }), key, now)).toEqual({ address: "a@b.co", reason: "complaint" });
-    expect(parseMailgunWebhook(mailgun({ event: "unsubscribed", recipient: "a@b.co" }), key, now)).toEqual({ address: "a@b.co", reason: "unsubscribed" });
-    expect(parseMailgunWebhook(mailgun({ event: "failed", severity: "temporary", recipient: "a@b.co" }), key, now)).toBeNull();
+    expect(
+      parseMailgunWebhook(mailgun({ event: "failed", severity: "permanent", recipient: "a@b.co" }), key, now),
+    ).toEqual({ address: "a@b.co", reason: "bounce" });
+    expect(parseMailgunWebhook(mailgun({ event: "complained", recipient: "a@b.co" }), key, now)).toEqual({
+      address: "a@b.co",
+      reason: "complaint",
+    });
+    expect(parseMailgunWebhook(mailgun({ event: "unsubscribed", recipient: "a@b.co" }), key, now)).toEqual({
+      address: "a@b.co",
+      reason: "unsubscribed",
+    });
+    expect(
+      parseMailgunWebhook(mailgun({ event: "failed", severity: "temporary", recipient: "a@b.co" }), key, now),
+    ).toBeNull();
     expect(parseMailgunWebhook(mailgun({ event: "delivered", recipient: "a@b.co" }), key, now)).toBeNull();
   });
   it("mailgun: refuses a wrong signature, a stale timestamp, another key and a body that is not JSON", () => {
@@ -208,7 +299,9 @@ describe("the webhooks", () => {
       { address: "c@d.co", reason: "bounce" },
     ]);
     const spam = svix({ type: "email.complained", data: { to: ["a@b.co"] } });
-    expect(parseResendWebhook(spam.body, spam.headers, webhookKey, now)).toEqual([{ address: "a@b.co", reason: "complaint" }]);
+    expect(parseResendWebhook(spam.body, spam.headers, webhookKey, now)).toEqual([
+      { address: "a@b.co", reason: "complaint" },
+    ]);
     const soft = svix({ type: "email.bounced", data: { to: ["a@b.co"], bounce: { type: "Transient" } } });
     expect(parseResendWebhook(soft.body, soft.headers, webhookKey, now)).toEqual([]);
     const ok = svix({ type: "email.delivered", data: { to: ["a@b.co"] } });
@@ -216,9 +309,15 @@ describe("the webhooks", () => {
   });
   it("resend: accepts a rotated key's second signature, refuses a bad one, missing headers and a stale timestamp", () => {
     const e = svix({ type: "email.complained", data: { to: ["a@b.co"] } });
-    expect(parseResendWebhook(e.body, { ...e.headers, signature: `v1,AAAA ${e.headers.signature}` }, webhookKey, now)).toHaveLength(1);
-    expect(() => parseResendWebhook(e.body, { ...e.headers, signature: "v1,AAAA" }, webhookKey, now)).toThrow(/signature/);
-    expect(() => parseResendWebhook(e.body, { id: null, timestamp: null, signature: null }, webhookKey, now)).toThrow(/missing/);
+    expect(
+      parseResendWebhook(e.body, { ...e.headers, signature: `v1,AAAA ${e.headers.signature}` }, webhookKey, now),
+    ).toHaveLength(1);
+    expect(() => parseResendWebhook(e.body, { ...e.headers, signature: "v1,AAAA" }, webhookKey, now)).toThrow(
+      /signature/,
+    );
+    expect(() => parseResendWebhook(e.body, { id: null, timestamp: null, signature: null }, webhookKey, now)).toThrow(
+      /missing/,
+    );
     expect(() => parseResendWebhook(e.body, e.headers, webhookKey, now + 3600)).toThrow(/stale/);
   });
 });
@@ -233,7 +332,13 @@ describe("the ports of @krizaka/email", () => {
     expect(await ports.idempotency.claim("k")).toBe(false);
     await ports.idempotency.release("k");
     expect(await ports.idempotency.claim("k")).toBe(true);
-    await ports.log.record({ template: "t", category: "transactional", locale: "en", to: hashAddress("ana@example.com"), status: "sent" });
+    await ports.log.record({
+      template: "t",
+      category: "transactional",
+      locale: "en",
+      to: hashAddress("ana@example.com"),
+      status: "sent",
+    });
     expect((await store.recent(1))[0]).toMatchObject({ status: "sent", at: T0.toISOString() });
   });
 });

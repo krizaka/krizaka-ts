@@ -9,7 +9,9 @@ export interface ClientIpRules {
 const IPV4 = /^(?:\d{1,3}\.){3}\d{1,3}$/;
 const IPV6 = /^[0-9a-f:]+(?:%\w+)?$/i;
 function isIp(value: string): boolean {
-  return (IPV4.test(value) && value.split(".").every((n) => Number(n) <= 255)) || (value.includes(":") && IPV6.test(value));
+  return (
+    (IPV4.test(value) && value.split(".").every((n) => Number(n) <= 255)) || (value.includes(":") && IPV6.test(value))
+  );
 }
 
 /**

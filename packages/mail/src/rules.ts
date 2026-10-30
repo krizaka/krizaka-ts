@@ -3,7 +3,12 @@ import { createHash } from "node:crypto";
 import { MAIL_CODE, MailError, type MailMessage, type MailSettings } from "./port";
 
 export const MAIL_BOUNDS = { retentionDays: [1, 3650] } as const;
-export const MAIL_DEFAULTS: MailSettings = { provider: "log", from: "Krizaka <no-reply@krizaka.com>", replyTo: "", retentionDays: 90 };
+export const MAIL_DEFAULTS: MailSettings = {
+  provider: "log",
+  from: "Krizaka <no-reply@krizaka.com>",
+  replyTo: "",
+  retentionDays: 90,
+};
 
 const ADDRESS = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/;
 const TOKEN = /^[a-z][a-z0-9_.-]{0,39}$/;
@@ -38,25 +43,47 @@ const oneLine = (value: string) => !/[\r\n]/.test(value);
 
 /** @throws MailError when the address is not one mailbox on one line (no header injection). */
 export function checkAddress(address: string, what = "address"): void {
-  if (typeof address !== "string" || address.length > MAX_ADDRESS || !oneLine(address) || !ADDRESS.test(bareAddress(address))) throw new MailError(MAIL_CODE.badAddress, `${what} is not a valid address`);
+  if (
+    typeof address !== "string" ||
+    address.length > MAX_ADDRESS ||
+    !oneLine(address) ||
+    !ADDRESS.test(bareAddress(address))
+  )
+    throw new MailError(MAIL_CODE.badAddress, `${what} is not a valid address`);
 }
 
 /** @throws MailError on the first thing wrong with a message. */
 export function checkMessage(message: MailMessage): void {
   checkAddress(message.to, "to");
   if (message.replyTo !== undefined && message.replyTo !== "") checkAddress(message.replyTo, "replyTo");
-  if (typeof message.subject !== "string" || message.subject.trim() === "" || message.subject.length > MAX_SUBJECT || !oneLine(message.subject)) throw new MailError(MAIL_CODE.badMessage, "subject must be one line of 1 to 200 characters");
-  if (typeof message.text !== "string" || message.text.trim() === "" || message.text.length > MAX_BODY) throw new MailError(MAIL_CODE.badMessage, "text is required");
-  if (message.html !== undefined && (typeof message.html !== "string" || message.html.length > MAX_BODY)) throw new MailError(MAIL_CODE.badMessage, "html is too long");
-  if (!TOKEN.test(message.category) || !TOKEN.test(message.template)) throw new MailError(MAIL_CODE.badMessage, "category and template are lower-case tokens");
-  if (typeof message.locale !== "string" || !/^[a-z]{2}(-[A-Z]{2})?$/.test(message.locale)) throw new MailError(MAIL_CODE.badMessage, "locale is a language tag like fr or en-CA");
-  if (typeof message.idempotencyKey !== "string" || message.idempotencyKey === "" || message.idempotencyKey.length > MAX_KEY) throw new MailError(MAIL_CODE.badMessage, "idempotencyKey is required (1 to 200 characters)");
+  if (
+    typeof message.subject !== "string" ||
+    message.subject.trim() === "" ||
+    message.subject.length > MAX_SUBJECT ||
+    !oneLine(message.subject)
+  )
+    throw new MailError(MAIL_CODE.badMessage, "subject must be one line of 1 to 200 characters");
+  if (typeof message.text !== "string" || message.text.trim() === "" || message.text.length > MAX_BODY)
+    throw new MailError(MAIL_CODE.badMessage, "text is required");
+  if (message.html !== undefined && (typeof message.html !== "string" || message.html.length > MAX_BODY))
+    throw new MailError(MAIL_CODE.badMessage, "html is too long");
+  if (!TOKEN.test(message.category) || !TOKEN.test(message.template))
+    throw new MailError(MAIL_CODE.badMessage, "category and template are lower-case tokens");
+  if (typeof message.locale !== "string" || !/^[a-z]{2}(-[A-Z]{2})?$/.test(message.locale))
+    throw new MailError(MAIL_CODE.badMessage, "locale is a language tag like fr or en-CA");
+  if (
+    typeof message.idempotencyKey !== "string" ||
+    message.idempotencyKey === "" ||
+    message.idempotencyKey.length > MAX_KEY
+  )
+    throw new MailError(MAIL_CODE.badMessage, "idempotencyKey is required (1 to 200 characters)");
 }
 
 /** @throws MailError when the settings are out of bounds. */
 export function checkSettings(s: MailSettings): MailSettings {
   const [min, max] = MAIL_BOUNDS.retentionDays;
-  if (!Number.isInteger(s.retentionDays) || s.retentionDays < min || s.retentionDays > max) throw new MailError(MAIL_CODE.badSettings, `retentionDays must be ${min} to ${max}`);
+  if (!Number.isInteger(s.retentionDays) || s.retentionDays < min || s.retentionDays > max)
+    throw new MailError(MAIL_CODE.badSettings, `retentionDays must be ${min} to ${max}`);
   checkAddress(s.from, "from");
   if (s.replyTo !== "") checkAddress(s.replyTo, "replyTo");
   return s;

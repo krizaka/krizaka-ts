@@ -19,7 +19,8 @@ export function remarkVersions() {
   return (tree: Root, file: { path?: string }) => {
     const versions = Object.fromEntries(packages().map((p) => [p.name, p.version]));
     const visit = (node: { type: string; value?: string; children?: unknown[] }) => {
-      if (typeof node.value === "string" && ["text", "inlineCode", "code"].includes(node.type)) node.value = replace(node.value, versions, file.path ?? "page");
+      if (typeof node.value === "string" && ["text", "inlineCode", "code"].includes(node.type))
+        node.value = replace(node.value, versions, file.path ?? "page");
       for (const child of node.children ?? []) visit(child as never);
     };
     visit(tree as never);

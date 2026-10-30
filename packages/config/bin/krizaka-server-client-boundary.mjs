@@ -24,9 +24,13 @@ for (let i = 0; i < args.length; i++) {
 try {
   const { seen, offences } = checkBoundary(options);
   if (offences.length === 0) {
-    console.log(`krizaka-server-client-boundary: ${seen.size} server modules checked, no client function called from the server.`);
+    console.log(
+      `krizaka-server-client-boundary: ${seen.size} server modules checked, no client function called from the server.`,
+    );
   } else {
-    console.error(`krizaka-server-client-boundary: ${offences.length} server module(s) import a function from a "use client" module (React #441):`);
+    console.error(
+      `krizaka-server-client-boundary: ${offences.length} server module(s) import a function from a "use client" module (React #441):`,
+    );
     for (const line of offences) console.error(`  ${line}`);
     process.exit(1);
   }

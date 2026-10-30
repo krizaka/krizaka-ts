@@ -20,6 +20,15 @@ function edgeLines(level) {
 }
 
 export function toText(c4) {
-  const blocks = Object.values(c4.levels).map((level) => [`## ${TITLES[level.level]}`, "", ...level.nodes.map(nodeLine), "", ...(level.edges.length ? ["Relations", ...edgeLines(level)] : ["No relation found."]), ""].join("\n"));
+  const blocks = Object.values(c4.levels).map((level) =>
+    [
+      `## ${TITLES[level.level]}`,
+      "",
+      ...level.nodes.map(nodeLine),
+      "",
+      ...(level.edges.length ? ["Relations", ...edgeLines(level)] : ["No relation found."]),
+      "",
+    ].join("\n"),
+  );
   return `# ${c4.repo}: C4 from the code\n\n${blocks.join("\n")}`;
 }

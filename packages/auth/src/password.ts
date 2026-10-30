@@ -50,7 +50,12 @@ export async function verifyPassword(password: string, stored: string): Promise<
   const [scheme, n, r, p, salt, hash] = stored.split("$");
   if (scheme !== "scrypt" || !salt || !hash || password.length > PASSWORD_MAX_LENGTH) return false;
   const expected = Buffer.from(hash, "base64url");
-  const given = await scrypt(password, Buffer.from(salt, "base64url"), expected.length, { N: Number(n), r: Number(r), p: Number(p), maxmem: MAXMEM });
+  const given = await scrypt(password, Buffer.from(salt, "base64url"), expected.length, {
+    N: Number(n),
+    r: Number(r),
+    p: Number(p),
+    maxmem: MAXMEM,
+  });
   return given.length === expected.length && crypto.timingSafeEqual(given, expected);
 }
 

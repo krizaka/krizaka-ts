@@ -9,11 +9,13 @@ export const DESCRIPTION_MAX = 500;
 /** Tag colours are NAMES that the UI maps to its tokens — never a hex in the database. */
 export const TAG_COLORS = ["blue", "green", "amber", "red", "violet", "gray"] as const;
 export type TagColor = (typeof TAG_COLORS)[number];
-export const isTagColor = (value: unknown): value is TagColor => typeof value === "string" && (TAG_COLORS as readonly string[]).includes(value);
+export const isTagColor = (value: unknown): value is TagColor =>
+  typeof value === "string" && (TAG_COLORS as readonly string[]).includes(value);
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 /** A plain object (what JSON gives for `{…}`), not an array, not null. */
-export const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
+export const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
 
 export const isId = (value: unknown): value is string => typeof value === "string" && UUID.test(value);
 
@@ -36,7 +38,9 @@ export function parseTagsParam(value: string | readonly string[] | undefined): s
   return [...new Set(parts.map((p) => p.trim()).filter(isId))];
 }
 
-export const toggleTag = (current: readonly string[], id: string): string[] => (current.includes(id) ? current.filter((t) => t !== id) : [...current, id]);
+export const toggleTag = (current: readonly string[], id: string): string[] =>
+  current.includes(id) ? current.filter((t) => t !== id) : [...current, id];
 
 /** The same path with another set of tags: the URL is the state. */
-export const tagsHref = (path: string, tags: readonly string[]): string => (tags.length ? `${path}?tags=${tags.join(",")}` : path);
+export const tagsHref = (path: string, tags: readonly string[]): string =>
+  tags.length ? `${path}?tags=${tags.join(",")}` : path;

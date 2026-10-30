@@ -8,11 +8,18 @@ import { type Clock, type EventStore, type PaymentEvent } from "./port";
 export type { EventStore } from "./port";
 export type { Query } from "@krizaka/db";
 
-type Handlers = { [T in Exclude<PaymentEvent["type"], "ignored">]?: (event: Extract<PaymentEvent, { type: T }>) => Promise<void | "ignored"> };
+type Handlers = {
+  [T in Exclude<PaymentEvent["type"], "ignored">]?: (
+    event: Extract<PaymentEvent, { type: T }>,
+  ) => Promise<void | "ignored">;
+};
 
 /** Handlers that write through the transaction they are given, so their effect and the event's record commit together. */
 export type TransactionHandlers = {
-  [T in Exclude<PaymentEvent["type"], "ignored">]?: (event: Extract<PaymentEvent, { type: T }>, query: Query) => Promise<void | "ignored">;
+  [T in Exclude<PaymentEvent["type"], "ignored">]?: (
+    event: Extract<PaymentEvent, { type: T }>,
+    query: Query,
+  ) => Promise<void | "ignored">;
 };
 
 /** Opens a transaction, runs the work with its `Query`, commits when the work returns and rolls back when it throws (`transaction` of `@krizaka/db` over the product's pool). */
@@ -39,7 +46,10 @@ function handlerFor<H>(handlers: Partial<Record<string, H>>, event: PaymentEvent
  *   first) when giving the id back fails too, in which case the id stays recorded
  */
 export async function applyOnce(store: EventStore, event: PaymentEvent, handlers: Handlers): Promise<Outcome> {
-  const handler = handlerFor(handlers as Partial<Record<string, (e: PaymentEvent) => Promise<void | "ignored">>>, event);
+  const handler = handlerFor(
+    handlers as Partial<Record<string, (e: PaymentEvent) => Promise<void | "ignored">>>,
+    event,
+  );
   if (!handler) return "ignored";
   if (!(await store.markSeen(event.id, event.type))) return "duplicate";
   try {
@@ -55,7 +65,11 @@ async function giveBack(store: EventStore, id: string, handlerError: unknown): P
   try {
     await store.forget?.(id);
   } catch (cleanupError) {
-    throw new AggregateError([handlerError, cleanupError], `the handler of ${id} failed, and giving its id back failed too: the id stays recorded`, { cause: cleanupError });
+    throw new AggregateError(
+      [handlerError, cleanupError],
+      `the handler of ${id} failed, and giving its id back failed too: the id stays recorded`,
+      { cause: cleanupError },
+    );
   }
 }
 
@@ -77,11 +91,20 @@ export interface ApplyOptions {
  * @returns `applied`, `duplicate` (already applied) or `ignored`
  * @throws whatever the handler throws, after the transaction rolled back
  */
-export async function applyOnceInTransaction(transaction: Transaction, event: PaymentEvent, handlers: TransactionHandlers, options: ApplyOptions = {}): Promise<Outcome> {
-  const handler = handlerFor(handlers as Partial<Record<string, (e: PaymentEvent, query: Query) => Promise<void | "ignored">>>, event);
+export async function applyOnceInTransaction(
+  transaction: Transaction,
+  event: PaymentEvent,
+  handlers: TransactionHandlers,
+  options: ApplyOptions = {},
+): Promise<Outcome> {
+  const handler = handlerFor(
+    handlers as Partial<Record<string, (e: PaymentEvent, query: Query) => Promise<void | "ignored">>>,
+    event,
+  );
   if (!handler) return "ignored";
   return transaction(async (query) => {
-    if (!(await dbEventStore(query, options.table).markSeen(event.id, event.type, options.clock?.now()))) return "duplicate";
+    if (!(await dbEventStore(query, options.table).markSeen(event.id, event.type, options.clock?.now())))
+      return "duplicate";
     return (await handler(event, query)) === "ignored" ? "ignored" : "applied";
   });
 }
@@ -98,7 +121,10 @@ const TYPES = {
 
 /** The part of `@krizaka/outbox`'s `Outbox` this package needs: structural, so `payments` does not depend on `outbox`. */
 export interface OutboxPort {
-  append(tx: Query, message: { topic: string; type: string; payload: unknown; id?: string }): Promise<{ id: string; appended: boolean }>;
+  append(
+    tx: Query,
+    message: { topic: string; type: string; payload: unknown; id?: string },
+  ): Promise<{ id: string; appended: boolean }>;
 }
 
 /** A stable UUID from the processor's event id: announcing the same event twice is one outbox message. */
@@ -121,5 +147,12 @@ export const messageIdOf = (eventId: string): string => {
 export async function announcePayment(tx: Query, outbox: OutboxPort, event: PaymentEvent): Promise<boolean> {
   if (event.type === "ignored") return false;
   const { type: _type, id, ...facts } = event;
-  return (await outbox.append(tx, { topic: PAYMENT_TOPIC, type: TYPES[event.type], payload: { eventId: id, ...facts }, id: messageIdOf(id) })).appended;
+  return (
+    await outbox.append(tx, {
+      topic: PAYMENT_TOPIC,
+      type: TYPES[event.type],
+      payload: { eventId: id, ...facts },
+      id: messageIdOf(id),
+    })
+  ).appended;
 }

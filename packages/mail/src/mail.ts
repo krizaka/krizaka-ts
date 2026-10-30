@@ -1,6 +1,17 @@
 import { subHours } from "@krizaka/time";
 
-import { type Clock, DELIVERY_STATUS, type DeliveryEntry, MAIL_CODE, MailError, type MailMessage, type MailProvider, type MailSettings, type MailStore, type Query } from "./port";
+import {
+  type Clock,
+  DELIVERY_STATUS,
+  type DeliveryEntry,
+  MAIL_CODE,
+  MailError,
+  type MailMessage,
+  type MailProvider,
+  type MailSettings,
+  type MailStore,
+  type Query,
+} from "./port";
 import { bareAddress, checkMessage, hashAddress, uuidOf } from "./rules";
 import type { Suppression } from "./webhooks";
 
@@ -10,7 +21,10 @@ export const MAIL_EVENT = { requested: "evt.mail.requested.v1" } as const;
 
 /** What the module needs of `@krizaka/outbox` (its `Outbox` satisfies it): append in the caller's transaction. */
 export interface MailOutbox {
-  append(tx: Query, message: { topic: string; type: string; payload: unknown; id: string }): Promise<{ id: string; appended: boolean }>;
+  append(
+    tx: Query,
+    message: { topic: string; type: string; payload: unknown; id: string },
+  ): Promise<{ id: string; appended: boolean }>;
 }
 
 /** The part of an outbox message the deliverer reads (`OutboxMessage` satisfies it). */
@@ -44,7 +58,8 @@ export interface Mail {
   purge(): Promise<number>;
 }
 
-const isMessage = (payload: unknown): payload is MailMessage => typeof payload === "object" && payload !== null && "to" in payload && "idempotencyKey" in payload;
+const isMessage = (payload: unknown): payload is MailMessage =>
+  typeof payload === "object" && payload !== null && "to" in payload && "idempotencyKey" in payload;
 const reason = (error: unknown) => (error instanceof Error ? error.message : String(error)).slice(0, 300);
 
 /**
@@ -62,7 +77,12 @@ export function createMail(deps: MailDeps): Mail {
     async queue(tx, message) {
       checkMessage(message);
       const id = uuidOf(message.idempotencyKey);
-      const { appended } = await deps.outbox.append(tx, { topic: MAIL_TOPIC, type: MAIL_EVENT.requested, payload: message, id });
+      const { appended } = await deps.outbox.append(tx, {
+        topic: MAIL_TOPIC,
+        type: MAIL_EVENT.requested,
+        payload: message,
+        id,
+      });
       return { id, queued: appended };
     },
     async deliver(queued) {
@@ -70,7 +90,13 @@ export function createMail(deps: MailDeps): Mail {
       const message = queued.payload;
       checkMessage(message);
       const hash = hashAddress(message.to);
-      const base = { template: message.template, category: message.category, locale: message.locale, to: hash, idempotencyKey: message.idempotencyKey };
+      const base = {
+        template: message.template,
+        category: message.category,
+        locale: message.locale,
+        to: hash,
+        idempotencyKey: message.idempotencyKey,
+      };
       if (await deps.store.isSuppressed(hash)) {
         await log({ ...base, status: DELIVERY_STATUS.suppressed });
         return DELIVERY_STATUS.suppressed;
@@ -85,7 +111,12 @@ export function createMail(deps: MailDeps): Mail {
       try {
         const sent = await provider.send({ ...message, from: s.from, ...(replyTo ? { replyTo } : {}) });
         await deps.store.claimKey(message.idempotencyKey, deps.clock.now());
-        await log({ ...base, status: DELIVERY_STATUS.sent, messageId: sent.messageId ?? undefined, detail: provider.name });
+        await log({
+          ...base,
+          status: DELIVERY_STATUS.sent,
+          messageId: sent.messageId ?? undefined,
+          detail: provider.name,
+        });
         return DELIVERY_STATUS.sent;
       } catch (error) {
         await log({ ...base, status: DELIVERY_STATUS.failed, detail: reason(error) });

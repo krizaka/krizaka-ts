@@ -24,14 +24,19 @@ const readIf = (...p) => (existsSync(join(...p)) ? read(...p) : null);
 
 /** The version npm lists as `latest`; `null` when the package was never published. Throws when the registry cannot be reached. */
 async function npmVersion(name) {
-  const res = await fetch(`https://registry.npmjs.org/${name.replaceAll("/", "%2F")}/latest`, { headers: { "user-agent": "krizaka-ts-site-build" }, signal: AbortSignal.timeout(10_000) });
+  const res = await fetch(`https://registry.npmjs.org/${name.replaceAll("/", "%2F")}/latest`, {
+    headers: { "user-agent": "krizaka-ts-site-build" },
+    signal: AbortSignal.timeout(10_000),
+  });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`npm answered ${res.status} for ${name}`);
   return (await res.json()).version;
 }
 
 function packagesOf(root) {
-  const dirs = readdirSync(join(root, "packages"), { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync(join(root, "packages", d.name, "package.json"))).map((d) => d.name);
+  const dirs = readdirSync(join(root, "packages"), { withFileTypes: true })
+    .filter((d) => d.isDirectory() && existsSync(join(root, "packages", d.name, "package.json")))
+    .map((d) => d.name);
   return dirs.filter((d) => !JSON.parse(read(root, "packages", d, "package.json")).private);
 }
 
@@ -54,7 +59,9 @@ for (const dir of dirs) {
   } catch (error) {
     const kept = previous?.packages.find((p) => p.name === json.name);
     if (!kept) {
-      console.error(`gen-packages: npm unreachable (${error.message}) and no previous version of ${json.name} — cannot state a version`);
+      console.error(
+        `gen-packages: npm unreachable (${error.message}) and no previous version of ${json.name} — cannot state a version`,
+      );
       process.exit(1);
     }
     console.warn(`gen-packages: npm unreachable (${error.message}) — keeping ${json.name} ${kept.version}`);
@@ -80,11 +87,28 @@ mkdirSync(dirname(OUT_DATA), { recursive: true });
 writeFileSync(OUT_DATA, `${JSON.stringify({ packages, fetchedAt: new Date().toISOString() }, null, 2)}\n`);
 
 mkdirSync(OUT_DOCS, { recursive: true });
-for (const [locale, suffix, metaName] of [["en", "", "meta.json"], ["fr", ".fr", "meta.fr.json"]]) {
+for (const [locale, suffix, metaName] of [
+  ["en", "", "meta.json"],
+  ["fr", ".fr", "meta.fr.json"],
+]) {
   const messages = JSON.parse(read(SITE, "messages", `${locale}.json`));
-  for (const pkg of packages) writeFileSync(join(OUT_DOCS, `${pkg.id}${suffix}.mdx`), renderPage(pkg, locale, messages));
-  writeFileSync(join(OUT_DOCS, metaName), `${JSON.stringify(metaOf(messages.site.name, packages.map((p) => p.id), messages.docs), null, 2)}\n`);
+  for (const pkg of packages)
+    writeFileSync(join(OUT_DOCS, `${pkg.id}${suffix}.mdx`), renderPage(pkg, locale, messages));
+  writeFileSync(
+    join(OUT_DOCS, metaName),
+    `${JSON.stringify(
+      metaOf(
+        messages.site.name,
+        packages.map((p) => p.id),
+        messages.docs,
+      ),
+      null,
+      2,
+    )}\n`,
+  );
 }
 
 const published = packages.filter((p) => p.version).length;
-console.log(`gen-packages: ${packages.length} packages (${published} on npm), ${packages.reduce((n, p) => n + p.exports.length, 0)} exported names`);
+console.log(
+  `gen-packages: ${packages.length} packages (${published} on npm), ${packages.reduce((n, p) => n + p.exports.length, 0)} exported names`,
+);

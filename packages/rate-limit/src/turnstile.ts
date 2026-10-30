@@ -15,7 +15,8 @@ const REPLAY_WINDOW_MS = 300_000;
 // @fixed: bounds the replay memory of one process
 const MAX_REMEMBERED_TOKENS = 5000;
 
-export type TurnstileFailure = "not-configured" | "missing-token" | "rejected" | "hostname" | "action" | "replayed" | "unavailable";
+export type TurnstileFailure =
+  "not-configured" | "missing-token" | "rejected" | "hostname" | "action" | "replayed" | "unavailable";
 export type TurnstileResult = { ok: true } | { ok: false; reason: TurnstileFailure; errorCodes: string[] };
 
 export interface TurnstileResponse {
@@ -46,7 +47,11 @@ export interface TurnstileCheck {
   action?: string;
 }
 
-const fail = (reason: TurnstileFailure, errorCodes: string[] = []): TurnstileResult => ({ ok: false, reason, errorCodes });
+const fail = (reason: TurnstileFailure, errorCodes: string[] = []): TurnstileResult => ({
+  ok: false,
+  reason,
+  errorCodes,
+});
 
 /** A verifier with its replay memory: one per process, shared by the forms. */
 export function createTurnstileVerifier(deps: TurnstileDeps): (check: TurnstileCheck) => Promise<TurnstileResult> {
@@ -64,7 +69,8 @@ export function createTurnstileVerifier(deps: TurnstileDeps): (check: TurnstileC
   return async ({ token, remoteIp, action }) => {
     const secret = deps.secret?.trim();
     if (!secret) return fail("not-configured");
-    if (typeof token !== "string" || !token.trim() || token.length > TURNSTILE_MAX_TOKEN_LENGTH) return fail("missing-token");
+    if (typeof token !== "string" || !token.trim() || token.length > TURNSTILE_MAX_TOKEN_LENGTH)
+      return fail("missing-token");
     if (!remember(token, deps.now().valueOf())) return fail("replayed");
 
     const body = new URLSearchParams({ secret, response: token });

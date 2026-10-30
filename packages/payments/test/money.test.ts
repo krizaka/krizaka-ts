@@ -8,7 +8,14 @@ describe("money is integer minor units with a currency", () => {
     expect(money(0, "usd")).toEqual({ amountMinor: 0, currency: "usd" });
   });
   it("refuses floats, negatives, unsafe integers and bad currencies", () => {
-    for (const bad of [() => money(9.99, "cad"), () => money(-1, "cad"), () => money(Number.MAX_SAFE_INTEGER + 1, "cad"), () => money(Number.NaN, "cad"), () => money(1, "dollars"), () => money(1, "")]) {
+    for (const bad of [
+      () => money(9.99, "cad"),
+      () => money(-1, "cad"),
+      () => money(Number.MAX_SAFE_INTEGER + 1, "cad"),
+      () => money(Number.NaN, "cad"),
+      () => money(1, "dollars"),
+      () => money(1, ""),
+    ]) {
       expect(bad).toThrow(expect.objectContaining({ code: PAYMENTS_CODE.badMoney, status: 400 }));
     }
   });

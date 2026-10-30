@@ -3,14 +3,40 @@
 
 /** Tailwind palette families a product never writes: a component reads a role (bg-surface-1, text-accent…). */
 export const PALETTE_FAMILIES = Object.freeze([
-  "zinc", "slate", "gray", "neutral", "stone",
-  "fuchsia", "violet", "purple", "pink", "rose",
-  "emerald", "green", "amber", "yellow", "red",
-  "blue", "sky", "cyan", "indigo",
+  "zinc",
+  "slate",
+  "gray",
+  "neutral",
+  "stone",
+  "fuchsia",
+  "violet",
+  "purple",
+  "pink",
+  "rose",
+  "emerald",
+  "green",
+  "amber",
+  "yellow",
+  "red",
+  "blue",
+  "sky",
+  "cyan",
+  "indigo",
 ]);
 
 /** Utilities that take a colour. */
-export const COLOR_UTILITIES = Object.freeze(["bg", "text", "border", "from", "via", "to", "ring", "shadow", "fill", "stroke"]);
+export const COLOR_UTILITIES = Object.freeze([
+  "bg",
+  "text",
+  "border",
+  "from",
+  "via",
+  "to",
+  "ring",
+  "shadow",
+  "fill",
+  "stroke",
+]);
 
 /**
  * `bg-zinc-900`, `text-violet-400/80`… — a raw palette step.
@@ -187,7 +213,10 @@ export function effectProblem(body) {
   if (new RegExp(ASYNC_EFFECT_SOURCE).test(text)) return "async";
   const { rest, found } = withoutSetStateCalls(text);
   if (found === 0) return null;
-  const leftover = rest.replace(/\b(?:if|else)\b/g, "").replace(/\([^()]*(?:\([^()]*\)[^()]*)*\)/g, "").replace(/[\s;{}]/g, "");
+  const leftover = rest
+    .replace(/\b(?:if|else)\b/g, "")
+    .replace(/\([^()]*(?:\([^()]*\)[^()]*)*\)/g, "")
+    .replace(/[\s;{}]/g, "");
   return leftover === "" ? "derived" : null;
 }
 
@@ -212,9 +241,24 @@ export const TABLE_OR_FORM_SOURCE = String.raw`<(table|form)(?=[\s>/])`;
 
 /** The elements that hold a value in a form: native fields and the field primitives of `@krizaka/ui`. */
 export const FORM_FIELD_TAGS = Object.freeze([
-  "input", "textarea", "select",
-  "Input", "Textarea", "Select", "Combobox", "DatePicker", "DateRangePicker", "TagInput", "Checkbox", "Switch",
-  "RadioGroup", "Slider", "SearchField", "Dropzone", "FileUpload", "OtpInput",
+  "input",
+  "textarea",
+  "select",
+  "Input",
+  "Textarea",
+  "Select",
+  "Combobox",
+  "DatePicker",
+  "DateRangePicker",
+  "TagInput",
+  "Checkbox",
+  "Switch",
+  "RadioGroup",
+  "Slider",
+  "SearchField",
+  "Dropzone",
+  "FileUpload",
+  "OtpInput",
 ]);
 
 /** `<input type="hidden|submit|button|reset|image">` holds no value the user types. */
@@ -283,7 +327,17 @@ function skipLiteralOrComment(source, i) {
 // Read by the ESLint rule krizaka/route-state-selection and by the ratchet.
 
 /** The selection components whose choice belongs in the URL: tabs, a segmented switch, toggle groups, chip groups, choice tiles. */
-export const SELECTION_COMPONENTS = Object.freeze(["Tabs.Root", "TabsRoot", "Chip.Group", "ChipGroup", "ChoiceGrid", "SegmentedControl", "ToggleGroup", "ToggleGroup.Root", "RadioGroup.Root"]);
+export const SELECTION_COMPONENTS = Object.freeze([
+  "Tabs.Root",
+  "TabsRoot",
+  "Chip.Group",
+  "ChipGroup",
+  "ChoiceGrid",
+  "SegmentedControl",
+  "ToggleGroup",
+  "ToggleGroup.Root",
+  "RadioGroup.Root",
+]);
 
 /** The props that make a selection local: its own value, its starting value, its change handler. */
 export const LOCAL_SELECTION_PROPS = Object.freeze(["value", "defaultValue", "onValueChange"]);
@@ -293,7 +347,6 @@ export const ROUTE_KEY_PROP = "routeKey";
 
 /** The justification that keeps a local selection: `// @ephemeral: a hover card's tab` on the line or the line above. */
 export const EPHEMERAL_SOURCE = String.raw`@ephemeral:\s*\S`;
-
 
 /** The opening tags (`<Tabs.Root … >`) of the selection components in a source text, each with the line above it. */
 export function selectionTags(/** @type {string} */ source) {

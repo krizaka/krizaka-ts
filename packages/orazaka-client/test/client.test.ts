@@ -2,7 +2,15 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
-import { createOrazakaClient, isTerminal, ORAZAKA_CODE, OrazakaError, orazakaRefusal, outputOf, parseRun } from "../src";
+import {
+  createOrazakaClient,
+  isTerminal,
+  ORAZAKA_CODE,
+  OrazakaError,
+  orazakaRefusal,
+  outputOf,
+  parseRun,
+} from "../src";
 
 /**
  * Contract tests against the edge's answers kept in `test/fixtures` (the shapes of orazaka-studio's `RunResponse`,
@@ -24,7 +32,12 @@ function edge(replies: Reply[]) {
   const seen: Seen[] = [];
   const queue = [...replies];
   const fetch = (async (url: string | URL | Request, init?: RequestInit) => {
-    seen.push({ url: String(url), method: init?.method ?? "GET", headers: init?.headers as Record<string, string>, body: init?.body ? JSON.parse(String(init.body)) : undefined });
+    seen.push({
+      url: String(url),
+      method: init?.method ?? "GET",
+      headers: init?.headers as Record<string, string>,
+      body: init?.body ? JSON.parse(String(init.body)) : undefined,
+    });
     const next = queue.shift();
     if (!next) throw new Error("no scripted reply left");
     if (next instanceof Error) throw next;
@@ -41,18 +54,32 @@ function clockAt(start: string) {
 const make = (replies: Reply[], extra: Partial<Parameters<typeof createOrazakaClient>[0]> = {}) => {
   const e = edge(replies);
   const t = clockAt("2026-10-26T12:00:00Z");
-  const client = createOrazakaClient({ baseUrl: "https://api.orazaka.test/", apiKey: "oz_test", clock: t.clock, fetch: e.fetch, ...extra });
+  const client = createOrazakaClient({
+    baseUrl: "https://api.orazaka.test/",
+    apiKey: "oz_test",
+    clock: t.clock,
+    fetch: e.fetch,
+    ...extra,
+  });
   return { client, ...e, ...t };
 };
 const failure = async (promise: Promise<unknown>): Promise<OrazakaError> => {
-  const error = await promise.then(() => null, (e: unknown) => e);
+  const error = await promise.then(
+    () => null,
+    (e: unknown) => e,
+  );
   expect(error).toBeInstanceOf(OrazakaError);
   return error as OrazakaError;
 };
 
 describe("starting a run", () => {
   it("installs the Studio once, then posts the inputs with the key as a bearer", async () => {
-    const { client, seen } = make([{ status: 200, body: "[]" }, { status: 201, body: '{"studioKey":"compliance-check"}' }, { status: 202, body: fixture("run-accepted") }, { status: 202, body: fixture("run-accepted") }]);
+    const { client, seen } = make([
+      { status: 200, body: "[]" },
+      { status: 201, body: '{"studioKey":"compliance-check"}' },
+      { status: 202, body: fixture("run-accepted") },
+      { status: 202, body: fixture("run-accepted") },
+    ]);
     const { run, replayed } = await client.startRun("compliance-check", { document: "lease text" });
     expect(run).toMatchObject({ id: RUN_ID, studioKey: "compliance-check", status: "RUNNING", outputs: [] });
     expect(replayed).toBe(false);
@@ -61,13 +88,19 @@ describe("starting a run", () => {
       "POST https://api.orazaka.test/api/v1/studios/compliance-check/installations?locale=en",
       "POST https://api.orazaka.test/api/v1/studios/compliance-check/runs",
     ]);
-    expect(seen[2]).toMatchObject({ headers: { authorization: "Bearer oz_test", "content-type": "application/json" }, body: { inputs: { document: "lease text" } } });
+    expect(seen[2]).toMatchObject({
+      headers: { authorization: "Bearer oz_test", "content-type": "application/json" },
+      body: { inputs: { document: "lease text" } },
+    });
     await client.startRun("compliance-check", {}); // installed: no second install round
     expect(seen).toHaveLength(4);
   });
 
   it("does not install a Studio the account already has", async () => {
-    const { client, seen } = make([{ status: 200, body: fixture("installations") }, { status: 202, body: fixture("run-accepted") }]);
+    const { client, seen } = make([
+      { status: 200, body: fixture("installations") },
+      { status: 202, body: fixture("run-accepted") },
+    ]);
     await client.startRun("compliance-check", {});
     expect(seen).toHaveLength(2);
   });
@@ -79,7 +112,10 @@ describe("starting a run", () => {
   });
 
   it("sends the idempotency key and says when the edge replayed the run", async () => {
-    const { client, seen } = make([{ status: 202, body: fixture("run-accepted"), headers: { "idempotent-replayed": "true" } }], { autoInstall: false });
+    const { client, seen } = make(
+      [{ status: 202, body: fixture("run-accepted"), headers: { "idempotent-replayed": "true" } }],
+      { autoInstall: false },
+    );
     const { replayed } = await client.startRun("compliance-check", { a: 1 }, { idempotencyKey: "doc-42-attempt-1" });
     expect(replayed).toBe(true);
     expect(seen[0]?.headers["idempotency-key"]).toBe("doc-42-attempt-1");
@@ -87,14 +123,22 @@ describe("starting a run", () => {
 
   it("answers a key reused for another request with its own code", async () => {
     const { client } = make([{ status: 422, body: fixture("key-reused") }], { autoInstall: false });
-    expect(await failure(client.startRun("compliance-check", {}, { idempotencyKey: "k" }))).toMatchObject({ code: ORAZAKA_CODE.keyReused, status: 409, details: { upstreamStatus: 422 } });
+    expect(await failure(client.startRun("compliance-check", {}, { idempotencyKey: "k" }))).toMatchObject({
+      code: ORAZAKA_CODE.keyReused,
+      status: 409,
+      details: { upstreamStatus: 422 },
+    });
   });
 
   it("refuses what is not a Studio key or an idempotency key before any call", async () => {
     const { client, seen } = make([]);
     expect(await failure(client.startRun("../runs", {}))).toMatchObject({ code: ORAZAKA_CODE.input });
-    expect(await failure(client.startRun("compliance-check", {}, { idempotencyKey: "has space" }))).toMatchObject({ code: ORAZAKA_CODE.input });
-    expect(await failure(client.startRun("compliance-check", {}, { idempotencyKey: "x".repeat(256) }))).toMatchObject({ code: ORAZAKA_CODE.input });
+    expect(await failure(client.startRun("compliance-check", {}, { idempotencyKey: "has space" }))).toMatchObject({
+      code: ORAZAKA_CODE.input,
+    });
+    expect(await failure(client.startRun("compliance-check", {}, { idempotencyKey: "x".repeat(256) }))).toMatchObject({
+      code: ORAZAKA_CODE.input,
+    });
     expect(seen).toEqual([]);
   });
 });
@@ -119,19 +163,34 @@ describe("reading a run", () => {
   });
 
   it("refuses an answer that is not a run", async () => {
-    const { client } = make([{ status: 200, body: '{"hello":"world"}' }, { status: 200, body: "not json" }, { status: 200, body: '{"id":"a","studioKey":"s","status":"RUNNING","outputs":[{"key":1}]}' }]);
-    for (let i = 0; i < 3; i += 1) expect(await failure(client.getRun(RUN_ID))).toMatchObject({ code: ORAZAKA_CODE.shape });
+    const { client } = make([
+      { status: 200, body: '{"hello":"world"}' },
+      { status: 200, body: "not json" },
+      { status: 200, body: '{"id":"a","studioKey":"s","status":"RUNNING","outputs":[{"key":1}]}' },
+    ]);
+    for (let i = 0; i < 3; i += 1)
+      expect(await failure(client.getRun(RUN_ID))).toMatchObject({ code: ORAZAKA_CODE.shape });
   });
 
   it("keeps a status it does not know", () => {
-    expect(parseRun({ id: "a", studioKey: "s", status: "SOMETHING_NEW" })).toMatchObject({ status: "SOMETHING_NEW", outputs: [] });
+    expect(parseRun({ id: "a", studioKey: "s", status: "SOMETHING_NEW" })).toMatchObject({
+      status: "SOMETHING_NEW",
+      outputs: [],
+    });
     expect(isTerminal({ status: "SOMETHING_NEW" })).toBe(false);
   });
 });
 
 describe("waiting for a run", () => {
   it("reads until the run is over and gives back a failed run as it is", async () => {
-    const { client, seen } = make([{ status: 200, body: fixture("run-accepted") }, { status: 200, body: fixture("run-accepted") }, { status: 200, body: fixture("run-failed") }], { sleep: async () => undefined });
+    const { client, seen } = make(
+      [
+        { status: 200, body: fixture("run-accepted") },
+        { status: 200, body: fixture("run-accepted") },
+        { status: 200, body: fixture("run-failed") },
+      ],
+      { sleep: async () => undefined },
+    );
     const run = await client.waitForRun(RUN_ID, { intervalMs: 10 });
     expect(run).toMatchObject({ status: "FAILED", errorMessage: "The document could not be read" });
     expect(seen).toHaveLength(3);
@@ -140,8 +199,16 @@ describe("waiting for a run", () => {
   it("gives up when the time is over, by the injected clock", async () => {
     const t = clockAt("2026-10-26T12:00:00Z");
     const e = edge(Array.from({ length: 10 }, () => ({ status: 200, body: fixture("run-accepted") })));
-    const client = createOrazakaClient({ baseUrl: "https://x", apiKey: "k", clock: t.clock, fetch: e.fetch, sleep: async (ms) => void t.advance(ms) });
-    expect(await failure(client.waitForRun(RUN_ID, { intervalMs: 1000, timeoutMs: 3000 }))).toMatchObject({ code: ORAZAKA_CODE.waitExpired });
+    const client = createOrazakaClient({
+      baseUrl: "https://x",
+      apiKey: "k",
+      clock: t.clock,
+      fetch: e.fetch,
+      sleep: async (ms) => void t.advance(ms),
+    });
+    expect(await failure(client.waitForRun(RUN_ID, { intervalMs: 1000, timeoutMs: 3000 }))).toMatchObject({
+      code: ORAZAKA_CODE.waitExpired,
+    });
     expect(e.seen.length).toBeLessThanOrEqual(6);
   });
 });
@@ -164,8 +231,17 @@ describe("what the edge refuses", () => {
   });
 
   it("429 says when to come back, from the header first, bounded", async () => {
-    const { client } = make([{ status: 429, body: fixture("busy") }, { status: 429, body: "{}", headers: { "retry-after": "5" } }, { status: 429, body: "{}", headers: { "retry-after": "9999" } }, { status: 429, body: "{}" }]);
-    expect(await failure(client.getRun(RUN_ID))).toMatchObject({ code: ORAZAKA_CODE.busy, status: 429, retryAfterSeconds: 12 });
+    const { client } = make([
+      { status: 429, body: fixture("busy") },
+      { status: 429, body: "{}", headers: { "retry-after": "5" } },
+      { status: 429, body: "{}", headers: { "retry-after": "9999" } },
+      { status: 429, body: "{}" },
+    ]);
+    expect(await failure(client.getRun(RUN_ID))).toMatchObject({
+      code: ORAZAKA_CODE.busy,
+      status: 429,
+      retryAfterSeconds: 12,
+    });
     expect((await failure(client.getRun(RUN_ID))).retryAfterSeconds).toBe(5);
     expect((await failure(client.getRun(RUN_ID))).retryAfterSeconds).toBe(300);
     expect((await failure(client.getRun(RUN_ID))).retryAfterSeconds).toBe(15);
@@ -186,7 +262,10 @@ describe("when the edge is down", () => {
     const { client } = make([timeout, down, { status: 503 }], { circuit: false });
     expect(await failure(client.getRun(RUN_ID))).toMatchObject({ code: ORAZAKA_CODE.timeout });
     expect(await failure(client.getRun(RUN_ID))).toMatchObject({ code: ORAZAKA_CODE.unavailable });
-    expect(await failure(client.getRun(RUN_ID))).toMatchObject({ code: ORAZAKA_CODE.unavailable, details: { upstreamStatus: 503 } });
+    expect(await failure(client.getRun(RUN_ID))).toMatchObject({
+      code: ORAZAKA_CODE.unavailable,
+      details: { upstreamStatus: 503 },
+    });
   });
 
   it("passes a time limit to every call", async () => {
@@ -195,14 +274,21 @@ describe("when the edge is down", () => {
       signal = init?.signal;
       return new Response(fixture("run-accepted"));
     }) as unknown as typeof globalThis.fetch;
-    await createOrazakaClient({ baseUrl: "https://x", apiKey: "k", clock: clockAt("2026-10-26T12:00:00Z").clock, fetch, timeoutMs: 1500 }).getRun(RUN_ID);
+    await createOrazakaClient({
+      baseUrl: "https://x",
+      apiKey: "k",
+      clock: clockAt("2026-10-26T12:00:00Z").clock,
+      fetch,
+      timeoutMs: 1500,
+    }).getRun(RUN_ID);
     expect(signal).toBeInstanceOf(AbortSignal);
   });
 
   it("opens the circuit after five failures in a row, refuses at once, probes after the pause", async () => {
     const replies: Reply[] = [down, down, down, down, down, { status: 200, body: fixture("run-succeeded") }];
     const { client, seen, advance } = make(replies);
-    for (let i = 0; i < 5; i += 1) expect(await failure(client.getRun(RUN_ID))).toMatchObject({ code: ORAZAKA_CODE.unavailable });
+    for (let i = 0; i < 5; i += 1)
+      expect(await failure(client.getRun(RUN_ID))).toMatchObject({ code: ORAZAKA_CODE.unavailable });
     expect(client.circuit?.isOpen).toBe(true);
     const refused = await failure(client.getRun(RUN_ID));
     expect(refused).toMatchObject({ code: ORAZAKA_CODE.circuitOpen });
@@ -214,7 +300,9 @@ describe("when the edge is down", () => {
   });
 
   it("a failed probe opens it again, and only one probe goes through", async () => {
-    const { client, seen, advance } = make([down, down, down, down, down, down], { circuit: { failureThreshold: 5, openSeconds: 30 } });
+    const { client, seen, advance } = make([down, down, down, down, down, down], {
+      circuit: { failureThreshold: 5, openSeconds: 30 },
+    });
     for (let i = 0; i < 5; i += 1) await failure(client.getRun(RUN_ID));
     advance(31_000);
     expect(await failure(client.getRun(RUN_ID))).toMatchObject({ code: ORAZAKA_CODE.unavailable });
@@ -224,12 +312,24 @@ describe("when the edge is down", () => {
 
   it("a refusal is an answer: it never opens the circuit", async () => {
     const { client } = make(Array.from({ length: 8 }, () => ({ status: 401 })));
-    for (let i = 0; i < 8; i += 1) expect(await failure(client.getRun(RUN_ID))).toMatchObject({ code: ORAZAKA_CODE.key });
+    for (let i = 0; i < 8; i += 1)
+      expect(await failure(client.getRun(RUN_ID))).toMatchObject({ code: ORAZAKA_CODE.key });
     expect(client.circuit?.isOpen).toBe(false);
   });
 
   it("a success in between resets the count", async () => {
-    const { client } = make([down, down, down, down, { status: 200, body: fixture("run-accepted") }, down, down, down, down, { status: 200, body: fixture("run-accepted") }]);
+    const { client } = make([
+      down,
+      down,
+      down,
+      down,
+      { status: 200, body: fixture("run-accepted") },
+      down,
+      down,
+      down,
+      down,
+      { status: 200, body: fixture("run-accepted") },
+    ]);
     for (let i = 0; i < 4; i += 1) await failure(client.getRun(RUN_ID));
     await client.getRun(RUN_ID);
     for (let i = 0; i < 4; i += 1) await failure(client.getRun(RUN_ID));
@@ -246,13 +346,37 @@ describe("the Studios of the key", () => {
 });
 
 describe("external checks", () => {
-  const subject = { subjectId: "tenant-42", lastName: "Tremblay", firstName: "Ariane", birthDate: "1990-04-12", region: "QC" };
-  const answer = (over: Record<string, unknown>) => JSON.stringify({ purpose: "COURT_RECORDS", outcome: "NO_MATCH", refusal: null, category: "NONE", providerRef: null, runId: null, ...over });
+  const subject = {
+    subjectId: "tenant-42",
+    lastName: "Tremblay",
+    firstName: "Ariane",
+    birthDate: "1990-04-12",
+    region: "QC",
+  };
+  const answer = (over: Record<string, unknown>) =>
+    JSON.stringify({
+      purpose: "COURT_RECORDS",
+      outcome: "NO_MATCH",
+      refusal: null,
+      category: "NONE",
+      providerRef: null,
+      runId: null,
+      ...over,
+    });
 
   it("posts the subject and the consent flag to the purpose, with the key as a bearer", async () => {
-    const { client, seen } = make([{ status: 200, body: answer({ outcome: "PENDING", providerRef: "case-777", runId: RUN_ID }) }]);
+    const { client, seen } = make([
+      { status: 200, body: answer({ outcome: "PENDING", providerRef: "case-777", runId: RUN_ID }) },
+    ]);
     const result = await client.startCheck("court-records", { subject, consented: true, runId: RUN_ID });
-    expect(result).toEqual({ purpose: "COURT_RECORDS", outcome: "PENDING", refusal: null, category: "NONE", providerRef: "case-777", runId: RUN_ID });
+    expect(result).toEqual({
+      purpose: "COURT_RECORDS",
+      outcome: "PENDING",
+      refusal: null,
+      category: "NONE",
+      providerRef: "case-777",
+      runId: RUN_ID,
+    });
     expect(seen).toHaveLength(1);
     expect(`${seen[0]?.method} ${seen[0]?.url}`).toBe("POST https://api.orazaka.test/api/v1/checks/court-records");
     expect(seen[0]?.headers.authorization).toBe("Bearer oz_test");
@@ -260,21 +384,38 @@ describe("external checks", () => {
   });
 
   it("answers a refusal as a result, not an exception", async () => {
-    const { client } = make([{ status: 200, body: answer({ outcome: "REFUSED", refusal: "NO_CONSENT" }) }, { status: 200, body: answer({ purpose: "CREDIT", outcome: "REFUSED", refusal: "NOT_CONFIGURED" }) }]);
-    expect(await client.startCheck("court-records", { subject, consented: false })).toMatchObject({ outcome: "REFUSED", refusal: "NO_CONSENT" });
-    expect(await client.startCheck("credit", { subject, consented: true })).toMatchObject({ purpose: "CREDIT", outcome: "REFUSED", refusal: "NOT_CONFIGURED", providerRef: null });
+    const { client } = make([
+      { status: 200, body: answer({ outcome: "REFUSED", refusal: "NO_CONSENT" }) },
+      { status: 200, body: answer({ purpose: "CREDIT", outcome: "REFUSED", refusal: "NOT_CONFIGURED" }) },
+    ]);
+    expect(await client.startCheck("court-records", { subject, consented: false })).toMatchObject({
+      outcome: "REFUSED",
+      refusal: "NO_CONSENT",
+    });
+    expect(await client.startCheck("credit", { subject, consented: true })).toMatchObject({
+      purpose: "CREDIT",
+      outcome: "REFUSED",
+      refusal: "NOT_CONFIGURED",
+      providerRef: null,
+    });
   });
 
   it("collects a pending check by its reference, with the subject and the consent as the query", async () => {
-    const { client, seen } = make([{ status: 200, body: answer({ outcome: "MATCH", category: "CRIMINAL", providerRef: "case-777" }) }]);
+    const { client, seen } = make([
+      { status: 200, body: answer({ outcome: "MATCH", category: "CRIMINAL", providerRef: "case-777" }) },
+    ]);
     const result = await client.collectCheck("case-777", { subjectId: "tenant-42", consented: true });
     expect(result).toMatchObject({ outcome: "MATCH", category: "CRIMINAL", providerRef: "case-777" });
-    expect(`${seen[0]?.method} ${seen[0]?.url}`).toBe("GET https://api.orazaka.test/api/v1/checks/case-777?subjectId=tenant-42&consented=true");
+    expect(`${seen[0]?.method} ${seen[0]?.url}`).toBe(
+      "GET https://api.orazaka.test/api/v1/checks/case-777?subjectId=tenant-42&consented=true",
+    );
   });
 
   it("maps the door's refusals to the stable codes: 404 not found, 403 key, 429 busy", async () => {
     const { client } = make([{ status: 404 }, { status: 403 }, { status: 429, headers: { "retry-after": "7" } }]);
-    expect((await failure(client.collectCheck("case-9", { subjectId: "s", consented: true }))).code).toBe(ORAZAKA_CODE.notFound);
+    expect((await failure(client.collectCheck("case-9", { subjectId: "s", consented: true }))).code).toBe(
+      ORAZAKA_CODE.notFound,
+    );
     expect((await failure(client.startCheck("credit", { subject, consented: true }))).code).toBe(ORAZAKA_CODE.key);
     const busy = await failure(client.startCheck("credit", { subject, consented: true }));
     expect(busy.code).toBe(ORAZAKA_CODE.busy);
@@ -283,19 +424,30 @@ describe("external checks", () => {
 
   it("refuses a purpose or a reference that is not one, before any call", async () => {
     const { client, seen } = make([]);
-    expect((await failure(client.startCheck("identity" as never, { subject, consented: true }))).code).toBe(ORAZAKA_CODE.input);
-    expect((await failure(client.collectCheck("../runs", { subjectId: "s", consented: true }))).code).toBe(ORAZAKA_CODE.input);
+    expect((await failure(client.startCheck("identity" as never, { subject, consented: true }))).code).toBe(
+      ORAZAKA_CODE.input,
+    );
+    expect((await failure(client.collectCheck("../runs", { subjectId: "s", consented: true }))).code).toBe(
+      ORAZAKA_CODE.input,
+    );
     expect(seen).toHaveLength(0);
   });
 
   it("refuses an answer that is not a check, or a refusal without its reason", async () => {
-    const { client } = make([{ status: 200, body: "{}" }, { status: 200, body: answer({ outcome: "REFUSED" }) }, { status: 200, body: answer({ refusal: "NO_KEY" }) }]);
-    for (let i = 0; i < 3; i++) expect((await failure(client.startCheck("credit", { subject, consented: true }))).code).toBe(ORAZAKA_CODE.shape);
+    const { client } = make([
+      { status: 200, body: "{}" },
+      { status: 200, body: answer({ outcome: "REFUSED" }) },
+      { status: 200, body: answer({ refusal: "NO_KEY" }) },
+    ]);
+    for (let i = 0; i < 3; i++)
+      expect((await failure(client.startCheck("credit", { subject, consented: true }))).code).toBe(ORAZAKA_CODE.shape);
   });
 
   it("without a key, throws ORAZAKA_NOT_CONFIGURED and asks nobody", async () => {
     const { client, seen } = make([], { apiKey: undefined });
-    expect((await failure(client.startCheck("credit", { subject, consented: true }))).code).toBe(ORAZAKA_CODE.notConfigured);
+    expect((await failure(client.startCheck("credit", { subject, consented: true }))).code).toBe(
+      ORAZAKA_CODE.notConfigured,
+    );
     expect(seen).toHaveLength(0);
   });
 });

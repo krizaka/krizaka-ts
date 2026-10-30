@@ -5,7 +5,9 @@ import { creditsSchema } from "../src";
 
 describe("the credits schema", () => {
   it("version 1 is frozen: its checksum is pinned (a change is version 2)", () => {
-    expect(checksumOf(creditsSchema, 1, { tables: { owner: "accounts" } })).toMatchInlineSnapshot(`"b5fe874f1d0744f78a24771c90e9a208885629585a4b783ed767c7f8ce9d3629"`);
+    expect(checksumOf(creditsSchema, 1, { tables: { owner: "accounts" } })).toMatchInlineSnapshot(
+      `"b5fe874f1d0744f78a24771c90e9a208885629585a4b783ed767c7f8ce9d3629"`,
+    );
   });
   it("declares only the owner table, and every table is schema-qualified", () => {
     expect(creditsSchema.tables).toEqual(["owner"]);

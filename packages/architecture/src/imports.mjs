@@ -14,7 +14,10 @@ const ENV_ONLY = new RegExp(`^(?:NEXT_PUBLIC_)?(?:${CONTEXTS})_[A-Z0-9_]*[A-Z0-9
 const PROCESS_ENV = /(?:process\.env|import\.meta\.env)\.([A-Z][A-Z0-9_]+)/g;
 
 /** The module specifiers a source names, in source order. */
-export const specifiersOf = (source) => SPECIFIERS.flatMap((re) => [...source.matchAll(re)]).sort((a, b) => a.index - b.index).map((m) => m[1]);
+export const specifiersOf = (source) =>
+  SPECIFIERS.flatMap((re) => [...source.matchAll(re)])
+    .sort((a, b) => a.index - b.index)
+    .map((m) => m[1]);
 
 /** `@scope/name/sub` -> `@scope/name`; `name/sub` -> `name`; a relative, alias or built-in path -> undefined. */
 export function packageOf(specifier) {
@@ -34,7 +37,9 @@ const strip = (names) => names.map((n) => n.replace(/^NEXT_PUBLIC_/, ""));
 
 /** The env names of the declared contexts: every one a declaration file lists, only the ones a source file reads. */
 export function envNamesOf(source, { declaration }) {
-  const found = declaration ? [...source.matchAll(ENV_NAME)].map((m) => m[1]) : [...source.matchAll(PROCESS_ENV)].map((m) => m[1]).filter((n) => ENV_ONLY.test(n));
+  const found = declaration
+    ? [...source.matchAll(ENV_NAME)].map((m) => m[1])
+    : [...source.matchAll(PROCESS_ENV)].map((m) => m[1]).filter((n) => ENV_ONLY.test(n));
   return [...new Set(strip(found))].sort(asc);
 }
 

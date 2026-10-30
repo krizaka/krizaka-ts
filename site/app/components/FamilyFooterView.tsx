@@ -20,7 +20,9 @@ export function FamilyFooterView({
   links: { label: string; href: string }[];
 }) {
   return (
-    <FamilyFooter current="ts" labels={familyLabels[locale]}
+    <FamilyFooter
+      current="ts"
+      labels={familyLabels[locale]}
       aria-label={aria}
       legal={
         <>

@@ -36,7 +36,8 @@ export function compare(known, current) {
 export const shrink = (known, current) => known.filter((v) => current.some((c) => keyOf(c) === keyOf(v)));
 
 /** @param {Violation} v */
-const describe = (v) => `${v.rule.name}: ${v.from} -> ${v.to}${v.cycle ? ` (cycle: ${v.cycle.map((step) => step.name).join(" -> ")})` : ""}`;
+const describe = (v) =>
+  `${v.rule.name}: ${v.from} -> ${v.to}${v.cycle ? ` (cycle: ${v.cycle.map((step) => step.name).join(" -> ")})` : ""}`;
 
 /**
  * The app's own dependency-cruiser first (its version is the one `depcruise` runs), then the one this package depends on.
@@ -86,11 +87,15 @@ const writeKnown = (file, violations) => writeFileSync(file, `${JSON.stringify(v
  * @param {{ cwd?: string, config?: string, known?: string, targets: string[] }} options
  * @returns {{ code: number, lines: string[] }}
  */
-export function runKnownViolations(command, { cwd = process.cwd(), config = CONFIG_FILE, known = KNOWN_FILE, targets }) {
+export function runKnownViolations(
+  command,
+  { cwd = process.cwd(), config = CONFIG_FILE, known = KNOWN_FILE, targets },
+) {
   const file = resolve(cwd, known);
   const current = currentViolations({ cwd, config, targets });
   if (command === "init") {
-    if (existsSync(file)) return { code: 1, lines: [`${known} exists: the baseline is written once. Use "update" to lower it.`] };
+    if (existsSync(file))
+      return { code: 1, lines: [`${known} exists: the baseline is written once. Use "update" to lower it.`] };
     writeKnown(file, current);
     return { code: 0, lines: [`${known}: ${current.length} known violations recorded. They only go down.`] };
   }
@@ -100,7 +105,10 @@ export function runKnownViolations(command, { cwd = process.cwd(), config = CONF
     writeKnown(file, shrink(recorded, current));
     const lines = [`${known}: ${recorded.length} -> ${recorded.length - gone.length} known violations.`];
     if (added.length > 0) {
-      lines.push(`${added.length} new violation(s) are NOT recorded (the baseline never grows). Fix them:`, ...added.map((v) => `  ${describe(v)}`));
+      lines.push(
+        `${added.length} new violation(s) are NOT recorded (the baseline never grows). Fix them:`,
+        ...added.map((v) => `  ${describe(v)}`),
+      );
       return { code: 1, lines };
     }
     return { code: 0, lines };
@@ -109,7 +117,8 @@ export function runKnownViolations(command, { cwd = process.cwd(), config = CONF
     ...added.map((v) => `new: ${describe(v)}`),
     ...gone.map((v) => `fixed but still recorded: ${describe(v)}`),
   ];
-  if (added.length > 0) lines.push("A new violation is never recorded: fix it (missing function? add it to the Krizaka package first).");
+  if (added.length > 0)
+    lines.push("A new violation is never recorded: fix it (missing function? add it to the Krizaka package first).");
   if (gone.length > 0) lines.push(`Lock the gain: krizaka-known-violations update (${gone.length} fewer).`);
   if (lines.length === 0) lines.push(`${known}: ${recorded.length} known violations, none new, none fixed.`);
   return { code: added.length + gone.length > 0 ? 1 : 0, lines };

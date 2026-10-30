@@ -13,6 +13,8 @@ describe("the tests that reload modules say their time budget", () => {
   it("every test file that calls vi.resetModules() passes COLD_IMPORT_TIMEOUT_MS to its test", () => {
     const reloading = tests.filter((name) => read(name).includes("vi.resetModules()"));
     expect(reloading.length).toBeGreaterThan(0);
-    for (const name of reloading) expect(read(name), name).toMatch(/\}, COLD_IMPORT_TIMEOUT_MS\);/);
+    // The layout (Prettier puts the budget on its own line) is not what is checked: whitespace is collapsed.
+    for (const name of reloading)
+      expect(read(name).replace(/\s+/g, " "), name).toMatch(/\}, COLD_IMPORT_TIMEOUT_MS,? ?\)/);
   });
 });

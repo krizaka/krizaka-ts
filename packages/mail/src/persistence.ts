@@ -24,17 +24,48 @@ export function dbMailStore(query: Query, schema = "mail"): MailStore {
   const s = ident(schema);
   return {
     async record(e) {
-      await query(`INSERT INTO ${s}.delivery (at, template, category, locale, to_hash, status, message_id, idempotency_key, detail) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`, [e.at, e.template, e.category, e.locale, e.to, e.status, e.messageId ?? null, e.idempotencyKey ?? null, e.detail ?? null]);
+      await query(
+        `INSERT INTO ${s}.delivery (at, template, category, locale, to_hash, status, message_id, idempotency_key, detail) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+        [
+          e.at,
+          e.template,
+          e.category,
+          e.locale,
+          e.to,
+          e.status,
+          e.messageId ?? null,
+          e.idempotencyKey ?? null,
+          e.detail ?? null,
+        ],
+      );
     },
     async recent(limit) {
       const rows = await query<Row>(`SELECT * FROM ${s}.delivery ORDER BY id DESC LIMIT $1`, [limit]);
-      return rows.map((r) => ({ id: Number(r.id), at: r.at.toISOString(), template: r.template, category: r.category, locale: r.locale, to: r.to_hash, status: r.status, messageId: r.message_id ?? undefined, idempotencyKey: r.idempotency_key ?? undefined, detail: r.detail ?? undefined }));
+      return rows.map((r) => ({
+        id: Number(r.id),
+        at: r.at.toISOString(),
+        template: r.template,
+        category: r.category,
+        locale: r.locale,
+        to: r.to_hash,
+        status: r.status,
+        messageId: r.message_id ?? undefined,
+        idempotencyKey: r.idempotency_key ?? undefined,
+        detail: r.detail ?? undefined,
+      }));
     },
     async isSuppressed(hash) {
       return (await query(`SELECT 1 FROM ${s}.suppression WHERE address_hash = $1`, [hash])).length > 0;
     },
     async suppress(hash, reason: SuppressionReason, now) {
-      return (await query(`INSERT INTO ${s}.suppression (address_hash, reason, created_at) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING RETURNING 1`, [hash, reason, now])).length > 0;
+      return (
+        (
+          await query(
+            `INSERT INTO ${s}.suppression (address_hash, reason, created_at) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING RETURNING 1`,
+            [hash, reason, now],
+          )
+        ).length > 0
+      );
     },
     async unsuppress(hash) {
       return (await query(`DELETE FROM ${s}.suppression WHERE address_hash = $1 RETURNING 1`, [hash])).length > 0;
@@ -43,7 +74,14 @@ export function dbMailStore(query: Query, schema = "mail"): MailStore {
       return (await query(`SELECT 1 FROM ${s}.idempotency WHERE key = $1`, [key])).length > 0;
     },
     async claimKey(key, now) {
-      return (await query(`INSERT INTO ${s}.idempotency (key, created_at) VALUES ($1,$2) ON CONFLICT DO NOTHING RETURNING 1`, [key, now])).length > 0;
+      return (
+        (
+          await query(
+            `INSERT INTO ${s}.idempotency (key, created_at) VALUES ($1,$2) ON CONFLICT DO NOTHING RETURNING 1`,
+            [key, now],
+          )
+        ).length > 0
+      );
     },
     async releaseKey(key) {
       await query(`DELETE FROM ${s}.idempotency WHERE key = $1`, [key]);

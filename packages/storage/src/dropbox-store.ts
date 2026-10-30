@@ -20,10 +20,12 @@ const CHUNK_BYTES = 8 * 1024 * 1024;
 const CONTENT = "https://content.dropboxapi.com/2";
 const API = "https://api.dropboxapi.com/2";
 
-const fail = (what: string, status: number) => new StorageError(STORAGE_CODE.provider, `Dropbox refused the ${what} (${status})`);
+const fail = (what: string, status: number) =>
+  new StorageError(STORAGE_CODE.provider, `Dropbox refused the ${what} (${status})`);
 const encode = (json: unknown) => new TextEncoder().encode(JSON.stringify(json));
 // Dropbox puts the JSON of a content call in a header: non-ASCII must be escaped.
-const argHeader = (json: unknown) => JSON.stringify(json).replace(/[\u007f-￿]/g, (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, "0")}`);
+const argHeader = (json: unknown) =>
+  JSON.stringify(json).replace(/[\u007f-￿]/g, (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, "0")}`);
 
 /**
  * A person's Dropbox as an `ObjectStore`, App-folder access only. Dropbox's temporary links live 4 hours, longer than our 900 seconds, so
@@ -37,34 +39,61 @@ export function dropboxStore(options: DropboxStoreOptions): ObjectStore {
   const bearer = async () => {
     const now = options.clock.now().getTime();
     if (!access || access.until <= now) {
-      const fresh = await refreshDropboxToken(options.fetch, { clientId: options.clientId, refreshToken: options.refreshToken });
+      const fresh = await refreshDropboxToken(options.fetch, {
+        clientId: options.clientId,
+        refreshToken: options.refreshToken,
+      });
       access = { token: fresh.accessToken, until: now + (fresh.expiresInSeconds - 60) * 1000 };
     }
     return `Bearer ${access.token}`;
   };
   const call = async (url: string, headers: Record<string, string>, body?: Uint8Array) => {
-    const res = await options.fetch(url, { method: "POST", headers: { authorization: await bearer(), ...headers }, ...(body ? { body } : {}) });
+    const res = await options.fetch(url, {
+      method: "POST",
+      headers: { authorization: await bearer(), ...headers },
+      ...(body ? { body } : {}),
+    });
     if (res.status === 401) {
       access = null;
       throw new StorageError(STORAGE_CODE.disconnected, "Dropbox no longer accepts this connection");
     }
     return res;
   };
-  const json = (path: string, body: unknown) => call(`${API}${path}`, { "content-type": "application/json" }, encode(body));
-  const missing = async (res: Awaited<ReturnType<typeof call>>) => res.status === 409 && (await res.text()).includes("not_found");
+  const json = (path: string, body: unknown) =>
+    call(`${API}${path}`, { "content-type": "application/json" }, encode(body));
+  const missing = async (res: Awaited<ReturnType<typeof call>>) =>
+    res.status === 409 && (await res.text()).includes("not_found");
 
   const uploadSession = async (path: string, bytes: Uint8Array) => {
     const octet = { "content-type": "application/octet-stream" };
-    const started = await call(`${CONTENT}/files/upload_session/start`, { ...octet, "dropbox-api-arg": argHeader({ close: false }) }, bytes.subarray(0, CHUNK_BYTES));
+    const started = await call(
+      `${CONTENT}/files/upload_session/start`,
+      { ...octet, "dropbox-api-arg": argHeader({ close: false }) },
+      bytes.subarray(0, CHUNK_BYTES),
+    );
     if (!started.ok) throw fail("upload", started.status);
     const { session_id } = JSON.parse(await started.text()) as { session_id: string };
     let offset = Math.min(CHUNK_BYTES, bytes.length);
     while (bytes.length - offset > CHUNK_BYTES) {
-      const sent = await call(`${CONTENT}/files/upload_session/append_v2`, { ...octet, "dropbox-api-arg": argHeader({ cursor: { session_id, offset }, close: false }) }, bytes.subarray(offset, offset + CHUNK_BYTES));
+      const sent = await call(
+        `${CONTENT}/files/upload_session/append_v2`,
+        { ...octet, "dropbox-api-arg": argHeader({ cursor: { session_id, offset }, close: false }) },
+        bytes.subarray(offset, offset + CHUNK_BYTES),
+      );
       if (!sent.ok) throw fail("upload", sent.status);
       offset += CHUNK_BYTES;
     }
-    const done = await call(`${CONTENT}/files/upload_session/finish`, { ...octet, "dropbox-api-arg": argHeader({ cursor: { session_id, offset }, commit: { path, mode: "overwrite", mute: true } }) }, bytes.subarray(offset));
+    const done = await call(
+      `${CONTENT}/files/upload_session/finish`,
+      {
+        ...octet,
+        "dropbox-api-arg": argHeader({
+          cursor: { session_id, offset },
+          commit: { path, mode: "overwrite", mute: true },
+        }),
+      },
+      bytes.subarray(offset),
+    );
     if (!done.ok) throw fail("upload", done.status);
   };
 
@@ -72,7 +101,14 @@ export function dropboxStore(options: DropboxStoreOptions): ObjectStore {
     async put(key, bytes) {
       const path = pathOf(key);
       if (bytes.length > DROPBOX_SINGLE_CALL_BYTES) return uploadSession(path, bytes);
-      const res = await call(`${CONTENT}/files/upload`, { "content-type": "application/octet-stream", "dropbox-api-arg": argHeader({ path, mode: "overwrite", mute: true }) }, bytes);
+      const res = await call(
+        `${CONTENT}/files/upload`,
+        {
+          "content-type": "application/octet-stream",
+          "dropbox-api-arg": argHeader({ path, mode: "overwrite", mute: true }),
+        },
+        bytes,
+      );
       if (!res.ok) throw fail("upload", res.status);
     },
     async get(key) {
@@ -98,7 +134,11 @@ export function dropboxStore(options: DropboxStoreOptions): ObjectStore {
       for (;;) {
         if (await missing(res)) return [];
         if (!res.ok) throw fail("listing", res.status);
-        const page = JSON.parse(await res.text()) as { entries: { ".tag": string; path_display: string; size?: number }[]; has_more: boolean; cursor: string };
+        const page = JSON.parse(await res.text()) as {
+          entries: { ".tag": string; path_display: string; size?: number }[];
+          has_more: boolean;
+          cursor: string;
+        };
         for (const entry of page.entries) {
           const key = entry.path_display.slice(root.length + 1);
           if (entry[".tag"] === "file" && key.startsWith(under)) out.push({ key, size: entry.size ?? 0 });

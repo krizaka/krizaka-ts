@@ -3,7 +3,7 @@ import crypto from "node:crypto";
 import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { can, createRoles, defineRoles, rolesMigration,type RolesQuery } from "../src";
+import { can, createRoles, defineRoles, rolesMigration, type RolesQuery } from "../src";
 
 /** The model of a shop: three roles, the permissions each holds, who may hand which role to whom — data, never `if (role === …)`. */
 const SHOP = defineRoles({
@@ -19,7 +19,11 @@ type Permission = "bookings" | "clients" | "invoices" | "agenda" | "billing" | "
 const PERMISSIONS: Permission[] = ["bookings", "clients", "invoices", "agenda", "billing", "delete"];
 
 describe("the permission table", () => {
-  const expected: Record<string, Permission[]> = { owner: PERMISSIONS, manager: ["bookings", "clients", "invoices", "agenda"], staff: ["bookings", "agenda"] };
+  const expected: Record<string, Permission[]> = {
+    owner: PERMISSIONS,
+    manager: ["bookings", "clients", "invoices", "agenda"],
+    staff: ["bookings", "agenda"],
+  };
   it.each(Object.entries(expected))("%s holds exactly its permissions", (role, allowed) => {
     for (const p of PERMISSIONS) expect(can(SHOP, role as "owner", p), `${role} ${p}`).toBe(allowed.includes(p));
   });
@@ -38,10 +42,14 @@ describe.runIf(enabled)("roles on PostgreSQL", () => {
   const schemaName = `rol_${Math.random().toString(36).slice(2, 10)}`;
   let client: pg.Client;
   let query: RolesQuery;
-  const roles = () => createRoles({ query: (s, p) => query(s, p), model: SHOP, tokenPrefix: "ai", tokenHash: hash, inviteTtlHours: 72 });
+  const roles = () =>
+    createRoles({ query: (s, p) => query(s, p), model: SHOP, tokenPrefix: "ai", tokenHash: hash, inviteTtlHours: 72 });
   const account = async (label = "a") => {
     const email = `${label}-${Math.random().toString(36).slice(2)}@test.example`;
-    return { id: (await query<{ id: string }>("INSERT INTO accounts (email) VALUES ($1) RETURNING id", [email]))[0]!.id, email };
+    return {
+      id: (await query<{ id: string }>("INSERT INTO accounts (email) VALUES ($1) RETURNING id", [email]))[0]!.id,
+      email,
+    };
   };
   const shop = async () => (await query<{ id: string }>("INSERT INTO shops (name) VALUES ('S') RETURNING id"))[0]!.id;
 
@@ -55,7 +63,9 @@ describe.runIf(enabled)("roles on PostgreSQL", () => {
       queue = run.catch(() => undefined);
       return run as never;
     };
-    await client.query("CREATE TABLE accounts (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), email text UNIQUE NOT NULL, name text)");
+    await client.query(
+      "CREATE TABLE accounts (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), email text UNIQUE NOT NULL, name text)",
+    );
     await client.query("CREATE TABLE shops (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), name text NOT NULL)");
     await client.query(rolesMigration(SHOP.roles, { scopeTable: "shops" }));
     await client.query(rolesMigration(SHOP.roles, { scopeTable: "shops" })); // twice: safe
@@ -74,10 +84,19 @@ describe.runIf(enabled)("roles on PostgreSQL", () => {
     expect(await roles().authorize(staff.id, s1, "bookings")).toBe("staff");
     await expect(roles().authorize(staff.id, s1, "invoices")).rejects.toMatchObject({ code: "FORBIDDEN", status: 403 });
     expect(await roles().authorize(staff.id, s2, "invoices")).toBe("manager");
-    await expect(roles().authorize(stranger.id, s1, "bookings")).rejects.toMatchObject({ code: "NOT_A_MEMBER", status: 404 });
-    expect(await roles().scopesOf(staff.id)).toEqual([{ scopeId: s1, role: "staff" }, { scopeId: s2, role: "manager" }]);
+    await expect(roles().authorize(stranger.id, s1, "bookings")).rejects.toMatchObject({
+      code: "NOT_A_MEMBER",
+      status: 404,
+    });
+    expect(await roles().scopesOf(staff.id)).toEqual([
+      { scopeId: s1, role: "staff" },
+      { scopeId: s2, role: "manager" },
+    ]);
     await expect(roles().grant(s1, stranger.id, "admin", null, NOW)).rejects.toMatchObject({ code: "UNKNOWN_ROLE" });
-    expect((await roles().members(s1)).map((m) => [m.email, m.role])).toEqual([[owner.email, "owner"], [staff.email, "staff"]]);
+    expect((await roles().members(s1)).map((m) => [m.email, m.role])).toEqual([
+      [owner.email, "owner"],
+      [staff.email, "staff"],
+    ]);
   });
 
   it("invites by e-mail with a role the inviter manages; the link works once, for that address only, and expires", async () => {
@@ -85,18 +104,29 @@ describe.runIf(enabled)("roles on PostgreSQL", () => {
     const [owner, manager, camille] = [await account("o"), await account("m"), await account("camille")];
     await roles().grant(s, owner.id, "owner", null, NOW);
     await roles().grant(s, manager.id, "manager", owner.id, NOW);
-    await expect(roles().invite(s, manager, { email: camille.email, role: "manager" }, NOW)).rejects.toMatchObject({ code: "ROLE_NOT_ALLOWED" });
-    const { token, invitation } = await roles().invite(s, manager, { email: ` ${camille.email.toUpperCase()} `, role: "staff" }, NOW);
+    await expect(roles().invite(s, manager, { email: camille.email, role: "manager" }, NOW)).rejects.toMatchObject({
+      code: "ROLE_NOT_ALLOWED",
+    });
+    const { token, invitation } = await roles().invite(
+      s,
+      manager,
+      { email: ` ${camille.email.toUpperCase()} `, role: "staff" },
+      NOW,
+    );
     expect(token).toMatch(/^ai1\./);
     expect(JSON.stringify(await roles().pendingInvitations(s, NOW))).not.toContain(token);
-    expect((await roles().pendingInvitations(s, NOW)).map((i) => [i.email, i.role])).toEqual([[camille.email, "staff"]]);
+    expect((await roles().pendingInvitations(s, NOW)).map((i) => [i.email, i.role])).toEqual([
+      [camille.email, "staff"],
+    ]);
     const other = await account("other");
     await expect(roles().acceptInvitation(token, other, NOW)).rejects.toMatchObject({ code: "INVITE_WRONG_ACCOUNT" });
     expect(await roles().acceptInvitation(token, camille, NOW)).toEqual({ scopeId: s, role: "staff" });
     expect(await roles().roleOf(camille.id, s)).toBe("staff");
     await expect(roles().acceptInvitation(token, camille, NOW)).rejects.toMatchObject({ code: "INVITE_INVALID" });
     const again = await roles().invite(s, owner, { email: camille.email, role: "manager" }, NOW);
-    await expect(roles().acceptInvitation(again.token, camille, new Date(NOW.getTime() + 73 * 3600_000))).rejects.toMatchObject({ code: "INVITE_INVALID" });
+    await expect(
+      roles().acceptInvitation(again.token, camille, new Date(NOW.getTime() + 73 * 3600_000)),
+    ).rejects.toMatchObject({ code: "INVITE_INVALID" });
     expect(invitation.expiresAt.getTime() - NOW.getTime()).toBe(72 * 3600_000);
   });
 

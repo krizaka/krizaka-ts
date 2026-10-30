@@ -46,16 +46,24 @@ export interface Storage {
  */
 export function createStorage(deps: StorageDeps): Storage {
   const limits = async () => (typeof deps.limits === "function" ? await deps.limits() : deps.limits);
-  const urlFor = async (key: string) => deps.store.publicUrl(key) ?? (await deps.store.signedUrl(key, (await limits()).signedUrlSeconds));
+  const urlFor = async (key: string) =>
+    deps.store.publicUrl(key) ?? (await deps.store.signedUrl(key, (await limits()).signedUrlSeconds));
   return {
     async upload(input) {
       const { maxBytes } = await limits();
-      if (input.bytes.byteLength === 0 || input.bytes.byteLength > maxBytes) throw new StorageError(STORAGE_CODE.tooBig, `a file is 1 to ${maxBytes} bytes`);
+      if (input.bytes.byteLength === 0 || input.bytes.byteLength > maxBytes)
+        throw new StorageError(STORAGE_CODE.tooBig, `a file is 1 to ${maxBytes} bytes`);
       const actual = sniffType(input.bytes);
-      if (actual === null || !input.allow.includes(actual)) throw new StorageError(STORAGE_CODE.badType, `the bytes are ${actual ?? "of an unknown type"}, not one of ${input.allow.join(", ")}`);
-      if (input.declaredType !== undefined && input.declaredType !== actual) throw new StorageError(STORAGE_CODE.typeMismatch, `declared ${input.declaredType}, the bytes are ${actual}`);
+      if (actual === null || !input.allow.includes(actual))
+        throw new StorageError(
+          STORAGE_CODE.badType,
+          `the bytes are ${actual ?? "of an unknown type"}, not one of ${input.allow.join(", ")}`,
+        );
+      if (input.declaredType !== undefined && input.declaredType !== actual)
+        throw new StorageError(STORAGE_CODE.typeMismatch, `declared ${input.declaredType}, the bytes are ${actual}`);
       const key = deps.layout.check(`${input.prefix}${hashedName(input.name, input.bytes)}`);
-      if (deps.layout.prefixOf(key) !== input.prefix) throw new StorageError(STORAGE_CODE.badPrefix, `« ${input.prefix} » is not a declared prefix`);
+      if (deps.layout.prefixOf(key) !== input.prefix)
+        throw new StorageError(STORAGE_CODE.badPrefix, `« ${input.prefix} » is not a declared prefix`);
       await deps.store.put(key, input.bytes, { contentType: actual });
       return { key, contentType: actual, size: input.bytes.byteLength, url: await urlFor(key) };
     },

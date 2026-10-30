@@ -24,7 +24,8 @@ export function videoProviderContract(name: string, make: () => VideoProvider | 
     expect(embed.expires).toBe(NOW + 120);
     expect(p.viewToken("v-2", 120, "embed").token).not.toBe(embed.token);
     expect(p.viewToken("v-1", 120, "mobile").token).not.toBe(embed.token);
-    for (const bad of [0, -5, 1.5, 86_401]) expect(() => p.viewToken("v-1", bad, "embed")).toThrow(expect.objectContaining({ code: "VIDEO_BAD_INPUT" }));
+    for (const bad of [0, -5, 1.5, 86_401])
+      expect(() => p.viewToken("v-1", bad, "embed")).toThrow(expect.objectContaining({ code: "VIDEO_BAD_INPUT" }));
     expect(() => p.viewToken("../etc", 60, "embed")).toThrow(expect.objectContaining({ code: "VIDEO_BAD_INPUT" }));
   });
 

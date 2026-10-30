@@ -1,14 +1,48 @@
 import { describe, expect, it } from "vitest";
 
-import { countsAsUse, type Coupon, COUPON_DEFAULTS, effectOf, generateCode, normalizeCode, refusalOf, termsOf } from "../src";
+import {
+  countsAsUse,
+  type Coupon,
+  COUPON_DEFAULTS,
+  effectOf,
+  generateCode,
+  normalizeCode,
+  refusalOf,
+  termsOf,
+} from "../src";
 import { checkSettings } from "../src/rules";
 import { COUPON_ATTEMPT_ACTION, couponAttemptLimit, couponSettings, readCouponSettings } from "../src/settings";
 
 const NOW = new Date("2026-10-26T16:00:00.000Z");
 const base: Coupon = {
-  id: "c", code: "PROMO2026", codeKey: "PROMO2026", kind: "discount", purpose: "promo", partnerId: null, status: "active", startsAt: new Date("2026-10-01T00:00:00Z"), endsAt: null, maxRedemptions: null, maxPerAccount: 1,
-  newCustomersOnly: false, plans: [], percentOffBp: 1000, amountOffMinor: null, currency: null, duration: "once", durationMonths: null, minimumMinor: null, credits: null, capPerDay: null, capPerMonth: null,
-  creditsValidDays: null, onExhausted: null, termsVersion: 1, createdAt: NOW, createdBy: null, updatedAt: NOW,
+  id: "c",
+  code: "PROMO2026",
+  codeKey: "PROMO2026",
+  kind: "discount",
+  purpose: "promo",
+  partnerId: null,
+  status: "active",
+  startsAt: new Date("2026-10-01T00:00:00Z"),
+  endsAt: null,
+  maxRedemptions: null,
+  maxPerAccount: 1,
+  newCustomersOnly: false,
+  plans: [],
+  percentOffBp: 1000,
+  amountOffMinor: null,
+  currency: null,
+  duration: "once",
+  durationMonths: null,
+  minimumMinor: null,
+  credits: null,
+  capPerDay: null,
+  capPerMonth: null,
+  creditsValidDays: null,
+  onExhausted: null,
+  termsVersion: 1,
+  createdAt: NOW,
+  createdBy: null,
+  updatedAt: NOW,
 };
 const ctx = { mode: "checkout" as const, accountId: "a", plan: "pro", amountMinor: 1000, currency: "cad" };
 const none = { total: 0, account: 0 };
@@ -39,7 +73,8 @@ describe("generateCode", () => {
 });
 
 describe("countsAsUse: the one rule of the limits", () => {
-  const r = (status: string, extra: object = {}) => ({ status, useRestored: false, reservedUntil: null, ...extra }) as never;
+  const r = (status: string, extra: object = {}) =>
+    ({ status, useRestored: false, reservedUntil: null, ...extra }) as never;
   it("confirmed and revoked count unless restored; reserved counts until its deadline; released never", () => {
     expect(countsAsUse(r("confirmed"), NOW)).toBe(true);
     expect(countsAsUse(r("revoked"), NOW)).toBe(true);
@@ -52,10 +87,11 @@ describe("countsAsUse: the one rule of the limits", () => {
 });
 
 describe("refusalOf", () => {
-  const refusal = (c: Partial<Coupon>, over: object = {}, usage = none, settings = COUPON_DEFAULTS) => refusalOf({ ...base, ...c }, { ...ctx, ...over }, usage, NOW, settings);
+  const refusal = (c: Partial<Coupon>, over: object = {}, usage = none, settings = COUPON_DEFAULTS) =>
+    refusalOf({ ...base, ...c }, { ...ctx, ...over }, usage, NOW, settings);
   it("follows the table's order", () => {
     expect(refusal({})).toBeNull();
-    expect(refusal({ startsAt: new Date(NOW.valueOf() + 1) , status: "paused" })).toBe("COUPON_NOT_STARTED");
+    expect(refusal({ startsAt: new Date(NOW.valueOf() + 1), status: "paused" })).toBe("COUPON_NOT_STARTED");
     expect(refusal({ endsAt: NOW, status: "paused" })).toBe("COUPON_EXPIRED");
     expect(refusal({ status: "paused", maxRedemptions: 1 }, {}, { total: 1, account: 1 })).toBe("COUPON_PAUSED");
     expect(refusal({ maxRedemptions: 1 }, {}, { total: 1, account: 1 })).toBe("COUPON_EXHAUSTED");
@@ -68,11 +104,20 @@ describe("refusalOf", () => {
     expect(refusal({ percentOffBp: 5001 })).toBe("COUPON_TOO_LARGE");
     expect(refusal({ percentOffBp: null, amountOffMinor: 500, currency: "cad" })).toBeNull();
     expect(refusal({ percentOffBp: null, amountOffMinor: 501, currency: "cad" })).toBe("COUPON_TOO_LARGE");
-    expect(refusal({ percentOffBp: null, amountOffMinor: 501, currency: "cad" }, {}, none, { ...COUPON_DEFAULTS, maxPercentOff: 60 })).toBeNull();
+    expect(
+      refusal({ percentOffBp: null, amountOffMinor: 501, currency: "cad" }, {}, none, {
+        ...COUPON_DEFAULTS,
+        maxPercentOff: 60,
+      }),
+    ).toBeNull();
   });
   it("a credit code is for redeeming, a discount code for checkout", () => {
-    expect(refusal({ kind: "credit", credits: 5, creditsValidDays: 5, onExhausted: "stop" }, { mode: "checkout" })).toBe("COUPON_KIND");
-    expect(refusal({ kind: "credit", credits: 5, creditsValidDays: 5, onExhausted: "stop" }, { mode: "redeem" })).toBeNull();
+    expect(
+      refusal({ kind: "credit", credits: 5, creditsValidDays: 5, onExhausted: "stop" }, { mode: "checkout" }),
+    ).toBe("COUPON_KIND");
+    expect(
+      refusal({ kind: "credit", credits: 5, creditsValidDays: 5, onExhausted: "stop" }, { mode: "redeem" }),
+    ).toBeNull();
     expect(refusal({}, { mode: "redeem" })).toBe("COUPON_KIND");
   });
 });
@@ -80,11 +125,31 @@ describe("refusalOf", () => {
 describe("effectOf and termsOf", () => {
   it("rounds a percentage half up, never discounts more than the price", () => {
     expect(effectOf({ ...base, percentOffBp: 1250 }, 999)).toMatchObject({ discountMinor: 125, payableMinor: 874 });
-    expect(effectOf({ ...base, percentOffBp: null, amountOffMinor: 5000, currency: "cad" }, 3900)).toMatchObject({ discountMinor: 3900, payableMinor: 0 });
+    expect(effectOf({ ...base, percentOffBp: null, amountOffMinor: 5000, currency: "cad" }, 3900)).toMatchObject({
+      discountMinor: 3900,
+      payableMinor: 0,
+    });
   });
   it("terms: a percentage carries none of the amount's fields, a repeating one its months", () => {
     expect(termsOf(base)).toEqual({ couponId: "c", termsVersion: 1, percentOffBp: 1000, duration: "once" });
-    expect(termsOf({ ...base, percentOffBp: null, amountOffMinor: 500, currency: "cad", duration: "repeating", durationMonths: 3, termsVersion: 2 })).toEqual({ couponId: "c", termsVersion: 2, amountOffMinor: 500, currency: "cad", duration: "repeating", durationMonths: 3 });
+    expect(
+      termsOf({
+        ...base,
+        percentOffBp: null,
+        amountOffMinor: 500,
+        currency: "cad",
+        duration: "repeating",
+        durationMonths: 3,
+        termsVersion: 2,
+      }),
+    ).toEqual({
+      couponId: "c",
+      termsVersion: 2,
+      amountOffMinor: 500,
+      currency: "cad",
+      duration: "repeating",
+      durationMonths: 3,
+    });
   });
 });
 
@@ -101,7 +166,14 @@ describe("the settings", () => {
   });
   it("are read with defaults for what the accessor does not know", async () => {
     expect(await readCouponSettings(() => undefined)).toEqual(COUPON_DEFAULTS);
-    expect(await readCouponSettings((k) => ({ "coupons.enabled": true, "coupons.maxPercentOff": 30, "coupons.refundRestoresUse": true })[k as string] as never)).toMatchObject({ enabled: true, maxPercentOff: 30, refundRestoresUse: true, reservationMinutes: 60 });
+    expect(
+      await readCouponSettings(
+        (k) =>
+          ({ "coupons.enabled": true, "coupons.maxPercentOff": 30, "coupons.refundRestoresUse": true })[
+            k as string
+          ] as never,
+      ),
+    ).toMatchObject({ enabled: true, maxPercentOff: 30, refundRestoresUse: true, reservationMinutes: 60 });
   });
   it("give the limiter its action and its hourly limit", () => {
     expect(COUPON_ATTEMPT_ACTION).toBe("couponAttempt");
@@ -109,8 +181,19 @@ describe("the settings", () => {
   });
   it("are checked against their bounds", () => {
     expect(checkSettings(COUPON_DEFAULTS)).toBe(COUPON_DEFAULTS);
-    for (const bad of [{ reservationMinutes: 39 }, { reservationMinutes: 1441 }, { attemptsPerAccountPerHour: 0 }, { attemptsPerIpPerHour: 501 }, { minCodeLength: 3 }, { generatedCodeLength: 21 }, { maxPercentOff: 100 }, { maxPercentOff: 1.5 }]) {
-      expect(() => checkSettings({ ...COUPON_DEFAULTS, ...bad })).toThrow(expect.objectContaining({ code: "COUPON_BAD_SETTINGS" }));
+    for (const bad of [
+      { reservationMinutes: 39 },
+      { reservationMinutes: 1441 },
+      { attemptsPerAccountPerHour: 0 },
+      { attemptsPerIpPerHour: 501 },
+      { minCodeLength: 3 },
+      { generatedCodeLength: 21 },
+      { maxPercentOff: 100 },
+      { maxPercentOff: 1.5 },
+    ]) {
+      expect(() => checkSettings({ ...COUPON_DEFAULTS, ...bad })).toThrow(
+        expect.objectContaining({ code: "COUPON_BAD_SETTINGS" }),
+      );
     }
   });
 });

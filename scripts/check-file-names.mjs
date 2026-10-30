@@ -8,12 +8,42 @@ import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /** Technologies and vendors a file name must not carry (a whole word of the name, so `pagination.ts` is fine). */
-export const TECHNOLOGIES = ["postgres", "postgresql", "pg", "mysql", "mariadb", "sqlite", "redis", "mongo", "mongodb", "drizzle", "prisma", "knex", "mailgun", "sendgrid", "resend", "stripe", "twilio", "bunny", "s3", "ollama", "openai", "anthropic", "kafka", "rabbitmq", "amqp"];
+export const TECHNOLOGIES = [
+  "postgres",
+  "postgresql",
+  "pg",
+  "mysql",
+  "mariadb",
+  "sqlite",
+  "redis",
+  "mongo",
+  "mongodb",
+  "drizzle",
+  "prisma",
+  "knex",
+  "mailgun",
+  "sendgrid",
+  "resend",
+  "stripe",
+  "twilio",
+  "bunny",
+  "s3",
+  "ollama",
+  "openai",
+  "anthropic",
+  "kafka",
+  "rabbitmq",
+  "amqp",
+];
 
 const SKIP = new Set(["node_modules", "dist", ".git", ".turbo", "coverage"]);
 
 /** The words of a file name: `pg-store.integration.test.ts` → pg, store, integration, test, ts. */
-const words = (name) => name.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+const words = (name) =>
+  name
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean);
 
 /** Whether a file name carries a technology as one of its words. */
 export const isTechnologyName = (name) => words(name).some((w) => TECHNOLOGIES.includes(w));
@@ -25,7 +55,8 @@ export function technologyNamedFiles(root) {
       if (SKIP.has(entry.name)) continue;
       const path = join(dir, entry.name);
       if (entry.isDirectory()) walk(path);
-      else if (/\.(ts|tsx|mts|mjs|js|sql)$/.test(entry.name) && isTechnologyName(entry.name)) found.push(relative(root, path));
+      else if (/\.(ts|tsx|mts|mjs|js|sql)$/.test(entry.name) && isTechnologyName(entry.name))
+        found.push(relative(root, path));
     }
   };
   walk(join(root, "packages"));
@@ -36,7 +67,9 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const root = join(fileURLToPath(new URL(".", import.meta.url)), "..");
   const bad = technologyNamedFiles(root);
   if (bad.length) {
-    console.error(`check-file-names: name these files by what they do, not by their technology:\n${bad.map((f) => `  ${f}`).join("\n")}`);
+    console.error(
+      `check-file-names: name these files by what they do, not by their technology:\n${bad.map((f) => `  ${f}`).join("\n")}`,
+    );
     process.exit(1);
   }
   console.log("check-file-names: ok");

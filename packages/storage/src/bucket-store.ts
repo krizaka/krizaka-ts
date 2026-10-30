@@ -19,8 +19,15 @@ export interface BucketStoreOptions {
   clock: Clock;
 }
 
-const fail = (what: string, status: number) => new StorageError(STORAGE_CODE.provider, `the bucket refused the ${what} (${status})`);
-const unescapeXml = (s: string) => s.replaceAll("&lt;", "<").replaceAll("&gt;", ">").replaceAll("&quot;", '"').replaceAll("&apos;", "'").replaceAll("&amp;", "&");
+const fail = (what: string, status: number) =>
+  new StorageError(STORAGE_CODE.provider, `the bucket refused the ${what} (${status})`);
+const unescapeXml = (s: string) =>
+  s
+    .replaceAll("&lt;", "<")
+    .replaceAll("&gt;", ">")
+    .replaceAll("&quot;", '"')
+    .replaceAll("&apos;", "'")
+    .replaceAll("&amp;", "&");
 const tag = (xml: string, name: string) => new RegExp(`<${name}>([\\s\\S]*?)</${name}>`).exec(xml)?.[1];
 
 /**
@@ -28,14 +35,25 @@ const tag = (xml: string, name: string) => new RegExp(`<${name}>([\\s\\S]*?)</${
  * `signedUrl` is a presigned GET.
  */
 export function bucketStore(options: BucketStoreOptions): ObjectStore {
-  const creds: Credentials = { accessKeyId: options.accessKeyId, secretAccessKey: options.secretAccessKey, region: options.region, service: "s3" };
+  const creds: Credentials = {
+    accessKeyId: options.accessKeyId,
+    secretAccessKey: options.secretAccessKey,
+    region: options.region,
+    service: "s3",
+  };
   const prefix = trimSlashes(options.prefix ?? "");
   const inBucket = (key: string) => (prefix === "" ? "" : `${prefix}/`) + key;
   const origin = trimSlashes(options.endpoint, "end");
   const encodePath = (path: string) => path.split("/").map(encodeURIComponent).join("/");
   const urlOf = (key: string) => `${origin}/${options.bucket}/${encodePath(inBucket(assertKey(key)))}`;
   const send = (method: string, url: string, body?: Uint8Array, extra: Record<string, string> = {}) => {
-    const headers = signRequest(creds, { method, url, headers: extra, payloadHash: hashPayload(body ?? new Uint8Array()), now: options.clock.now() });
+    const headers = signRequest(creds, {
+      method,
+      url,
+      headers: extra,
+      payloadHash: hashPayload(body ?? new Uint8Array()),
+      now: options.clock.now(),
+    });
     return options.fetch(url, { method, headers, ...(body ? { body } : {}) });
   };
   const list = async (p: string): Promise<ObjectInfo[]> => {
@@ -53,20 +71,29 @@ export function bucketStore(options: BucketStoreOptions): ObjectStore {
         const key = unescapeXml(tag(block, "Key") ?? "");
         out.push({ key: prefix === "" ? key : key.slice(prefix.length + 1), size: Number(tag(block, "Size") ?? 0) });
       }
-      token = tag(xml, "IsTruncated") === "true" ? unescapeXml(tag(xml, "NextContinuationToken") ?? "") || undefined : undefined;
+      token =
+        tag(xml, "IsTruncated") === "true"
+          ? unescapeXml(tag(xml, "NextContinuationToken") ?? "") || undefined
+          : undefined;
     } while (token);
     return out.sort((a, b) => a.key.localeCompare(b.key));
   };
   return {
     async put(key, bytes, meta) {
-      const res = await send("PUT", urlOf(key), bytes, { "content-type": meta.contentType, ...(options.serverSideEncryption ? { "x-amz-server-side-encryption": "AES256" } : {}) });
+      const res = await send("PUT", urlOf(key), bytes, {
+        "content-type": meta.contentType,
+        ...(options.serverSideEncryption ? { "x-amz-server-side-encryption": "AES256" } : {}),
+      });
       if (!res.ok) throw fail("write", res.status);
     },
     async get(key) {
       const res = await send("GET", urlOf(key));
       if (res.status === 404) return null;
       if (!res.ok) throw fail("read", res.status);
-      return { bytes: new Uint8Array(await res.arrayBuffer()), contentType: res.headers.get("content-type") ?? typeOfName(key) };
+      return {
+        bytes: new Uint8Array(await res.arrayBuffer()),
+        contentType: res.headers.get("content-type") ?? typeOfName(key),
+      };
     },
     async head(key) {
       const res = await send("HEAD", urlOf(key));
@@ -82,6 +109,7 @@ export function bucketStore(options: BucketStoreOptions): ObjectStore {
     async signedUrl(key, ttlSeconds) {
       return presignGet(creds, urlOf(key), ttlSeconds, options.clock.now());
     },
-    publicUrl: (key) => (options.publicBaseUrl ? `${trimSlashes(options.publicBaseUrl, "end")}/${assertKey(key)}` : null),
+    publicUrl: (key) =>
+      options.publicBaseUrl ? `${trimSlashes(options.publicBaseUrl, "end")}/${assertKey(key)}` : null,
   };
 }

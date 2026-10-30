@@ -23,10 +23,7 @@ export const DEFAULT_ROUTING_FILES = Object.freeze([
  * @param {{ files?: string[], routing?: string[] }} [options] `routing`: files allowed to compare locales.
  * @returns {import("eslint").Linter.Config[]}
  */
-export function noLocaleTernary({
-  files = ["**/*.{js,jsx,ts,tsx}"],
-  routing = [...DEFAULT_ROUTING_FILES],
-} = {}) {
+export function noLocaleTernary({ files = ["**/*.{js,jsx,ts,tsx}"], routing = [...DEFAULT_ROUTING_FILES] } = {}) {
   return [
     {
       name: "krizaka/no-locale-ternary",

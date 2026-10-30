@@ -1,4 +1,5 @@
-const startsWith = (bytes: Uint8Array, signature: readonly number[], offset = 0) => signature.every((b, i) => bytes[offset + i] === b);
+const startsWith = (bytes: Uint8Array, signature: readonly number[], offset = 0) =>
+  signature.every((b, i) => bytes[offset + i] === b);
 const ascii = (bytes: Uint8Array, from: number, to: number) => String.fromCharCode(...bytes.subarray(from, to));
 
 /**
@@ -13,7 +14,10 @@ export function sniffType(bytes: Uint8Array): string | null {
   if (ascii(bytes, 0, 5) === "%PDF-") return "application/pdf";
   if (ascii(bytes, 4, 8) === "ftyp") return "video/mp4";
   if (startsWith(bytes, [0x1a, 0x45, 0xdf, 0xa3])) return "video/webm";
-  const head = new TextDecoder("utf-8", { fatal: false }).decode(bytes.subarray(0, 512)).replace("\uFEFF", "").trimStart();
+  const head = new TextDecoder("utf-8", { fatal: false })
+    .decode(bytes.subarray(0, 512))
+    .replace("\uFEFF", "")
+    .trimStart();
   if (startsSvg(head)) return "image/svg+xml";
   return null;
 }
