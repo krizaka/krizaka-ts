@@ -18,6 +18,18 @@ async function answers(url: string): Promise<number> {
   return (await fetch(url, { redirect: "follow" })).status;
 }
 
+/** A dropped connection is retried (the CDN resets a few of 200 parallel requests now and then, merge-group run of #279); an answer, even a 404, is final. */
+async function answersOrRetry(url: string, attempts = 3): Promise<number> {
+  for (let i = 1; i < attempts; i++) {
+    try {
+      return await answers(url);
+    } catch {
+      await new Promise((resolve) => setTimeout(resolve, 500 * i));
+    }
+  }
+  return answers(url).catch(() => 0);
+}
+
 describe("every URL in the org JSON answers", () => {
   const all = [...urls(org), ...urls(apps)].filter(([path]) => !SELF.has(path.split(".").pop() ?? ""));
   const unique = [...new Set(all.map(([, url]) => url))];
@@ -31,7 +43,7 @@ describe("every URL in the org JSON answers", () => {
     for (let i = 0; i < unique.length; i += 8) {
       await Promise.all(
         unique.slice(i, i + 8).map(async (url) => {
-          const status = await answers(url).catch(() => 0);
+          const status = await answersOrRetry(url);
           if (status !== 200) bad.push(`${status} ${url}`);
         }),
       );
