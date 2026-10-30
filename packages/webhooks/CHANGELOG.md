@@ -1,5 +1,12 @@
 # @krizaka/webhooks
 
+## 0.3.4
+
+### Patch Changes
+
+- Updated dependencies [6bd4b0f]
+  - @krizaka/payments@0.7.0
+
 ## 0.3.3
 
 ### Patch Changes
