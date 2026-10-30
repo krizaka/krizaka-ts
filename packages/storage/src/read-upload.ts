@@ -30,10 +30,13 @@ const DEFAULT_OVERHEAD = 64 * 1024;
 export async function readUpload(request: Request, options: ReadUploadOptions): Promise<ReadUploadResult> {
   const { field, maxBytes, overheadBytes = DEFAULT_OVERHEAD } = options;
   const declaredLength = Number(request.headers.get("content-length") ?? 0);
-  if (declaredLength > maxBytes + overheadBytes) throw new StorageError(STORAGE_CODE.tooBig, `a file is 1 to ${maxBytes} bytes`);
+  if (declaredLength > maxBytes + overheadBytes)
+    throw new StorageError(STORAGE_CODE.tooBig, `a file is 1 to ${maxBytes} bytes`);
   const form = await request.formData().catch(() => null);
   const file = form?.get(field);
-  if (!form || !(file instanceof File)) throw new StorageError(STORAGE_CODE.noFile, `no file in the « ${field} » field`);
-  if (file.size === 0 || file.size > maxBytes) throw new StorageError(STORAGE_CODE.tooBig, `a file is 1 to ${maxBytes} bytes`);
+  if (!form || !(file instanceof File))
+    throw new StorageError(STORAGE_CODE.noFile, `no file in the « ${field} » field`);
+  if (file.size === 0 || file.size > maxBytes)
+    throw new StorageError(STORAGE_CODE.tooBig, `a file is 1 to ${maxBytes} bytes`);
   return { bytes: new Uint8Array(await file.arrayBuffer()), name: file.name, declaredType: file.type, form };
 }
