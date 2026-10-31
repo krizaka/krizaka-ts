@@ -2,7 +2,7 @@
 
 This is the design of [ADR-002](../adr/ADR-002-coupons.md) for krizaka/krizaka-ts#46. It sits in ADR-001's module map as module 7: after `payments` (5) and `credits` (6), and on `db`, `audit`, `rate-limit`, `outbox` and `settings`.
 
-**Sources:** a read-only pass over `main` on 2026-10-23: yomizaka `7b77d2e`, akinaza `86d35a2`, orochia `239e402`, orazaka-web-client, and krizaka-billing.
+**Sources:** a read-only pass over `main` on 2026-10-23: yomizaka `7b77d2e`, akinaza `86d35a2`, a former product `239e402`, orazaka-web-client, and krizaka-billing.
 
 ## 1. What exists today
 
@@ -12,7 +12,7 @@ This is the design of [ADR-002](../adr/ADR-002-coupons.md) for krizaka/krizaka-t
 |---|---|---|---|---|---|---|
 | **Yomizaka** | `@krizaka/payments` 0.1.0, Stripe adapter without the SDK (`apps/web/package.json:22`) | Two plans hard-wired: `audit` (payment) and `pro` (subscription) (`apps/web/lib/payments/config.ts:19-22`). Amounts are Stripe's, found by `PAYMENTS_PRICE_KEY_{AUDIT,PRO}`. The 9,99 / 29 $ appear only in `messages/en.json:823`. | `app/api/billing/checkout/route.ts:17-34`: session, rate limit 30/h IP and 10/h account, the `payments.enabled` setting, customer created once (`customer-<accountId>`), audit `billing.checkout_started`. `app/api/billing/portal/route.ts:11-21`. | `app/api/webhooks/payments/route.ts:12-25`: `parseWebhook` (HMAC, 300 s) then `applyOnce` + `pgEventStore` on `payment_events` (`lib/migrations.ts:253-257`). | On `accounts` (migration 0009): `plan`, `subscription_status`, `payment_subscription_id`, `current_period_end`, `audit_credits`, `free_audit_used_at`. `reserveAudit` / `releaseAudit` / `refundFailedAudit` (`lib/billing.ts:46-74`); caps from settings (`lib/settings/boundary.ts:55-65`). | Stripe Tax: `automatic_tax`, `tax_id_collection`, required address (`krizaka-ui packages/payments/src/stripe.ts:137-151`) |
 | **Akinaza** | `@krizaka/payments` 0.1.0 | One plan, `founder`, lookup key `PAYMENTS_PRICE_KEY_FOUNDER` (`apps/web/lib/payments/config.ts:12-21`). The 39 $ is a **price** set up from `payments/catalogue.json` (3900 cents CAD, `txcd_10103001`) by `krizaka-payments-setup`, shown only when `APP_FOUNDER_OFFER_ENABLED` (`lib/founder-offer.ts:11-17`). | `app/api/billing/checkout/route.ts:14-37`: rate limit 20/h, `customerOf` (`lib/billing.ts:30-36`); `app/api/billing/portal/route.ts:14-30` | Same pattern, `payment_events` (migration 0010) | Subscription state only, same four columns (0010), `subscriptionOf` (`lib/billing.ts:11-27`) | Stripe Tax (same adapter) |
-| **Orochia** | own `@orochia/payments`: CCBill, Segpay, NowPayments, Stripe, credits (`packages/payments/src/types.ts:3,49-56`) | 4 credit packs with bonus credits (`packages/payments/src/credits.ts:20-25`), USD | Top-up: `app/api/me/wallet/topups/route.ts:19-46`, 10/h | `app/api/webhooks/payments/[gateway]/route.ts:23-66`. No event table: idempotency comes from row locks, statuses and unique references (`intents.ts:52-75`, `schema/ledger.ts:50-53`). | Append-only `wallet_ledger` in cents; the balance is a SUM; types TOPUP, SPEND, REFUND, ADJUSTMENT, HOLD, RELEASE (`schema/wallet.ts:32-51`, `schema/enums.ts:105`); advisory lock per wallet (`credits.ts:95`); escrow holds for auctions and challenges | none (USD) |
+| **a former product** | own a retired export: CCBill, Segpay, NowPayments, Stripe, credits (`packages/payments/src/types.ts:3,49-56`) | 4 credit packs with bonus credits (`packages/payments/src/credits.ts:20-25`), USD | Top-up: `app/api/me/wallet/topups/route.ts:19-46`, 10/h | `app/api/webhooks/payments/[gateway]/route.ts:23-66`. No event table: idempotency comes from row locks, statuses and unique references (`intents.ts:52-75`, `schema/ledger.ts:50-53`). | Append-only `wallet_ledger` in cents; the balance is a SUM; types TOPUP, SPEND, REFUND, ADJUSTMENT, HOLD, RELEASE (`schema/wallet.ts:32-51`, `schema/enums.ts:105`); advisory lock per wallet (`credits.ts:95`); escrow holds for auctions and challenges | none (USD) |
 | **Orazaka** | none: « No payment is captured here » (`krizaka-billing-service/.../PackSubscriptionService.java:30-33`) | Plans, packs and pricebook in `krizaka_billing_db` (`infra/initdb/70-billing.sql:28-114`), seeded in CAD (`:356-358`) | Console only (`orazaka-web-client src/console/features/billing/`, `billing.admin.api.ts:61-201`) | `processed_messages`, `billing_outbox` (`70-billing.sql:298,318`) | `credit_wallet` with `GRANTED` and `PURCHASED` buckets, `credit_ledger_entry` (GRANT, PURCHASE, DEBIT, REFUND, EXPIRY, ADJUSTMENT; append-only by trigger), `credit_hold` (`70-billing.sql:133-184`) | none |
 
 ### 1.2 What exists of coupons
@@ -21,7 +21,7 @@ This is the design of [ADR-002](../adr/ADR-002-coupons.md) for krizaka/krizaka-t
 - **The closest things:**
   - Yomizaka's first free audit (`free_audit_used_at`, setting `audit.freeFirst`);
   - Yomizaka's per-user `limits.bonusAuditsPerMonth`, which only raises the Pro cap (`lib/settings/boundary.ts:62`);
-  - Orochia's pack bonuses;
+  - a former product's pack bonuses;
   - Orazaka's signed admin adjustment, capped per admin per day (`CreditAdjustmentService.java:34,87,153`; `billing.adjustment.daily-max-credits`, `70-billing.sql:347`).
 - **« Discount » appears only on Akinaza's invoice lines** (`packages/core/src/tax.ts:69-74`), which have nothing to do with billing.
 
@@ -365,7 +365,7 @@ Every store test runs on the memory store and on PostgreSQL (CI's service, `@kri
 | 5 | yomizaka | adopt `payments`, then `credits` (`audit_credits` → ledger, behaviour unchanged), then `coupons`: credit coupons for audits (demos, support), discounts on Pro; admin screens | the existing `billing.integration.test.ts` stays green; a partner code bought end to end in Stripe test mode, by hand, before live |
 | 6 | akinaza | adopt `payments` and `coupons`: discounts on the founder subscription, partner codes | the founder offer unchanged without a code |
 | 7 | krizaka-billing (Java) + orazaka-web-client | the coupons twin: the same tables, codes and events; the credit coupon is a capped `GRANT`; console screens | a conformance suite shared with the TypeScript package (the same cases as data) |
-| 8 | orochia | later: credit coupons on its ledger, when Orochia moves to `credits` | — |
+| 8 | a former product | later: credit coupons on its ledger, when a former product moves to `credits` | — |
 
 ## 9. Open points
 
