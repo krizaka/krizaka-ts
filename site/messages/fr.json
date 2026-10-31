@@ -118,6 +118,9 @@
     "rate-limit": {
       "hook": "Des limites par action : des fenêtres fixes par adresse et par sujet, réglées par l’admin, comptées exactement en concurrence."
     },
+    "contract": {
+      "hook": "Un schéma de réponse (zod) vérifié par les tests de route, les parcours, les moniteurs et les wrappers fetch : un 204, un champ manquant ou un compte undefined échoue avec le chemin du champ."
+    },
     "time": {
       "hook": "L’arithmétique des dates sur un instant, exacte dans tous les fuseaux : la façade que pointe la règle « Krizaka d’abord » des dates."
     },

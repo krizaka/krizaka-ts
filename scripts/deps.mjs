@@ -21,6 +21,7 @@ export const PACKAGES = Object.freeze(
       "audit",
       "auth",
       "brief",
+      "contract",
       "coupons",
       "credits",
       "db",
