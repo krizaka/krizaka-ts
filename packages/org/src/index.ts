@@ -6,6 +6,9 @@ export { CDN, org, ORG_SCHEMA_URL, ORG_URL } from "./org";
 export type {
   AppConfig,
   AppEnvironment,
+  FamilyEntry,
+  FamilyGroup,
+  FamilyStatus,
   Localized,
   Org,
   OrgAvatar,
@@ -28,3 +31,11 @@ export const localized = (text: Localized, locale: string): string => (locale ==
 
 /** The footer line of the family, « Une entreprise de Technologies Krizaka · Fait à Montréal ». */
 export const footerLine = (locale: string): string => localized(org.footer.line, locale);
+
+/** A name of the family by id (`familyName("ts")` → « Krizaka TypeScript »): the only way a site writes one. */
+export const familyEntry = (id: string) => {
+  const entry = org.family.find((e) => e.id === id);
+  if (!entry) throw new Error(`Unknown Krizaka family entry "${id}".`);
+  return entry;
+};
+export const familyName = (id: string): string => familyEntry(id).name;

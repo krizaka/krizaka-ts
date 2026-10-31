@@ -1,0 +1,11 @@
+id: no-hand-made-footer
+valid:
+  - |
+    const x = <SiteFooter current="akinaza" org={org} variant="app" />;
+  - |
+    const x = <MarketingLayout footer={<SiteFooter current="krizaka" org={org} />} />;
+invalid:
+  - |
+    const x = <footer className="border-t"><a href="/privacy">Privacy</a></footer>;
+  - |
+    const x = <footer />;

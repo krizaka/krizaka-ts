@@ -1,0 +1,17 @@
+id: no-hand-typed-family-name
+valid:
+  - |
+    const x = <SiteFooter current="yomizaka" org={org} />;
+  - |
+    const name = familyName("ui");
+  - |
+    const x = <h1>Yomizaka</h1>;
+invalid:
+  - |
+    const x = <a href="https://ui.krizaka.com">Krizaka UI</a>;
+  - |
+    const sites = [{ id: "ts", name: "Krizaka TS" }];
+  - |
+    const line = "Une entreprise de Technologies Krizaka · Fait à Montréal";
+  - |
+    const x = <p>Powered by Krizaka Orazaka</p>;

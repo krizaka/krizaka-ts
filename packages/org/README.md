@@ -19,6 +19,10 @@ Without a build step, read it from the CDN: [krizaka-assets.b-cdn.net/org/v1/org
   (`defaults/v1/<kind>/<id>-<size>.<ext>`, written by krizaka-ui `tools/export-defaults.mjs`). An app never hard-codes or bundles one:
   `listDefaults(kind)` lists them, `defaultFor(kind, seed)` picks one deterministically (FNV-1a of the seed, modulo the list), `defaultUrl(item, size)` gives the URL,
   `fetchDefaults(ORG_URL)` reads the section from the published JSON. A folder is never given a person.
+- **One name per entry of the family.** `org.family` (and `familyName(id)`) is the only place a name is written: the company
+  is « Krizaka », a product goes by its own name (Orazaka, Yomizaka, Akinaza — never « Krizaka Yomizaka »), a library or a tool
+  is « Krizaka <X> » (Krizaka UI, Krizaka Java, Krizaka TypeScript, Krizaka Lab, Krizaka Skills; the short name only under a
+  heading « Open source »). The bar, the switcher and every footer read it; a test holds the rule.
 - **Public facts only.** Never an address, a phone number, figures, a secret, an IP address or an internal host: the test
   scans for them and the schema refuses any field it does not list.
 - **Validated.** `orgSchema` (JSON Schema 2020-12) and the types `Org`, `AppConfig`…; a test validates the data and requests every
