@@ -78,7 +78,7 @@ jobs:
       # org.json changes in place (the stable name), so the pull zone is purged right after the publish (krizaka/.github#303).
       # The hashed copies are immutable and never purged. Needs the organisation secret MEDIA_ACCOUNT_API_KEY (the Bunny account key).
       - if: steps.changesets.outputs.published == 'true' || github.event_name == 'workflow_dispatch'
-        uses: krizaka/.github/actions/cdn-purge@1002810b78ccc24e284ec8209e8e0b55ff06ea33 # main (krizaka/.github#303)
+        uses: krizaka/.github/actions/cdn-purge@99281c3f4b46dbe4c645dff053b4bfb387a1403d # main (krizaka/.github#303)
         with:
           urls: https://krizaka-assets.b-cdn.net/org/v1/org.json
           account-key: ${{ secrets.MEDIA_ACCOUNT_API_KEY }}

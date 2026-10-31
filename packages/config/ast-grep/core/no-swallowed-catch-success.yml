@@ -1,0 +1,38 @@
+id: no-swallowed-catch-success
+language: Tsx
+severity: error
+message: "A `catch` in a script that swallows the error (empty, or returns / exits success) lets the check pass without proof (ADR-022, krizaka-internal#1972). Rethrow, or `process.exit(1)`; an expected failure is tested before the call, not caught after."
+rule:
+  kind: catch_clause
+  any:
+    - has:
+        field: body
+        kind: statement_block
+        regex: '^\{\s*(//[^\n]*\s*)*\}$'
+    - has:
+        field: body
+        kind: statement_block
+        has:
+          stopBy: end
+          any:
+            - pattern: return true
+            - pattern: process.exit(0)
+            - pattern: 'return { ok: true }'
+            - pattern: 'return { ok: true, $$$R }'
+  not:
+    has:
+      field: body
+      has:
+        stopBy: end
+        any:
+          - kind: throw_statement
+          - pattern: process.exit(1)
+          - pattern: process.exitCode = 1
+files:
+  - "scripts/**"
+  - "tools/**"
+  - ".github/scripts/**"
+ignores:
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/*.test.mjs"

@@ -1,0 +1,13 @@
+id: no-unchecked-sent-log
+valid:
+  - |
+    console.log(`sent ${count} newsletters`);
+  - |
+    console.log("done");
+  - |
+    logger.info(`sent to ${n}`);
+invalid:
+  - |
+    console.log(`sent to ${result.sent} of ${result.total}`);
+  - |
+    console.info(`queued for ${recipient}`);

@@ -15,6 +15,7 @@ rule:
       - kind: generator_function_declaration
 ignores:
   - "**/node_modules/**"
+  - "**/*.mjs"
   - "**/*.test.ts"
   - "**/*.test.tsx"
   - "**/*.stories.tsx"

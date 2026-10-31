@@ -1,0 +1,15 @@
+id: no-hand-typed-family-name
+language: Tsx
+severity: error
+message: "A name of the Krizaka family is typed by hand. Names live once, in `@krizaka/org` (`org.family`, `familyName(id)`), and the footer reads them (`SiteFooter` with `org`): the company « Krizaka », products by their own name (never « Krizaka Yomizaka »), libraries « Krizaka <X> » (krizaka/krizaka-internal#754)."
+rule:
+  any:
+    - kind: string_fragment
+    - kind: jsx_text
+  regex: \bKrizaka (UI|Java|TypeScript|TS|Lab|Skills|Motion|Orazaka|Yomizaka|Akinaza)\b|Technologies Krizaka
+ignores:
+  - "**/node_modules/**"
+  - "**/.next/**"
+  - "**/dist/**"
+  - "**/*.test.*"
+  - "**/*.stories.*"

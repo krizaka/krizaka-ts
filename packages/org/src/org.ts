@@ -43,11 +43,50 @@ const defaults: OrgAvatar[] = (["person", "plain"] as const).flatMap((kind) =>
 );
 
 /** The public facts about Krizaka. Reviewed by pull request; changing a fact is one PR here and a release. */
+type FamilyEntry = NonNullable<Org["family"]>[number];
+type FamilyRow = [
+  FamilyEntry["id"],
+  string,
+  string,
+  FamilyEntry["group"],
+  FamilyEntry["status"],
+  string,
+  string | null,
+];
+
+const GITHUB = "https://github.com/krizaka";
+const gh = (repo: string) => `${GITHUB}/${repo}`;
+
+/** The family list as data: one row per entry (id, name, short, group, status, url, repo). */
+const FAMILY_ROWS: FamilyRow[] = [
+  ["krizaka", "Krizaka", "Krizaka", "krizaka", "released", "https://www.krizaka.com", gh("krizaka-com")],
+  ["blog", "Blog", "Blog", "krizaka", "released", "https://blog.krizaka.com", gh("krizaka-blog")],
+  ["orazaka", "Orazaka", "Orazaka", "products", "development", "https://www.orazaka.com", gh("orazaka")],
+  ["yomizaka", "Yomizaka", "Yomizaka", "products", "development", "https://www.yomizaka.com", gh("yomizaka")],
+  ["akinaza", "Akinaza", "Akinaza", "products", "development", "https://www.akinaza.com", gh("akinaza")],
+  ["ui", "Krizaka UI", "UI", "open-source", "released", "https://ui.krizaka.com", gh("krizaka-ui")],
+  ["java", "Krizaka Java", "Java", "open-source", "released", "https://java.krizaka.com", gh("krizaka-build")],
+  ["ts", "Krizaka TypeScript", "TypeScript", "open-source", "released", "https://ts.krizaka.com", gh("krizaka-ts")],
+  ["lab", "Krizaka Lab", "Lab", "open-source", "development", "https://lab.krizaka.com", gh("krizaka-lab")],
+  ["skills", "Krizaka Skills", "Skills", "open-source", "released", gh("krizaka-skills"), gh("krizaka-skills")],
+  ["github", "GitHub", "GitHub", "github", "released", GITHUB, null],
+];
+
+const family: FamilyEntry[] = FAMILY_ROWS.map(([id, name, short, group, status, url, repo]) => ({
+  id,
+  name,
+  short,
+  group,
+  status,
+  url,
+  repo,
+}));
+
 export const org: Org = {
   $schema: ORG_SCHEMA_URL,
   schemaVersion: 2,
   version: pkg.version,
-  updatedAt: "2026-10-26",
+  updatedAt: "2026-10-30",
   company: {
     legalName: "Technologies Krizaka Inc.",
     tradeName: "Krizaka",
@@ -78,21 +117,21 @@ export const org: Org = {
       id: "orazaka",
       name: "Orazaka",
       status: "development",
-      url: "https://dev.orazaka.com",
+      url: "https://www.orazaka.com",
       repo: "https://github.com/krizaka/orazaka",
     },
     {
       id: "yomizaka",
       name: "Yomizaka",
       status: "development",
-      url: "https://dev.yomizaka.com",
+      url: "https://www.yomizaka.com",
       repo: "https://github.com/krizaka/yomizaka",
     },
     {
       id: "akinaza",
       name: "Akinaza",
       status: "development",
-      url: "https://dev.akinaza.com",
+      url: "https://www.akinaza.com",
       repo: "https://github.com/krizaka/akinaza",
     },
   ],
@@ -100,10 +139,11 @@ export const org: Org = {
     { id: "www", name: "krizaka.com", url: "https://www.krizaka.com" },
     { id: "ui", name: "Krizaka UI", url: "https://ui.krizaka.com" },
     { id: "java", name: "Krizaka Java", url: "https://java.krizaka.com" },
-    { id: "ts", name: "Krizaka TS", url: "https://ts.krizaka.com" },
+    { id: "ts", name: "Krizaka TypeScript", url: "https://ts.krizaka.com" },
     { id: "motion", name: "Krizaka Lab", url: "https://lab.krizaka.com" },
     { id: "blog", name: "Blog", url: "https://blog.krizaka.com" },
   ],
+  family,
   contact: {
     page: { fr: "https://www.krizaka.com/fr/contact", en: "https://www.krizaka.com/en/contact" },
     email: null,
