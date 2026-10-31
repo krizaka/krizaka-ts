@@ -38,6 +38,14 @@ export {
   type WrappedKey,
 } from "./key-service";
 export {
+  MANAGED_KMS,
+  type ManagedContext,
+  type ManagedKms,
+  managedResidency,
+  openManaged,
+  PROBE_TENANT,
+} from "./managed";
+export {
   type AdapterInput,
   createProviderRegistry,
   defaultProviderRegistry,

@@ -70,19 +70,27 @@ export function openBytes(packed: Uint8Array, key: Uint8Array, aad: string): Buf
  * keeps the old ones, `destroy` forgets one (what a KMS does at the end of a key's deletion window). Never for production data: the
  * root key is in the process memory.
  */
-export function memoryKeyService(input: { name?: string; random?: (n: number) => Uint8Array } = {}): KeyService & {
+export function memoryKeyService(
+  input: {
+    name?: string;
+    random?: (n: number) => Uint8Array;
+    /** A fixed first root key (32 bytes): a developer's data survives a restart. */ root?: Uint8Array;
+  } = {},
+): KeyService & {
   rotate(): Promise<string>;
   destroy(keyId: string): void;
 } {
   const random = input.random ?? ((n: number) => new Uint8Array(randomBytes(n)));
   const versions = new Map<string, Uint8Array>();
   let current = "";
-  const next = () => {
+  const next = (fixed?: Uint8Array) => {
     current = `local:v${versions.size + 1}`;
-    versions.set(current, random(32));
+    versions.set(current, fixed ?? random(32));
     return current;
   };
-  next();
+  if (input.root && input.root.length !== 32)
+    throw new StorageError(STORAGE_CODE.badSecretKey, "The local root key must be 32 bytes");
+  next(input.root);
   return {
     name: input.name ?? "memory",
     currentKeyId: async () => current,

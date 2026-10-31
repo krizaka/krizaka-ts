@@ -45,6 +45,7 @@ describe("the registry", () => {
     expect(PROVIDER_KINDS.map((k) => k.kind)).toEqual([
       "bunny",
       "s3",
+      "managed",
       "dropbox",
       "google-drive",
       "onedrive",
