@@ -138,7 +138,7 @@ describe.runIf(process.env.STORAGE_S3_IT === "1")("the managed provider on an S3
       await moveBatch({ catalog, from: { id: "first", store: first }, to: { id: "second", store: second }, limit: 10 }),
     ).toMatchObject({ copied: 7, verified: 7, switched: 7, failed: [], left: 0 });
     for (const o of objects) expect(sha256Hex((await second.get(o.key))!.bytes)).toBe(o.sha256);
-    expect((await raw(secondBucket).list("t/shop-1/")).length).toBe(7);
+    expect(await raw(secondBucket).list("t/shop-1/")).toHaveLength(7);
   });
 
   it("a corrupted copy at the old provider is never switched", async () => {
