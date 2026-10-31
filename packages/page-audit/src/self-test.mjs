@@ -38,7 +38,7 @@ const EXPECT = [
   ["an empty <main>", EMPTY_MAIN, /empty <main>/, { emptyMain: true }],
   ["a frame that forces a scroll", FRAME_FORCES_SCROLL, /the frame forces a scroll/, { frame: true }],
   ["an action under the tap target", SMALL_ACTION, /an action is 24 px tall \(< 36\)/, { minAction: 36 }],
-  ["a control under 44 px", SMALL_TARGET, /touch target under 44 px \(button 120x32\)/, { smallTargets: true }],
+  ["a control under 44 px", SMALL_TARGET, /touch target under 44 px \(button\. 120x32\)/, { smallTargets: true }],
   ["a landmark wider than its box", BOX_TOO_WIDE, /content wider than its box/, { boxes: true }],
   ["a broken picture", BROKEN_PARTS, /broken picture/, { pictures: true }],
   ["a tile that draws nothing", BROKEN_PARTS, /empty tile/, { emptyControls: true }],
