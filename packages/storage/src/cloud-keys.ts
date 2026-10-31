@@ -1,4 +1,5 @@
 import { contextText, type KeyContext, type KeyService } from "./key-service";
+import { trimSlashes } from "./keys";
 import { type Clock, type FetchLike, STORAGE_CODE, StorageError } from "./port";
 import { hashPayload, signRequest } from "./request-signing";
 
@@ -98,7 +99,7 @@ function awsKms(c: Extract<CloudKeyConfig, { kind: "aws-kms" }>, deps: { fetch: 
 }
 
 function okms(c: Extract<CloudKeyConfig, { kind: "okms" }>, deps: { fetch: FetchLike }): KeyService {
-  const base = `${c.endpoint.replace(/\/+$/, "")}/api/${encodeURIComponent(c.okmsId)}/v1/servicekey`;
+  const base = `${trimSlashes(c.endpoint, "end")}/api/${encodeURIComponent(c.okmsId)}/v1/servicekey`;
   const call = async <T>(keyId: string, op: "encrypt" | "decrypt", payload: Record<string, string>): Promise<T> => {
     const url = `${base}/${encodeURIComponent(keyId)}/${op}`;
     const res = await deps.fetch(url, {
