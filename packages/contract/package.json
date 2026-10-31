@@ -1,6 +1,6 @@
 {
   "name": "@krizaka/contract",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Declare a response contract once (zod) and assert it everywhere the answer is acted on: route tests, journeys, synthetic monitors and the fetch wrappers of runtime boundaries. A 204 with no body, a missing field, an undefined or NaN count, an empty string or an empty list where one is required all fail with the field's path, so « sent to undefined of undefined » can never pass.",
   "keywords": [
     "krizaka",

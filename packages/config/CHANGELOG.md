@@ -1,5 +1,12 @@
 # @krizaka/config
 
+## 0.20.0
+
+### Minor Changes
+
+- 7e0107b: Two `web` ast-grep rules (krizaka/krizaka-internal#754): `no-hand-made-footer` (a raw `<footer>`: every site and app renders `SiteFooter` of @krizaka/ui with `org`) and `no-hand-typed-family-name` (« Krizaka UI », « Krizaka TS », « Technologies Krizaka », « Krizaka Yomizaka »… typed in code: names come from `org.family` of @krizaka/org). Repositories adopting the `web` set record their current count in their sg ratchet; it only goes down.
+- 28efe91: Four fail-closed ast-grep rules in the `core` set: `no-fail-open-secret`, `no-bare-skip`, `no-unchecked-sent-log` and `no-swallowed-catch-success`, each with its rule tests. They read scripts, tools and tests (`.mjs` too). Refs krizaka-internal#1972.
+
 ## 0.19.0
 
 ### Minor Changes
