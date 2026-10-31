@@ -4,7 +4,18 @@
  */
 /** The kinds this package ships. A private package registers more with `createProviderRegistry(…).with(…)`: its names are any other string. */
 export type ProviderKindName =
-  "bunny" | "s3" | "dropbox" | "google-drive" | "onedrive" | "azblob" | "gcs" | "b2" | "webdav" | "folder" | "device";
+  | "bunny"
+  | "s3"
+  | "managed"
+  | "dropbox"
+  | "google-drive"
+  | "onedrive"
+  | "azblob"
+  | "gcs"
+  | "b2"
+  | "webdav"
+  | "folder"
+  | "device";
 export type ProviderScope = "admin" | "user";
 /** `server` = a deployed web BFF, `dev` = a developer's machine or CI, `device` = a mobile or macOS client. */
 export type ProviderRuntime = "server" | "dev" | "device";
@@ -16,7 +27,7 @@ export interface FieldSchema {
 }
 
 export interface Preset {
-  id: "digitalocean-spaces" | "aws-s3" | "ovhcloud" | "generic";
+  id: "digitalocean-spaces" | "aws-s3" | "ovhcloud" | "google-cloud-storage" | "generic";
   /** `{region}` is filled in; `null` for the generic preset (the person types the endpoint). */
   endpointTemplate: string | null;
   /** Regions known to the preset (the region table says where each one is). */
@@ -67,7 +78,13 @@ export const S3_PRESETS: readonly Preset[] = [
   {
     id: "ovhcloud",
     endpointTemplate: "https://s3.{region}.io.cloud.ovh.net",
-    regions: ["bhs", "gra", "sbg", "de", "uk", "waw"],
+    regions: ["bhs", "ca-east-tor", "gra", "sbg", "de", "uk", "waw"],
+  },
+  // Cloud Storage's XML API with HMAC keys (interoperability mode): the same S3 signature.
+  {
+    id: "google-cloud-storage",
+    endpointTemplate: "https://storage.googleapis.com",
+    regions: ["northamerica-northeast1", "northamerica-northeast2"],
   },
   { id: "generic", endpointTemplate: null, regions: [] },
 ];
@@ -119,6 +136,44 @@ export const PROVIDER_KINDS: readonly ProviderKind[] = [
       text("prefix", false),
     ],
     credentials: [secret("accessKeyId", true), secret("secretAccessKey", true)],
+    presets: S3_PRESETS,
+  },
+  {
+    // Krizaka's managed storage (ADR-020): any S3-compatible bucket + a KMS, encrypted per tenant; the admin enters it all.
+    kind: "managed",
+    scopes: ["admin"],
+    runtimes: ["server", "dev"],
+    devOnly: false,
+    implemented: true,
+    capabilities: {
+      private: true,
+      signedUrls: false,
+      publicUrls: false,
+      maxObjectBytes: 5 * GIB,
+      serverSideEncryption: "customer-key",
+    },
+    residency: "from-region",
+    coordinates: [
+      text("endpoint", true, "url"),
+      text("region", true, "region"),
+      text("bucket", true),
+      text("replicaEndpoint", false, "url"),
+      text("replicaRegion", false, "region"),
+      text("kms", true),
+      text("kmsKeyId", false),
+      text("kmsRegion", false, "region"),
+      text("kmsEndpoint", false, "url"),
+      text("okmsId", false),
+    ],
+    credentials: [
+      secret("accessKeyId", true),
+      secret("secretAccessKey", true),
+      secret("kmsAccessKeyId", false),
+      secret("kmsSecretAccessKey", false),
+      secret("kmsCertificate", false),
+      secret("kmsPrivateKey", false),
+      secret("localRootKey", false),
+    ],
     presets: S3_PRESETS,
   },
   {

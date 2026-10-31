@@ -3,6 +3,7 @@ import { cloudConnector, type CloudConnectorName, connectionAccessToken } from "
 import { dropboxStore } from "./dropbox-store";
 import { checkEndpoint } from "./endpoint";
 import { folderStore } from "./folder-store";
+import { type ManagedContext, openManaged } from "./managed";
 import { type OpendalService, opendalStore } from "./opendal-store";
 import { type Clock, type FetchLike, type ObjectStore, STORAGE_CODE, StorageError } from "./port";
 import { type FieldSchema, PROVIDER_KINDS, type ProviderKind, type ProviderRuntime } from "./providers";
@@ -16,6 +17,8 @@ export interface OpenContext {
   clock: Clock;
   /** A cloud that rotates the refresh token on a refresh hands the new one here, to be sealed again. */
   onRotate?: (refreshToken: string) => Promise<void>;
+  /** The `managed` kind only: the tenant keys' table, the audit trail, the mTLS fetch of a KMS that needs one. */
+  managed?: ManagedContext;
 }
 
 export interface OpenedProvider {
@@ -23,6 +26,8 @@ export interface OpenedProvider {
   kind: ProviderKind;
   /** Where the files would live, for the screen to show before saving. */
   residency: ResidencyLabel;
+  /** The `managed` kind: one encrypted store per tenant, under `t/<tenantId>/`. */
+  forTenant?: (tenantId: string) => ObjectStore;
 }
 
 /** What an adapter receives: values already checked by the registry (required fields present, `url` fields passed `checkEndpoint`). */
@@ -36,6 +41,7 @@ export interface AdapterInput {
 export interface OpenedAdapter {
   store: ObjectStore;
   residency: ResidencyLabel;
+  forTenant?: (tenantId: string) => ObjectStore;
 }
 
 export type ProviderAdapter = (input: AdapterInput) => OpenedAdapter | Promise<OpenedAdapter>;
@@ -246,6 +252,7 @@ export const BUILT_IN_ADAPTERS: Readonly<Record<string, ProviderAdapter>> = {
     }),
     residency: residencyLabel({ provider: "s3", endpoint: coordinates.endpoint!, region: coordinates.region! }),
   }),
+  managed: openManaged,
   "google-drive": cloudKind(OPENDAL_CLOUD_KINDS["google-drive"], "Google Drive"),
   onedrive: cloudKind(OPENDAL_CLOUD_KINDS.onedrive, "OneDrive"),
   azblob: keyKind(OPENDAL_KEY_KINDS.azblob),

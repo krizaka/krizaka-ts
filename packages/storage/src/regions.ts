@@ -11,6 +11,11 @@ export const COUNTRY_OF_REGION: Readonly<Record<string, string>> = {
   "ca-west-1": "CA",
   "ca-central": "CA",
   "ca-east": "CA",
+  // OVHcloud Toronto (Cambridge, ON), the replica region of the managed storage
+  "ca-east-tor": "CA",
+  // Google Cloud Montréal and Toronto
+  "northamerica-northeast1": "CA",
+  "northamerica-northeast2": "CA",
   "ca-toronto-1": "CA",
   "ca-montreal-1": "CA",
   "canada-central": "CA",
@@ -72,6 +77,9 @@ export const PROVINCE_OF_REGION: Readonly<Record<string, "QC" | "ON" | "AB">> = 
   "ca-montreal-1": "QC",
   canadacentral: "ON",
   tor: "ON",
+  "ca-east-tor": "ON",
+  "northamerica-northeast1": "QC",
+  "northamerica-northeast2": "ON",
   tor1: "ON",
   "ca-toronto-1": "ON",
   "ca-west-1": "AB",
