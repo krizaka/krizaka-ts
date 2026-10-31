@@ -63,7 +63,8 @@ export function memoryTenantKeyStore(): TenantKeyStore {
       rows.delete(tenantId);
     },
     shreddedAt: async (tenantId) => shredded.get(tenantId) ?? null,
-    tenants: async () => [...rows.keys()].filter((t) => (rows.get(t) ?? []).length > 0).sort(),
+    tenants: async () =>
+      [...rows.keys()].filter((t) => (rows.get(t) ?? []).length > 0).sort((a, b) => a.localeCompare(b)),
   };
 }
 
