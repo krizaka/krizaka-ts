@@ -1,5 +1,11 @@
 # @krizaka/page-audit
 
+## 0.8.0
+
+### Minor Changes
+
+- c590935: `smallTargets`: a control (button, link outside a sentence, input, tab…) drawn under 44 px on a side fails the audit, listed with its size. Off by default; a page opts in with `smallTargets: true`.
+
 ## 0.7.0
 
 ### Minor Changes
