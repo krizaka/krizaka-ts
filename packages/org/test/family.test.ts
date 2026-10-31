@@ -21,7 +21,6 @@ describe("the family's names", () => {
       "Krizaka Java",
       "Krizaka TypeScript",
       "Krizaka Lab",
-      "Krizaka Skills",
     ]);
     for (const l of libraries) expect(l.name).toBe(`Krizaka ${l.short}`);
   });
