@@ -1,7 +1,9 @@
 import { expect, it } from "vitest";
 
+import type { KeyService } from "./key-service";
 import type { ObjectStore } from "./port";
 import type { ProviderRecord, ProviderStore } from "./provider-records";
+import type { TenantKeyStore } from "./tenant-keys";
 
 const bytes = (...n: number[]) => new Uint8Array(n);
 
@@ -120,5 +122,85 @@ export function providerStoreContract(name: string, make: () => ProviderStore | 
     expect(await store.defaultFor("org", "documents")).toBe(B);
     expect(await store.defaults("org")).toEqual({ documents: B, avatars: A });
     expect(await store.defaults("user:u1")).toEqual({});
+  });
+}
+
+/** What every `KeyService` (KMS) adapter must do. `make` gives a service whose root key is usable. */
+export function keyServiceContract(name: string, make: () => KeyService | Promise<KeyService>) {
+  const key = new Uint8Array(32).map((_, i) => i + 1);
+  it(`${name}: unwraps what it wrapped, under the same context`, async () => {
+    const kms = await make();
+    const wrapped = await kms.wrap(key, { tenant: "a" });
+    expect(wrapped.ciphertext).not.toContain(Buffer.from(key).toString("base64"));
+    expect([...(await kms.unwrap(wrapped, { tenant: "a" }))]).toEqual([...key]);
+    expect(typeof (await kms.currentKeyId())).toBe("string");
+  });
+  it(`${name}: refuses another tenant's context`, async () => {
+    const kms = await make();
+    const wrapped = await kms.wrap(key, { tenant: "a" });
+    await expect(kms.unwrap(wrapped, { tenant: "b" })).rejects.toMatchObject({ code: "STORAGE_UNREADABLE" });
+  });
+  it(`${name}: refuses a changed ciphertext`, async () => {
+    const kms = await make();
+    const wrapped = await kms.wrap(key, { tenant: "a" });
+    const raw = Buffer.from(wrapped.ciphertext, "base64");
+    raw[raw.length - 1] = (raw.at(-1) ?? 0) ^ 1;
+    await expect(kms.unwrap({ ...wrapped, ciphertext: raw.toString("base64") }, { tenant: "a" })).rejects.toMatchObject(
+      {
+        code: "STORAGE_UNREADABLE",
+      },
+    );
+  });
+  it(`${name}: still unwraps after a rotation, when it rotates`, async () => {
+    const kms = await make();
+    if (!kms.rotate) return;
+    const before = await kms.wrap(key, { tenant: "a" });
+    await kms.rotate();
+    expect([...(await kms.unwrap(before, { tenant: "a" }))]).toEqual([...key]);
+  });
+}
+
+/** What every `TenantKeyStore` must do. `make` gives an empty store. */
+export function tenantKeyStoreContract(name: string, make: () => TenantKeyStore | Promise<TenantKeyStore>) {
+  const at = new Date("2026-10-31T10:00:00Z");
+  const k = (tenantId: string, version: number, keyId = "root:1") => ({
+    tenantId,
+    version,
+    wrapped: { keyId, ciphertext: `c-${tenantId}-${version}` },
+    createdAt: at,
+  });
+  it(`${name}: keeps the versions of a tenant, oldest first, and refuses a duplicate version`, async () => {
+    const store = await make();
+    expect(await store.versions("t1")).toEqual([]);
+    expect(await store.insert(k("t1", 2))).toBe(true);
+    expect(await store.insert(k("t1", 1))).toBe(true);
+    expect(await store.insert(k("t1", 1, "other"))).toBe(false);
+    expect(await store.insert(k("t2", 1))).toBe(true);
+    expect((await store.versions("t1")).map((v) => [v.version, v.wrapped.keyId])).toEqual([
+      [1, "root:1"],
+      [2, "root:1"],
+    ]);
+    expect(await store.tenants()).toEqual(["t1", "t2"]);
+  });
+  it(`${name}: rewraps and drops one version`, async () => {
+    const store = await make();
+    await store.insert(k("t1", 1));
+    await store.insert(k("t1", 2));
+    await store.rewrap("t1", 1, { keyId: "root:2", ciphertext: "new" });
+    await store.drop("t1", 2);
+    expect(await store.versions("t1")).toEqual([{ ...k("t1", 1), wrapped: { keyId: "root:2", ciphertext: "new" } }]);
+  });
+  it(`${name}: a shredded tenant loses every version and never gets one back`, async () => {
+    const store = await make();
+    await store.insert(k("t1", 1));
+    await store.insert(k("t2", 1));
+    await store.shred("t1", at);
+    await store.shred("t1", new Date("2027-01-01T00:00:00Z"));
+    expect(await store.versions("t1")).toEqual([]);
+    expect((await store.shreddedAt("t1"))?.toISOString()).toBe(at.toISOString());
+    expect(await store.shreddedAt("t2")).toBeNull();
+    expect(await store.insert(k("t1", 2))).toBe(false);
+    expect(await store.versions("t1")).toEqual([]);
+    expect(await store.tenants()).toEqual(["t2"]);
   });
 }

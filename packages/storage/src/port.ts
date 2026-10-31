@@ -61,6 +61,7 @@ export const STORAGE_CODE = {
   notVerified: "STORAGE_PROVIDER_NOT_VERIFIED",
   testFailed: "STORAGE_TEST_FAILED",
   disconnected: "STORAGE_DISCONNECTED",
+  shredded: "STORAGE_TENANT_SHREDDED",
 } as const;
 export type StorageCode = (typeof STORAGE_CODE)[keyof typeof STORAGE_CODE];
 
