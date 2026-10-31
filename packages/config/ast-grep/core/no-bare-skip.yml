@@ -1,0 +1,32 @@
+id: no-bare-skip
+language: Tsx
+severity: error
+message: "A skipped test passes silently. `.skip`, `.fixme` and `xit` need the line above to say why and until when: `// quarantine: <issue> <yyyy-mm-dd>` (ADR-022, krizaka-internal#1972). A quarantine past its date is red in the next audit."
+rule:
+  kind: expression_statement
+  has:
+    kind: call_expression
+    any:
+      - pattern: $T.skip($$$A)
+      - pattern: $T.fixme($$$A)
+      - pattern: $T.skip.$M($$$A)
+      - pattern: xit($$$A)
+      - pattern: xdescribe($$$A)
+      - pattern: xtest($$$A)
+  not:
+    follows:
+      kind: comment
+      regex: 'quarantine:\s+\S+\s+\d{4}-\d{2}-\d{2}'
+      stopBy: neighbor
+files:
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+  - "**/*.test.mjs"
+  - "**/*.spec.ts"
+  - "**/*.spec.tsx"
+  - "tests/**"
+  - "test/**"
+  - "e2e/**"
+ignores:
+  - "**/node_modules/**"
+  - "**/dist/**"

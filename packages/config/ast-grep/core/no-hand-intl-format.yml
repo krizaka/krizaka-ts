@@ -10,6 +10,7 @@ rule:
     - pattern: $D.toLocaleTimeString($$$ARGS)
 ignores:
   - "**/node_modules/**"
+  - "**/*.mjs"
   - "**/*.test.ts"
   - "**/*.test.tsx"
   - "**/*.stories.tsx"

@@ -1,9 +1,11 @@
 {
   "counters": {
     "no-ambient-clock": 0,
+    "no-bare-skip": 0,
     "no-db-in-service-or-rules": 0,
     "no-enum-string-compare": 0,
     "no-env-in-domain": 0,
+    "no-fail-open-secret": 0,
     "no-get-time-arithmetic": 0,
     "no-get-time-difference": 0,
     "no-hand-intl-format": 2,
@@ -15,9 +17,11 @@
     "no-hand-written-validation-regex": 5,
     "no-long-function": 55,
     "no-math-random-in-src": 0,
+    "no-swallowed-catch-success": 0,
     "no-sync-fs-in-runtime": 0,
     "no-ts-enum": 0,
     "no-types-at-package-root": 0,
+    "no-unchecked-sent-log": 0,
     "no-unjustified-numeric-export": 0
   }
 }

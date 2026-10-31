@@ -7,11 +7,11 @@ import { connectAdapter } from "../src/index";
  * anything else is ignored, so a live key can never run here, and default CI sets nothing). It creates a Standard test account and checks
  * that the objects the adapter reads still have the shapes it expects.
  */
-const candidate = process.env.PAYMENTS_CONTRACT_KEY ?? "";
-const enabled = candidate.startsWith("sk_test_");
+const candidate = process.env.PAYMENTS_CONTRACT_KEY;
+const enabled = candidate?.startsWith("sk_test_") === true;
 
 describe.runIf(enabled)("processor test mode: Connect Standard", () => {
-  const adapter = connectAdapter({ secretKey: candidate });
+  const adapter = connectAdapter({ secretKey: candidate ?? "" });
   const run = `ct-${Date.now()}`;
 
   it("creates a Standard account, an onboarding link and reads a not-yet-active status", async () => {
@@ -47,7 +47,7 @@ describe.runIf(enabled)("processor test mode: Connect Standard", () => {
 
 describe("the opt-in guard", () => {
   it("runs only for a test-mode key", () => {
-    expect(enabled).toBe(candidate.startsWith("sk_test_"));
-    expect(enabled && candidate.startsWith("sk_live_")).toBe(false);
+    expect(enabled).toBe(candidate?.startsWith("sk_test_") === true);
+    expect(enabled && candidate?.startsWith("sk_live_")).toBe(false);
   });
 });
