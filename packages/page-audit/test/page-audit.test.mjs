@@ -63,6 +63,15 @@ describe("what counts as a problem on a rendered page", () => {
     assert.deepEqual(problemsOf("x", result), []);
     assert.deepEqual(problemsOf("x", { ...fine, controlOverlaps: [] }, { controlOverlaps: true }), []);
   });
+  it("a control under 44 px, when asked", () => {
+    const result = { ...fine, smallTargets: ["button.kz-icon 40x32"] };
+    assert.match(
+      problemsOf("x", result, { smallTargets: true })[0],
+      /touch target under 44 px \(button.kz-icon 40x32\)/,
+    );
+    assert.deepEqual(problemsOf("x", result), []);
+    assert.deepEqual(problemsOf("x", { ...fine, smallTargets: [] }, { smallTargets: true }), []);
+  });
   it("a console error, and a chip under 44 px", () => {
     assert.match(problemsOf("x", fine, { errors: ["React error #418"] })[0], /console error — React error #418/);
     assert.match(problemsOf("x", { ...fine, chips: [40, 48] })[0], /40 px tall/);

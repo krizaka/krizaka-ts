@@ -21,6 +21,8 @@ import {
   MAP_NO_CANVAS,
   SECTIONS_OVERLAP,
   SMALL_ACTION,
+  SMALL_TARGET,
+  TARGETS_FINE,
   TOKEN_IN_STRETCHED_ROW,
   TOKEN_WRAPPED,
 } from "./fixtures.mjs";
@@ -36,6 +38,7 @@ const EXPECT = [
   ["an empty <main>", EMPTY_MAIN, /empty <main>/, { emptyMain: true }],
   ["a frame that forces a scroll", FRAME_FORCES_SCROLL, /the frame forces a scroll/, { frame: true }],
   ["an action under the tap target", SMALL_ACTION, /an action is 24 px tall \(< 36\)/, { minAction: 36 }],
+  ["a control under 44 px", SMALL_TARGET, /touch target under 44 px \(button\. 120x32\)/, { smallTargets: true }],
   ["a landmark wider than its box", BOX_TOO_WIDE, /content wider than its box/, { boxes: true }],
   ["a broken picture", BROKEN_PARTS, /broken picture/, { pictures: true }],
   ["a tile that draws nothing", BROKEN_PARTS, /empty tile/, { emptyControls: true }],
@@ -70,12 +73,14 @@ const ALL = {
   landmarks: "public",
   maps: true,
   controlOverlaps: true,
+  smallTargets: true,
 };
 const FINES_STRICT = [
   ["a frame that fits its screen", FRAME_FITS, { frame: true, emptyMain: false }],
   ["the family chrome", CHROME_FINE, ALL],
   ["maps with a size and something drawn", MAP_FINE, { maps: true }],
   ["controls side by side, in a label, in a scroller", CONTROLS_FINE, { controlOverlaps: true }],
+  ["controls of 44 px and an inline link", TARGETS_FINE, { smallTargets: true }],
   ["a map that is not drawn (display none)", MAP_HIDDEN, { maps: true }],
 ];
 
