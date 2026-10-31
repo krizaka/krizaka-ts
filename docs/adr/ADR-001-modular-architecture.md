@@ -11,25 +11,25 @@ Krizaka TS has six packages: `auth`, `settings`, `api-keys`, `webhooks`, `organi
 The inventory of seven products says no: the same capabilities are written again in each of them.
 
 - **The database layer: six migration runners in five designs.**
-  - Yomizaka (`apps/web/lib/db.ts:38-64`) and Yororis (`lib/migrations.ts:84-110`) each have their own runner, with the same table name but a different column type (`text` and `int`).
-  - Akinaza and Kachizaka use drizzle-kit (`packages/db/src/migrate.ts`).
-  - Orochia and Yasakia use drizzle-kit files with their own runner (`packages/db/src/migrations.ts:1-68`).
+  - Yomizaka (`apps/web/lib/db.ts:38-64`) and a former product (`lib/migrations.ts:84-110`) each have their own runner, with the same table name but a different column type (`text` and `int`).
+  - Akinaza and a former product use drizzle-kit (`packages/db/src/migrate.ts`).
+  - the former products use drizzle-kit files with their own runner (`packages/db/src/migrations.ts:1-68`).
   - Only Akinaza has a test database helper (`packages/db/src/test/db.ts:13-41`).
 - **Byte-identical copies.**
-  - `rate-limit.ts` is the same in Yomizaka, Akinaza and Kachizaka.
+  - `rate-limit.ts` is the same in Yomizaka, Akinaza and a former product.
   - `password.ts` is the same in four products, and `client-ip.ts` in four.
-  - Akinaza and Kachizaka also share `audit.ts`, `password-reset.ts` and the drizzle client.
+  - Akinaza and a former product also share `audit.ts`, `password-reset.ts` and the drizzle client.
 - **Several copies of the same idea.**
   - Five `audit_log` tables.
   - Five outboxes.
   - Six mail senders. `@krizaka/email` (krizaka-ui) exists and is not used: Akinaza's `lib/mail.ts:12` waits for it.
   - Four storage implementations, behind two ports of the same shape.
   - Six partial Loi 25 export and erasure paths.
-  - Three credit ledgers (Yomizaka's columns, Orochia's `wallet_ledger`, Java's `credit_ledger_entry`).
+  - Three credit ledgers (Yomizaka's columns, a former product's `wallet_ledger`, Java's `credit_ledger_entry`).
 - **A real collision.**
-  - Orochia has its own `app_settings` table (`packages/db/src/schema/recommendations.ts:49`), with versioned rows.
+  - a former product has its own `app_settings` table (`packages/db/src/schema/recommendations.ts:49`), with versioned rows.
   - `@krizaka/settings` creates `app_settings` too (`packages/settings/src/migration.ts:7`), with another shape.
-  - Orochia cannot adopt the package without a namespace.
+  - a former product cannot adopt the package without a namespace.
 - **How package SQL reaches products today.**
   - Akinaza copies each package's SQL into its drizzle sequence with a generator and a drift test (`packages/db/src/gen-*-migration.ts`, `api-keys.test.ts:9-27`).
   - Yomizaka inlines the SQL into its migration list (`lib/migrations.ts:448-451`).
@@ -75,7 +75,7 @@ A module that has nothing for one of these files does not create it. The shape m
 - **`assertModules(db, modules)`**. A product calls it at boot; it fails with the list of the module versions the code needs and the database lacks.
 - **A runner for products without one:**
   - one transaction per migration, under an advisory lock, with a history table;
-  - it replaces Yomizaka's and Yororis' copies;
+  - it replaces Yomizaka's and a former product's copies;
   - drizzle-kit products keep drizzle-kit.
 - **`@krizaka/db/testing`**:
   - `createTestDatabase({ connect, migrate, prefix })` creates a fresh `<prefix>_it_<hex>` database on the server the tests point at (CI's service, or a local one), migrates it and drops it. Both dependencies are injected, so the helper stays driver-free like the rest of the package:
@@ -105,7 +105,7 @@ A module that has nothing for one of these files does not create it. The shape m
   - drizzle-kit (`generate --custom`) and hand-run sequences both carry it.
 - **The migration tool:**
   - **for module schemas:** `@krizaka/db`'s versioned SQL;
-  - **for products:** drizzle-kit stays for Akinaza, Kachizaka, Orochia and Yasakia, and `@krizaka/db`'s runner serves Yomizaka, Yororis and new products.
+  - **for products:** drizzle-kit stays for Akinaza, the former products, and `@krizaka/db`'s runner serves Yomizaka, a former product and new products.
 - **How a product upgrades a module's schema safely:**
   1. A module's minor version only **adds** (expand). A destructive change (contract) needs a major, and only after one release where the code read both shapes.
   2. Renovate/Dependabot bumps the package. The product's CI then fails on `assertEmbedded`, listing the missing versions.
@@ -115,7 +115,7 @@ A module that has nothing for one of these files does not create it. The shape m
 - **Existing tables are adopted, never rebuilt.**
   - The six packages' tables stay in `public` for now: `api_keys`, `app_settings`, `webhook_*`, `memberships`, `collections`…
   - A one-time **adopt** migration writes their markers.
-  - Each package moves to its own schema in its next major, with `ALTER TABLE … SET SCHEMA` (a catalogue change, no data copy). `settings` moves first, because Orochia's collision needs it.
+  - Each package moves to its own schema in its next major, with `ALTER TABLE … SET SCHEMA` (a catalogue change, no data copy). `settings` moves first, because a former product's collision needs it.
 
 ### 4. The transaction question: one PostgreSQL transaction, the module's API inside it, events through the outbox
 
@@ -132,7 +132,7 @@ await db.transaction(async (tx) => {
 
 - A module function that can join a unit of work takes `tx` (a `Query`) as its first argument. Module services keep no pool of their own.
 - A module never reads or writes another module's tables. It calls that module's API inside the same `tx`.
-- Reactions in another module, or outside the database (mail, push, webhooks, Orazaka), go through the **outbox**: a row written in the same transaction, then delivered **at least once** by a leased worker (`FOR UPDATE SKIP LOCKED`, the pattern of Orochia's `reco_outbox`). This replaces the five outboxes.
+- Reactions in another module, or outside the database (mail, push, webhooks, Orazaka), go through the **outbox**: a row written in the same transaction, then delivered **at least once** by a leased worker (`FOR UPDATE SKIP LOCKED`, the pattern of a former product's `reco_outbox`). This replaces the five outboxes.
   - **What the lease guarantees:** an exclusive claim while the lease is valid.
   - **What it does not:** a worker that delivers and then crashes before marking the row done lets the lease expire, and another worker delivers again. Duplicates are possible after a crash.
   - **So every consumer is idempotent on the event id.** The outbox never promises « exactly once ».
@@ -197,7 +197,7 @@ Each product adopts in a separate PR in that product, filed by the CTO.
 | A runtime service per module (a « platform » the products call) | A network hop and an outage domain for every use case, one database for every product (Loi 25), and the end of « every product keeps its own accounts ». The Java side runs services because Orazaka is a distributed system. The TypeScript products are one app and one database each. |
 | Tables prefixed in `public` (`coupons_coupon`) instead of a schema | It would work, and it is the runner-up. Ownership is weaker: no `\dn`, no `DROP SCHEMA` for a module, no grants per module. The prefix would be a convention a reviewer checks, where the schema is a boundary the database checks. The existing tables already mix prefixed and unprefixed names (`api_keys` and `memberships`). |
 | A separate history table for module migrations, run before or after the product's (Java's `krizaka_schema_history` model) | Modules reference the product's account table and products reference module rows. With two histories, one direction of foreign key always fails on a fresh database unless constraints are deferred or added later. |
-| drizzle-kit for modules (each module ships a drizzle schema) | It puts an ORM into generic packages (ADR-006 « no database client »). Every product snapshot would hold a copy of every module's schema. And Yomizaka and Yororis do not use drizzle. |
+| drizzle-kit for modules (each module ships a drizzle schema) | It puts an ORM into generic packages (ADR-006 « no database client »). Every product snapshot would hold a copy of every module's schema. And Yomizaka and a former product do not use drizzle. |
 | Each product keeps copying package SQL its own way (today) | It works, but the cost grows as modules × products. There are already two styles (Akinaza's generator, Yomizaka's inline list) and no runtime check that the database has what the code expects. |
 | Polymorphic shared tables (`(kind, id)` columns) | ADR-006 already refused them: the database cannot check the reference. |
 | Kysely, node-pg-migrate or Flyway-for-Node as the module migrator | Each one adds a tool and its history format, and none solves the ordering above. Frozen, versioned SQL strings are what the packages already ship (`*Migration()`). |
@@ -205,7 +205,7 @@ Each product adopts in a separate PR in that product, filed by the CTO.
 ## Consequences and costs
 
 - **One foundation to build first** (`@krizaka/db`, about one PR), then one PR per module. The six existing packages need a minor release each to use the shared types and declare their schema. Their tables move to their own schemas in a later major, one package at a time.
-- **Products change in their own PRs:** Akinaza swaps its six generators for `emitMigration`; Yomizaka swaps its runner; Orochia and Yasakia keep drizzle and add the embedded module versions. A migration the product already ran is adopted, never replayed.
+- **Products change in their own PRs:** Akinaza swaps its six generators for `emitMigration`; Yomizaka swaps its runner; the former products keep drizzle and add the embedded module versions. A migration the product already ran is adopted, never replayed.
 - **Every module upgrade is a reviewed PR in each product.** This is deliberate: the database changes only through the product's sequence, and the SQL is visible. Renovate opens the PR; the drift test says what to add.
 - **Discipline the reviews must hold:**
   - frozen versions;

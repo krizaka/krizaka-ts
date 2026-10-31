@@ -20,7 +20,7 @@ What exists, read in the products on 2026-10-23 (details and file:line in the de
   - Taxes are Stripe Tax: `automatic_tax`, `tax_id_collection` (krizaka-ui `packages/payments/src/stripe.ts:137-151`).
   - Entitlements are columns on `accounts`, written by each product's own `billing.ts`.
   - Akinaza's 39 $ founder offer is a price, not a coupon.
-- **Orochia** has its own payment package with five gateways, and an append-only credit ledger in cents, with holds.
+- **a former product** has its own payment package with five gateways, and an append-only credit ledger in cents, with holds.
 - **Orazaka's** credits live in the Java `krizaka-billing`: `GRANTED` and `PURCHASED` buckets, holds, an idempotency key per entry. It has no payment provider at all.
 - **The idempotency gap.** `@krizaka/payments`' `applyOnce` records a webhook's id before its handler runs, and not in the same transaction (`events.ts:15-21`). A coupon redeemed there could be lost (the handler fails after the id is recorded) or double-counted (a retry with a new event id).
 
@@ -43,7 +43,7 @@ What exists, read in the products on 2026-10-23 (details and file:line in the de
      - an optional cap per day and per month;
      - an expiry (required: `credits_valid_days`);
      - what happens when it runs out: `stop` (refuse with a typed code), or `fallback_paid` (the product shows its paid plan).
-   - No provider is involved, so a credit coupon works with every provider, including Orochia's gateways.
+   - No provider is involved, so a credit coupon works with every provider, including a former product's gateways.
 4. **Redemptions are reserved, confirmed and released, in transactions.**
    - **Reserve at checkout.** `apply` locks the coupon row (`SELECT … FOR UPDATE`) in a short transaction. It counts the uses (the design's §2 rule), overall and for the account, inserts a `reserved` redemption with an expiry, and commits. `apply` is idempotent by its key.
    - **No network call happens under the lock or inside a transaction.** The provider's session is created afterwards with the redemption id as its idempotency key, and attached in a second short transaction. The webhook finds the redemption by `metadata.redemption_id` even if the attach never ran (design §4.1).
@@ -60,7 +60,7 @@ What exists, read in the products on 2026-10-23 (details and file:line in the de
    3. The subscription state on `accounts` (four columns × two products) becomes `payments.subscription`, adopted.
    4. Yomizaka's `audit_credits` / free-audit logic moves to `@krizaka/credits` (ADR-001 cut #7), with its behaviour unchanged.
    5. Then comes `@krizaka/coupons`.
-   6. Orochia keeps its own credits and gateways until a later move. Orazaka's credits stay in Java (§7).
+   6. a former product keeps its own credits and gateways until a later move. Orazaka's credits stay in Java (§7).
 7. **Orazaka gets the same model in Java.** Orazaka's billing is `krizaka-billing`; the web client has no database. Its coupons are therefore a twin in `krizaka-billing`, with the same tables, refusal codes and events. Its credit coupon is a `GRANT` with the cap. This is filed as a Java issue after the TypeScript package proves the model.
 
 ## The options weighed
@@ -69,7 +69,7 @@ What exists, read in the products on 2026-10-23 (details and file:line in the de
 |---|---|---|---|
 | The admin configures, our database is the truth | No: Stripe holds the codes, limits and redemptions; we mirror them back | **Yes** | Half: discount codes live in two places that must be kept in sync (pause, end, limits) |
 | Credit coupons | Impossible: Stripe has no notion of our usage credits | **Yes** | Yes |
-| Portability across providers | None: Orochia's CCBill and Segpay have no coupon API; `manual` has no Stripe | **Yes**: discount terms are vendor-free; a provider without discounts refuses them with a typed code; credit coupons work everywhere | Discounts tied to Stripe |
+| Portability across providers | None: a former product's CCBill and Segpay have no coupon API; `manual` has no Stripe | **Yes**: discount terms are vendor-free; a provider without discounts refuses them with a typed code; credit coupons work everywhere | Discounts tied to Stripe |
 | Taxes (TPS/TVQ on the discounted amount) | Yes (Stripe Tax) | **Yes**: Stripe Tax for Stripe; a line discount before tax for `manual` | Yes |
 | Per-account limits, new customers only | Partial: `first_time_transaction` and per-customer codes only; no « N per account » | **Yes**, in SQL under a row lock | Partial for discounts |
 | Concurrency (two people, the last use) | Stripe's `max_redemptions`, counted at payment: oversell between session and payment | **Reservation under lock**; late payments honoured and flagged | Stripe's again for discounts |

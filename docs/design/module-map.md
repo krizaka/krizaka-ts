@@ -2,9 +2,9 @@
 
 This is the evidence and the plan of [ADR-001](../adr/ADR-001-modular-architecture.md), for krizaka/krizaka-ts#47.
 - **Sources:** a read-only pass over `main` on 2026-10-23, at these commits:
-  - yomizaka `7b77d2e`, akinaza `86d35a2`, kachizaka `9df64cb`, orochia `239e402`, yasakia `7d34595`, yororis `6a06067`;
+  - yomizaka `7b77d2e`, akinaza `86d35a2`, a former product `9df64cb`, a former product `239e402`, a former product `7d34595`, a former product `6a06067`;
   - orazaka-web-client, plus the Java repositories it calls.
-- **Path notation:** paths are relative to each repository. `Y` = yomizaka, `A` = akinaza, `K` = kachizaka, `O` = orochia, `S` = yasakia, `R` = yororis, `W` = orazaka-web-client.
+- **Path notation:** paths are relative to each repository. `Y` = yomizaka, `A` = akinaza, `K` = a former product, `O` = a former product, `S` = a former product, `R` = a former product, `W` = orazaka-web-client.
 
 ## 1. The inventory: capabilities × products
 
@@ -32,7 +32,7 @@ This is the evidence and the plan of [ADR-001](../adr/ADR-001-modular-architectu
 | mail | Mailgun, plain text, FR/EN inline (`lib/mailer.ts:1-27`, `lib/signup.ts:42-46`) | Mailgun + `mail_outbox` (0003) + template files (`lib/mail.ts:15-138`, `lib/mail-templates.ts:16-35`); `flushOutbox` has no caller outside tests (`lib/mail.ts:49`) | templates only (`lib/mail-templates.ts:16-29`) | Resend or Mailgun + template files (`lib/mail.ts:4-60`, `lib/mail-templates.ts:6-50`) | Mailgun, O's template format (`lib/mail.ts:7-28`) | Mailgun copy (`lib/mail.ts:15-30`) | SMTP/SMS/webhook, AMQP (`krizaka-notifications-service`) |
 | notifications | — | e-mail only | — | bell + SSE + push + e-mail with burst caps (`lib/notifications.ts:17-24`), matrix 5 × 2 (`lib/notification-matrix.ts:3-15`), `@krizaka/push` (`lib/push.ts:1-24`) | `pushToAccount` (`lib/push.ts:1-42`), no caller | — | toasts only (W); Java notifications |
 | storage | port `put/get/delete` (`lib/storage/port.ts:27-34`); Bunny, S3 (own SigV4), memory, encrypted (`lib/storage/config.ts:34-59`) | Bunny over `fetch`, no port (`lib/media-upload.ts:9-108`) | — | fs or Bunny, no port (`lib/storage.ts:17-25`); Bunny Stream (`packages/media/src/bunny-client.ts:22`) | `MediaStorage` port, Bunny/local/memory (`packages/media/src/storage.ts:9,34,61,90`) | — | conversation service (`AssetController.java:32`) |
-| payments | `@krizaka/payments` 0.1.0 (Stripe), local `config.ts`, `billing.ts`, 3 routes | same, founder price (`lib/payments/config.ts:12-21`) | — | own `@orochia/payments`, 5 gateways (`packages/payments/src/types.ts:3,49-56`) | — | — | `krizaka-billing`, no payment provider (`PackSubscriptionService.java:30-33`) |
+| payments | `@krizaka/payments` 0.1.0 (Stripe), local `config.ts`, `billing.ts`, 3 routes | same, founder price (`lib/payments/config.ts:12-21`) | — | own a retired export, 5 gateways (`packages/payments/src/types.ts:3,49-56`) | — | — | `krizaka-billing`, no payment provider (`PackSubscriptionService.java:30-33`) |
 | credits / quota | `audit_credits`, `free_audit_used_at` on `accounts` (0009), `reserveAudit` (`lib/billing.ts:46-74`), caps from settings (`lib/settings/boundary.ts:55-65`) | plan limits in settings (`lib/settings.ts:21-35`) | — | `wallet_ledger` (`schema/wallet.ts:32-51`), advisory lock per wallet (`packages/payments/src/credits.ts:95`) | — | `moment_starts` (`lib/starts.ts:4-11`) | `credit_ledger_entry`, `credit_hold` (`70-billing.sql:145,184`) |
 | jobs / outbox | — (« advance while looked at », `lib/batch/run.ts:14-20`) | `setInterval` (`instrumentation.ts:5-27`) | GitHub cron (`.github/workflows/dev-sync.yml:9-10`) | `setInterval` schedulers (`instrumentation.ts:1-15`), `reco_outbox` with SKIP LOCKED (`lib/recommendations/recommendations.outbox.ts:14-19`) | `setInterval` (`lib/jobs.ts:36-77`), `analytics_outbox` | — | `billing_outbox` (`70-billing.sql:298`), `krizaka_outbox` (`krizaka-messaging`) |
 | consent / export / erasure | `consents` (`lib/migrations.ts:180-187`), `api/me/export`, `api/me/delete`, retention (`lib/retention.ts`) | `recordConsent`/`eraseClient` (`packages/db/src/shop-ops.ts:75,85`), `api/me/export`, privacy officer tested (`lib/privacy-officer.test.ts`) | admin only (`lib/admin.ts:124,159`) | admin export only (`lib/account-export.ts:1-4`) | async export (`lib/export.ts:28-42`), deletions (`lib/admin-erase.ts:10-16`) | consent columns (`app/api/me/consent/route.ts:8-23`) | admin export/erase (`AdminUserController.java:88,94`) |
@@ -71,7 +71,7 @@ This is the evidence and the plan of [ADR-001](../adr/ADR-001-modular-architectu
 | 8 | `privacy` (consent, export, erasure) | 6 partial | Loi 25 | each module contributes its own export and erasure |
 | 9 | `storage` | 4 | documents, media | #44 is filed |
 | 10 | `notifications` | 1 full (O) + 1 partial | engagement | built from O's model on mail + push + realtime |
-| 11 | `follows` / `reviews` | 1 + planned | Akinaza's shops, Orochia | #37 is filed (draft PR #38) |
+| 11 | `follows` / `reviews` | 1 + planned | Akinaza's shops, a former product | #37 is filed (draft PR #38) |
 | 12 | admin descriptors | 7 consoles | admin configures everything | needs krizaka-ui screens |
 | — | invoices, scheduling, customers, search | 1 product each | — | stay product-local until a second product needs them |
 
@@ -135,11 +135,11 @@ This is the evidence and the plan of [ADR-001](../adr/ADR-001-modular-architectu
     - Bunny Stream first;
     - table `video.asset`.
 
-    First adopter: Orochia. Depends on db, outbox and webhooks.
+    First adopter: a former product. Depends on db, outbox and webhooks.
 12. **notifications.**
     - Bell, channels, preferences and caps.
     - Tables `notifications.item`, `preference`, `device`.
-    - First adopter: Orochia. Depends on db, outbox and mail.
+    - First adopter: a former product. Depends on db, outbox and mail.
 13. **follows and reviews.** In `follows.follow` and `reviews.review`. First adopter: Akinaza. Depends on db and outbox.
 14. **admin descriptors.** Each module's admin resource, read by generic screens in @krizaka/ui. First adopter: Yomizaka. Depends on each module.
 
@@ -171,11 +171,11 @@ Each line below is ready to file. The CTO files them after « validé »; the pr
 | 6 | `feat(payments): @krizaka/payments moves to krizaka-ts; events applied in the effect's transaction; discounts` | the package and its history move (same name, next minor); `applyInTransaction(tx, event, handlers)`; `discount` in `CheckoutRequest`; `checkout_expired` event; #34's modes after | a failing handler leaves the event unrecorded (the test that is missing today); Stripe mocked | Yomizaka |
 | 7 | `feat(credits): @krizaka/credits` | ledger, holds, caps per grant, krizaka-billing's entry types | concurrent debit of the last credit; cap per day and month | Yomizaka (`audit_credits` → ledger, behaviour unchanged) |
 | 8 | `feat(coupons): @krizaka/coupons` (#46) | the design `docs/design/coupons.md` (PR #49), once #46's phase 1 is validated; the scope is [#46](https://github.com/krizaka/krizaka-ts/issues/46) | see #46 phase 2 | Yomizaka, then Akinaza, then Orazaka |
-| 9 | `feat(auth): sessions, password, client IP, admin gate, /api/me contract` | the byte-identical files become exports; contract of krizaka-ui#551 | the copied tests pass on the package | Akinaza, Yomizaka, Kachizaka |
+| 9 | `feat(auth): sessions, password, client IP, admin gate, /api/me contract` | the byte-identical files become exports; contract of krizaka-ui#551 | the copied tests pass on the package | Akinaza, Yomizaka, a former product |
 | 10 | `feat(mail): @krizaka/mail on @krizaka/email` | stores for delivery log, suppression, idempotency; Mailgun/Resend/log providers; outbox delivery | an outbox flush that really runs (Akinaza's gap) | Akinaza |
 | 11 | `feat(privacy): @krizaka/privacy` | consents, `PrivacyContributor`, export, erasure, retention | each existing module contributes; an export lists every module's data | Yomizaka |
-| 12 | `feat(storage, video)` (#44) | as #44 says, on `db`'s types: two packages, `storage` and `video` | as #44 | Yomizaka (storage), Orochia (video) |
-| 13 | `feat(notifications): @krizaka/notifications` | Orochia's matrix and burst caps, channels | preferences respected per channel; caps | Orochia |
+| 12 | `feat(storage, video)` (#44) | as #44 says, on `db`'s types: two packages, `storage` and `video` | as #44 | Yomizaka (storage), a former product (video) |
+| 13 | `feat(notifications): @krizaka/notifications` | a former product's matrix and burst caps, channels | preferences respected per channel; caps | a former product |
 | 14 | `feat(community)` (#37) | as #37, on `db` and `outbox` | as #37 | Akinaza |
 | 15 | krizaka-ui: `feat(admin): generic module screens from ./admin descriptors` | table, filters, detail, actions | coupons' screens built from them | Yomizaka |
 
