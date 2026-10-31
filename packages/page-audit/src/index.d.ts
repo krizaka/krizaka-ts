@@ -23,6 +23,8 @@ export interface ProblemChecks {
   maps?: boolean | { min?: number; required?: boolean };
   /** Two interactive elements (buttons, links, inputs, radios…) that share pixels on screen, one not inside the other: one of them cannot be clicked. The box is cut by clipping and scrolling ancestors. */
   controlOverlaps?: boolean;
+  /** A control (button, link outside a sentence, input, tab…) drawn under 44 px on a side: too small for a thumb (WCAG 2.5.5). */
+  smallTargets?: boolean;
 }
 export function problemsOf(where: string, result: Record<string, unknown>, checks?: ProblemChecks): string[];
 export function auditOptions<T extends object>(options?: T): T & { reducedMotion: "reduce" };

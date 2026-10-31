@@ -153,6 +153,20 @@ function controlOverlapsOf() {
   return overlaps;
 }
 
+/** `smallTargets`: the controls drawn on screen under 44 px on a side (WCAG 2.5.5, the thumb): an inline link in a sentence is exempt. */
+function smallTargetsOf() {
+  const controls =
+    'button, a[href], input:not([type="hidden"]), select, textarea, summary, [role="button"], [role="radio"], [role="checkbox"], [role="switch"], [role="tab"], [role="menuitem"], [role="link"], [role="combobox"]';
+  return [...document.querySelectorAll(controls)]
+    .filter(
+      (el) => !clipped(el) && getComputedStyle(el).visibility !== "hidden" && getComputedStyle(el).display !== "none",
+    )
+    .filter((el) => !(el.matches("a") && getComputedStyle(el).display === "inline"))
+    .map((el) => ({ el, r: el.getBoundingClientRect() }))
+    .filter(({ r }) => r.width > 4 && r.height > 4 && (r.width < 44 || r.height < 44))
+    .map(({ el, r }) => nameOf(el) + " " + Math.round(r.width) + "x" + Math.round(r.height));
+}
+
 /** `overlaps`: two sections that are not nested and cover each other, or what ran out of its panel and lands on another section (the card covering « Dernières vérifications »). */
 function overlapsOf(panels, spill) {
   const overlaps = [];
@@ -426,6 +440,7 @@ function measurePage() {
     cutColumns: cutColumnsOf(),
     chromeOverlaps: chromeOverlapsOf(doc).slice(0, 3),
     controlOverlaps: controlOverlapsOf().slice(0, 5),
+    smallTargets: smallTargetsOf().slice(0, 8),
     clips: clipsOf(),
     emptyHeadings: emptyHeadingsOf(),
     unlabelledFiles: unlabelledFilesOf(),
@@ -463,6 +478,7 @@ const PROBES = [
   spillOf,
   seenBox,
   controlOverlapsOf,
+  smallTargetsOf,
   overlapsOf,
   cutBy,
   cutColumnsOf,
@@ -524,6 +540,11 @@ const FLAGGED_CHECKS = [
         : [],
   ],
   ["maps", (where, result, maps) => mapProblems(where, result.maps ?? [], maps)],
+  [
+    "smallTargets",
+    (where, result) =>
+      result.smallTargets?.length ? [`${where}: touch target under 44 px (${result.smallTargets.join(", ")})`] : [],
+  ],
   [
     "controlOverlaps",
     (where, result) =>

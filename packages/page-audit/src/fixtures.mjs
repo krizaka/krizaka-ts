@@ -43,6 +43,14 @@ export const FRAME_FITS = page(
 );
 /** A button-styled action 24 px tall, under the 36 px tap target. */
 export const SMALL_ACTION = page(`<a class="kz-button" href="/" style="display:block;height:24px;width:120px">Go</a>`);
+/** A button 32 px tall next to a 44 px one, and a link inside a sentence (exempt). */
+export const SMALL_TARGET = page(
+  `<button style="display:block;height:32px;width:120px">Add</button><p>Read <a href="/">the guide</a> now</p>`,
+);
+/** Controls of 44 px and more, and an inline link. */
+export const TARGETS_FINE = page(
+  `<button style="display:block;height:44px;width:120px">Add</button><a href="/" style="display:block;height:48px;width:48px">x</a><p>Read <a href="/">the guide</a> now</p>`,
+);
 /** A landmark whose content is wider than its box. */
 export const BOX_TOO_WIDE = page(`<aside style="width:200px"><div style="width:500px">wide</div></aside>`);
 /** Broken picture, a tile that draws nothing, an inline hard-coded colour. */

@@ -25,15 +25,24 @@ Opt-in through `checks` (nothing changes for a repo that does not ask): `status`
 (the signed-in frame, `[data-app-frame-slot]`, forces a scroll), `minAction` (a button-styled action under N px), `boxes` (a landmark
 wider than its box), `landmarks` (`"public"` one footer naming Krizaka and a nav, `"app"`, `"auth"`), `pictures`, `emptyControls`,
 `hardColors`, `maps` (an empty map, akinaza#488: a GL / Leaflet / `[data-kz-map]` box under 120 px on a side, a GL map with no canvas,
-a Leaflet map with no loaded tile; `maps: { required: true }` also fails a page that should draw one but has none), `controlOverlaps` (two interactive elements that share pixels on screen, one not inside the other — akinaza#214: the composer's title over a row). Console noise the app tolerates: `ignoreConsole: [/…/]` (`[]` counts every error); `attempts` retries a route.
+a Leaflet map with no loaded tile; `maps: { required: true }` also fails a page that should draw one but has none), `smallTargets` (a control under 44 px on a side — an inline link in a sentence is exempt), `controlOverlaps` (two interactive elements that share pixels on screen, one not inside the other — akinaza#214: the composer's title over a row). Console noise the app tolerates: `ignoreConsole: [/…/]` (`[]` counts every error); `attempts` retries a route.
 
 ```js
 const routes = await routesFromSitemap(base, { first: ["/", "/docs"], limit: 14 }); // a crawl as the route source (null: nothing answers)
 await auditRoutes({
-  base, routes: [...routes, { url: "/login", chrome: "auth" }, { url: "/chat", session: true, chrome: "app" }],
-  widths: [{ width: 1440, height: 900 }, { width: 390, height: 844 }],
+  base,
+  routes: [...routes, { url: "/login", chrome: "auth" }, { url: "/chat", session: true, chrome: "app" }],
+  widths: [
+    { width: 1440, height: 900 },
+    { width: 390, height: 844 },
+  ],
   session: { storageState }, // or { signIn(context, { base, theme }) {…}, routes: async (page) => […] } for pages found once signed in
-  a11y: { app: "my-app", baseline: "a11y-baseline.json", widths: [390, 1440], session: { app: "my-app-app", baseline: "a11y-baseline.app.json" } },
+  a11y: {
+    app: "my-app",
+    baseline: "a11y-baseline.json",
+    widths: [390, 1440],
+    session: { app: "my-app-app", baseline: "a11y-baseline.app.json" },
+  },
   checks: { status: true, emptyMain: true, minAction: 36, landmarks: "public", frame: true },
 });
 ```
@@ -50,13 +59,16 @@ as the runner. It freezes what moves (clock, motion, caret, View Transition, loc
 import { test, expect } from "@playwright/test";
 import { defineJourneyTests } from "@krizaka/page-audit/visual";
 defineJourneyTests({
-  test, expect,
-  signIn: async (page) => { /* the seeded persona signs in through the form */ },
+  test,
+  expect,
+  signIn: async (page) => {
+    /* the seeded persona signs in through the form */
+  },
   journeys: [
     { name: "landing", path: "/fr" },
     { name: "home", path: "/fr/app", session: true, mask: ["[data-live]"] },
-    { name: "home", path: "/fr/app", session: true, firstPaint: true, viewports: ["phone"] },          // the HTML the server sent
-    { name: "home", path: "/fr/app", session: true, firstPaint: { hold: ["**/api/me"] } },             // hydrated, account query pending
+    { name: "home", path: "/fr/app", session: true, firstPaint: true, viewports: ["phone"] }, // the HTML the server sent
+    { name: "home", path: "/fr/app", session: true, firstPaint: { hold: ["**/api/me"] } }, // hydrated, account query pending
   ],
 });
 ```
