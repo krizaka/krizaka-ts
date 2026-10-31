@@ -118,6 +118,9 @@
     "rate-limit": {
       "hook": "Limits per action: fixed windows per address and subject, set by the admin, counted exactly under concurrency."
     },
+    "contract": {
+      "hook": "One response schema (zod) asserted by route tests, journeys, monitors and fetch wrappers: a 204, a missing field or an undefined count fails with the field’s path."
+    },
     "time": {
       "hook": "Date arithmetic on an instant, exact in any time zone: the facade the « Krizaka first » dates rule points to."
     },
