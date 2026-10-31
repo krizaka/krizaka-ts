@@ -14,6 +14,7 @@ export {
   revokeConnection,
   startConnection,
 } from "./cloud-connectors";
+export { CLOUD_KEY_KINDS, type CloudKeyConfig, cloudKeyService } from "./cloud-keys";
 export { checkEndpointDns, isPrivateAddress, type Resolver } from "./dns-check";
 export {
   dropboxAuthorizeUrl,
@@ -28,6 +29,15 @@ export { type FolderOptions, folderStore } from "./folder-store";
 export { hashedName, hashOf } from "./hashing";
 export * from "./index";
 export {
+  contextText,
+  type KeyContext,
+  type KeyService,
+  memoryKeyService,
+  openBytes,
+  sealBytes,
+  type WrappedKey,
+} from "./key-service";
+export {
   type AdapterInput,
   createProviderRegistry,
   defaultProviderRegistry,
@@ -41,6 +51,21 @@ export {
 } from "./open-provider";
 export { remoteStore, type RemoteStoreOptions } from "./remote-store";
 export { createStorage, type Storage, type StorageDeps, type StorageLimits, type UploadInput } from "./storage";
+export {
+  dbTenantKeyStore,
+  memoryTenantKeyStore,
+  type TenantKey,
+  tenantKeysMigration,
+  type TenantKeyStore,
+} from "./tenant-keys";
+export {
+  assertTenantId,
+  type KeyAuditNote,
+  tenantStore,
+  type TenantVault,
+  tenantVault,
+  type TenantVaultDeps,
+} from "./tenant-vault";
 export {
   keyIdOf,
   type Keyring,

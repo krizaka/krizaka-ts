@@ -1,8 +1,9 @@
 import { defineModule } from "@krizaka/db";
 
 import type { ResidencyLabel } from "./regions";
+import { tenantKeysMigration } from "./tenant-keys";
 
-/** The tables of the admin's providers, in their own Postgres schema (ADR-001 §3). Version 1 is frozen once released: a change is version 2. */
+/** The tables of the admin's providers (v1) and the tenants' wrapped keys of the managed storage (v2, ADR-020), in their own Postgres schema (ADR-001 §3). Version 1 is frozen once released: a change is version 2. */
 export const storageSchema = defineModule({
   module: "storage",
   tables: [],
@@ -35,6 +36,7 @@ CREATE TABLE ${c.schema}.default_provider (
   PRIMARY KEY (scope, data_kind)
 );`,
     },
+    { version: 2, name: "tenant_keys", sql: (c) => tenantKeysMigration(c.schema) },
   ],
 });
 
