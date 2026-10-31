@@ -71,6 +71,7 @@ export const orgSchema = {
     "defaults",
     "products",
     "sites",
+    "family",
     "contact",
     "footer",
   ],
@@ -187,6 +188,24 @@ export const orgSchema = {
         additionalProperties: false,
         required: ["id", "name", "url"],
         properties: { id: slug, name: { type: "string", minLength: 1 }, url: httpsUrl },
+      },
+    },
+    family: {
+      type: "array",
+      minItems: 1,
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["id", "name", "short", "group", "status", "url", "repo"],
+        properties: {
+          id: slug,
+          name: { type: "string", minLength: 1 },
+          short: { type: "string", minLength: 1 },
+          group: { enum: ["krizaka", "products", "open-source", "github"] },
+          status: { enum: ["released", "development"] },
+          url: httpsUrl,
+          repo: { anyOf: [httpsUrl, { type: "null" }] },
+        },
       },
     },
     contact: {

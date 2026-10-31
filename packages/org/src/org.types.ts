@@ -22,6 +22,31 @@ export interface OrgSite {
   url: string;
 }
 
+/** Where an entry of the family sits: the company's own pages, the products, the open-source libraries and tools, GitHub. */
+export type FamilyGroup = "krizaka" | "products" | "open-source" | "github";
+
+/** `released`: open to use. `development`: built in the open, said « In development ». */
+export type FamilyStatus = "released" | "development";
+
+/**
+ * One name of the family, the only place it is written. The naming rule (founder, 2026-10-30): the company is
+ * « Krizaka »; a product goes by its own name (« Yomizaka », never « Krizaka Yomizaka »); a library or a tool is always
+ * « Krizaka <X> » (« Krizaka UI », never « UI » alone outside a group headed « Open source »).
+ */
+export interface FamilyEntry {
+  id: string;
+  /** The display name, never translated (« Krizaka TypeScript »). */
+  name: string;
+  /** The short name, only inside its group's heading (« TypeScript » under « Open source »). */
+  short: string;
+  group: FamilyGroup;
+  status: FamilyStatus;
+  /** Its home: the site, or the repository while it has no site. */
+  url: string;
+  /** Its public source repository (`null` for GitHub itself). */
+  repo: string | null;
+}
+
 export interface OrgAvatar {
   id: string;
   /** `person` is a silhouette, `plain` a plain disc. */
@@ -113,6 +138,8 @@ export interface Org {
   /** Only the products that are live. */
   products: OrgProduct[];
   sites: OrgSite[];
+  /** Every name of the family, in reading order (group, then order inside it): the bar, the switcher and every footer read it. */
+  family: FamilyEntry[];
   contact: {
     page: Localized;
     /** The public support address; `null` while none is public. */

@@ -1,0 +1,18 @@
+id: no-hand-made-footer
+language: Tsx
+severity: error
+message: "No hand-made footer. Every Krizaka site and app renders `SiteFooter` of @krizaka/ui (`variant` site | docs | app, `tone` product | cahier) with `org` from @krizaka/org: three lines at most, the family's names from the org (krizaka/krizaka-internal#754)."
+rule:
+  any:
+    - kind: jsx_opening_element
+      has:
+        field: name
+        regex: ^footer$
+    - kind: jsx_self_closing_element
+      has:
+        field: name
+        regex: ^footer$
+ignores:
+  - "**/node_modules/**"
+  - "**/.next/**"
+  - "**/dist/**"
