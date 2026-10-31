@@ -1,0 +1,17 @@
+id: no-swallowed-catch-success
+valid:
+  - |
+    try { await run(); } catch (e) { console.error(e); process.exit(1); }
+  - |
+    try { await run(); } catch (e) { throw new Error("run failed", { cause: e }); }
+  - |
+    try { await run(); } catch (e) { console.error(e); return false; }
+invalid:
+  - |
+    try { await run(); } catch {}
+  - |
+    try { await run(); } catch (e) { }
+  - |
+    try { await run(); } catch (e) { console.warn(e); return true; }
+  - |
+    try { await run(); } catch (e) { process.exit(0); }

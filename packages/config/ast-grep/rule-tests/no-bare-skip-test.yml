@@ -1,0 +1,22 @@
+id: no-bare-skip
+valid:
+  - |
+    // quarantine: krizaka/krizaka-ts#123 2026-11-15
+    it.skip("flaky on CI", () => {});
+  - |
+    // why it is off
+    // quarantine: krizaka-internal#9 2026-12-01
+    test.fixme("later", async () => {});
+  - |
+    it("runs", () => {});
+invalid:
+  - |
+    it.skip("flaky", () => {});
+  - |
+    // flaky, fix later
+    test.skip("x", () => {});
+  - |
+    // quarantine: krizaka-internal#9
+    describe.skip("no date", () => {});
+  - |
+    xit("old style", () => {});

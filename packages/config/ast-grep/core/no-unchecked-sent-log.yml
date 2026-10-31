@@ -1,0 +1,25 @@
+id: no-unchecked-sent-log
+language: Tsx
+severity: error
+message: "\"sent to ${x}\" printed without proof: when x is undefined it logs \"sent to undefined\" and the run stays green (krizaka-internal#1970). Assert that the count is a finite integer first (`Number.isInteger(x)`, or `count()` of @krizaka/contract), then log it."
+rule:
+  all:
+    - any:
+        - pattern: console.log($$$A)
+        - pattern: console.info($$$A)
+    - has:
+        kind: template_string
+        stopBy: end
+        regex: '(sent|queued|delivered|accepted|processed|deleted|published)\s+(to|for|of)\s+\$\{'
+files:
+  - "scripts/**"
+  - "tools/**"
+  - "tests/**"
+  - "test/**"
+  - "e2e/**"
+  - "**/*.test.ts"
+  - "**/*.test.mjs"
+  - "**/*.mjs"
+ignores:
+  - "**/node_modules/**"
+  - "**/dist/**"

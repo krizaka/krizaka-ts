@@ -8,4 +8,4 @@ ruleDirs:
 testConfigs:
   - testDir: rule-tests
 languageGlobs:
-  Tsx: ["*.ts", "*.mts"]
+  Tsx: ["*.ts", "*.mts", "*.mjs"]
