@@ -20,7 +20,7 @@ describe("the defaults section", () => {
   it("validates against the schema, and the whole file still does", () => {
     const validate = ajv.compile(orgSchema);
     expect(validate(org), JSON.stringify(validate.errors)).toBe(true);
-    expect(org.schemaVersion).toBe(3);
+    expect(org.schemaVersion).toBe(2);
   });
 
   it("stays readable by schema 1: the legacy people lists are untouched", () => {

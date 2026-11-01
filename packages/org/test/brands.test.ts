@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest";
 
-import { brandOf, catalogueValues, codeNameMap, displayName, findCodeNames, lockup, org, visibleText } from "../src";
+import {
+  brandOf,
+  brands,
+  catalogueValues,
+  codeNameMap,
+  displayName,
+  findCodeNames,
+  lockup,
+  org,
+  visibleText,
+} from "../src";
 
 describe("the commercial names (krizaka-internal#2035)", () => {
   it("gives every product a commercial name, an endorsement and a site", () => {
@@ -88,5 +98,33 @@ describe("the code-name guard (krizaka-internal#2036)", () => {
       ["site.yomizaka.list[0]", "Akinaza"],
     ]);
     expect(values.flatMap(([, v]) => findCodeNames(v))).toHaveLength(1);
+  });
+});
+
+describe("the org JSON stays service discovery (founder, 2026-11-01)", () => {
+  it("carries no commercial name, code name or brand data", () => {
+    expect(Object.keys(org)).not.toContain("brands");
+    expect(org.schemaVersion).toBe(2);
+  });
+
+  it("no renderer helper returns a code name", () => {
+    for (const b of brands) {
+      for (const chosen of [undefined, "", b.codeName, `${b.codeName} Pro`]) {
+        for (const locale of ["fr", "en"]) {
+          expect(findCodeNames(displayName(b.codeName, chosen)), `${b.codeName}/${chosen}`).toEqual([]);
+          expect(findCodeNames(lockup(b.codeName, locale, chosen)), `${b.codeName}/${locale}/${chosen}`).toEqual([]);
+        }
+      }
+    }
+  });
+
+  it("strips comments and code without backtracking on hostile input", () => {
+    const hostile = `${"<!--".repeat(50000)} Verikora`;
+    const t0 = Date.now();
+    expect(visibleText(hostile)).toContain("Verikora".slice(0, 0));
+    expect(Date.now() - t0).toBeLessThan(1000);
+    expect(visibleText("<p>a</p><SCRIPT>yomizaka()</SCRIPT><code>akinaza</code><p>b</p>")).not.toMatch(
+      /yomizaka|akinaza/,
+    );
   });
 });

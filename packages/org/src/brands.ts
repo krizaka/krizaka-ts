@@ -1,14 +1,85 @@
-import { org } from "./org";
-import type { OrgBrand } from "./org.types";
+import type { Localized } from "./org.types";
 
 /**
  * The commercial names (krizaka-internal#2033, #2035, #2036): the code name stays internal, the customer reads the
  * commercial name, « Verikora by Krizaka ». Every app, site and template reads them from here — never a literal.
+ *
+ * These are NOT in `org.json`: the org JSON is service discovery only (the addresses and versions clients resolve). Names,
+ * status, stores and the footer are admin configuration of each app (`@krizaka/settings`, audit trail); this module is the
+ * seed and the validation vocabulary, not a published file.
  */
+
+/** `product`: sold on its own. `service`: a part the products carry (Kridoc, the managed storage). */
+export type BrandKind = "product" | "service";
+
+export interface OrgBrand {
+  /** The internal name: the repository, the packages, the CLI (`yomizaka`). Never on a public page. */
+  codeName: string;
+  /** The name the customer reads (`Verikora`). One capital; capitals only in the wordmark. */
+  commercialName: string;
+  kind: BrandKind;
+  /** The endorsement after the name: « by Krizaka » / « par Krizaka ». */
+  endorsement: Localized;
+  /** The hosts of the brand (https URLs); `null` where it has none. */
+  domains: { site: string; app: string | null; shop: string | null; dev: string | null };
+  /** The one dated « formerly » line of the transition; `null` when the code name was never public. */
+  formerly: Localized | null;
+}
+
+const ENDORSEMENT = { en: "by Krizaka", fr: "par Krizaka" };
+
+const brand = (
+  codeName: string,
+  commercialName: string,
+  kind: BrandKind,
+  domains: OrgBrand["domains"],
+  formerly: string | null,
+): OrgBrand => ({
+  codeName,
+  commercialName,
+  kind,
+  endorsement: ENDORSEMENT,
+  domains,
+  formerly: formerly
+    ? { en: `${formerly} is now ${commercialName}`, fr: `${formerly} s’appelle désormais ${commercialName}` }
+    : null,
+});
+
+/** The seed: one commercial name per code name. Nothing flips to it until the readiness checklist (krizaka-internal#2092). */
+export const brands: readonly OrgBrand[] = [
+  brand(
+    "yomizaka",
+    "Verikora",
+    "product",
+    { site: "https://www.verikora.com", app: null, shop: null, dev: "https://dev.verikora.com" },
+    "Yomizaka",
+  ),
+  brand(
+    "akinaza",
+    "Folioviv",
+    "product",
+    {
+      site: "https://www.folioviv.com",
+      app: "https://folioviv.app",
+      shop: "https://folioviv.shop",
+      dev: "https://dev.folioviv.com",
+    },
+    "Akinaza",
+  ),
+  brand(
+    "orazaka",
+    "Sovkora",
+    "product",
+    { site: "https://www.sovkora.com", app: null, shop: null, dev: "https://dev.sovkora.com" },
+    "Orazaka",
+  ),
+  // Kachizaka is the code name of the managed storage (Krizaka ECM, krizaka-internal#1916); it was never public.
+  brand("kachizaka", "Kridoc", "service", { site: "https://www.kridoc.com", app: null, shop: null, dev: null }, null),
+];
 
 /** The brand of a code name (`brandOf("yomizaka").commercialName` → « Verikora »). */
 export const brandOf = (codeName: string): OrgBrand => {
-  const found = org.brands.find((b) => b.codeName === codeName);
+  const found = brands.find((b) => b.codeName === codeName);
   if (!found) throw new Error(`Unknown Krizaka code name "${codeName}".`);
   return found;
 };
@@ -35,12 +106,12 @@ export const lockup = (codeName: string, locale: string, chosen?: string | null)
 };
 
 /** The words a public surface never shows: every code name, and « Krizaka ECM » (it is Kridoc). */
-export const CODE_NAMES: readonly string[] = org.brands.map((b) => b.codeName);
+export const CODE_NAMES: readonly string[] = brands.map((b) => b.codeName);
 const FORMER_WORDINGS: readonly [RegExp, string][] = [[/\bkrizaka\s+ecm\b/gi, "Kridoc"]];
 
 /** The code name → commercial name map the guard prints in its hints. */
 export const codeNameMap = (): Record<string, string> =>
-  Object.fromEntries(org.brands.map((b) => [b.codeName, b.commercialName]));
+  Object.fromEntries(brands.map((b) => [b.codeName, b.commercialName]));
 
 const codeNamePattern = (flags = "i") => new RegExp(`\\b(${CODE_NAMES.join("|")})\\b`, flags);
 
@@ -74,7 +145,7 @@ export interface CodeNameHit {
 /** The text with every allowed span blanked (lengths kept, so contexts stay readable). */
 const blankAllowed = (text: string): string => {
   let out = text;
-  for (const brand of org.brands) {
+  for (const brand of brands) {
     for (const line of brand.formerly ? [brand.formerly.en, brand.formerly.fr] : [])
       out = out.split(line).join(" ".repeat(line.length));
   }
@@ -101,6 +172,46 @@ export const findCodeNames = (text: string): CodeNameHit[] => {
   return hits;
 };
 
+/** The text without the spans from `open` to `close` (an unclosed one runs to the end). Linear: no backtracking regex on page input. */
+const stripBlocks = (text: string, open: string, close: string): string => {
+  let out = "";
+  let at = 0;
+  for (;;) {
+    const start = text.indexOf(open, at);
+    if (start < 0) return out + text.slice(at);
+    out += `${text.slice(at, start)} `;
+    const end = text.indexOf(close, start + open.length);
+    if (end < 0) return out;
+    at = end + close.length;
+  }
+};
+
+const SKIPPED_ELEMENTS = ["script", "style", "pre", "code", "svg"];
+/** The text without the elements a visitor does not read as prose (scripts, styles, code, svg), matched case-insensitively. */
+const stripElements = (html: string): string => {
+  const lower = html.toLowerCase();
+  let out = "";
+  let at = 0;
+  while (at < html.length) {
+    let next = -1;
+    let tag = "";
+    for (const name of SKIPPED_ELEMENTS) {
+      for (let i = lower.indexOf(`<${name}`, at); i >= 0; i = lower.indexOf(`<${name}`, i + 1)) {
+        if (!/[a-z0-9-]/.test(lower[i + name.length + 1] ?? " ")) {
+          if (next < 0 || i < next) [next, tag] = [i, name];
+          break;
+        }
+      }
+    }
+    if (next < 0) return out + html.slice(at);
+    out += `${html.slice(at, next)} `;
+    const end = lower.indexOf(`</${tag}>`, next);
+    if (end < 0) return out;
+    at = end + tag.length + 3;
+  }
+  return out;
+};
+
 /**
  * The text a visitor reads in a built HTML page: the body text, the title, the description and social metadata, and the
  * `alt`, `title` and `aria-label` attributes. Scripts, styles, `<pre>` and `<code>` (developer pages' commands) and
@@ -119,9 +230,7 @@ export const visibleText = (html: string): string => {
     }
   }
   for (const m of html.matchAll(/\b(?:alt|title|aria-label)\s*=\s*"([^"]*)"/gi)) attrs.push(m[1] ?? "");
-  const body = html
-    .replace(/<!--[\s\S]*?-->/g, " ")
-    .replace(/<(script|style|pre|code|svg)\b[\s\S]*?<\/\1>/gi, " ")
+  const body = stripElements(stripBlocks(html, "<!--", "-->"))
     .replace(/<[^>]+>/g, " ")
     .replace(/&nbsp;/g, " ")
     .replace(/&amp;/g, "&");

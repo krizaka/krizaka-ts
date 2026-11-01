@@ -1,6 +1,6 @@
 import pkg from "../package.json" with { type: "json" };
 import { defaults as centralDefaults } from "./defaults";
-import type { Localized, Org, OrgAvatar, OrgBrand, OrgMark } from "./org.types";
+import type { Localized, Org, OrgAvatar, OrgMark } from "./org.types";
 
 /** The pull zone that serves the brand files and this JSON. */
 export const CDN = "https://krizaka-assets.b-cdn.net";
@@ -81,31 +81,11 @@ const family: FamilyEntry[] = FAMILY_ROWS.map(([id, name, short, group, status, 
   repo,
 }));
 
-const ENDORSEMENT = { en: "by Krizaka", fr: "par Krizaka" };
-
-/** One commercial name; `formerly` is the code name the public knew, if any (« Yomizaka is now Verikora »). */
-const brand = (
-  codeName: string,
-  commercialName: string,
-  kind: OrgBrand["kind"],
-  domains: OrgBrand["domains"],
-  formerly: string | null,
-): OrgBrand => ({
-  codeName,
-  commercialName,
-  kind,
-  endorsement: ENDORSEMENT,
-  domains,
-  formerly: formerly
-    ? { en: `${formerly} is now ${commercialName}`, fr: `${formerly} s’appelle désormais ${commercialName}` }
-    : null,
-});
-
 export const org: Org = {
   $schema: ORG_SCHEMA_URL,
-  schemaVersion: 3,
+  schemaVersion: 2,
   version: pkg.version,
-  updatedAt: "2026-10-31",
+  updatedAt: "2026-10-30",
   company: {
     legalName: "Technologies Krizaka Inc.",
     tradeName: "Krizaka",
@@ -153,36 +133,6 @@ export const org: Org = {
       url: "https://www.akinaza.com",
       repo: "https://github.com/krizaka/akinaza",
     },
-  ],
-  brands: [
-    brand(
-      "yomizaka",
-      "Verikora",
-      "product",
-      { site: "https://www.verikora.com", app: null, shop: null, dev: "https://dev.verikora.com" },
-      "Yomizaka",
-    ),
-    brand(
-      "akinaza",
-      "Folioviv",
-      "product",
-      {
-        site: "https://www.folioviv.com",
-        app: "https://folioviv.app",
-        shop: "https://folioviv.shop",
-        dev: "https://dev.folioviv.com",
-      },
-      "Akinaza",
-    ),
-    brand(
-      "orazaka",
-      "Sovkora",
-      "product",
-      { site: "https://www.sovkora.com", app: null, shop: null, dev: "https://dev.sovkora.com" },
-      "Orazaka",
-    ),
-    // Kachizaka is the code name of the managed storage (Krizaka ECM, krizaka-internal#1916); it was never public.
-    brand("kachizaka", "Kridoc", "service", { site: "https://www.kridoc.com", app: null, shop: null, dev: null }, null),
   ],
   sites: [
     { id: "www", name: "krizaka.com", url: "https://www.krizaka.com" },

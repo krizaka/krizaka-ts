@@ -1,7 +1,8 @@
 export { APP_SCHEMA_URL, apps } from "./apps";
-export type { CodeNameHit } from "./brands";
+export type { BrandKind, CodeNameHit, OrgBrand } from "./brands";
 export {
   brandOf,
+  brands,
   catalogueValues,
   CODE_NAMES,
   codeNameMap,
@@ -18,7 +19,6 @@ export { CDN, org, ORG_SCHEMA_URL, ORG_URL } from "./org";
 export type {
   AppConfig,
   AppEnvironment,
-  BrandKind,
   FamilyEntry,
   FamilyGroup,
   FamilyStatus,
@@ -26,7 +26,6 @@ export type {
   Org,
   OrgAvatar,
   OrgBanner,
-  OrgBrand,
   OrgDefaultItem,
   OrgDefaultKind,
   OrgDefaults,

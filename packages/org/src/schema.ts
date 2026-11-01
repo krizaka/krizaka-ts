@@ -70,7 +70,6 @@ export const orgSchema = {
     "people",
     "defaults",
     "products",
-    "brands",
     "sites",
     "family",
     "contact",
@@ -78,7 +77,7 @@ export const orgSchema = {
   ],
   properties: {
     $schema: { type: "string" },
-    schemaVersion: { enum: [1, 2, 3] },
+    schemaVersion: { enum: [1, 2] },
     version: semver,
     updatedAt: date,
     company: {
@@ -178,33 +177,6 @@ export const orgSchema = {
           status: { enum: ["development", "devPreview"] },
           url: httpsUrl,
           repo: httpsUrl,
-        },
-      },
-    },
-    brands: {
-      type: "array",
-      minItems: 1,
-      items: {
-        type: "object",
-        additionalProperties: false,
-        required: ["codeName", "commercialName", "kind", "endorsement", "domains", "formerly"],
-        properties: {
-          codeName: slug,
-          commercialName: { type: "string", pattern: "^[A-Z][a-z]+$" },
-          kind: { enum: ["product", "service"] },
-          endorsement: localized,
-          domains: {
-            type: "object",
-            additionalProperties: false,
-            required: ["site", "app", "shop", "dev"],
-            properties: {
-              site: httpsUrl,
-              app: { anyOf: [httpsUrl, { type: "null" }] },
-              shop: { anyOf: [httpsUrl, { type: "null" }] },
-              dev: { anyOf: [httpsUrl, { type: "null" }] },
-            },
-          },
-          formerly: { anyOf: [localized, { type: "null" }] },
         },
       },
     },

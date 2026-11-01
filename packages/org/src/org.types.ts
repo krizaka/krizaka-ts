@@ -16,29 +16,6 @@ export interface OrgProduct {
   repo: string;
 }
 
-/** `product`: sold on its own. `service`: a part the products carry (Kridoc, the managed storage). */
-export type BrandKind = "product" | "service";
-
-/**
- * A commercial name (founder, 2026-10-31, krizaka-internal#2033). The code name stays internal — repositories, packages,
- * Maven/npm coordinates, CLI, internal docs — and the customer reads only the commercial name, endorsed by the company:
- * « Verikora by Krizaka » / « Verikora par Krizaka ». An app may let its administrator change the name it shows
- * (`displayName`), never the code name.
- */
-export interface OrgBrand {
-  /** The internal name: the repository, the packages, the CLI (`yomizaka`). Never on a public page. */
-  codeName: string;
-  /** The name the customer reads (`Verikora`). One capital; capitals only in the wordmark. */
-  commercialName: string;
-  kind: BrandKind;
-  /** The endorsement after the name: « by Krizaka » / « par Krizaka ». */
-  endorsement: Localized;
-  /** The hosts of the brand (https URLs); `null` where it has none. */
-  domains: { site: string; app: string | null; shop: string | null; dev: string | null };
-  /** The one dated « formerly » line of the transition; `null` when the code name was never public. */
-  formerly: Localized | null;
-}
-
 export interface OrgSite {
   id: string;
   name: string;
@@ -126,8 +103,8 @@ export interface OrgMark {
 
 export interface Org {
   $schema: string;
-  /** The contract: `2` adds `defaults`, `3` adds `brands` (compatible: everything before is unchanged). */
-  schemaVersion: 3;
+  /** The contract: `2` adds `defaults` (compatible: everything of `1` is unchanged). */
+  schemaVersion: 2;
   /** The version of `@krizaka/org` that carries this data. */
   version: string;
   /** The day the facts were last reviewed (YYYY-MM-DD). */
@@ -160,10 +137,8 @@ export interface Org {
   };
   /** The central default pictures (people, folders, organisations, shops, banners): use these URLs, never a copy. */
   defaults: OrgDefaults;
-  /** Only the products that are live. `name` is still the code name here; a customer surface reads `brands`. */
+  /** Only the products that are live. */
   products: OrgProduct[];
-  /** The commercial names, one per code name: the only place they are written. */
-  brands: OrgBrand[];
   sites: OrgSite[];
   /** Every name of the family, in reading order (group, then order inside it): the bar, the switcher and every footer read it. */
   family: FamilyEntry[];

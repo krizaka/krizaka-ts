@@ -34,7 +34,18 @@ Without a build step, read it from the CDN: [krizaka-assets.b-cdn.net/org/v1/org
 
 Apache-2.0 · [Krizaka TypeScript](https://github.com/krizaka/krizaka-ts)
 
-## Commercial names (`brands`)
+## What `org.json` is, and what it is not
+
+**Service discovery only** (founder, 2026-11-01): the addresses and versions clients resolve (API URLs, minimum and latest app
+versions, the default media, the family's names and addresses). It is read at start by the apps and published at each release.
+Names, status, store availability, social links and the footer contents are **not** in it: they are admin configuration of each
+app in its database, through `@krizaka/settings` (audit trail), read at runtime and at build where needed (a save redeploys).
+The shared validation (no code name as a display name, FR/EN labels, valid URLs) lives in the settings package.
+
+A rename is therefore: the administrator edits the value in the app's settings, saves, and the build-time pages redeploy.
+The seed below is only the default of that setting.
+
+## Commercial names (`brands`, a seed)
 
 The code names (`yomizaka`, `akinaza`, `orazaka`, `kachizaka`) stay internal: repositories, packages, coordinates, CLI. A customer
 reads the commercial name, endorsed by the company — **« Verikora by Krizaka »** / **« Verikora par Krizaka »**.
