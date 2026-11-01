@@ -64,9 +64,9 @@ const FAMILY_ROWS: FamilyRow[] = [
   ["orazaka", "Orazaka", "Orazaka", "products", "development", "https://www.orazaka.com", gh("orazaka")],
   ["yomizaka", "Yomizaka", "Yomizaka", "products", "development", "https://www.yomizaka.com", gh("yomizaka")],
   ["akinaza", "Akinaza", "Akinaza", "products", "development", "https://www.akinaza.com", gh("akinaza")],
-  ["ui", "Krizaka UI", "UI", "open-source", "released", "https://ui.krizaka.com", gh("krizaka-ui")],
-  ["java", "Krizaka Java", "Java", "open-source", "released", "https://java.krizaka.com", gh("krizaka-build")],
-  ["ts", "Krizaka TypeScript", "TypeScript", "open-source", "released", "https://ts.krizaka.com", gh("krizaka-ts")],
+  ["ui", "Krizaka UI", "UI", "open-source", "development", "https://ui.krizaka.com", gh("krizaka-ui")],
+  ["java", "Krizaka Java", "Java", "open-source", "development", "https://java.krizaka.com", gh("krizaka-build")],
+  ["ts", "Krizaka TypeScript", "TypeScript", "open-source", "development", "https://ts.krizaka.com", gh("krizaka-ts")],
   ["lab", "Krizaka Lab", "Lab", "open-source", "development", "https://lab.krizaka.com", gh("krizaka-lab")],
   ["github", "GitHub", "GitHub", "github", "released", GITHUB, null],
 ];

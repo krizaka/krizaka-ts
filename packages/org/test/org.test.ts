@@ -55,6 +55,18 @@ describe("the org JSON", () => {
   });
 });
 
+describe("the family's status is honest", () => {
+  const listed = (org.family ?? []).filter((e) => e.group === "products" || e.group === "open-source");
+
+  it("every product and open-source entry shares one status (everything is in development, founder 2026-11-01)", () => {
+    expect(new Set(listed.map((e) => e.status))).toEqual(new Set(["development"]));
+  });
+
+  it("a released entry carries the date of its release in data", () => {
+    for (const e of listed.filter((x) => x.status === "released")) expect(e.releasedAt, e.id).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+});
+
 describe("the apps' runtime config", () => {
   it("has one validated file per live product", () => {
     const validate = ajv.compile(appSchema);
