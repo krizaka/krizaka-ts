@@ -203,6 +203,7 @@ export const orgSchema = {
           short: { type: "string", minLength: 1 },
           group: { enum: ["krizaka", "products", "open-source", "github"] },
           status: { enum: ["released", "development"] },
+          releasedAt: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$" },
           url: httpsUrl,
           repo: { anyOf: [httpsUrl, { type: "null" }] },
         },
