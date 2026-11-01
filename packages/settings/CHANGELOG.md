@@ -1,5 +1,18 @@
 # @krizaka/settings
 
+## 0.6.0
+
+### Minor Changes
+
+- bc85231: The commercial names (krizaka-internal#2035, #2036) as a seed, not as published data: `brands` / `brandOf` — Verikora (yomizaka), Folioviv (akinaza), Sovkora (orazaka), Kridoc (kachizaka, the managed storage) with their endorsement, domains and the one « formerly » line; `displayName`, `lockup`; the code-name guard `findCodeNames` / `visibleText` / `catalogueValues` and its CLI `krizaka-code-names`. `org.json` is unchanged (service discovery only). `@krizaka/settings`: `displayNameSetting` — the name an app shows is a setting its administrator changes, defaulting to the commercial name, never a code name.
+
+### Patch Changes
+
+- Updated dependencies [bc85231]
+- Updated dependencies [e602268]
+- Updated dependencies [9de9373]
+  - @krizaka/org@0.7.0
+
 ## 0.5.2
 
 ### Patch Changes

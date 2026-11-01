@@ -1,5 +1,13 @@
 # @krizaka/org
 
+## 0.7.0
+
+### Minor Changes
+
+- bc85231: The commercial names (krizaka-internal#2035, #2036) as a seed, not as published data: `brands` / `brandOf` — Verikora (yomizaka), Folioviv (akinaza), Sovkora (orazaka), Kridoc (kachizaka, the managed storage) with their endorsement, domains and the one « formerly » line; `displayName`, `lockup`; the code-name guard `findCodeNames` / `visibleText` / `catalogueValues` and its CLI `krizaka-code-names`. `org.json` is unchanged (service discovery only). `@krizaka/settings`: `displayNameSetting` — the name an app shows is a setting its administrator changes, defaulting to the commercial name, never a code name.
+- e602268: Every product and open-source entry of the family is `development` (nothing is released yet), and a `released` entry now needs a `releasedAt` date in data; a test refuses a mixed column or a release without its date.
+- 9de9373: The family no longer lists Krizaka Skills (its content moved to a private repository).
+
 ## 0.6.0
 
 ### Minor Changes
