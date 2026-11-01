@@ -783,6 +783,9 @@ importers:
       '@krizaka/db':
         specifier: workspace:^
         version: link:../db
+      '@krizaka/org':
+        specifier: workspace:^
+        version: link:../org
     devDependencies:
       '@krizaka/config':
         specifier: workspace:^

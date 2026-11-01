@@ -32,8 +32,12 @@
     "./apps/*.json": "./dist/apps/*.json",
     "./package.json": "./package.json"
   },
+  "bin": {
+    "krizaka-code-names": "./bin/krizaka-code-names.mjs"
+  },
   "files": [
     "dist",
+    "bin",
     "README.md",
     "LICENSE"
   ],
