@@ -63,6 +63,16 @@ jobs:
         env:
           PUBLISHED: ${{ steps.changesets.outputs.publishedPackages }}
 
+      # A rule change reaches every repository (krizaka/.github#388, krizaka-internal#879): once npm serves the versions, every
+      # repository of krizaka/.github's release-consumers.json that depends on a published package gets a `krizaka-release`
+      # dispatch and its bump-krizaka.yml opens the bump pull request. The conformance matrix (release-propagation) proves it landed.
+      - if: steps.changesets.outputs.published == 'true' && vars.RELEASE_APP_ID != ''
+        uses: krizaka/.github/actions/dispatch-release@ea12aa78187da74ed63387383885c85606bf4051 # main
+        with:
+          packages: ${{ steps.changesets.outputs.publishedPackages }}
+          app-id: ${{ vars.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
       # @krizaka/org carries the facts every footer and app reads: each release of it publishes org/v1/org.json (and a hashed copy)
       # to the CDN. Needs the organisation secrets MEDIA_STORAGE_API_KEY and MEDIA_STORAGE_ZONE (optionally MEDIA_STORAGE_ENDPOINT,
       # MEDIA_CDN_HOSTNAME); without them the script warns and exits 0 — nothing is printed either way.
