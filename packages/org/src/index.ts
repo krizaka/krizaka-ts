@@ -1,4 +1,16 @@
 export { APP_SCHEMA_URL, apps } from "./apps";
+export type { CodeNameHit } from "./brands";
+export {
+  brandOf,
+  catalogueValues,
+  CODE_NAMES,
+  codeNameMap,
+  DISPLAY_NAME_MAX,
+  displayName,
+  findCodeNames,
+  lockup,
+  visibleText,
+} from "./brands";
 export type { CastPersona, CastProduct, CastRole } from "./cast";
 export { CAST, CAST_VERSION, castMedia, castOf, persona, personaByRole, seedFingerprint } from "./cast";
 export { DEFAULT_KINDS, defaultFor, defaults, defaultUrl, fetchDefaults, listDefaults, seedHash } from "./defaults";
@@ -6,6 +18,7 @@ export { CDN, org, ORG_SCHEMA_URL, ORG_URL } from "./org";
 export type {
   AppConfig,
   AppEnvironment,
+  BrandKind,
   FamilyEntry,
   FamilyGroup,
   FamilyStatus,
@@ -13,6 +26,7 @@ export type {
   Org,
   OrgAvatar,
   OrgBanner,
+  OrgBrand,
   OrgDefaultItem,
   OrgDefaultKind,
   OrgDefaults,

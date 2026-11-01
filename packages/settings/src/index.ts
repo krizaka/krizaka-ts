@@ -1,3 +1,4 @@
+export { DISPLAY_NAME_KEY, displayNameSetting } from "./brand";
 export { describeSettings, type SettingDescription } from "./describe";
 export { settingsMigration } from "./migration";
 export {

@@ -33,3 +33,20 @@ Without a build step, read it from the CDN: [krizaka-assets.b-cdn.net/org/v1/org
   `MEDIA_STORAGE_API_KEY` and `MEDIA_STORAGE_ZONE`; without them it warns and publishes nothing.
 
 Apache-2.0 · [Krizaka TypeScript](https://github.com/krizaka/krizaka-ts)
+
+## Commercial names (`brands`)
+
+The code names (`yomizaka`, `akinaza`, `orazaka`, `kachizaka`) stay internal: repositories, packages, coordinates, CLI. A customer
+reads the commercial name, endorsed by the company — **« Verikora by Krizaka »** / **« Verikora par Krizaka »**.
+
+```ts
+import { brandOf, displayName, lockup } from "@krizaka/org";
+brandOf("akinaza").domains.shop; // "https://folioviv.shop"
+displayName("yomizaka", settingValue); // the admin's choice (`brand.displayName`), else « Verikora »
+lockup("orazaka", "fr"); // « Sovkora par Krizaka »
+```
+
+**The guard.** `npx krizaka-code-names [--report] [--allow <path-part>] <built-html-dir> messages/ stores/` fails when a
+public surface shows a code name (or « Krizaka ECM ») where the commercial name is required. Allowed, declared once: URLs
+and hosts, `@krizaka/*` and `com.krizaka.*` coordinates, `krizaka/<repo>`, code (backticks, `<pre>`, `<code>`), class names
+and attributes other than `alt` / `title` / `aria-label`, catalogue keys, and each brand's one « formerly » line.
