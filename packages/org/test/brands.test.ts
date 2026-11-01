@@ -86,6 +86,13 @@ describe("the code-name guard (krizaka-internal#2036)", () => {
     expect(findCodeNames("Powered by Orazaka").map((h) => h.use)).toEqual(["Sovkora"]);
   });
 
+  it("reads the target of a markdown link or an autolink as a URL, and still checks the label", () => {
+    expect(findCodeNames("[the engine](https://github.com/krizaka/orazaka)")).toEqual([]);
+    expect(findCodeNames("[repo](https://www.yomizaka.com/x) and <https://www.akinaza.com/y>")).toEqual([]);
+    expect(findCodeNames("[Yomizaka](https://x.com)")).toHaveLength(1);
+    expect(findCodeNames("see ](orazaka and more")).toHaveLength(1);
+  });
+
   it("reads metadata and accessible names, not markup", () => {
     const html = `<meta property="og:title" content="Akinaza"><img alt="Akinaza mark" src="/a.svg"><div data-x="akinaza"></div>`;
     expect(findCodeNames(visibleText(html))).toHaveLength(2);
