@@ -47,4 +47,12 @@ describe("workflows", () => {
     }
     expect(missing).toEqual([]);
   });
+  it("tells the consumers after a publish (krizaka-internal#879): dispatch-release with the published packages", () => {
+    const wf = readFileSync(new URL("../.github/workflows/release.yml", import.meta.url), "utf8");
+    const verify = wf.indexOf("scripts/verify-published.mjs");
+    const dispatch = wf.indexOf("krizaka/.github/actions/dispatch-release@");
+    expect(verify).toBeGreaterThan(0);
+    expect(dispatch).toBeGreaterThan(verify);
+    expect(wf.slice(dispatch, dispatch + 400)).toContain("steps.changesets.outputs.publishedPackages");
+  });
 });
