@@ -79,7 +79,9 @@ describe("the vault", () => {
     expect(open(sealed, KEY)).toBe("s3-secret");
     expect(() => open(sealed, randomBytes(32))).toThrowError(expect.objectContaining({ code: "STORAGE_UNREADABLE" }));
     expect(() => open("plain", KEY)).toThrowError(expect.objectContaining({ code: "STORAGE_UNREADABLE" }));
-    expect(() => open(`${sealed.slice(0, -2)}AA`, KEY)).toThrowError(
+    // A tamper that always changes the bytes: replacing the last two characters by "AA" left a sealed value ending in "AA" unchanged (1 run in 4096 failed).
+    const first = sealed.charAt(3) === "A" ? "B" : "A";
+    expect(() => open(`${sealed.slice(0, 3)}${first}${sealed.slice(4)}`, KEY)).toThrowError(
       expect.objectContaining({ code: "STORAGE_UNREADABLE" }),
     );
   });
