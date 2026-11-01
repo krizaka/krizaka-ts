@@ -63,7 +63,8 @@ describe("the family's status is honest", () => {
   });
 
   it("a released entry carries the date of its release in data", () => {
-    for (const e of listed.filter((x) => x.status === "released")) expect(e.releasedAt, e.id).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    for (const e of listed.filter((x) => x.status === "released"))
+      expect(e.releasedAt, e.id).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 });
 
