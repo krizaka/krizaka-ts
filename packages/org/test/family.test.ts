@@ -16,12 +16,7 @@ describe("the family's names", () => {
 
   it("calls every library and tool « Krizaka <X> », its short name the <X>", () => {
     const libraries = org.family.filter((e) => e.group === "open-source");
-    expect(libraries.map((e) => e.name)).toEqual([
-      "Krizaka UI",
-      "Krizaka Java",
-      "Krizaka TypeScript",
-      "Krizaka Lab",
-    ]);
+    expect(libraries.map((e) => e.name)).toEqual(["Krizaka UI", "Krizaka Java", "Krizaka TypeScript", "Krizaka Lab"]);
     for (const l of libraries) expect(l.name).toBe(`Krizaka ${l.short}`);
   });
 
