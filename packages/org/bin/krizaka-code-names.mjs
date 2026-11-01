@@ -48,7 +48,8 @@ for (const file of files) {
   for (const [key, text] of pieces) {
     for (const hit of findCodeNames(text)) {
       count++;
-      console.log(`${file}${key ? ` ${key}` : ""}: « ${hit.word} » → « ${hit.use} »  …${hit.context}…`);
+      const where = key ? `${file} ${key}` : file;
+      console.log(`${where}: « ${hit.word} » → « ${hit.use} »  …${hit.context}…`);
     }
   }
 }

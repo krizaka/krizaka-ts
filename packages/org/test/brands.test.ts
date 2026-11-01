@@ -118,6 +118,15 @@ describe("the org JSON stays service discovery (founder, 2026-11-01)", () => {
     }
   });
 
+  it("strips tags and trims punctuation in linear time (CodeQL js/polynomial-redos)", () => {
+    const t0 = Date.now();
+    expect(visibleText(`${"<".repeat(100000)}x`)).toContain("x");
+    expect(findCodeNames(`${"(".repeat(50000)}dev.yomizaka.com${")".repeat(50000)}`)).toEqual([]);
+    expect(Date.now() - t0).toBeLessThan(1000);
+    expect(visibleText("<p>Verikora</p><br/>par <b>Krizaka</b>")).toContain("Verikora");
+    expect(findCodeNames("« Yomizaka »").map((h) => h.use)).toEqual(["Verikora"]);
+  });
+
   it("strips comments and code without backtracking on hostile input", () => {
     const hostile = `${"<!--".repeat(50000)} Verikora`;
     const t0 = Date.now();

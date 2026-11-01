@@ -113,15 +113,25 @@ const FORMER_WORDINGS: readonly [RegExp, string][] = [[/\bkrizaka\s+ecm\b/gi, "K
 export const codeNameMap = (): Record<string, string> =>
   Object.fromEntries(brands.map((b) => [b.codeName, b.commercialName]));
 
-const codeNamePattern = (flags = "i") => new RegExp(`\\b(${CODE_NAMES.join("|")})\\b`, flags);
+const codeNamePattern = (flags = "i") => new RegExp(String.raw`\b(${CODE_NAMES.join("|")})\b`, flags);
 
 /**
  * What is allowed to keep a code name, declared once (#2036): repository and GitHub URLs, npm and Maven coordinates,
  * the old hosts (`dev.yomizaka.com`, they redirect), code (backticks), and the one « formerly » line of each brand.
  */
 const HOST_ENDINGS = [".com", ".app", ".shop", ".dev"];
+const LEADING = new Set(["(", "«", '"', "'"]);
+const TRAILING = new Set([".", ",", ";", ":", "!", "?", ")", "]", "»", '"', "'"]);
+/** The token without the punctuation around it (`(dev.yomizaka.com).` → `dev.yomizaka.com`), in one linear pass. */
+const trimPunctuation = (raw: string): string => {
+  let start = 0;
+  let end = raw.length;
+  while (start < end && LEADING.has(raw[start] ?? "")) start++;
+  while (end > start && TRAILING.has(raw[end - 1] ?? "")) end--;
+  return raw.slice(start, end);
+};
 const allowedToken = (raw: string): boolean => {
-  const token = raw.replace(/[.,;:!?)\]»"']+$/, "").replace(/^[(«"']+/, "");
+  const token = trimPunctuation(raw);
   const lower = token.toLowerCase();
   return (
     (token.includes("://") && URL.canParse(token)) ||
@@ -187,22 +197,41 @@ const stripBlocks = (text: string, open: string, close: string): string => {
 };
 
 const SKIPPED_ELEMENTS = ["script", "style", "pre", "code", "svg"];
+/** Where the element `name` next opens from `at` (`<code>` or `<code class…>`, never `<codex>`), or -1. */
+const openingOf = (lower: string, name: string, at: number): number => {
+  for (let i = lower.indexOf(`<${name}`, at); i >= 0; i = lower.indexOf(`<${name}`, i + 1)) {
+    if (!/[a-z0-9-]/.test(lower[i + name.length + 1] ?? " ")) return i;
+  }
+  return -1;
+};
+/** The first skipped element that opens from `at`: its index (-1 when none) and its name. */
+const nextSkipped = (lower: string, at: number): [number, string] => {
+  let found: [number, string] = [-1, ""];
+  for (const name of SKIPPED_ELEMENTS) {
+    const i = openingOf(lower, name, at);
+    if (i >= 0 && (found[0] < 0 || i < found[0])) found = [i, name];
+  }
+  return found;
+};
+/** The text with every tag (`<…>`) replaced by a space, in one linear pass (no backtracking regex on page input). */
+const stripTags = (html: string): string => {
+  let out = "";
+  let at = 0;
+  for (let open = html.indexOf("<"); open >= 0; open = html.indexOf("<", at)) {
+    const close = html.indexOf(">", open + 1);
+    if (close < 0) break;
+    out += `${html.slice(at, open)} `;
+    at = close + 1;
+  }
+  return out + html.slice(at);
+};
 /** The text without the elements a visitor does not read as prose (scripts, styles, code, svg), matched case-insensitively. */
 const stripElements = (html: string): string => {
   const lower = html.toLowerCase();
   let out = "";
   let at = 0;
   while (at < html.length) {
-    let next = -1;
-    let tag = "";
-    for (const name of SKIPPED_ELEMENTS) {
-      for (let i = lower.indexOf(`<${name}`, at); i >= 0; i = lower.indexOf(`<${name}`, i + 1)) {
-        if (!/[a-z0-9-]/.test(lower[i + name.length + 1] ?? " ")) {
-          if (next < 0 || i < next) [next, tag] = [i, name];
-          break;
-        }
-      }
-    }
+    const [next, tag] = nextSkipped(lower, at);
     if (next < 0) return out + html.slice(at);
     out += `${html.slice(at, next)} `;
     const end = lower.indexOf(`</${tag}>`, next);
@@ -230,10 +259,9 @@ export const visibleText = (html: string): string => {
     }
   }
   for (const m of html.matchAll(/\b(?:alt|title|aria-label)\s*=\s*"([^"]*)"/gi)) attrs.push(m[1] ?? "");
-  const body = stripElements(stripBlocks(html, "<!--", "-->"))
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&");
+  const body = stripTags(stripElements(stripBlocks(html, "<!--", "-->")))
+    .replaceAll("&nbsp;", " ")
+    .replaceAll("&amp;", "&");
   return [body, ...attrs].join("\n");
 };
 
