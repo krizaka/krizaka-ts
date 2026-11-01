@@ -120,8 +120,8 @@ const codeNamePattern = (flags = "i") => new RegExp(String.raw`\b(${CODE_NAMES.j
  * the old hosts (`dev.yomizaka.com`, they redirect), code (backticks), and the one « formerly » line of each brand.
  */
 const HOST_ENDINGS = [".com", ".app", ".shop", ".dev"];
-const LEADING = new Set(["(", "«", '"', "'"]);
-const TRAILING = new Set([".", ",", ";", ":", "!", "?", ")", "]", "»", '"', "'"]);
+const LEADING = new Set(["(", "<", "«", '"', "'"]);
+const TRAILING = new Set([".", ",", ";", ":", "!", "?", ")", "]", ">", "»", '"', "'"]);
 /** The token without the punctuation around it (`(dev.yomizaka.com).` → `dev.yomizaka.com`), in one linear pass. */
 const trimPunctuation = (raw: string): string => {
   let start = 0;
@@ -142,6 +142,25 @@ const allowedToken = (raw: string): boolean => {
   );
 };
 const CODE_SPAN = /`[^`\n]*`/g;
+/** The text with the target of every markdown link `[label](target)` blanked (lengths kept): the target is a URL, the label stays checked. Linear. */
+const blankLinkTargets = (text: string): string => {
+  let out = "";
+  let at = 0;
+  for (;;) {
+    const open = text.indexOf("](", at);
+    if (open < 0) return out + text.slice(at);
+    const start = open + 2;
+    let end = start;
+    while (end < text.length && text[end] !== ")" && text[end] !== "\n") end++;
+    if (text[end] !== ")") {
+      out += text.slice(at, start);
+      at = start;
+      continue;
+    }
+    out += text.slice(at, start) + " ".repeat(end - start);
+    at = end;
+  }
+};
 
 export interface CodeNameHit {
   /** The word found, as written. */
@@ -159,7 +178,7 @@ const blankAllowed = (text: string): string => {
     for (const line of brand.formerly ? [brand.formerly.en, brand.formerly.fr] : [])
       out = out.split(line).join(" ".repeat(line.length));
   }
-  out = out.replace(CODE_SPAN, (m) => " ".repeat(m.length));
+  out = blankLinkTargets(out).replace(CODE_SPAN, (m) => " ".repeat(m.length));
   return out.replace(/\S+/g, (m) => (allowedToken(m) ? " ".repeat(m.length) : m));
 };
 
