@@ -41,6 +41,8 @@ export interface FamilyEntry {
   short: string;
   group: FamilyGroup;
   status: FamilyStatus;
+  /** The day it was released (`YYYY-MM-DD`): `released` on a product or an open-source entry needs it, data not words. */
+  releasedAt?: string;
   /** Its home: the site, or the repository while it has no site. */
   url: string;
   /** Its public source repository (`null` for GitHub itself). */
