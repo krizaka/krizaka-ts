@@ -1,48 +1,31 @@
-# Dependabot — the Krizaka model (weekly, grouped; krizaka/.github#332, Oussama 2026-10-28).
-# Every Monday (06:00 Paris): ONE pull request for the family (`krizaka`: @krizaka/* and com.krizaka*, minor and
-# patch), ONE for every other minor and patch (`minor-patch`); a major is its own pull request (never grouped,
-# never auto-merged). Security fixes stay on and arrive grouped apart, as soon as an advisory is published.
-# Auto-merge is the shared workflow of krizaka/.github (dependabot-automerge.yml): minor and patch only, once CI is green.
-# The ignore rules below are decisions, not oversights: Node LTS only (22/24), TypeScript 7 / ESLint 10 only once
-# @krizaka/config supports them (krizaka/krizaka-ui#141), and each deferred major names its tracking issue.
-# Dependabot — the Krizaka model (weekly, grouped; krizaka/.github#332, Oussama 2026-10-28).
-# Every Monday (06:00 Paris): ONE pull request for the family (`krizaka`: @krizaka/* and com.krizaka*, minor and
-# patch), ONE for every other minor and patch (`minor-patch`); a major is its own pull request (never grouped,
-# never auto-merged). Security fixes stay on and arrive grouped apart, as soon as an advisory is published.
-# Auto-merge is the shared workflow of krizaka/.github (dependabot-automerge.yml): minor and patch only, once CI is green.
-# The ignore rules below are decisions, not oversights: Node LTS only (22/24), TypeScript 7 / ESLint 10 only once
-# @krizaka/config supports them (krizaka/krizaka-ui#141), and each deferred major names its tracking issue.
+# Dependabot: the Krizaka model (monthly, ONE grouped pull request per ecosystem; krizaka/.github#510 cap of 3 open PRs).
+# `all` takes every update, majors and workflow pins included, so a run never opens a PR per dependency.
+# Security fixes stay on and arrive grouped apart. Auto-merge is the shared workflow of krizaka/.github (minor and patch, CI green).
+# The ignore rules below are decisions, not oversights.
 version: 2
 updates:
 
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
-      interval: weekly
-      day: monday
+      interval: monthly
     groups:
-      minor-patch:
+      all:
         patterns: ["*"]
-        update-types: ["minor", "patch"]
     commit-message:
       prefix: "ci(deps)"
     labels: ["area:deps"]
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 1
     cooldown:
       default-days: 7
 
   - package-ecosystem: npm
     directory: "/"
     schedule:
-      interval: weekly
-      day: monday
+      interval: monthly
     groups:
-      krizaka:
-        patterns: ["@krizaka/*"]
-        update-types: ["minor", "patch"]
-      minor-patch:
+      all:
         patterns: ["*"]
-        update-types: ["minor", "patch"]
       security:
         applies-to: security-updates
         patterns: ["*"]
@@ -61,6 +44,6 @@ updates:
       prefix: "chore(deps)"
       prefix-development: "chore(deps-dev)"
     labels: ["area:deps"]
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 1
     cooldown:
       default-days: 7
