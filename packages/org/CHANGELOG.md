@@ -1,5 +1,11 @@
 # @krizaka/org
 
+## 0.7.1
+
+### Patch Changes
+
+- 98ac3ca: krizaka-code-names: the target of a markdown link `[label](url)` and an autolink `<url>` is a URL, allowed; the label stays checked.
+
 ## 0.7.0
 
 ### Minor Changes
