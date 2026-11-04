@@ -73,7 +73,9 @@ describe("the code-name guard (krizaka-internal#2036)", () => {
   it("passes the development line under the name (data-code-name), and still fails the code name next to it", () => {
     const line = `<span class="font-mono text-xs" data-code-name="">code name: yomizaka</span>`;
     expect(findCodeNames(visibleText(`<body><span>Verikora</span>${line}<p>after</p></body>`))).toEqual([]);
-    expect(findCodeNames(visibleText(`<body>${line}${line}<h1>Yomizaka</h1></body>`)).map((h) => h.word)).toEqual(["Yomizaka"]);
+    expect(findCodeNames(visibleText(`<body>${line}${line}<h1>Yomizaka</h1></body>`)).map((h) => h.word)).toEqual([
+      "Yomizaka",
+    ]);
     expect(findCodeNames(visibleText(`<body><span data-code-name="">nom de code : akinaza</span></body>`))).toEqual([]);
   });
 
