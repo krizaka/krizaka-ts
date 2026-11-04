@@ -41,7 +41,8 @@ export function parseExternalIdentity(body: unknown): ExternalIdentity {
 }
 
 /**
- * The adapter for krizaka-users (`auth.<product>` tenant host, krizaka/krizaka-users#31): `start` builds the tenant's start address,
+ * The adapter for the users service (`auth.<product>` tenant host), which lives in krizaka/krizaka-build `krizaka-users/` since
+ * ADR-021 (the federation landed as krizaka/krizaka-users#31, the old split): `start` builds the tenant's start address,
  * `complete` exchanges the one-time code (and the PKCE verifier of a native app) for the verified identity.
  */
 export function usersIdentityProvider({ baseUrl, appUrl, fetch }: UsersFederationOptions): IdentityProvider {
