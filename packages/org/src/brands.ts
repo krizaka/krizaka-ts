@@ -244,6 +244,24 @@ const stripTags = (html: string): string => {
   }
   return out + html.slice(at);
 };
+/**
+ * The text without the development line of a lockup: an element marked `data-code-name` (« code name: yomizaka »), the one place
+ * a dev deployment says its code name on purpose, under the commercial name (krizaka-internal#2368). It is a leaf (text only), so it
+ * ends at the next closing tag. Linear: no backtracking regex on page input.
+ */
+const stripCodeNameLines = (html: string): string => {
+  let out = "";
+  let at = 0;
+  for (let mark = html.indexOf("data-code-name"); mark >= 0; mark = html.indexOf("data-code-name", at)) {
+    const open = html.lastIndexOf("<", mark);
+    const closing = html.indexOf("</", mark);
+    const end = closing < 0 ? -1 : html.indexOf(">", closing);
+    if (open < at || end < 0) break;
+    out += `${html.slice(at, open)} `;
+    at = end + 1;
+  }
+  return out + html.slice(at);
+};
 /** The text without the elements a visitor does not read as prose (scripts, styles, code, svg), matched case-insensitively. */
 const stripElements = (html: string): string => {
   const lower = html.toLowerCase();
@@ -278,7 +296,7 @@ export const visibleText = (html: string): string => {
     }
   }
   for (const m of html.matchAll(/\b(?:alt|title|aria-label)\s*=\s*"([^"]*)"/gi)) attrs.push(m[1] ?? "");
-  const body = stripTags(stripElements(stripBlocks(html, "<!--", "-->")))
+  const body = stripTags(stripElements(stripCodeNameLines(stripBlocks(html, "<!--", "-->"))))
     .replaceAll("&nbsp;", " ")
     .replaceAll("&amp;", "&");
   return [body, ...attrs].join("\n");
