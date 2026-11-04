@@ -1,5 +1,11 @@
 # @krizaka/org
 
+## 0.7.2
+
+### Patch Changes
+
+- 1f380e9: krizaka-code-names: an element marked `data-code-name` (the development line « code name: yomizaka » that a dev deployment shows under the commercial name) is not read as a code name in a built page; the code name anywhere else still fails.
+
 ## 0.7.1
 
 ### Patch Changes
