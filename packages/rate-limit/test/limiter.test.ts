@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createLimiter, memoryLimitStore, RATE_LIMIT_CODE, RateLimited } from "../src";
+import { createLimiter, type LimitStore, memoryLimitStore, RATE_LIMIT_CODE, RateLimited } from "../src";
 import { limitStoreContract } from "../src/testkit";
 
 const BASE = new Date("2026-10-26T12:00:00.000Z");
@@ -151,4 +151,95 @@ describe("a store that fails", () => {
 
 describe("the memory store", () => {
   limitStoreContract("memory", () => memoryLimitStore());
+});
+
+describe("the global ceiling", () => {
+  const limits = { k: { perIp: 100, windowSeconds: 60, global: 3, globalWindowSeconds: 3600 } };
+
+  function withTrip(over: { failOpen?: boolean; globalFailOpen?: boolean; store?: LimitStore } = {}) {
+    const trips: string[] = [];
+    const errors: string[] = [];
+    const store = over.store ?? memoryLimitStore();
+    const limiter = createLimiter({
+      store,
+      clock: { now: () => BASE },
+      limits,
+      onTrip: (action) => void trips.push(action),
+      onStoreError: (_e, action) => void errors.push(action),
+      ...(over.failOpen === undefined ? {} : { failOpen: over.failOpen }),
+      ...(over.globalFailOpen === undefined ? {} : { globalFailOpen: over.globalFailOpen }),
+    });
+    return { limiter, trips, errors, store };
+  }
+
+  it("refuses the N+1th hit whatever the address, with 503 and Retry-After, and trips once", async () => {
+    const { limiter, trips } = withTrip();
+    for (let i = 1; i <= 3; i++) expect((await limiter.check("k", { ip: `203.0.113.${i}` })).ok).toBe(true);
+    for (let i = 4; i <= 8; i++)
+      expect(await limiter.check("k", { ip: `203.0.113.${i}` })).toEqual({
+        ok: false,
+        retryAfterSeconds: 3600,
+        scope: "global",
+      });
+    expect(trips).toEqual(["k"]);
+    const error = await limiter.enforce("k", { ip: "198.51.100.1" }).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(RateLimited);
+    expect(error).toMatchObject({ status: 503, scope: "global", headers: { "Retry-After": "3600" } });
+  });
+
+  it("trips again in the next window", async () => {
+    let now = BASE;
+    const trips: string[] = [];
+    const limiter = createLimiter({
+      store: memoryLimitStore(),
+      clock: { now: () => now },
+      limits,
+      onTrip: (a) => void trips.push(a),
+    });
+    for (let i = 0; i < 5; i++) await limiter.check("k", { ip: "1.1.1.1" });
+    now = later(3_600_000);
+    for (let i = 0; i < 5; i++) await limiter.check("k", { ip: "1.1.1.1" });
+    expect(trips).toEqual(["k", "k"]);
+  });
+
+  it("keeps the per-address refusal a 429", async () => {
+    const { limiter } = setup({ k: { perIp: 1, windowSeconds: 60, global: 100, globalWindowSeconds: 60 } });
+    await limiter.check("k", { ip: "1.1.1.1" });
+    const error = await limiter.enforce("k", { ip: "1.1.1.1" }).catch((e: unknown) => e);
+    expect(error).toMatchObject({ status: 429, scope: "ip" });
+  });
+
+  it("fails closed when the store is down, and tells onStoreError", async () => {
+    const down: LimitStore = {
+      ...memoryLimitStore(),
+      hit: () => Promise.reject(new Error("db down")),
+    };
+    const { limiter, errors } = withTrip({ store: down });
+    expect(await limiter.check("k", { ip: "1.1.1.1" })).toMatchObject({ ok: false, scope: "global" });
+    expect(errors).toEqual(["k"]);
+  });
+
+  it("lets the global scope fail open when configured", async () => {
+    const down: LimitStore = { ...memoryLimitStore(), hit: () => Promise.reject(new Error("db down")) };
+    const { limiter } = withTrip({ store: down, globalFailOpen: true });
+    expect((await limiter.check("k", { ip: "1.1.1.1" })).ok).toBe(true);
+  });
+
+  it("refuses a global that is 0, fractional, or without its window", async () => {
+    for (const bad of [
+      { perIp: 1, windowSeconds: 60, global: 0, globalWindowSeconds: 60 },
+      { perIp: 1, windowSeconds: 60, global: 1.5, globalWindowSeconds: 60 },
+      { perIp: 1, windowSeconds: 60, global: 5 },
+      { perIp: 1, windowSeconds: 60, global: 5, globalWindowSeconds: 0 },
+    ]) {
+      const { limiter } = setup({ k: bad });
+      await expect(limiter.check("k", { ip: "1.1.1.1" })).rejects.toThrow(RangeError);
+    }
+  });
+
+  it("counts nothing globally when the action declares no global", async () => {
+    const { limiter, store } = setup({ k: { perIp: 5, windowSeconds: 60 } });
+    await limiter.check("k", { ip: "1.1.1.1" });
+    expect(await store.peek("global:k", BASE)).toBeNull();
+  });
 });

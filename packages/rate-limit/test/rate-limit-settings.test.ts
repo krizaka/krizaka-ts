@@ -44,4 +44,37 @@ describe("the limits as settings", () => {
     expect(await limits("me")).toEqual({ perIp: 600, windowSeconds: 3600 });
     expect(await limits("unknown")).toBeUndefined();
   });
+
+  it("declares the global ceiling and its window with bounds from 1, and reads them back", async () => {
+    const withGlobal = rateLimitSettings({
+      subscribe: { perIp: 5, windowSeconds: 600, global: 5000, globalWindowSeconds: 3600 },
+    });
+    expect(withGlobal["limits.subscribe.global"]).toMatchObject({
+      kind: "integer",
+      default: 5000,
+      min: 1,
+      unit: "hits",
+    });
+    expect(withGlobal["limits.subscribe.globalWindowSeconds"]).toMatchObject({ default: 3600, min: 1, max: 86_400 });
+    const values: Record<string, number> = {
+      "limits.subscribe.perIp": 5,
+      "limits.subscribe.windowSeconds": 600,
+      "limits.subscribe.global": 5000,
+      "limits.subscribe.globalWindowSeconds": 3600,
+    };
+    expect(await limitsFromSettings((key) => values[key])("subscribe")).toEqual({
+      perIp: 5,
+      windowSeconds: 600,
+      global: 5000,
+      globalWindowSeconds: 3600,
+    });
+  });
+
+  it("refuses a global of 0 or without its window", () => {
+    expect(() => rateLimitSettings({ a: { windowSeconds: 60, global: 0, globalWindowSeconds: 60 } })).toThrow(
+      RangeError,
+    );
+    expect(() => rateLimitSettings({ a: { windowSeconds: 60, global: 5 } })).toThrow(RangeError);
+    expect(() => rateLimitSettings({ a: { windowSeconds: 60, globalWindowSeconds: 60 } })).toThrow(RangeError);
+  });
 });
