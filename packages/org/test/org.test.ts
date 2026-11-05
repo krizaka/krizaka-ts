@@ -78,6 +78,11 @@ describe("the apps' runtime config", () => {
     }
   });
 
+  it("names no removed host: Orazaka answers on www.orazaka.com (dev.orazaka.com was removed on 2026-11-05)", () => {
+    expect(apps.orazaka?.apiBaseUrl.dev).toBe("https://www.orazaka.com");
+    expect(JSON.stringify(apps)).not.toContain("dev.orazaka.com");
+  });
+
   it("holds no secret", () => {
     expect(JSON.stringify(apps)).not.toMatch(/secret|token|password|api[_-]?key|bearer|-----BEGIN/i);
   });
