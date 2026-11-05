@@ -68,6 +68,11 @@ export function limitStoreContract(name: string, make: () => LimitStore | Promis
     expect((await store.peek("burst", at(1)))?.count).toBe(100);
   });
 
+  globalCounterContract(name, make);
+}
+
+/** The global ceiling's needs of a store: one shared key that exactly one hit pushes over its ceiling, under parallel callers. */
+function globalCounterContract(name: string, make: () => LimitStore | Promise<LimitStore>) {
   it(`${name}: a shared global counter crosses its ceiling at exactly one hit, whatever the callers`, async () => {
     const store = await make();
     const ceiling = 40;

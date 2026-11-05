@@ -49,6 +49,27 @@ const globalKey = (action: string) => `global:${action}`;
 const STORE_DOWN_RETRY_SECONDS = 60;
 const subjectKey = (action: string, subject: string) => `${action}:s:${subject.toLowerCase()}`;
 
+/** Counts the shared counter first, so a flood is seen even when every address is new; the hit that crosses the ceiling trips once. */
+async function checkGlobal(
+  deps: LimiterDeps,
+  action: string,
+  limit: { max: number; windowSeconds: number },
+  now: Date,
+): Promise<CheckResult | null> {
+  let hit: BucketHit;
+  try {
+    hit = await deps.store.hit(globalKey(action), limit.windowSeconds, now);
+  } catch (error) {
+    deps.onStoreError?.(error, action);
+    return deps.globalFailOpen === true
+      ? null
+      : { ok: false, retryAfterSeconds: STORE_DOWN_RETRY_SECONDS, scope: "global" };
+  }
+  if (hit.count <= limit.max) return null;
+  if (hit.count === limit.max + 1) deps.onTrip?.(action);
+  return { ok: false, retryAfterSeconds: retryAfterSeconds(hit.resetAt, now), scope: "global" };
+}
+
 function checked(action: string, limit: ActionLimit | undefined): ActionLimit {
   if (!limit) throw new RangeError(`${RATE_LIMIT_CODE.noLimits}: no limits declared for the action « ${action} »`);
   const whole = (value: number | undefined) => value === undefined || (Number.isInteger(value) && value >= 1);
@@ -91,32 +112,16 @@ export function createLimiter(deps: LimiterDeps): Limiter {
     }
   }
 
-  /** Counts the shared counter first, so a flood is seen even when every address is new; the hit that crosses the ceiling trips once. */
-  async function checkGlobal(
-    action: string,
-    max: number,
-    windowSeconds: number,
-    now: Date,
-  ): Promise<CheckResult | null> {
-    let hit: BucketHit;
-    try {
-      hit = await deps.store.hit(globalKey(action), windowSeconds, now);
-    } catch (error) {
-      deps.onStoreError?.(error, action);
-      return deps.globalFailOpen === true
-        ? null
-        : { ok: false, retryAfterSeconds: STORE_DOWN_RETRY_SECONDS, scope: "global" };
-    }
-    if (hit.count <= max) return null;
-    if (hit.count === max + 1) deps.onTrip?.(action);
-    return { ok: false, retryAfterSeconds: retryAfterSeconds(hit.resetAt, now), scope: "global" };
-  }
-
   async function check(action: string, keys: LimitKeys): Promise<CheckResult> {
     const limit = await limitsOf(action);
     const now = deps.clock.now();
     if (limit.global !== undefined && limit.globalWindowSeconds !== undefined) {
-      const refusal = await checkGlobal(action, limit.global, limit.globalWindowSeconds, now);
+      const refusal = await checkGlobal(
+        deps,
+        action,
+        { max: limit.global, windowSeconds: limit.globalWindowSeconds },
+        now,
+      );
       if (refusal) return refusal;
     }
     const counters: { scope: "ip" | "subject"; key: string; max: number }[] = [];
