@@ -1,5 +1,11 @@
 # @krizaka/org
 
+## 0.7.3
+
+### Patch Changes
+
+- 05614e1: The runtime config of Orazaka (`apps.orazaka`) points at `https://www.orazaka.com`: `dev.orazaka.com` was removed on 2026-11-05.
+
 ## 0.7.2
 
 ### Patch Changes
