@@ -38,7 +38,7 @@ test("llms.txt points back to the family", () => {
   for (const url of [
     "https://www.krizaka.com",
     "https://ui.krizaka.com",
-    "https://dev.orazaka.com",
+    "https://www.orazaka.com",
     "https://dev.yomizaka.com",
     "https://dev.akinaza.com",
     "https://java.krizaka.com",
