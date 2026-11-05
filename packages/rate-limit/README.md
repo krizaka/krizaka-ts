@@ -11,10 +11,13 @@ import { clientIp } from "@krizaka/auth";
 emitMigration(rateLimitSchema, 1, { tables: {} }); // commit the SQL once, in your migrations: table rate_limit.bucket
 
 // the registry fragment: limits.signIn.perIp, limits.signIn.perSubject, limits.signIn.windowSeconds… the admin changes them without a redeploy
-export const limitSettings = rateLimitSettings({ signIn: { perIp: 30, perSubject: 10, windowSeconds: 900 }, me: { perIp: 600, windowSeconds: 3600 } });
+export const limitSettings = rateLimitSettings({
+  signIn: { perIp: 30, perSubject: 10, windowSeconds: 900 },
+  me: { perIp: 600, windowSeconds: 3600 },
+});
 
 const limiter = createLimiter({
-  store: dbLimitStore(query),                       // or memoryLimitStore() in one process and in tests
+  store: dbLimitStore(query), // or memoryLimitStore() in one process and in tests
   clock: { now: () => new Date() },
   limits: limitsFromSettings((key) => settings.get(key)), // or a plain table: { signIn: { perIp: 30, perSubject: 10, windowSeconds: 900 } }
   onStoreError: (error, action) => log.error({ error, action }),
@@ -22,7 +25,7 @@ const limiter = createLimiter({
 
 // in a route
 await limiter.enforce("signIn", { ip: clientIp(req.headers, rules), subject: email }); // throws RateLimited: status 429, headers { "Retry-After" }
-const verdict = await limiter.check("signIn", keys); // { ok: true } | { ok: false, retryAfterSeconds, scope: "ip" | "subject" }
+const verdict = await limiter.check("signIn", keys); // { ok: true } | { ok: false, retryAfterSeconds, scope: "ip" | "subject" | "global" }
 await limiter.forget("signIn", keys); // a successful sign-in clears its failures
 ```
 
@@ -31,6 +34,7 @@ await limiter.forget("signIn", keys); // a successful sign-in clears its failure
 - **Limits are settings.** `rateLimitSettings` (`@krizaka/rate-limit/settings`, needs `@krizaka/settings` and `zod`) declares `limits.<action>.perIp`, `.perSubject` and `.windowSeconds` as integers with the product's defaults; `limitsFromSettings` reads them back at each check. An action id is letters and digits (`signIn`), because it sits in a settings key.
 - **Stores:** `memoryLimitStore({ maxKeys })` keeps the copies' bound (10 000 windows; ended ones dropped first, then one shared overflow window, so a flood of keys limits itself and never clears a blocked caller's count). `dbLimitStore(query, { schema })` counts in **one atomic statement** (`INSERT … ON CONFLICT DO UPDATE … RETURNING`), so 100 parallel checks count exactly and every instance sees the same counters; times come from the injected clock, not the database's. The table is `rate_limit.bucket (key, count, window_start, reset_at)`, one row per key (a deviation from `(key, window_start)` as primary key: with the first hit starting the window, two concurrent first hits would otherwise open two rows). `purge(now)` deletes the ended windows: call it from the product's job.
 - **A store that fails lets the request through** (the limiter must not take the site down) and tells `onStoreError`; `failOpen: false` rethrows instead.
+- **A global ceiling, whatever the address** (bounded capacity). An action may declare `global` and `globalWindowSeconds` (both, whole numbers from 1; `0` or one without the other is refused): one shared counter `global:<action>` counted first at each check (one atomic upsert in `dbLimitStore`, so every instance adds to the same count). Over it `RateLimited` has `scope: "global"`, **status 503** and `Retry-After` (the end of the global window); a flood of new addresses, which walks past `perIp` and `perSubject`, meets it. `onTrip(action)` is called **once per window**, by the hit that crosses the ceiling (the alert or the circuit breaker). **The global scope fails closed**: when the store errors, the write is refused (503, retry after a minute) and `onStoreError` hears of it; `globalFailOpen: true` opts out, and the per-address scopes keep following `failOpen`. As settings: `rateLimitSettings({ subscribe: { perIp: 5, windowSeconds: 600, global: 5000, globalWindowSeconds: 3600 } })` declares `limits.subscribe.global` and `.globalWindowSeconds` (minimum 1), and `limitsFromSettings` reads them back. Choose a ceiling large enough that real traffic never meets it.
 - **The extras** are in the port: `peek` (read without counting), `set` (a lock-out) and `reset`.
 - `limitStoreContract` (from `@krizaka/rate-limit/testkit`) is the contract every store runs.
 
