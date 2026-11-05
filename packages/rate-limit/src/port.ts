@@ -34,6 +34,13 @@ export interface ActionLimit {
   perSubject?: number;
   /** The window's length in seconds. */
   windowSeconds: number;
+  /**
+   * The most hits the action takes in `globalWindowSeconds` from everyone, whatever the address or the subject (key `global:<action>`):
+   * the bound a flood of distinct addresses cannot walk past. Over it the write is refused with a 503. Needs `globalWindowSeconds`.
+   */
+  global?: number;
+  /** The global window's length in seconds (a flood is measured over an hour or a day, not over the per-address window). */
+  globalWindowSeconds?: number;
 }
 
 /**
@@ -53,7 +60,7 @@ export interface LimitKeys {
 }
 
 /** A hit allowed, or refused with when to come back. */
-export type CheckResult = { ok: true } | { ok: false; retryAfterSeconds: number; scope: "ip" | "subject" };
+export type CheckResult = { ok: true } | { ok: false; retryAfterSeconds: number; scope: "ip" | "subject" | "global" };
 
 /** Stable codes of this package's errors. */
 export const RATE_LIMIT_CODE = {
@@ -63,15 +70,16 @@ export const RATE_LIMIT_CODE = {
 } as const;
 export type RateLimitCode = (typeof RATE_LIMIT_CODE)[keyof typeof RATE_LIMIT_CODE];
 
-/** A refusal: HTTP 429, with the seconds to wait (the `Retry-After` header). */
+/** A refusal: HTTP 429 (503 when the global ceiling is over), with the seconds to wait (the `Retry-After` header). */
 export class RateLimited extends Error {
-  readonly status = 429;
+  readonly status: 429 | 503;
   readonly code = RATE_LIMIT_CODE.limited;
   constructor(
     readonly retryAfterSeconds: number,
-    readonly scope: "ip" | "subject",
+    readonly scope: "ip" | "subject" | "global",
   ) {
-    super("Too many requests");
+    super(scope === "global" ? "Service at capacity" : "Too many requests");
+    this.status = scope === "global" ? 503 : 429;
     this.name = "RateLimited";
   }
 

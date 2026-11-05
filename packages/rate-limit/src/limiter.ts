@@ -3,6 +3,7 @@ import type { Clock } from "@krizaka/db";
 import { retryAfterSeconds } from "./memory";
 import {
   type ActionLimit,
+  type BucketHit,
   type CheckResult,
   type LimitKeys,
   type LimitsSource,
@@ -23,6 +24,13 @@ export interface LimiterDeps {
   failOpen?: boolean;
   /** Told of every store failure (log it). */
   onStoreError?: (error: unknown, action: string) => void;
+  /**
+   * What the global scope does when the store fails: `false` (the default) refuses the write, because a ceiling that opens when its
+   * store is down is no ceiling; `true` lets it through. The per-address scopes follow `failOpen`.
+   */
+  globalFailOpen?: boolean;
+  /** Called ONCE per global window, by the hit that crosses the ceiling: the alert or the circuit breaker. */
+  onTrip?: (action: string) => void;
 }
 
 export interface Limiter {
@@ -35,6 +43,10 @@ export interface Limiter {
 }
 
 const ipKey = (action: string, ip: string | null | undefined) => `${action}:ip:${ip ?? "unknown"}`;
+const globalKey = (action: string) => `global:${action}`;
+/** How long a refusal caused by a failing store asks callers to wait. */
+// @fixed: a store outage has no window to read; a minute is a retry a recovering store can take
+const STORE_DOWN_RETRY_SECONDS = 60;
 const subjectKey = (action: string, subject: string) => `${action}:s:${subject.toLowerCase()}`;
 
 function checked(action: string, limit: ActionLimit | undefined): ActionLimit {
@@ -44,10 +56,16 @@ function checked(action: string, limit: ActionLimit | undefined): ActionLimit {
     !Number.isInteger(limit.windowSeconds) ||
     limit.windowSeconds < 1 ||
     !whole(limit.perIp) ||
-    !whole(limit.perSubject)
+    !whole(limit.perSubject) ||
+    (limit.global !== undefined || limit.globalWindowSeconds !== undefined
+      ? !whole(limit.global) ||
+        limit.global === undefined ||
+        !whole(limit.globalWindowSeconds) ||
+        limit.globalWindowSeconds === undefined
+      : false)
   ) {
     throw new RangeError(
-      `${RATE_LIMIT_CODE.badLimit}: « ${action} » needs whole numbers from 1 (windowSeconds ${limit.windowSeconds}, perIp ${limit.perIp}, perSubject ${limit.perSubject})`,
+      `${RATE_LIMIT_CODE.badLimit}: « ${action} » needs whole numbers from 1 (windowSeconds ${limit.windowSeconds}, perIp ${limit.perIp}, perSubject ${limit.perSubject}, global ${limit.global}, globalWindowSeconds ${limit.globalWindowSeconds})`,
     );
   }
   return limit;
@@ -73,9 +91,34 @@ export function createLimiter(deps: LimiterDeps): Limiter {
     }
   }
 
+  /** Counts the shared counter first, so a flood is seen even when every address is new; the hit that crosses the ceiling trips once. */
+  async function checkGlobal(
+    action: string,
+    max: number,
+    windowSeconds: number,
+    now: Date,
+  ): Promise<CheckResult | null> {
+    let hit: BucketHit;
+    try {
+      hit = await deps.store.hit(globalKey(action), windowSeconds, now);
+    } catch (error) {
+      deps.onStoreError?.(error, action);
+      return deps.globalFailOpen === true
+        ? null
+        : { ok: false, retryAfterSeconds: STORE_DOWN_RETRY_SECONDS, scope: "global" };
+    }
+    if (hit.count <= max) return null;
+    if (hit.count === max + 1) deps.onTrip?.(action);
+    return { ok: false, retryAfterSeconds: retryAfterSeconds(hit.resetAt, now), scope: "global" };
+  }
+
   async function check(action: string, keys: LimitKeys): Promise<CheckResult> {
     const limit = await limitsOf(action);
     const now = deps.clock.now();
+    if (limit.global !== undefined && limit.globalWindowSeconds !== undefined) {
+      const refusal = await checkGlobal(action, limit.global, limit.globalWindowSeconds, now);
+      if (refusal) return refusal;
+    }
     const counters: { scope: "ip" | "subject"; key: string; max: number }[] = [];
     if (limit.perIp !== undefined) counters.push({ scope: "ip", key: ipKey(action, keys.ip), max: limit.perIp });
     if (limit.perSubject !== undefined && keys.subject)

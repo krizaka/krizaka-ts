@@ -67,4 +67,13 @@ export function limitStoreContract(name: string, make: () => LimitStore | Promis
     expect(hits.map((h) => h.count).sort((a, b) => a - b)).toEqual(Array.from({ length: 100 }, (_, i) => i + 1));
     expect((await store.peek("burst", at(1)))?.count).toBe(100);
   });
+
+  it(`${name}: a shared global counter crosses its ceiling at exactly one hit, whatever the callers`, async () => {
+    const store = await make();
+    const ceiling = 40;
+    const hits = await Promise.all(Array.from({ length: 100 }, () => store.hit("global:subscribe", 3600, T0)));
+    expect(hits.filter((h) => h.count === ceiling + 1)).toHaveLength(1); // the one hit that trips the alert
+    expect(hits.filter((h) => h.count > ceiling)).toHaveLength(60); // every other hit past it is refused
+    expect(hits[0]?.resetAt.toISOString()).toBe(at(3600).toISOString());
+  });
 }

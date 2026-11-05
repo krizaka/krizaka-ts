@@ -7,6 +7,9 @@ export interface ActionDefaults {
   perIp?: number;
   perSubject?: number;
   windowSeconds: number;
+  /** The ceiling for everyone together in `globalWindowSeconds`; give both or neither. Whole numbers from 1. */
+  global?: number;
+  globalWindowSeconds?: number;
 }
 
 /** An action id that can sit in a settings key (`limits.signIn.perIp`): letters and digits, starting with a lower-case letter. */
@@ -26,6 +29,14 @@ export function rateLimitSettings(actions: Readonly<Record<string, ActionDefault
       throw new RangeError(
         `rate-limit action « ${action} »: use letters and digits, starting with a lower-case letter (it is part of a settings key)`,
       );
+    const hasGlobal = defaults.global !== undefined;
+    if (
+      hasGlobal !== (defaults.globalWindowSeconds !== undefined) ||
+      (hasGlobal && !(defaults.global! >= 1 && defaults.globalWindowSeconds! >= 1))
+    )
+      throw new RangeError(
+        `rate-limit action « ${action} »: global and globalWindowSeconds go together, whole numbers from 1 (a ceiling of 0 is a closed door)`,
+      );
     // @fixed: an admin may set 1 to a million hits and a window of a second to a day; the defaults are the product's
     if (defaults.perIp !== undefined)
       fragment[`limits.${action}.perIp`] = integer("limits", defaults.perIp, { min: 1, max: 1_000_000, unit: "hits" });
@@ -40,6 +51,19 @@ export function rateLimitSettings(actions: Readonly<Record<string, ActionDefault
       max: 86_400,
       unit: "seconds",
     });
+    if (defaults.global !== undefined && defaults.globalWindowSeconds !== undefined) {
+      // @fixed: the global ceiling may be a hundred million hits, over a window of a second to a day; the defaults are the product's
+      fragment[`limits.${action}.global`] = integer("limits", defaults.global, {
+        min: 1,
+        max: 100_000_000,
+        unit: "hits",
+      });
+      fragment[`limits.${action}.globalWindowSeconds`] = integer("limits", defaults.globalWindowSeconds, {
+        min: 1,
+        max: 86_400,
+        unit: "seconds",
+      });
+    }
   }
   return fragment;
 }
@@ -56,10 +80,14 @@ export function limitsFromSettings(
     if (windowSeconds === undefined) return undefined;
     const perIp = await read(`limits.${action}.perIp`);
     const perSubject = await read(`limits.${action}.perSubject`);
+    const global = await read(`limits.${action}.global`);
+    const globalWindowSeconds = await read(`limits.${action}.globalWindowSeconds`);
     return {
       windowSeconds,
       ...(perIp === undefined ? {} : { perIp }),
       ...(perSubject === undefined ? {} : { perSubject }),
+      ...(global === undefined ? {} : { global }),
+      ...(globalWindowSeconds === undefined ? {} : { globalWindowSeconds }),
     };
   };
 }
