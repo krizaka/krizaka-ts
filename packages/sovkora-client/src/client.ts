@@ -104,6 +104,34 @@ const withoutTrailingSlashes = (url: string): string => {
   return url.slice(0, end);
 };
 
+/** The edge answered with a refusal: a stable error. A refusal is an answer, so the circuit stays closed. */
+async function refusal(res: Response, method: string, path: string): Promise<SovkoraError> {
+  const where = `${method} ${path.split("?")[0]}`;
+  const body = (await res.json().catch(() => null)) as {
+    status?: unknown;
+    code?: unknown;
+    retryAfterSeconds?: unknown;
+  } | null;
+  if (res.status === 429) {
+    const asked = Number(res.headers.get("retry-after") ?? body?.retryAfterSeconds);
+    const wait = Math.min(BUSY_MAX_SECONDS, Math.max(BUSY_MIN_SECONDS, asked || BUSY_DEFAULT_SECONDS));
+    return new SovkoraError(SOVKORA_CODE.busy, `Sovkora is busy on ${where}`, {
+      upstreamStatus: 429,
+      status: 429,
+      retryAfterSeconds: wait,
+    });
+  }
+  if (res.status === 422 && (body?.status === KEY_REUSED || body?.code === KEY_REUSED)) {
+    return new SovkoraError(
+      SOVKORA_CODE.keyReused,
+      `The idempotency key already started a different request on ${where}`,
+      { upstreamStatus: 422, status: 409 },
+    );
+  }
+  const { status, code } = sovkoraRefusal(res.status);
+  return new SovkoraError(code, `Sovkora answered ${res.status} on ${where}`, { upstreamStatus: res.status, status });
+}
+
 /** Sovkora's edge, for every TypeScript product: one client instead of one copy per product. */
 export function createSovkoraClient(options: SovkoraClientOptions): SovkoraClient {
   const doFetch = options.fetch ?? fetch;
@@ -112,34 +140,6 @@ export function createSovkoraClient(options: SovkoraClientOptions): SovkoraClien
   const circuit = options.circuit === false ? null : createCircuit(options.circuit ?? DEFAULT_CIRCUIT, options.clock);
   const sleep = options.sleep ?? sleepFor;
   const installed = new Set<string>();
-
-  /** The edge answered with a refusal: a stable error. A refusal is an answer, so the circuit stays closed. */
-  async function refusal(res: Response, method: string, path: string): Promise<SovkoraError> {
-    const where = `${method} ${path.split("?")[0]}`;
-    const body = (await res.json().catch(() => null)) as {
-      status?: unknown;
-      code?: unknown;
-      retryAfterSeconds?: unknown;
-    } | null;
-    if (res.status === 429) {
-      const asked = Number(res.headers.get("retry-after") ?? body?.retryAfterSeconds);
-      const wait = Math.min(BUSY_MAX_SECONDS, Math.max(BUSY_MIN_SECONDS, asked || BUSY_DEFAULT_SECONDS));
-      return new SovkoraError(SOVKORA_CODE.busy, `Sovkora is busy on ${where}`, {
-        upstreamStatus: 429,
-        status: 429,
-        retryAfterSeconds: wait,
-      });
-    }
-    if (res.status === 422 && (body?.status === KEY_REUSED || body?.code === KEY_REUSED)) {
-      return new SovkoraError(
-        SOVKORA_CODE.keyReused,
-        `The idempotency key already started a different request on ${where}`,
-        { upstreamStatus: 422, status: 409 },
-      );
-    }
-    const { status, code } = sovkoraRefusal(res.status);
-    return new SovkoraError(code, `Sovkora answered ${res.status} on ${where}`, { upstreamStatus: res.status, status });
-  }
 
   async function call(path: string, init: Call = {}): Promise<Response> {
     if (!options.apiKey)

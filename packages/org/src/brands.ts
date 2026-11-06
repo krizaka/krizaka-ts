@@ -124,7 +124,7 @@ export interface CodeNameHit {
 const replacementOf = (word: string): string => {
   const id = CODE_NAMES[word.toLowerCase()] ?? "";
   if (word === word.toUpperCase()) return id.toUpperCase();
-  if (word[0] === word[0]?.toUpperCase()) return brandOf(id).commercialName;
+  if (word.startsWith(word.charAt(0).toUpperCase())) return brandOf(id).commercialName;
   return id;
 };
 
