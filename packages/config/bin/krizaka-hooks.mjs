@@ -20,9 +20,10 @@ const [command, ...rest] = process.argv.slice(2);
 if (command === "install") {
   try {
     const result = installHooks({ cwd: process.cwd(), binPath: fileURLToPath(import.meta.url) });
-    if (result.status !== "unchanged")
+    if (result.status !== "unchanged") {
       const why = result.reason ? " (" + result.reason + ")" : "";
       console.log(`krizaka-hooks: ${result.status}${why}`);
+    }
   } catch (error) {
     console.error(
       `krizaka-hooks: install failed, no hook set (${/** @type {Error} */ (error).message}). CI still checks everything.`,
