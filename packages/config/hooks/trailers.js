@@ -43,22 +43,29 @@ export function emailOf(value) {
 }
 
 /**
+ * The addresses and hashes ONE allow-list entry names: `email`, `emails`, `emailSha256`, and the noreply of an id + slug/login.
+ * @param {any} entry
+ * @returns {{ emails: string[], hashes: string[] }}
+ */
+function entryIdentities(entry) {
+  const login = entry.slug ? `${entry.slug}[bot]` : entry.login;
+  const noreply = login && entry.id ? [`${entry.id}+${login}@users.noreply.github.com`] : [];
+  const emails = [entry.email, ...(entry.emails ?? []), ...noreply].filter((e) => typeof e === "string");
+  const sha = entry.emailSha256;
+  return { emails: emails.map((e) => e.toLowerCase()), hashes: [sha ?? []].flat().map((h) => String(h).toLowerCase()) };
+}
+
+/**
  * Every address and hash the allow-list names, whatever its nesting (each object is read as an entry).
  * @param {any} node
  * @param {{ emails: Set<string>, hashes: Set<string> }} into
  */
 function collect(node, into) {
-  if (Array.isArray(node)) {
-    for (const child of node) collect(child, into);
-    return;
-  }
   if (node === null || typeof node !== "object") return;
-  for (const email of [node.email, ...(node.emails ?? [])])
-    if (typeof email === "string") into.emails.add(email.toLowerCase());
-  const sha = node.emailSha256;
-  for (const hash of Array.isArray(sha) ? sha : sha ? [sha] : []) into.hashes.add(String(hash).toLowerCase());
-  const login = node.slug ? `${node.slug}[bot]` : node.login;
-  if (login && node.id) into.emails.add(`${node.id}+${login}@users.noreply.github.com`.toLowerCase());
+  if (Array.isArray(node)) return node.forEach((child) => collect(child, into));
+  const found = entryIdentities(node);
+  found.emails.forEach((e) => into.emails.add(e));
+  found.hashes.forEach((h) => into.hashes.add(h));
   for (const [key, child] of Object.entries(node)) if (key !== "committerOnly") collect(child, into);
 }
 
