@@ -295,6 +295,36 @@ The CI step, after the install:
 - run: npx krizaka-ratchet --json
 ```
 
+## The git hook chain (`krizaka-hooks`)
+
+ONE chain of git hooks for every Krizaka repository, delivered by this public package (ADR-026): no `.githooks/`, husky or `.pre-commit-config.yaml` of its own. CI stays the last word; a hook only saves a round trip.
+
+```jsonc
+// package.json — adopt it in one line: the prepare script (add `|| true` so an install never fails on it)
+{ "scripts": { "prepare": "krizaka-hooks install || true" } }
+// a repository without npm: npx -y -p @krizaka/config krizaka-hooks install
+```
+
+`krizaka-hooks install` writes three shims in `<git common dir>/krizaka-hooks/` and sets `core.hooksPath` to them. It is idempotent (a second run prints nothing and changes nothing), skips outside a git repository and in CI, and never exits non-zero. A clone without the package or without node still commits and pushes: the shim says it skipped.
+
+| Hook | Step | What it does |
+| --- | --- | --- |
+| pre-commit | `secrets` | `gitleaks git --staged --redact` with the repository's `.gitleaks.toml`, else the org rules of krizaka/.github. gitleaks missing: a notice, the commit goes. |
+| commit-msg | `trailers` | every `Co-authored-by` must be on the org's public allow-list (`scripts/commit-identities.json` of krizaka/.github, cached one day in `~/.cache/krizaka/hooks`). List unreachable and not cached: a notice, the commit goes. |
+| pre-push | your steps | the declared steps below; without a declaration, the repository's `precheck` npm script if it has one. |
+
+**The declaration** is data, a `krizaka.hooks` field of `package.json` (the catalogue reads it as is). Each hook takes a list of `{ "name", "run" }`; the built-in steps of pre-commit and commit-msg always run first, a declared pre-push list replaces the `precheck` default:
+
+```json
+{ "krizaka": { "hooks": { "pre-push": [{ "name": "check", "run": "pnpm run check" }], "pre-commit": [{ "name": "format", "run": "pnpm exec prettier --check ." }] } } }
+```
+
+Steps run in order and stop at the first failure with one line, ``krizaka-hooks: pre-push · check: `pnpm run check` failed (exit 1)…``, and exit code 1. A malformed declaration is refused with its path (`krizaka.hooks.pre-push[0]: "run" is required`).
+
+**Machine extensions.** Executables in `~/.config/krizaka/hooks.d/<hook>/` run after the steps, in name order, with git's arguments and, for pre-push, the refs on standard input. The first failure stops the hook with that executable's exit code. This is where krizaka-agents puts its own steps.
+
+Tests: `test/hooks-*.test.ts` (a real git repository per test: a refused and a passing commit, push and extension).
+
 ## The workspace guard (`krizaka-workspace-guard`)
 
 In a pnpm workspace, a dependency that names another package of the same workspace is written `workspace:`, never a registry range: a range goes stale once the dependency is versioned (`^0.1.0` against 0.4.0), `changeset version` fails and no Version Packages pull request is opened. Run `npx --yes -p @krizaka/config krizaka-workspace-guard` from the repository root (it reads `pnpm-workspace.yaml`); it exits 1 and lists each offending dependency. Peer ranges are a published contract and stay. Rule `workspace-guard` of the org registry (krizaka/.github#388).

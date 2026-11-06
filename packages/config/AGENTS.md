@@ -39,6 +39,8 @@
 - Published surface: the exports listed in `package.json` and the `krizaka-ratchet` bin. Removing an export, renaming
   a counter or tightening a rule's default is a breaking change (major); a new rule is at least a minor.
 
+- **The hook chain** (`bin/krizaka-hooks.mjs`, `hooks/`): the one git hook mechanism of the org (ADR-026). One job per file (declaration, trailers, org-file, secrets-step, trailers-step, command-step, extensions, chain, install), each under 400 lines with a header, no long regex, a test with a passing and a failing case (`test/hooks-*.test.ts`, real git repositories). A new step is a built-in in `declaration.js` plus its step file; a repository's own check is a `krizaka.hooks` declaration, never a branch here. The install never fails and a missing package never blocks a push.
+
 ## 4. Release
 
 A changeset for every change to a shipped file. `@krizaka/config` is **not** in the `fixed` group: it has its own

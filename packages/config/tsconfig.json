@@ -11,6 +11,7 @@
     "bin",
     "eslint",
     "edit-check",
+    "hooks",
     "ratchet",
     "test/*.ts",
     "patterns.js",
