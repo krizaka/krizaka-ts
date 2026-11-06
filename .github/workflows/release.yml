@@ -1,7 +1,7 @@
 # .github/workflows/release.yml (krizaka-ts): changesets opens « chore: version packages »; its merge publishes to npm.
 name: Release
 on: { push: { branches: [main] }, workflow_dispatch: {} }
-permissions: { contents: read }   # write scopes live on the job (OpenSSF Scorecard, Token-Permissions)
+permissions: { contents: read } # write scopes live on the job (OpenSSF Scorecard, Token-Permissions)
 concurrency: { group: release, cancel-in-progress: false }
 jobs:
   release:
@@ -47,7 +47,7 @@ jobs:
           # PR, or the next frozen install fails (run 40070679529). The script lives in package.json (run 40072186334).
           # One npm script: the action runs version-script without a shell, so an "and then" here would be passed as an argument.
           version-script: pnpm run version-packages
-          publish-script: bash scripts/publish-packages.sh   # every package by OIDC first, NPM_TOKEN as the logged fallback (::warning:: names it); then `changeset tag`
+          publish-script: bash scripts/publish-packages.sh # every package by OIDC first, NPM_TOKEN as the logged fallback (::warning:: names it); then `changeset tag`
           pr-title: "chore: version packages"
           github-token: ${{ steps.app.outputs.token || secrets.GITHUB_TOKEN }}
         env:
@@ -67,7 +67,7 @@ jobs:
       # repository of krizaka/.github's release-consumers.json that depends on a published package gets a `krizaka-release`
       # dispatch and its bump-krizaka.yml opens the bump pull request. The conformance matrix (release-propagation) proves it landed.
       - if: steps.changesets.outputs.published == 'true' && vars.RELEASE_APP_ID != ''
-        uses: krizaka/.github/actions/dispatch-release@79f6ff6292edefebc59fc968dbc2c203da81c3ea # main
+        uses: krizaka/.github/actions/dispatch-release@ab6100359ba4962c61a021f55c53b549d385af4e # main
         with:
           packages: ${{ steps.changesets.outputs.publishedPackages }}
           app-id: ${{ vars.RELEASE_APP_ID }}
@@ -88,7 +88,7 @@ jobs:
       # org.json changes in place (the stable name), so the pull zone is purged right after the publish (krizaka/.github#303).
       # The hashed copies are immutable and never purged. Needs the organisation secret MEDIA_ACCOUNT_API_KEY (the Bunny account key).
       - if: steps.changesets.outputs.published == 'true' || github.event_name == 'workflow_dispatch'
-        uses: krizaka/.github/actions/cdn-purge@79f6ff6292edefebc59fc968dbc2c203da81c3ea # main (krizaka/.github#303)
+        uses: krizaka/.github/actions/cdn-purge@ab6100359ba4962c61a021f55c53b549d385af4e # main (krizaka/.github#303)
         with:
           urls: https://krizaka-assets.b-cdn.net/org/v1/org.json
           account-key: ${{ secrets.MEDIA_ACCOUNT_API_KEY }}
