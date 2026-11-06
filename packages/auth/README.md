@@ -7,7 +7,17 @@ import { emitMigration } from "@krizaka/db";
 import { accountsSchema, dbAccounts } from "@krizaka/auth";
 
 emitMigration(accountsSchema({ backfillVerified: true }), 1, { tables: { accounts: "accounts" } }); // commit the SQL once, in your migrations (idempotent)
-const accounts = dbAccounts({ query, transaction, mail, baseUrl: "https://www.akinaza.com", product: "Akinaza", tokenPrefix: "ae", passwords: { hash, verify }, tokenHash, passwordResetTtlMinutes: 30 /* optional, 5–1440 */ }); // `transaction`: the work on one connection (BEGIN … COMMIT); the password reset needs it under concurrent requests
+const accounts = dbAccounts({
+  query,
+  transaction,
+  mail,
+  baseUrl: "https://www.folioviv.com",
+  product: "Folioviv",
+  tokenPrefix: "ae",
+  passwords: { hash, verify },
+  tokenHash,
+  passwordResetTtlMinutes: 30 /* optional, 5–1440 */,
+}); // `transaction`: the work on one connection (BEGIN … COMMIT); the password reset needs it under concurrent requests
 await accounts.updateProfile(id, { name: "Éric", theme: "dark" });
 await accounts.sessions(id, new Date(), currentSessionId);
 await accounts.requestPasswordReset(email, new Date()); // mails `<baseUrl>/<locale>/reset-password?token=…`
@@ -31,7 +41,11 @@ Each product keeps its own accounts; **krizaka-users** is the federation provide
 import { createFederatedSignIn, dbIdentityLinks, identityLinksSchema, usersIdentityProvider } from "@krizaka/auth";
 
 emitMigration(identityLinksSchema, 1, { tables: { accounts: "accounts" } }); // once, in your migrations (idempotent): (issuer, subject) → account
-const federation = usersIdentityProvider({ baseUrl: "https://auth.dev.akinaza.com", appUrl: "https://dev.akinaza.com", fetch });
+const federation = usersIdentityProvider({
+  baseUrl: "https://auth.dev.folioviv.com",
+  appUrl: "https://dev.folioviv.com",
+  fetch,
+});
 const signIn = createFederatedSignIn({ links: dbIdentityLinks(query), accounts: { findByEmail, create }, clock });
 
 const { url } = await federation.start("google", "/fr/account"); // redirect there
@@ -48,25 +62,52 @@ In the product's `proxy.ts` (Web `Request`/`Response`, no framework): `landingRe
 
 ## Sessions, passwords, addresses and the administration's locks
 
-What Yomizaka and Akinaza each copied (`password.ts`, `client-ip.ts`, `session.ts`, the admin gate of `access.ts`) is here once. Each piece is a function of its inputs: the product reads its environment and its framework, and passes values.
+What Verikora and Folioviv each copied (`password.ts`, `client-ip.ts`, `session.ts`, the admin gate of `access.ts`) is here once. Each piece is a function of its inputs: the product reads its environment and its framework, and passes values.
 
 ```ts
-import { allowedIps, clientIp, createSessions, dbSessionStore, hashPassword, requireAdmin, sessionCookie, sessionTokenOf, verifyPassword } from "@krizaka/auth";
+import {
+  allowedIps,
+  clientIp,
+  createSessions,
+  dbSessionStore,
+  hashPassword,
+  requireAdmin,
+  sessionCookie,
+  sessionTokenOf,
+  verifyPassword,
+} from "@krizaka/auth";
 
 const sessions = createSessions({
-  store: dbSessionStore(query, { columns: ["id", "email", "role", "locale"], toAccount: (row) => ({ id: String(row.id), email: String(row.email), role: row.role as "USER" | "ADMIN", locale: row.locale as "en" | "fr" }), active: { column: "status", equals: "ACTIVE" } }),
+  store: dbSessionStore(query, {
+    columns: ["id", "email", "role", "locale"],
+    toAccount: (row) => ({
+      id: String(row.id),
+      email: String(row.email),
+      role: row.role as "USER" | "ADMIN",
+      locale: row.locale as "en" | "fr",
+    }),
+    active: { column: "status", equals: "ACTIVE" },
+  }),
   clock: { now: () => new Date() },
-  tokenPrefix: "ys",                       // tokens are `ys1.<43 characters>`
-  secret: () => env.AUTH_SESSION_SECRET,   // keys the stored hash (HMAC-SHA256)
+  tokenPrefix: "ys", // tokens are `ys1.<43 characters>`
+  secret: () => env.AUTH_SESSION_SECRET, // keys the stored hash (HMAC-SHA256)
   sessionDays: () => settings.get("auth.sessionDays"), // the setting, read for each new session
 });
 
-const ip = clientIp(request.headers, { header: env.ABUSE_CLIENT_IP_HEADER, trustedProxyHops: env.ABUSE_TRUSTED_PROXY_HOPS });
+const ip = clientIp(request.headers, {
+  header: env.ABUSE_CLIENT_IP_HEADER,
+  trustedProxyHops: env.ABUSE_TRUSTED_PROXY_HOPS,
+});
 const { token, expires } = await sessions.create(account.id, { ip, userAgent: request.headers.get("user-agent") });
-cookies().set(sessionCookie(token, expires, { name: "yomizaka_session", secure: production }));
+cookies().set(sessionCookie(token, expires, { name: "verikora_session", secure: production }));
 
-const session = await sessions.resolve(sessionTokenOf(request.headers, { cookie: "yomizaka_session" })); // bearer of a native app, else the cookie
-const verdict = requireAdmin({ session, ip, allowedIps: allowedIps(env.AUTH_ALLOWED_IPS, { production }), surface: "api" }); // { ok: true } | { ok: false, status, code }
+const session = await sessions.resolve(sessionTokenOf(request.headers, { cookie: "verikora_session" })); // bearer of a native app, else the cookie
+const verdict = requireAdmin({
+  session,
+  ip,
+  allowedIps: allowedIps(env.AUTH_ALLOWED_IPS, { production }),
+  surface: "api",
+}); // { ok: true } | { ok: false, status, code }
 ```
 
 - **Passwords:** `hashPassword` and `verifyPassword` are scrypt (N=2^15, r=8, p=1), stored `scrypt$N$r$p$salt$hash`, the format of the copies: a hash a product stored verifies here (a test pins one). `passwordProblem` (12 to 256 characters) and `decoyHash` (verify against it when the address has no account: the same work, the same time). Hand them to `dbAccounts({ passwords: { hash: hashPassword, verify: verifyPassword } })`.

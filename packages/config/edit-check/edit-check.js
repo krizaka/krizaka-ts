@@ -14,7 +14,7 @@ import {
 import { homedir } from "node:os";
 import { dirname, extname, join, resolve, sep } from "node:path";
 
-/** The PMD distribution, pinned: the release asset and its digest (the PMD of krizaka-build's maven-pmd-plugin 3.28). */
+/** The PMD distribution, pinned: the release asset and its digest (the PMD of krizaka-java's maven-pmd-plugin 3.28). */
 export const PMD = {
   version: "7.14.0",
   url: "https://github.com/pmd/pmd/releases/download/pmd_releases%2F7.14.0/pmd-dist-7.14.0-bin.zip",
@@ -22,7 +22,7 @@ export const PMD = {
 };
 /** The Krizaka rules, one source for the build and for this check. */
 export const RULES_URL =
-  "https://raw.githubusercontent.com/krizaka/krizaka-build/main/krizaka-quality/src/main/resources/krizaka-quality/pmd-ruleset.xml";
+  "https://raw.githubusercontent.com/krizaka/krizaka-java/main/krizaka-quality/src/main/resources/krizaka-quality/pmd-ruleset.xml";
 /** The time a check may take; past it the check stays silent (an edit is never blocked by a slow tool). */
 export const BUDGET_MS = 10_000;
 

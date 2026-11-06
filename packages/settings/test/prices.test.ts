@@ -18,18 +18,18 @@ import { databaseEnabled, testDatabase } from "./database";
 
 /** A seed the way a product writes it: its current pricing module, now the catalogue's defaults. */
 const prices = definePrices([
-  { product: "yomizaka", plan: "document", unit: UNIT.document, amountCents: 65, availability: AVAILABILITY.public },
+  { product: "verikora", plan: "document", unit: UNIT.document, amountCents: 65, availability: AVAILABILITY.public },
   {
-    product: "yomizaka",
+    product: "verikora",
     plan: "agency",
     unit: UNIT.month,
     amountCents: 5900,
     availability: AVAILABILITY.public,
     limits: { included: 100, overageCents: 45 },
   },
-  { product: "yomizaka", plan: "api", unit: UNIT.document, amountCents: null, availability: AVAILABILITY.internal },
+  { product: "verikora", plan: "api", unit: UNIT.document, amountCents: null, availability: AVAILABILITY.internal },
   {
-    product: "akinaza",
+    product: "folioviv",
     plan: "starter",
     unit: UNIT.month,
     amountCents: 4500,
@@ -37,7 +37,7 @@ const prices = definePrices([
     limits: { founderCap: 20, cardFeeBps: 0 },
   },
   {
-    product: "akinaza",
+    product: "folioviv",
     plan: "scale",
     unit: UNIT.month,
     amountCents: 9900,
@@ -53,20 +53,20 @@ const LATER = new Date("2026-11-01T00:00:00Z");
 describe("the catalogue's seed", () => {
   it("keys every entry product.plan, in CAD, before taxes", () => {
     expect(prices.keys).toEqual([
-      "yomizaka.document",
-      "yomizaka.agency",
-      "yomizaka.api",
-      "akinaza.starter",
-      "akinaza.scale",
+      "verikora.document",
+      "verikora.agency",
+      "verikora.api",
+      "folioviv.starter",
+      "folioviv.scale",
     ]);
-    expect(prices.defaultOf("yomizaka.agency")).toMatchObject({
+    expect(prices.defaultOf("verikora.agency")).toMatchObject({
       currency: "CAD",
       taxes: "plus-taxes",
       amountCents: 5900,
       limits: { included: 100, overageCents: 45 },
     });
-    expect(prices.defaultOf("yomizaka.document").limits).toEqual({});
-    expect(prices.isKey("yomizaka.agency")).toBe(true);
+    expect(prices.defaultOf("verikora.document").limits).toEqual({});
+    expect(prices.isKey("verikora.agency")).toBe(true);
     expect(prices.isKey("toString")).toBe(false);
   });
   it.each([
@@ -109,22 +109,22 @@ describe("what a public page may show", () => {
   const shown = publicCatalogue(entries);
   it("never an internal entry", () =>
     expect(shown.map((p) => p.key)).toEqual([
-      "yomizaka.document",
-      "yomizaka.agency",
-      "akinaza.starter",
-      "akinaza.scale",
+      "verikora.document",
+      "verikora.agency",
+      "folioviv.starter",
+      "folioviv.scale",
     ]));
   it("an entry in preparation, without its figure or its limits", () =>
-    expect(shown.find((p) => p.key === "akinaza.scale")).toMatchObject({
+    expect(shown.find((p) => p.key === "folioviv.scale")).toMatchObject({
       availability: "preparing",
       amountCents: null,
       limits: {},
     }));
   it("public and founder-limited entries with their figure, the version they were read at", () => {
-    expect(shown.find((p) => p.key === "akinaza.starter")).toMatchObject({
+    expect(shown.find((p) => p.key === "folioviv.starter")).toMatchObject({
       amountCents: 4500,
       limits: { founderCap: 20 },
-      versionId: "seed:akinaza.starter",
+      versionId: "seed:folioviv.starter",
       taxes: "plus-taxes",
     });
   });
@@ -157,74 +157,74 @@ function contract(name: string, makeStore: () => Promise<PriceStore>) {
     const catalogue = () => priceCatalogue(prices, store);
 
     it("serves the seed until an administrator changes something", async () => {
-      const e = await catalogue().entry("yomizaka.agency", T0);
-      expect(e).toMatchObject({ key: "yomizaka.agency", amountCents: 5900, versionId: "seed:yomizaka.agency" });
+      const e = await catalogue().entry("verikora.agency", T0);
+      expect(e).toMatchObject({ key: "verikora.agency", amountCents: 5900, versionId: "seed:verikora.agency" });
       expect((await catalogue().catalogue(T0)).map((x) => x.key)).toEqual(prices.keys);
     });
 
     it("a change takes effect at its date, and never rewrites what was sold before it", async () => {
-      const sold = await catalogue().entry("yomizaka.agency", T0);
+      const sold = await catalogue().entry("verikora.agency", T0);
       const v = await catalogue().schedule(
         ADMIN,
-        "yomizaka.agency",
+        "verikora.agency",
         { amountCents: 6900, limits: { included: 120, overageCents: 45 } },
         LATER,
         T0,
       );
       expect(v).toMatchObject({
-        key: "yomizaka.agency",
+        key: "verikora.agency",
         amountCents: 6900,
         effectiveFrom: LATER,
         availability: "public",
       });
-      expect((await catalogue().entry("yomizaka.agency", T0)).amountCents).toBe(5900);
-      expect((await catalogue().entry("yomizaka.agency", LATER)).amountCents).toBe(6900);
+      expect((await catalogue().entry("verikora.agency", T0)).amountCents).toBe(5900);
+      expect((await catalogue().entry("verikora.agency", LATER)).amountCents).toBe(6900);
       expect(await catalogue().version(sold.versionId)).toMatchObject({ amountCents: 5900 });
       expect(await catalogue().version(v.versionId)).toMatchObject({ amountCents: 6900, limits: { included: 120 } });
     });
 
     it("the last change scheduled for the same date wins", async () => {
-      await catalogue().schedule(ADMIN, "akinaza.starter", { amountCents: 3900 }, LATER, T0);
+      await catalogue().schedule(ADMIN, "folioviv.starter", { amountCents: 3900 }, LATER, T0);
       await catalogue().schedule(
         ADMIN,
-        "akinaza.starter",
+        "folioviv.starter",
         { amountCents: 4500, limits: { founderCap: 30, cardFeeBps: 0 } },
         LATER,
         T0,
       );
-      expect(await catalogue().entry("akinaza.starter", LATER)).toMatchObject({
+      expect(await catalogue().entry("folioviv.starter", LATER)).toMatchObject({
         amountCents: 4500,
         limits: { founderCap: 30 },
       });
     });
 
     it("keeps who changed what, when, before, after and from when — newest first", async () => {
-      const h = await catalogue().history("yomizaka.agency");
+      const h = await catalogue().history("verikora.agency");
       expect(h[0]).toMatchObject({
         actorLabel: "admin@test.example",
         before: { amountCents: 5900 },
         after: { amountCents: 6900 },
         effectiveFrom: LATER.toISOString(),
       });
-      expect(h.at(-1)).toMatchObject({ versionId: "seed:yomizaka.agency", actorLabel: "seed" });
+      expect(h.at(-1)).toMatchObject({ versionId: "seed:verikora.agency", actorLabel: "seed" });
     });
 
     it.each([
       ["an unknown key", "nothing.here", { amountCents: 1 }, LATER, 404, "UNKNOWN_PRICE"],
       [
         "a date in the past",
-        "yomizaka.document",
+        "verikora.document",
         { amountCents: 70 },
         new Date("2026-10-01T00:00:00Z"),
         400,
         "BAD_DATE",
       ],
-      ["a bad amount", "yomizaka.document", { amountCents: -5 }, LATER, 400, "BAD_VALUE"],
-      ["a currency other than CAD", "yomizaka.document", { currency: "USD" }, LATER, 400, "BAD_VALUE"],
+      ["a bad amount", "verikora.document", { amountCents: -5 }, LATER, 400, "BAD_VALUE"],
+      ["a currency other than CAD", "verikora.document", { currency: "USD" }, LATER, 400, "BAD_VALUE"],
     ])("refuses %s, and writes nothing", async (_n, key, change, at, status, code) => {
-      const before = (await catalogue().history("yomizaka.document")).length;
+      const before = (await catalogue().history("verikora.document")).length;
       await expect(catalogue().schedule(ADMIN, key, change as never, at, T0)).rejects.toMatchObject({ status, code });
-      expect((await catalogue().history("yomizaka.document")).length).toBe(before);
+      expect((await catalogue().history("verikora.document")).length).toBe(before);
     });
 
     it("an unknown version is null, never another price", async () =>
@@ -235,7 +235,7 @@ function contract(name: string, makeStore: () => Promise<PriceStore>) {
       expect(JSON.parse(JSON.stringify(d))).toEqual(d);
       expect(d.units).toContain("month");
       expect(d.availabilities).toEqual(["public", "internal", "founder-limited", "preparing"]);
-      expect(d.entries.find((x) => x.key === "yomizaka.agency")).toMatchObject({
+      expect(d.entries.find((x) => x.key === "verikora.agency")).toMatchObject({
         amountCents: 5900,
         effectiveFrom: new Date(0).toISOString(),
         upcoming: [{ amountCents: 6900, effectiveFrom: LATER.toISOString() }],

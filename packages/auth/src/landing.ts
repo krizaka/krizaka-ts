@@ -17,14 +17,14 @@ const cookieValue = (headers: Headers, name: string): string | undefined => {
 
 /** Where a signed-in visitor of the landing route goes. */
 export interface LandingRule {
-  /** The product's session cookie name (`yomizaka_session`). */
+  /** The product's session cookie name (`verikora_session`). */
   cookie: string;
   /** The landing routes (`["/", "/fr", "/en"]`): exact paths, a trailing slash tolerated. */
   landing: readonly string[];
   /** The signed-in start page, or a function of the request (the language of the address). */
   home: string | ((request: Request) => string);
   /**
-   * The product's own public origin (`https://dev.yomizaka.com`), from its declared environment (APP_URL), NEVER from the
+   * The product's own public origin (`https://dev.verikora.com`), from its declared environment (APP_URL), NEVER from the
    * request: `Host` and `x-forwarded-*` are client-controlled. With it the Location is absolute on that origin (what a
    * Next.js proxy accepts). Only the origin of the value is used. Optional outside production (the Location is then
    * relative); REQUIRED in production, where a missing origin throws instead of falling back to the request's headers.

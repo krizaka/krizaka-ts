@@ -1,7 +1,7 @@
 id: no-hand-made-footer
 valid:
   - |
-    const x = <SiteFooter current="akinaza" org={org} variant="app" />;
+    const x = <SiteFooter current="folioviv" org={org} variant="app" />;
   - |
     const x = <MarketingLayout footer={<SiteFooter current="krizaka" org={org} />} />;
 invalid:

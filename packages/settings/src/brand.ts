@@ -7,7 +7,7 @@ import { type Def, GLOBAL_ONLY, KIND } from "./registry";
 export const DISPLAY_NAME_KEY = "brand.displayName";
 
 /**
- * The setting of the product's displayed name, for a product's registry: `{ [DISPLAY_NAME_KEY]: displayNameSetting("yomizaka") }`.
+ * The setting of the product's displayed name, for a product's registry: `{ [DISPLAY_NAME_KEY]: displayNameSetting("verikora") }`.
  * Its default is the commercial name of `@krizaka/org` (« Verikora »); the admin screen draws it from `describeSettings` like any
  * text setting. A code name is refused: the customer never reads one. The app shows it through `displayName(codeName, value)`.
  */

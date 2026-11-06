@@ -87,7 +87,7 @@ describe.runIf(enabled)("webhooks on PostgreSQL", () => {
     )[0]!.id;
   /** The queue is shared by the tests of this file: empty it, so a test sees only its own deliveries. */
   const drain = () => hooks().deliverDue(NOW, async () => ({ status: 200 }), { limit: 1000 });
-  const URL_ = "https://hooks.example.com/akinaza";
+  const URL_ = "https://hooks.example.com/folioviv";
 
   beforeAll(async () => {
     client = new pg.Client({ connectionString: process.env.DATABASE_URL });

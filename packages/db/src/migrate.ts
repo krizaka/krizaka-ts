@@ -50,7 +50,7 @@ async function applyOne(connection: Connection, history: string, migration: Prod
 
 /**
  * The runner for products without one: applies the migrations not applied yet, in order, one transaction each, under an
- * advisory lock. The same behaviour as the hand-written runners it replaces (yomizaka `apps/web/lib/db.ts`).
+ * advisory lock. The same behaviour as the hand-written runners it replaces (verikora `apps/web/lib/db.ts`).
  * @param connect opens a connection
  * @param migrations the product's whole sequence, in order
  * @param options the lock key and the history table

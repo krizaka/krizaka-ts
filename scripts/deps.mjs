@@ -28,7 +28,7 @@ export const PACKAGES = Object.freeze(
       "email-verification",
       "mail",
       "notifications",
-      "orazaka-client",
+      "sovkora-client",
       "org",
       "organize",
       "outbox",

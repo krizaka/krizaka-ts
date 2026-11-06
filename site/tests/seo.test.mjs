@@ -38,9 +38,9 @@ test("llms.txt points back to the family", () => {
   for (const url of [
     "https://www.krizaka.com",
     "https://ui.krizaka.com",
-    "https://www.orazaka.com",
-    "https://dev.yomizaka.com",
-    "https://dev.akinaza.com",
+    "https://www.sovkora.com",
+    "https://dev.verikora.com",
+    "https://dev.folioviv.com",
     "https://java.krizaka.com",
   ])
     assert.ok(post.includes(url), url);

@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 import { filterSql, type WorkspaceDecl, workspaceMigration } from "../src";
 import { DECISION, INVOICE_STATE } from "./fixtures";
 
-/** Akinaza's shape (demo): invoices scoped to a shop, their derived state read by a SQL function of the product. */
+/** Folioviv's shape (demo): invoices scoped to a shop, their derived state read by a SQL function of the product. */
 const INVOICE_STATE_SQL_DECL: WorkspaceDecl = {
   scope: "shops",
   users: "accounts",

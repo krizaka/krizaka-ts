@@ -70,7 +70,7 @@ export interface EndablePool {
  * Ends a `pg` pool and waits until its sockets are really closed. `pool.end()` resolves once every client is asked to end,
  * before the server has closed its side: a `DROP DATABASE … WITH (FORCE)` right after kills a backend that is still there,
  * the idle client reads « terminating connection due to administrator command » (57P01) and the pool raises an uncaught
- * error (the flake of akinaza#518 and yomizaka's integration tests). Call it in a test's teardown, before the drop.
+ * error (the flake of folioviv#518 and verikora's integration tests). Call it in a test's teardown, before the drop.
  * @param pool a `pg.Pool` (or anything with `end()` and, as `pg` has, its `_clients`)
  */
 export async function endPool(pool: EndablePool): Promise<void> {

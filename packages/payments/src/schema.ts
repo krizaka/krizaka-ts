@@ -2,7 +2,7 @@ import { defineModule } from "@krizaka/db";
 
 /**
  * The tables of « payments », in their own Postgres schema (ADR-001 §3). `event` is the record of the processor's notifications
- * already applied (one row per event id, the same shape as the `payment_events` Yomizaka's migration 0009 and Akinaza's 0010 made);
+ * already applied (one row per event id, the same shape as the `payment_events` Verikora's migration 0009 and Folioviv's 0010 made);
  * `discount` remembers the processor's object made for each `(coupon, terms version)`. They reference no product table.
  * Version 1 is frozen once released: a change is version 2.
  *

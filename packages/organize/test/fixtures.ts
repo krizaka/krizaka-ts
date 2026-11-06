@@ -1,6 +1,6 @@
 import type { KindConfig, StatusSet } from "../src";
 
-/** Yomizaka's decision on an applicant file (demo data): à décider → retenu | non retenu, both final, refusing asks twice. */
+/** Verikora's decision on an applicant file (demo data): à décider → retenu | non retenu, both final, refusing asks twice. */
 export const DECISION: StatusSet = {
   key: "decision",
   label: { fr: "Décision", en: "Decision" },
@@ -27,7 +27,7 @@ export const DECISION: StatusSet = {
   ],
 };
 
-/** Akinaza's invoice state (demo data): computed from the ledger, never moved. */
+/** Folioviv's invoice state (demo data): computed from the ledger, never moved. */
 export const INVOICE_STATE: StatusSet = {
   key: "invoice_state",
   label: { fr: "État", en: "State" },

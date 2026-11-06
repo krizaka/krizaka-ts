@@ -165,7 +165,7 @@ describe("flake policy", () => {
     expect(() => assertNoRetries({ projects: [{ name: "web", retries: 1 }] })).toThrow(/web/);
   });
   it("quarantines a named test with its reason and issue", () => {
-    const q = quarantine([{ test: "shop publishes", reason: "lazy map chunk", issue: "krizaka/akinaza#1" }]);
+    const q = quarantine([{ test: "shop publishes", reason: "lazy map chunk", issue: "krizaka/folioviv#1" }]);
     expect(q.has("shop publishes")).toBe(true);
     expect(q.has("shop orders")).toBe(false);
   });

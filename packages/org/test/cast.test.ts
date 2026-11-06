@@ -13,9 +13,9 @@ describe("the demo cast", () => {
   });
 
   it("has Eric, Mira and Camille in every product, as the deployed QA accounts do", () => {
-    for (const product of ["orazaka", "yomizaka", "akinaza"] as const) {
+    for (const product of ["sovkora", "verikora", "folioviv"] as const) {
       expect(castOf(product).map((p) => p.id)).toEqual(
-        expect.arrayContaining(product === "orazaka" ? ["eric", "mira", "krizaka"] : ["eric", "mira", "camille"]),
+        expect.arrayContaining(product === "sovkora" ? ["eric", "mira", "krizaka"] : ["eric", "mira", "camille"]),
       );
       expect(persona(product, "mira").role).toBe("admin");
     }
@@ -43,15 +43,17 @@ describe("the demo cast", () => {
   });
 
   it("gives each product a member or owner and an administrator", () => {
-    expect(personaByRole("yomizaka", "member").id).toBe("eric");
-    expect(personaByRole("yomizaka", "admin").displayName).toBe("Mira Haddad");
-    expect(castOf("akinaza").filter((p) => p.role === "client")).toHaveLength(5);
-    expect(() => persona("yomizaka", "nobody")).toThrow(/known: eric, mira, camille/);
+    expect(personaByRole("verikora", "member").id).toBe("eric");
+    expect(personaByRole("verikora", "admin").displayName).toBe("Mira Haddad");
+    expect(castOf("folioviv").filter((p) => p.role === "client")).toHaveLength(5);
+    expect(() => persona("verikora", "nobody")).toThrow(/known: eric, mira, camille/);
   });
 
   it("resolves media from the defaults, on the CDN", () => {
-    expect(castMedia(persona("akinaza", "lea")).banner).toMatch(/\/defaults\/v1\/banner\/cafe-maker-studio-960\.webp$/);
-    expect(castMedia(persona("yomizaka", "eric")).avatar).toMatch(/person\/community-lead-512\.webp$/);
+    expect(castMedia(persona("folioviv", "lea")).banner).toMatch(
+      /\/defaults\/v1\/banner\/cafe-maker-studio-960\.webp$/,
+    );
+    expect(castMedia(persona("verikora", "eric")).avatar).toMatch(/person\/community-lead-512\.webp$/);
   });
 
   it("fingerprints counts in a stable order", () => {

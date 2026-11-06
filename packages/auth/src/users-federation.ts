@@ -18,7 +18,7 @@ export type Fetcher = (
 ) => Promise<{ ok: boolean; status: number; json(): Promise<unknown> }>;
 
 export interface UsersFederationOptions {
-  /** The tenant host of the product: `https://auth.dev.akinaza.com`. */
+  /** The tenant host of the product: `https://auth.dev.folioviv.com`. */
   baseUrl: string;
   /** The product's public address: the start URL sends the person back to it, so `returnTo` is absolute from it. */
   appUrl: string;
@@ -41,7 +41,7 @@ export function parseExternalIdentity(body: unknown): ExternalIdentity {
 }
 
 /**
- * The adapter for the users service (`auth.<product>` tenant host), which lives in krizaka/krizaka-build `krizaka-users/` since
+ * The adapter for the users service (`auth.<product>` tenant host), which lives in krizaka/krizaka-java `krizaka-users/` since
  * ADR-021 (the federation landed as krizaka/krizaka-users#31, the old split): `start` builds the tenant's start address,
  * `complete` exchanges the one-time code (and the PKCE verifier of a native app) for the verified identity.
  */

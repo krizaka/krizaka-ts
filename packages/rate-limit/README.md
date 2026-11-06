@@ -1,6 +1,6 @@
 # @krizaka/rate-limit
 
-Limits per action for every Krizaka product: fixed windows per address and per subject, the limits read from the admin's settings, a memory store and a PostgreSQL store shared by every instance. It replaces the `rate-limit.ts` that Yomizaka and Akinaza carried byte for byte, and the PostgreSQL variants some products carried.
+Limits per action for every Krizaka product: fixed windows per address and per subject, the limits read from the admin's settings, a memory store and a PostgreSQL store shared by every instance. It replaces the `rate-limit.ts` that Verikora and Folioviv carried byte for byte, and the PostgreSQL variants some products carried.
 
 ```ts
 import { emitMigration } from "@krizaka/db";

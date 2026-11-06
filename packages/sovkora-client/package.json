@@ -1,20 +1,20 @@
 {
-  "name": "@krizaka/orazaka-client",
+  "name": "@krizaka/sovkora-client",
   "version": "0.2.1",
-  "description": "One Orazaka client for the TypeScript products: start a Studio run (safe to retry with an idempotency key), read its status and outputs, wait for it, with typed errors with stable codes, a time limit and a circuit breaker. Base URL, key and clock are parameters; no environment, no framework.",
+  "description": "One Sovkora client for the TypeScript products: start a Studio run (safe to retry with an idempotency key), read its status and outputs, wait for it, with typed errors with stable codes, a time limit and a circuit breaker. Base URL, key and clock are parameters; no environment, no framework.",
   "keywords": [
     "krizaka",
-    "orazaka",
+    "sovkora",
     "client",
     "studio",
     "runs"
   ],
-  "homepage": "https://github.com/krizaka/krizaka-ts/tree/main/packages/orazaka-client",
+  "homepage": "https://github.com/krizaka/krizaka-ts/tree/main/packages/sovkora-client",
   "bugs": "https://github.com/krizaka/krizaka-ts/issues",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/krizaka/krizaka-ts.git",
-    "directory": "packages/orazaka-client"
+    "directory": "packages/sovkora-client"
   },
   "license": "Apache-2.0",
   "author": "Krizaka (https://www.krizaka.com)",

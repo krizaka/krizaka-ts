@@ -4,6 +4,7 @@ import {
   brandOf,
   brands,
   catalogueValues,
+  CODE_NAMES,
   codeNameMap,
   displayName,
   findCodeNames,
@@ -22,96 +23,93 @@ describe("the commercial names (krizaka-internal#2035)", () => {
     }
   });
 
-  it("carries the founder's decisions (krizaka-internal#2034)", () => {
+  it("carries the founder's decisions (krizaka-internal#2034, #2659)", () => {
+    expect(brands.map((b) => b.id)).toEqual(["verikora", "folioviv", "sovkora", "kridoc"]);
+    expect(brandOf("folioviv").domains).toEqual({
+      site: "https://www.folioviv.com",
+      app: "https://folioviv.app",
+      shop: "https://folioviv.shop",
+      dev: "https://dev.folioviv.com",
+    });
+    expect(brandOf("kridoc").kind).toBe("service");
+    for (const b of brands) expect(b.id).toBe(b.commercialName.toLowerCase());
+  });
+
+  it("keeps the retired code names in one historic table, never as an alias", () => {
+    expect(CODE_NAMES).toEqual({ yomizaka: "verikora", akinaza: "folioviv", orazaka: "sovkora", kachizaka: "kridoc" });
+    expect(Object.isFrozen(CODE_NAMES)).toBe(true);
     expect(codeNameMap()).toEqual({
       yomizaka: "Verikora",
       akinaza: "Folioviv",
       orazaka: "Sovkora",
       kachizaka: "Kridoc",
     });
-    expect(brandOf("akinaza").domains).toEqual({
-      site: "https://www.folioviv.com",
-      app: "https://folioviv.app",
-      shop: "https://folioviv.shop",
-      dev: "https://dev.folioviv.com",
-    });
-    expect(brandOf("kachizaka").kind).toBe("service");
-    expect(brandOf("kachizaka").formerly).toBeNull();
-    expect(brandOf("yomizaka").formerly?.fr).toBe("Yomizaka s’appelle désormais Verikora");
+    expect(() => brandOf("yomizaka")).toThrow(/retired code name .*brandOf\("verikora"\)/);
+    expect(() => brandOf("Orazaka")).toThrow(/brandOf\("sovkora"\)/);
   });
 
-  it("refuses an unknown code name", () => {
-    expect(() => brandOf("nope")).toThrow(/Unknown Krizaka code name/);
+  it("refuses an unknown brand", () => {
+    expect(() => brandOf("nope")).toThrow(/Unknown Krizaka brand/);
   });
 
   it("shows the administrator's name, else the commercial one, never a code name", () => {
-    expect(displayName("yomizaka")).toBe("Verikora");
-    expect(displayName("yomizaka", "  Verikora Pro ")).toBe("Verikora Pro");
-    expect(displayName("yomizaka", "")).toBe("Verikora");
-    expect(displayName("yomizaka", null)).toBe("Verikora");
-    expect(displayName("yomizaka", "Yomizaka")).toBe("Verikora");
-    expect(displayName("yomizaka", "x".repeat(31))).toBe("Verikora");
+    expect(displayName("verikora")).toBe("Verikora");
+    expect(displayName("verikora", "  Verikora Pro ")).toBe("Verikora Pro");
+    expect(displayName("verikora", "")).toBe("Verikora");
+    expect(displayName("verikora", null)).toBe("Verikora");
+    expect(displayName("verikora", "Yomizaka")).toBe("Verikora");
+    expect(displayName("verikora", "le yomizaka pro")).toBe("Verikora");
+    expect(displayName("verikora", "x".repeat(31))).toBe("Verikora");
   });
 
   it("writes the lockup in both languages", () => {
-    expect(lockup("yomizaka", "en")).toBe("Verikora by Krizaka");
-    expect(lockup("akinaza", "fr")).toBe("Folioviv par Krizaka");
-    expect(lockup("orazaka", "fr", "Moteur maison")).toBe("Moteur maison par Krizaka");
+    expect(lockup("verikora", "en")).toBe("Verikora by Krizaka");
+    expect(lockup("folioviv", "fr")).toBe("Folioviv par Krizaka");
+    expect(lockup("sovkora", "fr", "Moteur maison")).toBe("Moteur maison par Krizaka");
   });
 });
 
-describe("the code-name guard (krizaka-internal#2036)", () => {
-  it("fails a page that names a product by its code name", () => {
-    const html = `<html><head><title>Yomizaka — read before you sign</title></head><body><h1>Yomizaka</h1></body></html>`;
-    const hits = findCodeNames(visibleText(html));
+describe("the code-name guard (krizaka-internal#2036, #2659: none, anywhere)", () => {
+  it("finds every retired code name, in any case and inside a word, with its replacement in the same case", () => {
+    const hits = findCodeNames("Yomizaka, ORAZAKA_KEY, brand-akinaza, dev.kachizaka.com, createOrazakaClient");
     expect(hits.map((h) => [h.word, h.use])).toEqual([
       ["Yomizaka", "Verikora"],
-      ["Yomizaka", "Verikora"],
+      ["ORAZAKA", "SOVKORA"],
+      ["akinaza", "folioviv"],
+      ["kachizaka", "kridoc"],
+      ["Orazaka", "Sovkora"],
     ]);
   });
 
-  it("passes the development line under the name (data-code-name), and still fails the code name next to it", () => {
-    const line = `<span class="font-mono text-xs" data-code-name="">code name: yomizaka</span>`;
-    expect(findCodeNames(visibleText(`<body><span>Verikora</span>${line}<p>after</p></body>`))).toEqual([]);
-    expect(findCodeNames(visibleText(`<body>${line}${line}<h1>Yomizaka</h1></body>`)).map((h) => h.word)).toEqual([
-      "Yomizaka",
-    ]);
-    expect(findCodeNames(visibleText(`<body><span data-code-name="">nom de code : akinaza</span></body>`))).toEqual([]);
+  it("has no allowed span: URLs, hosts, coordinates, code spans and link targets are refused too", () => {
+    for (const text of [
+      "https://github.com/krizaka/orazaka",
+      "dev.yomizaka.com",
+      "@krizaka/orazaka-client",
+      "com.krizaka.orazaka:core",
+      "the `akinaza` service",
+      "[repo](https://www.akinaza.com/x)",
+      "Yomizaka is now Verikora",
+    ]) {
+      expect(findCodeNames(text), text).toHaveLength(1);
+    }
   });
 
-  it("passes « Verikora by Krizaka » with a GitHub link, a class, a package and a command", () => {
-    const html = `<body class="brand-yomizaka"><h1>Verikora by Krizaka</h1>
-      <a href="https://github.com/krizaka/yomizaka">Source: https://github.com/krizaka/yomizaka</a>
-      <p>Install <code>orazaka run</code>, package @krizaka/orazaka-client, repo krizaka/akinaza, com.krizaka.orazaka:core.</p>
-      <pre>npm i @krizaka/orazaka-client</pre><script>const x = "akinaza"</script></body>`;
-    expect(findCodeNames(visibleText(html))).toEqual([]);
-  });
-
-  it("allows the one « formerly » line and old hosts, refuses « Krizaka ECM »", () => {
-    expect(findCodeNames("Yomizaka is now Verikora. Old links on dev.yomizaka.com keep working.")).toEqual([]);
-    expect(findCodeNames("Akinaza s’appelle désormais Folioviv")).toEqual([]);
+  it("passes the commercial names and refuses « Krizaka ECM »", () => {
+    expect(findCodeNames("Verikora, Folioviv, Sovkora and Kridoc by Krizaka — dev.verikora.com")).toEqual([]);
     expect(findCodeNames("Stored in Krizaka ECM").map((h) => h.use)).toEqual(["Kridoc"]);
-    expect(findCodeNames("the `kachizaka` service")).toEqual([]);
-    expect(findCodeNames("Powered by Orazaka").map((h) => h.use)).toEqual(["Sovkora"]);
-  });
-
-  it("reads the target of a markdown link or an autolink as a URL, and still checks the label", () => {
-    expect(findCodeNames("[the engine](https://github.com/krizaka/orazaka)")).toEqual([]);
-    expect(findCodeNames("[repo](https://www.yomizaka.com/x) and <https://www.akinaza.com/y>")).toEqual([]);
-    expect(findCodeNames("[Yomizaka](https://x.com)")).toHaveLength(1);
-    expect(findCodeNames("see ](orazaka and more")).toHaveLength(1);
   });
 
   it("reads metadata and accessible names, not markup", () => {
-    const html = `<meta property="og:title" content="Akinaza"><img alt="Akinaza mark" src="/a.svg"><div data-x="akinaza"></div>`;
-    expect(findCodeNames(visibleText(html))).toHaveLength(2);
+    const html = `<meta property="og:title" content="Folioviv"><img alt="Akinaza mark" src="/a.svg"><div data-x="akinaza"></div>`;
+    expect(findCodeNames(visibleText(html))).toHaveLength(1);
   });
 
-  it("reads a catalogue's values, never its keys", () => {
-    const values = catalogueValues({ site: { yomizaka: { title: "Verikora", list: ["Akinaza"] } } });
+  it("reads a catalogue's values with their paths", () => {
+    const values = catalogueValues({ site: { verikora: { title: "Verikora", list: ["Akinaza"] } } });
     expect(values).toEqual([
-      ["site.yomizaka.title", "Verikora"],
-      ["site.yomizaka.list[0]", "Akinaza"],
+      ["site.verikora.title", "Verikora"],
+      ["site.verikora.list[0]", "Akinaza"],
     ]);
     expect(values.flatMap(([, v]) => findCodeNames(v))).toHaveLength(1);
   });
@@ -125,10 +123,10 @@ describe("the org JSON stays service discovery (founder, 2026-11-01)", () => {
 
   it("no renderer helper returns a code name", () => {
     for (const b of brands) {
-      for (const chosen of [undefined, "", b.codeName, `${b.codeName} Pro`]) {
+      for (const chosen of [undefined, "", ...Object.keys(CODE_NAMES), "Orazaka Pro"]) {
         for (const locale of ["fr", "en"]) {
-          expect(findCodeNames(displayName(b.codeName, chosen)), `${b.codeName}/${chosen}`).toEqual([]);
-          expect(findCodeNames(lockup(b.codeName, locale, chosen)), `${b.codeName}/${locale}/${chosen}`).toEqual([]);
+          expect(findCodeNames(displayName(b.id, chosen)), `${b.id}/${chosen}`).toEqual([]);
+          expect(findCodeNames(lockup(b.id, locale, chosen)), `${b.id}/${locale}/${chosen}`).toEqual([]);
         }
       }
     }
@@ -137,7 +135,7 @@ describe("the org JSON stays service discovery (founder, 2026-11-01)", () => {
   it("strips tags and trims punctuation in linear time (CodeQL js/polynomial-redos)", () => {
     const t0 = Date.now();
     expect(visibleText(`${"<".repeat(100000)}x`)).toContain("x");
-    expect(findCodeNames(`${"(".repeat(50000)}dev.yomizaka.com${")".repeat(50000)}`)).toEqual([]);
+    expect(findCodeNames(`${"(".repeat(50000)}dev.yomizaka.com${")".repeat(50000)}`)).toHaveLength(1);
     expect(Date.now() - t0).toBeLessThan(1000);
     expect(visibleText("<p>Verikora</p><br/>par <b>Krizaka</b>")).toContain("Verikora");
     expect(findCodeNames("« Yomizaka »").map((h) => h.use)).toEqual(["Verikora"]);
@@ -148,8 +146,8 @@ describe("the org JSON stays service discovery (founder, 2026-11-01)", () => {
     const t0 = Date.now();
     expect(visibleText(hostile)).toContain("Verikora".slice(0, 0));
     expect(Date.now() - t0).toBeLessThan(1000);
-    expect(visibleText("<p>a</p><SCRIPT>yomizaka()</SCRIPT><code>akinaza</code><p>b</p>")).not.toMatch(
-      /yomizaka|akinaza/,
+    expect(visibleText("<p>a</p><SCRIPT>verikora()</SCRIPT><code>folioviv</code><p>b</p>")).not.toMatch(
+      /verikora|folioviv/,
     );
   });
 });

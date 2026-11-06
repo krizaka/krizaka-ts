@@ -16,7 +16,7 @@ function makeDist(files: string[]): string {
   return dist;
 }
 
-const ALL = ["org.json", "org.schema.json", "app.schema.json", "apps/orazaka.json"];
+const ALL = ["org.json", "org.schema.json", "app.schema.json", "apps/sovkora.json"];
 
 describe("the CDN publish", () => {
   it("is a no-op with a warning when the secrets are missing", async () => {
@@ -35,7 +35,7 @@ describe("the CDN publish", () => {
   it("plans a stable and a hashed copy of each file", () => {
     const paths: string[] = plan(makeDist(ALL)).map((f: { path: string }) => f.path);
     expect(paths).toContain("org/v1/org.json");
-    expect(paths).toContain("org/v1/apps/orazaka.json");
+    expect(paths).toContain("org/v1/apps/sovkora.json");
     expect(paths.filter((p) => /org\.[0-9a-f]{10}\.json$/.test(p))).toHaveLength(1);
     expect(paths).toHaveLength(8);
   });

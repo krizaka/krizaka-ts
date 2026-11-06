@@ -85,7 +85,7 @@ describe("the queue and the worker", () => {
 
   it("closes the gap of a mail written to a table nobody flushes: a queued mail is delivered by the first drain", async () => {
     const h = harness();
-    await h.mail.queue(tx, message({ idempotencyKey: "welcome:akinaza:1", template: "welcome" }));
+    await h.mail.queue(tx, message({ idempotencyKey: "welcome:folioviv:1", template: "welcome" }));
     expect((await h.drain()).delivered).toBe(1);
     expect((await h.drain()).claimed).toBe(0);
   });

@@ -8,15 +8,15 @@ import {
   type StartCheckInput,
 } from "./checks";
 import { type Circuit, type CircuitOptions, type Clock, createCircuit } from "./circuit";
-import { ORAZAKA_CODE, OrazakaError, orazakaRefusal } from "./errors";
-import { isTerminal, type OrazakaRun, parseInstallations, parseRun } from "./run";
+import { SOVKORA_CODE, SovkoraError, sovkoraRefusal } from "./errors";
+import { isTerminal, parseInstallations, parseRun, type SovkoraRun } from "./run";
 
 type Fetch = typeof fetch;
 
-export interface OrazakaClientOptions {
-  /** `https://api.orazaka.com` — the edge. A parameter: this package reads no environment. */
+export interface SovkoraClientOptions {
+  /** `https://api.sovkora.com` — the edge. A parameter: this package reads no environment. */
   baseUrl: string;
-  /** The product's service key (`oz_…`). Without one every call throws `ORAZAKA_NOT_CONFIGURED`. */
+  /** The product's service key (`oz_…`). Without one every call throws `SOVKORA_NOT_CONFIGURED`. */
   apiKey: string | undefined;
   /** Time is injected: the circuit and `waitForRun` read it from here. */
   clock: Clock;
@@ -37,7 +37,7 @@ export interface StartRunOptions {
 }
 
 export interface StartedRun {
-  run: OrazakaRun;
+  run: SovkoraRun;
   /** The edge answered a run it had already started for this key (`Idempotent-Replayed`). */
   replayed: boolean;
 }
@@ -45,20 +45,20 @@ export interface StartedRun {
 export interface WaitOptions {
   /** Between two reads, in milliseconds (default 2 000). */
   intervalMs?: number;
-  /** Give up after this long, in milliseconds (default 120 000): `ORAZAKA_WAIT_EXPIRED`. */
+  /** Give up after this long, in milliseconds (default 120 000): `SOVKORA_WAIT_EXPIRED`. */
   timeoutMs?: number;
 }
 
-export interface OrazakaClient {
+export interface SovkoraClient {
   /** Starts a Studio run (`POST /api/v1/studios/{studio}/runs`, 202). Pass an idempotency key to make the retry safe. */
   startRun(studio: string, inputs: Record<string, unknown>, options?: StartRunOptions): Promise<StartedRun>;
   /** The run, its status and its outputs (`GET /api/v1/studios/runs/{id}`). */
-  getRun(runId: string): Promise<OrazakaRun>;
+  getRun(runId: string): Promise<SovkoraRun>;
   /** Reads the run until it is over (succeeded, failed or cancelled) and answers it; a failed run is returned, not thrown. */
-  waitForRun(runId: string, options?: WaitOptions): Promise<OrazakaRun>;
+  waitForRun(runId: string, options?: WaitOptions): Promise<SovkoraRun>;
   /**
-   * Starts an external check (`POST /api/v1/checks/{purpose}`): court records or credit, through Orazaka's one door.
-   * Orazaka, not the product, decides consent, key, budget and provider; a refusal (`NO_CONSENT`, `NO_KEY`,
+   * Starts an external check (`POST /api/v1/checks/{purpose}`): court records or credit, through Sovkora's one door.
+   * Sovkora, not the product, decides consent, key, budget and provider; a refusal (`NO_CONSENT`, `NO_KEY`,
    * `BUDGET_EXHAUSTED`, `NOT_CONFIGURED`) is the answer, with outcome `REFUSED`. Answers `PENDING` with a `providerRef` when the provider replies later.
    */
   startCheck(purpose: CheckPurposeKey, input: StartCheckInput): Promise<CheckResult>;
@@ -97,46 +97,53 @@ interface Call {
   headers?: Record<string, string>;
 }
 
-/** Orazaka's edge, for every TypeScript product: one client instead of one copy per product. */
-export function createOrazakaClient(options: OrazakaClientOptions): OrazakaClient {
+/** The URL without its trailing slashes, in one linear pass (CodeQL js/polynomial-redos). */
+const withoutTrailingSlashes = (url: string): string => {
+  let end = url.length;
+  while (end > 0 && url[end - 1] === "/") end--;
+  return url.slice(0, end);
+};
+
+/** The edge answered with a refusal: a stable error. A refusal is an answer, so the circuit stays closed. */
+async function refusal(res: Response, method: string, path: string): Promise<SovkoraError> {
+  const where = `${method} ${path.split("?")[0]}`;
+  const body = (await res.json().catch(() => null)) as {
+    status?: unknown;
+    code?: unknown;
+    retryAfterSeconds?: unknown;
+  } | null;
+  if (res.status === 429) {
+    const asked = Number(res.headers.get("retry-after") ?? body?.retryAfterSeconds);
+    const wait = Math.min(BUSY_MAX_SECONDS, Math.max(BUSY_MIN_SECONDS, asked || BUSY_DEFAULT_SECONDS));
+    return new SovkoraError(SOVKORA_CODE.busy, `Sovkora is busy on ${where}`, {
+      upstreamStatus: 429,
+      status: 429,
+      retryAfterSeconds: wait,
+    });
+  }
+  if (res.status === 422 && (body?.status === KEY_REUSED || body?.code === KEY_REUSED)) {
+    return new SovkoraError(
+      SOVKORA_CODE.keyReused,
+      `The idempotency key already started a different request on ${where}`,
+      { upstreamStatus: 422, status: 409 },
+    );
+  }
+  const { status, code } = sovkoraRefusal(res.status);
+  return new SovkoraError(code, `Sovkora answered ${res.status} on ${where}`, { upstreamStatus: res.status, status });
+}
+
+/** Sovkora's edge, for every TypeScript product: one client instead of one copy per product. */
+export function createSovkoraClient(options: SovkoraClientOptions): SovkoraClient {
   const doFetch = options.fetch ?? fetch;
-  const base = options.baseUrl.replace(/\/+$/, "");
+  const base = withoutTrailingSlashes(options.baseUrl);
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const circuit = options.circuit === false ? null : createCircuit(options.circuit ?? DEFAULT_CIRCUIT, options.clock);
   const sleep = options.sleep ?? sleepFor;
   const installed = new Set<string>();
 
-  /** The edge answered with a refusal: a stable error. A refusal is an answer, so the circuit stays closed. */
-  async function refusal(res: Response, method: string, path: string): Promise<OrazakaError> {
-    const where = `${method} ${path.split("?")[0]}`;
-    const body = (await res.json().catch(() => null)) as {
-      status?: unknown;
-      code?: unknown;
-      retryAfterSeconds?: unknown;
-    } | null;
-    if (res.status === 429) {
-      const asked = Number(res.headers.get("retry-after") ?? body?.retryAfterSeconds);
-      const wait = Math.min(BUSY_MAX_SECONDS, Math.max(BUSY_MIN_SECONDS, asked || BUSY_DEFAULT_SECONDS));
-      return new OrazakaError(ORAZAKA_CODE.busy, `Orazaka is busy on ${where}`, {
-        upstreamStatus: 429,
-        status: 429,
-        retryAfterSeconds: wait,
-      });
-    }
-    if (res.status === 422 && (body?.status === KEY_REUSED || body?.code === KEY_REUSED)) {
-      return new OrazakaError(
-        ORAZAKA_CODE.keyReused,
-        `The idempotency key already started a different request on ${where}`,
-        { upstreamStatus: 422, status: 409 },
-      );
-    }
-    const { status, code } = orazakaRefusal(res.status);
-    return new OrazakaError(code, `Orazaka answered ${res.status} on ${where}`, { upstreamStatus: res.status, status });
-  }
-
   async function call(path: string, init: Call = {}): Promise<Response> {
     if (!options.apiKey)
-      throw new OrazakaError(ORAZAKA_CODE.notConfigured, "The Orazaka API key is not set", { status: 503 });
+      throw new SovkoraError(SOVKORA_CODE.notConfigured, "The Sovkora API key is not set", { status: 503 });
     circuit?.check();
     const method = init.method ?? "GET";
     let res: Response;
@@ -156,17 +163,17 @@ export function createOrazakaClient(options: OrazakaClientOptions): OrazakaClien
     } catch (cause) {
       circuit?.failure();
       const timedOut = cause instanceof Error && (cause.name === "TimeoutError" || cause.name === "AbortError");
-      throw new OrazakaError(
-        timedOut ? ORAZAKA_CODE.timeout : ORAZAKA_CODE.unavailable,
-        timedOut ? "Orazaka did not answer in time" : "Orazaka did not answer",
+      throw new SovkoraError(
+        timedOut ? SOVKORA_CODE.timeout : SOVKORA_CODE.unavailable,
+        timedOut ? "Sovkora did not answer in time" : "Sovkora did not answer",
         { status: 502 },
       );
     }
     if (res.status >= 500) {
       circuit?.failure();
-      throw new OrazakaError(
-        ORAZAKA_CODE.unavailable,
-        `Orazaka answered ${res.status} on ${method} ${path.split("?")[0]}`,
+      throw new SovkoraError(
+        SOVKORA_CODE.unavailable,
+        `Sovkora answered ${res.status} on ${method} ${path.split("?")[0]}`,
         { upstreamStatus: res.status, status: 502 },
       );
     }
@@ -189,10 +196,10 @@ export function createOrazakaClient(options: OrazakaClientOptions): OrazakaClien
   }
 
   const checkRunId = (runId: string) => {
-    if (!RUN_ID.test(runId)) throw new OrazakaError(ORAZAKA_CODE.badRun, "Not a run id", { status: 400 });
+    if (!RUN_ID.test(runId)) throw new SovkoraError(SOVKORA_CODE.badRun, "Not a run id", { status: 400 });
   };
 
-  async function getRun(runId: string): Promise<OrazakaRun> {
+  async function getRun(runId: string): Promise<SovkoraRun> {
     checkRunId(runId);
     return parseRun(await json(await call(`/api/v1/studios/runs/${runId}`)));
   }
@@ -202,9 +209,9 @@ export function createOrazakaClient(options: OrazakaClientOptions): OrazakaClien
     studios,
     getRun,
     async startRun(studio, inputs, { idempotencyKey } = {}) {
-      if (!STUDIO_KEY.test(studio)) throw new OrazakaError(ORAZAKA_CODE.input, "Not a Studio key", { status: 422 });
+      if (!STUDIO_KEY.test(studio)) throw new SovkoraError(SOVKORA_CODE.input, "Not a Studio key", { status: 422 });
       if (idempotencyKey !== undefined && !IDEMPOTENCY_KEY.test(idempotencyKey))
-        throw new OrazakaError(ORAZAKA_CODE.input, "An idempotency key is 1 to 255 printable characters", {
+        throw new SovkoraError(SOVKORA_CODE.input, "An idempotency key is 1 to 255 printable characters", {
           status: 422,
         });
       if (options.autoInstall !== false) await ensureInstalled(studio);
@@ -217,13 +224,13 @@ export function createOrazakaClient(options: OrazakaClientOptions): OrazakaClien
     },
     async startCheck(purpose, { subject, consented, runId }) {
       if (!CHECK_PURPOSES.includes(purpose))
-        throw new OrazakaError(ORAZAKA_CODE.input, "Not a check purpose", { status: 422 });
+        throw new SovkoraError(SOVKORA_CODE.input, "Not a check purpose", { status: 422 });
       const res = await call(`/api/v1/checks/${purpose}`, { method: "POST", body: { ...subject, runId, consented } });
       return parseCheck(await json(res));
     },
     async collectCheck(providerRef, { subjectId, consented }) {
       if (!PROVIDER_REF.test(providerRef))
-        throw new OrazakaError(ORAZAKA_CODE.input, "Not a provider reference", { status: 422 });
+        throw new SovkoraError(SOVKORA_CODE.input, "Not a provider reference", { status: 422 });
       const query = new URLSearchParams({ subjectId, consented: String(consented) });
       return parseCheck(await json(await call(`/api/v1/checks/${providerRef}?${query}`)));
     },
@@ -236,7 +243,7 @@ export function createOrazakaClient(options: OrazakaClientOptions): OrazakaClien
         const run = await getRun(runId);
         if (isTerminal(run)) return run;
         if (isAfter(options.clock.now(), deadline))
-          throw new OrazakaError(ORAZAKA_CODE.waitExpired, `The run is still ${run.status} after ${waitMs} ms`, {
+          throw new SovkoraError(SOVKORA_CODE.waitExpired, `The run is still ${run.status} after ${waitMs} ms`, {
             status: 504,
           });
         await sleep(intervalMs);

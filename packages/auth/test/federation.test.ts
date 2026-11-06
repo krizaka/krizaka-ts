@@ -55,8 +55,8 @@ describe("krizaka-users identity provider", () => {
     const users = fakeUsers();
     return {
       provider: usersIdentityProvider({
-        baseUrl: "https://auth.dev.akinaza.com/",
-        appUrl: "https://dev.akinaza.com",
+        baseUrl: "https://auth.dev.folioviv.com/",
+        appUrl: "https://dev.folioviv.com",
         fetch: users.fetch,
       }),
       issue: users.issue,
@@ -66,14 +66,14 @@ describe("krizaka-users identity provider", () => {
   it("builds the tenant's start address, with the return address on the product and the PKCE challenge", async () => {
     const users = fakeUsers();
     const provider = usersIdentityProvider({
-      baseUrl: "https://auth.dev.akinaza.com",
-      appUrl: "https://dev.akinaza.com/",
+      baseUrl: "https://auth.dev.folioviv.com",
+      appUrl: "https://dev.folioviv.com/",
       fetch: users.fetch,
     });
     const { url, state } = await provider.start("google", "/fr/account", { codeChallenge: "abc" });
     const parsed = new URL(url);
-    expect(`${parsed.origin}${parsed.pathname}`).toBe("https://auth.dev.akinaza.com/api/v1/auth/web/google/start");
-    expect(parsed.searchParams.get("return_to")).toBe("https://dev.akinaza.com/fr/account");
+    expect(`${parsed.origin}${parsed.pathname}`).toBe("https://auth.dev.folioviv.com/api/v1/auth/web/google/start");
+    expect(parsed.searchParams.get("return_to")).toBe("https://dev.folioviv.com/fr/account");
     expect(parsed.searchParams.get("state")).toBe(state);
     expect(parsed.searchParams.get("code_challenge")).toBe("abc");
     expect(parsed.searchParams.get("code_challenge_method")).toBe("S256");
@@ -82,13 +82,13 @@ describe("krizaka-users identity provider", () => {
   it("posts the code to the exchange, and the verifier only when there is one", async () => {
     const users = fakeUsers();
     const provider = usersIdentityProvider({
-      baseUrl: "https://auth.dev.akinaza.com",
-      appUrl: "https://dev.akinaza.com",
+      baseUrl: "https://auth.dev.folioviv.com",
+      appUrl: "https://dev.folioviv.com",
       fetch: users.fetch,
     });
     await provider.complete(users.issue(PERSON));
     expect(users.calls[0]).toEqual({
-      url: "https://auth.dev.akinaza.com/api/v1/auth/web/exchange",
+      url: "https://auth.dev.folioviv.com/api/v1/auth/web/exchange",
       body: { code: "otc-1" },
     });
   });
