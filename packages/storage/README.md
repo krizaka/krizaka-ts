@@ -25,11 +25,21 @@ import { limitsOf, readStorageSettings, storeFromSettings } from "@krizaka/stora
 
 const settings = await readStorageSettings((key) => service.get(key, ctx));
 const storage = createStorage({
-  store: storeFromSettings(settings, { accessKeyId: env.MEDIA_STORAGE_ACCESS_KEY_ID, secretAccessKey: env.MEDIA_STORAGE_SECRET }, { fetch, clock }),
+  store: storeFromSettings(
+    settings,
+    { accessKeyId: env.MEDIA_STORAGE_ACCESS_KEY_ID, secretAccessKey: env.MEDIA_STORAGE_SECRET },
+    { fetch, clock },
+  ),
   layout: defineLayout(["people/", "site/home/"]),
   limits: () => readStorageSettings(read).then(limitsOf),
 });
-const { key, url } = await storage.upload({ prefix: "people/", name: "ana.jpg", bytes, allow: ["image/jpeg", "image/png"], declaredType: file.type });
+const { key, url } = await storage.upload({
+  prefix: "people/",
+  name: "ana.jpg",
+  bytes,
+  allow: ["image/jpeg", "image/png"],
+  declaredType: file.type,
+});
 ```
 
 Apache-2.0.

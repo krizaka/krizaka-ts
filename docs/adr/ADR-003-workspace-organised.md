@@ -10,12 +10,14 @@
 Oussama (2026-10-24) wants the user to **shape their workspace**: tags with a small colour marker, statuses (« en attente, approuvé, rejeté »), so they can group, find and triage their work. The admin tunes the vocabulary per product, and it looks the same on the web, the phone and macOS.
 
 What exists:
-- **`@krizaka/organize` 0.3.0** gives tags per *owner* (an account), collections with an undeletable default one, and the `?tags=` URL rules (`parseTagsParam`, `tagsHref`). A tag colour is a **name** (`blue · green · amber · red · violet · gray`), never a hex (`packages/organize/src/rules.ts`).
+
+- **`@krizaka/organize` 0.3.0** gives tags per _owner_ (an account), collections with an undeletable default one, and the `?tags=` URL rules (`parseTagsParam`, `tagsHref`). A tag colour is a **name** (`blue · green · amber · red · violet · gray`), never a hex (`packages/organize/src/rules.ts`).
 - **Verikora** filters a collection's files on ALL the selected tags with its own SQL fragment (`apps/web/lib/organisation/store.ts:229`, `allTagsClause`).
 - **Folioviv** uses the package for its shops, with the account as the owner (`packages/db/src/organize.ts`). Its tags on clients and invoices must belong to the **shop**: owner and manager write them, staff read them, a client never sees them (`packages/db/src/roles.ts`).
 - Nothing has colours on a status, a status set, saved views or bulk actions.
 
 What the two adopters asked on #89 (comments of 2026-10-24) shapes the decision:
+
 - **Verikora:** two axes on an applicant file, never one chip: the link's state is a system fact (`linkState`), the decision is the user's set (à décider → retenu | non retenu). A decision can be **final and destructive** (it closes the file and purges its documents, Loi 25 minimisation): `final` and a `confirm` hint, undo only for non-final moves. **No score, no suggestion**: a status column is ordered by the set's order. **No free-text reason** about a person: if reasons exist they are a list, off by default. Documents get tags, not a status, in v1. System views and the user's; the address holds the state; on a phone the views are a menu. The tag palette is distinct from the status tones and from every product accent.
 - **Folioviv:** some sets are **derived** (an invoice's due · partial · overdue · paid from the ledger, `invoiceState`; a booking from check-in): the same descriptor, chip and filter, but no move, no bulk move and no audit line of their own. Tags belong to the shop. Bulk actions are tag, untag and export; nothing touches the ledger. Another shop's tag or view id answers 404.
 
@@ -29,13 +31,13 @@ The capability is a new layer of `@krizaka/organize` (minor **0.4.0**, additive:
 - **A kind** is a product entity table the layer organises (`applicant_file`, `client`, `invoice`), declared with the column (or condition) that puts an entity in a scope, and optionally its date column and its text columns for the filters.
 - **Its tables live in their own Postgres schema** (`organize` by default, ADR-001 §3), generated per kind like ADR-006's join tables (real foreign keys, no `(kind, id)` pair the database cannot check):
 
-  | Table | What it holds |
-  |---|---|
-  | `organize.kind_config` | the admin's configuration of one kind (§2), versioned |
-  | `organize.tag` | a scope's tags of one kind: name, marker, origin (`preset` or `user`) |
-  | `organize.<kind>_tag` | which entity wears which tag; `(tag_id, kind)` references the tag, so a tag of another kind cannot be worn |
-  | `organize.<kind>_status` | the state of an entity in its kind's editable set, when, by whom |
-  | `organize.view` | saved views: scope, kind, author, name, filters, shared |
+  | Table                    | What it holds                                                                                              |
+  | ------------------------ | ---------------------------------------------------------------------------------------------------------- |
+  | `organize.kind_config`   | the admin's configuration of one kind (§2), versioned                                                      |
+  | `organize.tag`           | a scope's tags of one kind: name, marker, origin (`preset` or `user`)                                      |
+  | `organize.<kind>_tag`    | which entity wears which tag; `(tag_id, kind)` references the tag, so a tag of another kind cannot be worn |
+  | `organize.<kind>_status` | the state of an entity in its kind's editable set, when, by whom                                           |
+  | `organize.view`          | saved views: scope, kind, author, name, filters, shared                                                    |
 
 ### 2. The admin configures everything: one configuration per kind, in the database
 
@@ -45,17 +47,18 @@ The « admin configures everything » rule: the vocabulary is **data in the prod
 interface KindConfig {
   kind: string;
   tags: {
-    writers: string[];          // the roles that create, rename, remove and assign tags (Folioviv: owner, manager)
-    userTags: boolean;          // false: only the admin's presets exist
-    max: number;                // tags per scope and kind (1 to 200)
-    presets: Record<string, { name: string; marker: Marker }[]>;  // by variant (a trade, or "default")
+    writers: string[]; // the roles that create, rename, remove and assign tags (Folioviv: owner, manager)
+    userTags: boolean; // false: only the admin's presets exist
+    max: number; // tags per scope and kind (1 to 200)
+    presets: Record<string, { name: string; marker: Marker }[]>; // by variant (a trade, or "default")
   };
-  status: StatusSet | null;     // at most one set per kind in v1
-  views: { key: string; label: Label; filters: ViewFilters }[];   // the product's system views
+  status: StatusSet | null; // at most one set per kind in v1
+  views: { key: string; label: Label; filters: ViewFilters }[]; // the product's system views
 }
 ```
 
 **Tags with a colour marker.**
+
 - A marker is a **name from a closed palette**, the existing six (`blue · green · amber · red · violet · gray`, `TAG_COLORS`, exported as `MARKERS`). The store keeps the name; `@krizaka/tokens` maps it to `--kz-tag-<name>` and `--kz-tag-<name>-text` (krizaka/krizaka-ui#627), chosen to read on both themes (≥ 3:1 for the marker, ≥ 4.5:1 for its text) and **distinct from the status tones and from every product accent** (a tokens test). A marker is a mark beside the name (a dot, Verikora's bookmark ribbon), never the fill of a status. A new name is a later minor, with a migration that widens the check.
 - The presets are the admin's default tag set; `tags.seed(scope, kind, variant)` copies them into a new scope once (Folioviv's default set per trade). The user adds their own only when `userTags` is on, up to `max`.
 
@@ -63,10 +66,23 @@ interface KindConfig {
 
 ```ts
 interface StatusSet {
-  key: string;  label: Label;  mode: "editable" | "derived";
-  states: { key: string; label: Label; tone: "neutral" | "accent" | "success" | "warning" | "danger"; final?: boolean }[];  // the order is the set's
-  initial?: string;             // editable: the state of an entity nobody moved yet (not final)
-  transitions: { from: string; to: string; roles: string[]; confirm?: boolean; reasons?: { key: string; label: Label }[] }[];
+  key: string;
+  label: Label;
+  mode: "editable" | "derived";
+  states: {
+    key: string;
+    label: Label;
+    tone: "neutral" | "accent" | "success" | "warning" | "danger";
+    final?: boolean;
+  }[]; // the order is the set's
+  initial?: string; // editable: the state of an entity nobody moved yet (not final)
+  transitions: {
+    from: string;
+    to: string;
+    roles: string[];
+    confirm?: boolean;
+    reasons?: { key: string; label: Label }[];
+  }[];
 }
 ```
 
@@ -117,18 +133,18 @@ interface StatusSet {
 
 ## Rejected options
 
-| Option | Why not |
-|---|---|
-| A new package (`@krizaka/workspace`) beside `organize` | Two packages would own « tags ». The layer extends the block that already has them and their URL rules, and a product imports one thing. |
+| Option                                                    | Why not                                                                                                                                                                                                                                  |
+| --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A new package (`@krizaka/workspace`) beside `organize`    | Two packages would own « tags ». The layer extends the block that already has them and their URL rules, and a product imports one thing.                                                                                                 |
 | Widen 0.3.0's `tags` table (an owner column for the shop) | It changes a table three products already have, and an account-owned tag and a shop-owned tag are different things (who writes, who reads). The new layer adds tables and leaves 0.3.0 alone, as ADR-001's « minor only adds » requires. |
-| One polymorphic `entity_tag (kind, entity_id)` table | ADR-006 refused it: the database cannot check the reference, and a deleted entity leaves orphans. Per-kind tables keep real foreign keys and `ON DELETE CASCADE`. |
-| Status as a column on the product's table | Every product would write its own transitions, roles and audit. The set, its rules and its trail are the shared part. |
-| The configuration in code (a constant per product) | The admin could not tune the vocabulary without a release. Code seeds it once; the database is the source of truth. |
-| Several status sets per kind in v1 | No adopter needs two. One set keeps the URL (`status=`) and the screens simple; a second set is an additive minor when a product asks. |
-| Free-text reasons on a decision | Personal information about a person, and an invitation to discriminatory notes (Verikora's applicants). A list of reasons as data is the most the layer accepts. |
-| Sorting or pre-filling a status from a score | A decision about a person is the user's. The layer orders by the set, never by a computed value. |
-| Hex colours, or a palette per product | A hex cannot follow the theme, and a palette per product is the drift the tokens prevent. Names in the store, hues in `@krizaka/tokens`. |
-| Partial success that ignores ids of another scope | It would say which ids exist elsewhere by what it skips. Any foreign id fails the whole call with 404. |
+| One polymorphic `entity_tag (kind, entity_id)` table      | ADR-006 refused it: the database cannot check the reference, and a deleted entity leaves orphans. Per-kind tables keep real foreign keys and `ON DELETE CASCADE`.                                                                        |
+| Status as a column on the product's table                 | Every product would write its own transitions, roles and audit. The set, its rules and its trail are the shared part.                                                                                                                    |
+| The configuration in code (a constant per product)        | The admin could not tune the vocabulary without a release. Code seeds it once; the database is the source of truth.                                                                                                                      |
+| Several status sets per kind in v1                        | No adopter needs two. One set keeps the URL (`status=`) and the screens simple; a second set is an additive minor when a product asks.                                                                                                   |
+| Free-text reasons on a decision                           | Personal information about a person, and an invitation to discriminatory notes (Verikora's applicants). A list of reasons as data is the most the layer accepts.                                                                         |
+| Sorting or pre-filling a status from a score              | A decision about a person is the user's. The layer orders by the set, never by a computed value.                                                                                                                                         |
+| Hex colours, or a palette per product                     | A hex cannot follow the theme, and a palette per product is the drift the tokens prevent. Names in the store, hues in `@krizaka/tokens`.                                                                                                 |
+| Partial success that ignores ids of another scope         | It would say which ids exist elsewhere by what it skips. Any foreign id fails the whole call with 404.                                                                                                                                   |
 
 ## Consequences
 

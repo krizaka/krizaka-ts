@@ -7,6 +7,7 @@
 ## Context
 
 Oussama (2026-10-23) wants coupons that the admin creates, with a start and an end date, for three uses:
+
 - people who sell for us (partners);
 - discounts;
 - demos.
@@ -14,6 +15,7 @@ Oussama (2026-10-23) wants coupons that the admin creates, with a start and an e
 There are two kinds. A **discount** coupon reduces a price at checkout. A **credit** coupon grants usage and **must** carry a cap. A free coupon is a credit coupon, never an unlimited discount. This evolves what exists; it is not a second billing system.
 
 What exists, read in the products on 2026-10-23 (details and file:line in the design, §1):
+
 - **No product has coupons, promo codes or discounts.**
 - **Verikora and Folioviv** pay through `@krizaka/payments` 0.1.0, a Stripe adapter without the SDK.
   - Prices are Stripe prices found by lookup key.
@@ -65,18 +67,18 @@ What exists, read in the products on 2026-10-23 (details and file:line in the de
 
 ## The options weighed
 
-| Criterion | A. Provider-native (Stripe Coupons and Promotion Codes, driven from our admin) | **B. Our module, provider as an adapter (chosen)** | C. Mix: discounts mirrored to the provider, credit coupons ours |
-|---|---|---|---|
-| The admin configures, our database is the truth | No: Stripe holds the codes, limits and redemptions; we mirror them back | **Yes** | Half: discount codes live in two places that must be kept in sync (pause, end, limits) |
-| Credit coupons | Impossible: Stripe has no notion of our usage credits | **Yes** | Yes |
-| Portability across providers | None: a former product's CCBill and Segpay have no coupon API; `manual` has no Stripe | **Yes**: discount terms are vendor-free; a provider without discounts refuses them with a typed code; credit coupons work everywhere | Discounts tied to Stripe |
-| Taxes (TPS/TVQ on the discounted amount) | Yes (Stripe Tax) | **Yes**: Stripe Tax for Stripe; a line discount before tax for `manual` | Yes |
-| Per-account limits, new customers only | Partial: `first_time_transaction` and per-customer codes only; no « N per account » | **Yes**, in SQL under a row lock | Partial for discounts |
-| Concurrency (two people, the last use) | Stripe's `max_redemptions`, counted at payment: oversell between session and payment | **Reservation under lock**; late payments honoured and flagged | Stripe's again for discounts |
-| Abuse (brute-forcing codes) | Stripe's field on its page, with no rate limit of ours | **Our rate limits** (`@krizaka/rate-limit`, settings) before any lookup | Split |
-| Refunds | Stripe's | Stripe refunds the amount paid; the redemption keeps its status and records the refunded amount (cumulative); only a full refund with the setting on gives the use back | Split |
-| Partner attribution, Loi 25 | Partner data in Stripe metadata, outside our register | **In our database**, admin-only, exportable and erasable | Split |
-| Testable without network | No (Stripe test mode is the network) | **Yes**: memory store, a fake provider, PostgreSQL on CI | Partly |
+| Criterion                                       | A. Provider-native (Stripe Coupons and Promotion Codes, driven from our admin)        | **B. Our module, provider as an adapter (chosen)**                                                                                                                      | C. Mix: discounts mirrored to the provider, credit coupons ours                        |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| The admin configures, our database is the truth | No: Stripe holds the codes, limits and redemptions; we mirror them back               | **Yes**                                                                                                                                                                 | Half: discount codes live in two places that must be kept in sync (pause, end, limits) |
+| Credit coupons                                  | Impossible: Stripe has no notion of our usage credits                                 | **Yes**                                                                                                                                                                 | Yes                                                                                    |
+| Portability across providers                    | None: a former product's CCBill and Segpay have no coupon API; `manual` has no Stripe | **Yes**: discount terms are vendor-free; a provider without discounts refuses them with a typed code; credit coupons work everywhere                                    | Discounts tied to Stripe                                                               |
+| Taxes (TPS/TVQ on the discounted amount)        | Yes (Stripe Tax)                                                                      | **Yes**: Stripe Tax for Stripe; a line discount before tax for `manual`                                                                                                 | Yes                                                                                    |
+| Per-account limits, new customers only          | Partial: `first_time_transaction` and per-customer codes only; no « N per account »   | **Yes**, in SQL under a row lock                                                                                                                                        | Partial for discounts                                                                  |
+| Concurrency (two people, the last use)          | Stripe's `max_redemptions`, counted at payment: oversell between session and payment  | **Reservation under lock**; late payments honoured and flagged                                                                                                          | Stripe's again for discounts                                                           |
+| Abuse (brute-forcing codes)                     | Stripe's field on its page, with no rate limit of ours                                | **Our rate limits** (`@krizaka/rate-limit`, settings) before any lookup                                                                                                 | Split                                                                                  |
+| Refunds                                         | Stripe's                                                                              | Stripe refunds the amount paid; the redemption keeps its status and records the refunded amount (cumulative); only a full refund with the setting on gives the use back | Split                                                                                  |
+| Partner attribution, Loi 25                     | Partner data in Stripe metadata, outside our register                                 | **In our database**, admin-only, exportable and erasable                                                                                                                | Split                                                                                  |
+| Testable without network                        | No (Stripe test mode is the network)                                                  | **Yes**: memory store, a fake provider, PostgreSQL on CI                                                                                                                | Partly                                                                                 |
 
 **C was rejected:** it keeps two truths for discounts, and every pause, end or limit must be synchronised. **B already gets C's real benefit,** which is Stripe computing taxes and subscription durations, by passing a provider coupon object at checkout, never a code.
 

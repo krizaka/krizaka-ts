@@ -6,10 +6,13 @@ A product's configuration as **data**: a typed registry of settings (flags, inte
 import { emitMigration } from "@krizaka/db";
 import { defineSettings, flag, integer, dbSettings, settingsSchema, GLOBAL, WORKSPACE_SCOPES } from "@krizaka/settings";
 
-const settings = defineSettings({ "features.apiKeys": flag("features", true, WORKSPACE_SCOPES), "limits.maxFileMb": integer("limits", 10, { min: 1, max: 10, unit: "MB" }) } as const);
+const settings = defineSettings({
+  "features.apiKeys": flag("features", true, WORKSPACE_SCOPES),
+  "limits.maxFileMb": integer("limits", 10, { min: 1, max: 10, unit: "MB" }),
+} as const);
 emitMigration(settingsSchema, 1, { tables: {} }); // commit the SQL once, in your migrations (idempotent)
 const service = dbSettings(settings, { query, workspaceOf, clock: () => performance.now() });
-await service.get("features.apiKeys", { userId });            // typed: boolean
+await service.get("features.apiKeys", { userId }); // typed: boolean
 await service.set({ id: adminId, label: email }, GLOBAL, "features.apiKeys", false, now);
 ```
 
@@ -25,18 +28,34 @@ past), and every change writes an audit line in `settings_audit` (`price.<produc
 was sold at (`versionId`) and keeps it.
 
 ```ts
-import { AVAILABILITY, definePrices, findTypedPrices, priceCatalogue, pricesMigration, priceStore, publicCatalogue, UNIT } from "@krizaka/settings";
+import {
+  AVAILABILITY,
+  definePrices,
+  findTypedPrices,
+  priceCatalogue,
+  pricesMigration,
+  priceStore,
+  publicCatalogue,
+  UNIT,
+} from "@krizaka/settings";
 
 const prices = definePrices([
-  { product: "folioviv", plan: "starter", unit: UNIT.month, amountCents: 4500, availability: AVAILABILITY.founderLimited, limits: { founderCap: 20 } },
+  {
+    product: "folioviv",
+    plan: "starter",
+    unit: UNIT.month,
+    amountCents: 4500,
+    availability: AVAILABILITY.founderLimited,
+    limits: { founderCap: 20 },
+  },
   { product: "folioviv", plan: "scale", unit: UNIT.month, amountCents: 9900, availability: AVAILABILITY.preparing },
 ]);
 await db.query(pricesMigration()); // once, in your migrations (idempotent; includes the settings' tables)
 const catalogue = priceCatalogue(prices, priceStore({ query }));
-const shown = publicCatalogue(await catalogue.catalogue(now));   // a public page: never internal, « en préparation » without a figure
+const shown = publicCatalogue(await catalogue.catalogue(now)); // a public page: never internal, « en préparation » without a figure
 await catalogue.schedule({ id: adminId, label: email }, "folioviv.starter", { amountCents: 4900 }, effectiveFrom, now);
 const sold = await catalogue.version(subscription.priceVersionId); // the price it was sold at, forever
-expect(findTypedPrices(messages)).toEqual([]);                    // a product's test: no amount typed in a message
+expect(findTypedPrices(messages)).toEqual([]); // a product's test: no amount typed in a message
 ```
 
 `describePrices(catalogue, now)` is the JSON-safe description an admin screen draws (with what is already scheduled);

@@ -15,13 +15,31 @@ const credits = createCredits({ clock, settings: () => readCreditsSettings((key)
 
 await transaction(connect, async (tx) => {
   // a coupon's free credits: 20 audits, at most 5 a day, then stop; they lapse in 30 days
-  await credits.grant(tx, { accountId, amount: 20, capPerDay: 5, expiresAt, onExhausted: "stop", source: `coupon:${redemptionId}`, idempotencyKey: `redeem-${redemptionId}` });
+  await credits.grant(tx, {
+    accountId,
+    amount: 20,
+    capPerDay: 5,
+    expiresAt,
+    onExhausted: "stop",
+    source: `coupon:${redemptionId}`,
+    idempotencyKey: `redeem-${redemptionId}`,
+  });
   // credits bought (the payment webhook, in the event's transaction)
-  await credits.purchase(tx, { accountId, amount: 10, source: `purchase:${paymentRef}`, idempotencyKey: `pay-${paymentRef}` });
+  await credits.purchase(tx, {
+    accountId,
+    amount: 10,
+    source: `purchase:${paymentRef}`,
+    idempotencyKey: `pay-${paymentRef}`,
+  });
 });
 
 // spending: it refuses with a typed code, writes nothing when it refuses, and a replay of the key spends nothing more
-const { draws } = await credits.consume(tx, { accountId, amount: 1, reason: `audit:${auditId}`, idempotencyKey: `audit-${auditId}` });
+const { draws } = await credits.consume(tx, {
+  accountId,
+  amount: 1,
+  reason: `audit:${auditId}`,
+  idempotencyKey: `audit-${auditId}`,
+});
 await credits.refund(tx, { accountId, consumed: `audit-${auditId}`, reason: "the run failed" }); // back to the same pots, once
 ```
 
@@ -33,7 +51,7 @@ await credits.refund(tx, { accountId, consumed: `audit-${auditId}`, reason: "the
   - a `stop` pot that is empty: `CREDITS_EXHAUSTED`, even if purchased credits exist;
   - a `fallback_paid` pot that is empty: it moves on to purchased credits, then answers `PAYWALL`;
   - no credits at all: `PAYWALL`.
-  Refusals are `CreditsError`s with a `code` and the HTTP `status` a route may answer (402 / 429).
+    Refusals are `CreditsError`s with a `code` and the HTTP `status` a route may answer (402 / 429).
 - **Holds.** `hold` keeps credits back for work in progress (it counts against the caps and the balance, and expires after `credits.holdTtlSeconds`); `settle(holdId, { amount? })` spends what the work cost (at most the hold) and frees the rest; `release` frees it all. Once each; a replay answers the first result.
 - **`refund`** gives back what a consume (or a settled hold) spent, to the same pots, once. **`expire(grantId)`** writes off what is left of a pot (a revoked coupon: credits already spent are never taken back); **`expireDue`** sweeps the lapsed pots in a job. **`adjust`** is an administrator's signed correction, never below zero.
 - **`balance`** is `{ total, granted, purchased, held, available, grants[] }`, derived; **`history`** pages the lines newest first.

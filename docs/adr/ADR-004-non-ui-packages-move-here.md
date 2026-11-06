@@ -22,22 +22,22 @@ Oussama, on `localDay` added to `@krizaka/intl` in krizaka-ui: « the side witho
 
 ### 2. Every package of krizaka-ui, classified
 
-| Package | Decision | Why |
-|---|---|---|
-| `config` | **moved** (krizaka-ui#612) | ESLint, depcruise, ratchet and ast-grep are tooling for every repository |
-| `intl` | **move**, first | zero dependency; money, numbers, dates, plurals, `localDay` |
-| `payments` | **move** (with krizaka/krizaka-ts#34) | no UI; the module map's payments module |
-| `push` | **move** | the Expo Push relay, one HTTP call |
-| `realtime` | **move** | bus, presence, SSE framing, pg and Redis adapters |
-| `app-config` | **move whole** | contract, server and client are pure; `./react` is a thin hook with an optional `react` peer |
-| `discovery` | **move whole** | signed manifest, verification, cache; `./react` is a thin hook |
-| `pacer` | **move whole** | debounce, throttle, queue, client rate limiter; `./react` are hooks |
-| `i18n` | **move whole** | the engine (`format`, check, scan, CLI) is pure; `./react` and `./rich` are a provider and `<b>`/`<a>` markup with an optional `react` peer. Splitting it would force a second npm name on every consumer, against rule 3 below |
-| `app-client` | stays for now | the Expo shell's bearer session, API client and React hooks. It moves when it stops being Expo-specific, as a separate decision |
-| `app-desktop` | stays | depends on `app-client` (Tauri side) |
-| `query` | stays | a React facade over TanStack Query |
-| `email` | stays | React Email templates themed by `tokens` (ADR-001 §5: the `mail` module adds persistence and providers here) |
-| `charts`, `ui`, `tokens`, `fonts`, `icons`, `tailwind` | stay | they render, or are design |
+| Package                                                | Decision                              | Why                                                                                                                                                                                                                             |
+| ------------------------------------------------------ | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `config`                                               | **moved** (krizaka-ui#612)            | ESLint, depcruise, ratchet and ast-grep are tooling for every repository                                                                                                                                                        |
+| `intl`                                                 | **move**, first                       | zero dependency; money, numbers, dates, plurals, `localDay`                                                                                                                                                                     |
+| `payments`                                             | **move** (with krizaka/krizaka-ts#34) | no UI; the module map's payments module                                                                                                                                                                                         |
+| `push`                                                 | **move**                              | the Expo Push relay, one HTTP call                                                                                                                                                                                              |
+| `realtime`                                             | **move**                              | bus, presence, SSE framing, pg and Redis adapters                                                                                                                                                                               |
+| `app-config`                                           | **move whole**                        | contract, server and client are pure; `./react` is a thin hook with an optional `react` peer                                                                                                                                    |
+| `discovery`                                            | **move whole**                        | signed manifest, verification, cache; `./react` is a thin hook                                                                                                                                                                  |
+| `pacer`                                                | **move whole**                        | debounce, throttle, queue, client rate limiter; `./react` are hooks                                                                                                                                                             |
+| `i18n`                                                 | **move whole**                        | the engine (`format`, check, scan, CLI) is pure; `./react` and `./rich` are a provider and `<b>`/`<a>` markup with an optional `react` peer. Splitting it would force a second npm name on every consumer, against rule 3 below |
+| `app-client`                                           | stays for now                         | the Expo shell's bearer session, API client and React hooks. It moves when it stops being Expo-specific, as a separate decision                                                                                                 |
+| `app-desktop`                                          | stays                                 | depends on `app-client` (Tauri side)                                                                                                                                                                                            |
+| `query`                                                | stays                                 | a React facade over TanStack Query                                                                                                                                                                                              |
+| `email`                                                | stays                                 | React Email templates themed by `tokens` (ADR-001 §5: the `mail` module adds persistence and providers here)                                                                                                                    |
+| `charts`, `ui`, `tokens`, `fonts`, `icons`, `tailwind` | stay                                  | they render, or are design                                                                                                                                                                                                      |
 
 The order is by value and by risk: `intl` (the trigger, and `i18n` depends on it), then `payments` (inside its own module issue), `push`, `realtime`, `app-config`, `discovery`, `pacer`, then `i18n`.
 
@@ -64,8 +64,8 @@ The order is by value and by risk: `intl` (the trigger, and `i18n` depends on it
 
 ## Rejected
 
-| Option | Why not |
-|---|---|
+| Option                                                                   | Why not                                                                                                                                                                                            |
+| ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Split `i18n` and `app-config` into a core here and a React binding there | One npm name cannot span two repositories; a second name (`-react`) would change every consumer and import. The optional-peer binding keeps one package and still respects the one-way dependency. |
-| Leave everything in krizaka-ui and import it from krizaka-ts | The reverse dependency: a server package would install the UI repository's release train and its React peers. |
-| Reset versions on the move | Breaks `^` ranges and the provenance story for nothing. |
+| Leave everything in krizaka-ui and import it from krizaka-ts             | The reverse dependency: a server package would install the UI repository's release train and its React peers.                                                                                      |
+| Reset versions on the move                                               | Breaks `^` ranges and the provenance story for nothing.                                                                                                                                            |
