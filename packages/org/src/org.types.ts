@@ -147,6 +147,10 @@ export interface Org {
     /** The public support address; `null` while none is public. */
     email: string | null;
   };
+  /** The company's own accounts elsewhere; a footer picks the ids it shows, the address is never typed in a site. */
+  links: {
+    social: OrgSocialLink[];
+  };
   footer: {
     line: Localized;
     legal: { id: "privacy" | "terms"; label: Localized; url: Localized }[];
@@ -155,6 +159,13 @@ export interface Org {
 
 /** The part of an app's runtime config that depends on the environment. */
 export type AppEnvironment = "dev" | "production";
+
+/** One of Krizaka's social accounts (`id` is the platform, in lower case: `instagram`). */
+export interface OrgSocialLink {
+  id: string;
+  label: string;
+  url: string;
+}
 
 export interface AppConfig {
   $schema: string;

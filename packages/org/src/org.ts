@@ -147,6 +147,9 @@ export const org: Org = {
     page: { fr: "https://www.krizaka.com/fr/contact", en: "https://www.krizaka.com/en/contact" },
     email: null,
   },
+  links: {
+    social: [{ id: "instagram", label: "Instagram", url: "https://www.instagram.com/krizakahq/" }],
+  },
   footer: {
     line: {
       fr: "Une entreprise de Technologies Krizaka · Fait à Montréal",
