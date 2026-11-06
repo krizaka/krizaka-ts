@@ -1,5 +1,12 @@
 # @krizaka/privacy
 
+## 0.2.4
+
+### Patch Changes
+
+- Updated dependencies [a8e1138]
+  - @krizaka/settings@0.7.0
+
 ## 0.2.3
 
 ### Patch Changes

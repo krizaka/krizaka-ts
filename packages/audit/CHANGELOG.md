@@ -1,5 +1,12 @@
 # @krizaka/audit
 
+## 0.1.7
+
+### Patch Changes
+
+- Updated dependencies [a8e1138]
+  - @krizaka/settings@0.7.0
+
 ## 0.1.6
 
 ### Patch Changes
