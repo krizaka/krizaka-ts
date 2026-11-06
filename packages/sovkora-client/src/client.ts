@@ -97,10 +97,17 @@ interface Call {
   headers?: Record<string, string>;
 }
 
+/** The URL without its trailing slashes, in one linear pass (CodeQL js/polynomial-redos). */
+const withoutTrailingSlashes = (url: string): string => {
+  let end = url.length;
+  while (end > 0 && url[end - 1] === "/") end--;
+  return url.slice(0, end);
+};
+
 /** Sovkora's edge, for every TypeScript product: one client instead of one copy per product. */
 export function createSovkoraClient(options: SovkoraClientOptions): SovkoraClient {
   const doFetch = options.fetch ?? fetch;
-  const base = options.baseUrl.replace(/\/+$/, "");
+  const base = withoutTrailingSlashes(options.baseUrl);
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const circuit = options.circuit === false ? null : createCircuit(options.circuit ?? DEFAULT_CIRCUIT, options.clock);
   const sleep = options.sleep ?? sleepFor;
