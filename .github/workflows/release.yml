@@ -1,7 +1,7 @@
 # .github/workflows/release.yml (krizaka-ts): changesets opens « chore: version packages »; its merge publishes to npm.
 name: Release
 on: { push: { branches: [main] }, workflow_dispatch: {} }
-permissions: { contents: read }   # write scopes live on the job (OpenSSF Scorecard, Token-Permissions)
+permissions: { contents: read } # write scopes live on the job (OpenSSF Scorecard, Token-Permissions)
 concurrency: { group: release, cancel-in-progress: false }
 jobs:
   release:
@@ -47,7 +47,7 @@ jobs:
           # PR, or the next frozen install fails (run 40070679529). The script lives in package.json (run 40072186334).
           # One npm script: the action runs version-script without a shell, so an "and then" here would be passed as an argument.
           version-script: pnpm run version-packages
-          publish-script: bash scripts/publish-packages.sh   # every package by OIDC first, NPM_TOKEN as the logged fallback (::warning:: names it); then `changeset tag`
+          publish-script: bash scripts/publish-packages.sh # every package by OIDC first, NPM_TOKEN as the logged fallback (::warning:: names it); then `changeset tag`
           pr-title: "chore: version packages"
           github-token: ${{ steps.app.outputs.token || secrets.GITHUB_TOKEN }}
         env:
