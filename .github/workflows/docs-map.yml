@@ -1,0 +1,16 @@
+# Docs map (krizaka-internal#2758): a pull request that changes what docs-map.json lists updates the documents of its category, or says why not.
+# Logic in krizaka/.github (rule `docs-map` of docs/standards/rules.json). Write « Docs: <link> » or « Docs: not needed, <why> » in the description.
+name: Docs map
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, edited]
+
+permissions: {}
+
+jobs:
+  docs-map:
+    uses: krizaka/.github/.github/workflows/docs-map.yml@77395f80967ff1a706a8aff36e78586814b7ebb7 # main
+    permissions:
+      contents: read
+      pull-requests: read
