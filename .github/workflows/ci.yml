@@ -18,14 +18,14 @@ jobs:
   # The pipeline is the org's (krizaka/.github docs/standards/ci-and-deploy.md): the changes gate, the pnpm cache, parallel legs, the
   # timeouts and the gate that always reports live there. This file says only what is Krizaka TS's.
   ci:
-    uses: krizaka/.github/.github/workflows/node-ci.yml@79f6ff6292edefebc59fc968dbc2c203da81c3ea # main (fix-needs-guard, light Sonar scan)
+    uses: krizaka/.github/.github/workflows/node-ci.yml@bed6cb57edc919f2bcaf76274b724d9c11607445 # main (fix-needs-guard, light Sonar scan)
     permissions:
       contents: read
     with:
-      duplication: true      # jscpd + dup-ratchet.json: duplicated lines may only go down
-      sonar-coverage-paths: packages/*/coverage/lcov.info   # each package writes its own report (vitest run --coverage); the collect step rebases the SF: paths to the repository root
+      duplication: true # jscpd + dup-ratchet.json: duplicated lines may only go down
+      sonar-coverage-paths: packages/*/coverage/lcov.info # each package writes its own report (vitest run --coverage); the collect step rebases the SF: paths to the repository root
       package-manager: pnpm
-      sonar: true            # CI analysis: the merge queue's branch (gh-readonly-queue/...) is analysed too; automatic analysis never does
+      sonar: true # CI analysis: the merge queue's branch (gh-readonly-queue/...) is analysed too; automatic analysis never does
       parallel: true
       typecheck-script: typecheck
       postgres-image: postgres:16
