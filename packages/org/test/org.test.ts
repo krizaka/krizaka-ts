@@ -35,6 +35,17 @@ describe("the org JSON", () => {
     expect(org.footer.legal.map((l) => l.id)).toEqual(["privacy", "terms"]);
   });
 
+  it("publishes Krizaka's own social accounts (krizaka-internal#365)", () => {
+    expect(org.links.social).toEqual([
+      { id: "instagram", label: "Instagram", url: "https://www.instagram.com/krizakahq/" },
+    ]);
+    const validate = ajv.compile(orgSchema);
+    expect(validate({ ...org, links: { social: [{ id: "instagram", label: "Instagram", url: "http://x" }] } })).toBe(
+      false,
+    );
+    expect(validate({ ...org, links: { social: [{ id: "instagram", label: "Instagram" }] } })).toBe(false);
+  });
+
   it("lists only the live products", () => {
     expect(org.products.map((p) => p.id)).toEqual(["sovkora", "verikora", "folioviv"]);
   });

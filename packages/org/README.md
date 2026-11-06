@@ -23,6 +23,11 @@ Without a build step, read it from the CDN: [krizaka-assets.b-cdn.net/org/v1/org
   is « Krizaka », a product goes by its own name (Sovkora, Verikora, Folioviv — never « Krizaka Verikora »), a library or a tool
   is « Krizaka <X> » (Krizaka UI, Krizaka Java, Krizaka TypeScript, Krizaka Lab; the short name only under a
   heading « Open source »). The bar, the switcher and every footer read it; a test holds the rule.
+- **Krizaka's own social accounts are company identity** (founder, 2026-11-06, krizaka-internal#365): `org.links.social` lists
+  them (`{ id, label, url }`, today Instagram: `https://www.instagram.com/krizakahq/`). A footer chooses which ids it shows
+  (`social: ["instagram"]` in its `FooterSettings`) and `resolveFooterSettings` reads the address from here; a structured-data
+  `sameAs` does the same. No site types the URL. This is the one exception to « names and links are app settings »: the
+  accounts belong to the company, not to an app, so they are written once, here.
 - **Public facts only.** Never an address, a phone number, figures, a secret, an IP address or an internal host: the test
   scans for them and the schema refuses any field it does not list.
 - **Validated.** `orgSchema` (JSON Schema 2020-12) and the types `Org`, `AppConfig`…; a test validates the data and requests every
@@ -38,7 +43,7 @@ Apache-2.0 · [Krizaka TypeScript](https://github.com/krizaka/krizaka-ts)
 
 **Service discovery only** (founder, 2026-11-01): the addresses and versions clients resolve (API URLs, minimum and latest app
 versions, the default media, the family's names and addresses). It is read at start by the apps and published at each release.
-Names, status, store availability, social links and the footer contents are **not** in it: they are admin configuration of each
+Names, status, store availability and the footer contents are **not** in it: they are admin configuration of each
 app in its database, through `@krizaka/settings` (audit trail), read at runtime and at build where needed (a save redeploys).
 The shared validation (no code name as a display name, FR/EN labels, valid URLs) lives in the settings package.
 

@@ -73,6 +73,7 @@ export const orgSchema = {
     "sites",
     "family",
     "contact",
+    "links",
     "footer",
   ],
   properties: {
@@ -221,6 +222,26 @@ export const orgSchema = {
           properties: { fr: httpsUrl, en: httpsUrl },
         },
         email: { type: ["string", "null"], format: "email" },
+      },
+    },
+    links: {
+      type: "object",
+      additionalProperties: false,
+      required: ["social"],
+      properties: {
+        social: {
+          type: "array",
+          items: {
+            type: "object",
+            additionalProperties: false,
+            required: ["id", "label", "url"],
+            properties: {
+              id: { type: "string", pattern: "^[a-z][a-z0-9-]*$" },
+              label: { type: "string", minLength: 1 },
+              url: httpsUrl,
+            },
+          },
+        },
       },
     },
     footer: {
