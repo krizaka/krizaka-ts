@@ -1,5 +1,12 @@
 # @krizaka/payments
 
+## 0.7.2
+
+### Patch Changes
+
+- Updated dependencies [a8e1138]
+  - @krizaka/settings@0.7.0
+
 ## 0.7.1
 
 ### Patch Changes

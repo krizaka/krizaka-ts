@@ -1,5 +1,12 @@
 # @krizaka/mail
 
+## 0.1.4
+
+### Patch Changes
+
+- Updated dependencies [a8e1138]
+  - @krizaka/settings@0.7.0
+
 ## 0.1.3
 
 ### Patch Changes

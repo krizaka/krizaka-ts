@@ -1,5 +1,12 @@
 # @krizaka/storage
 
+## 0.11.2
+
+### Patch Changes
+
+- Updated dependencies [a8e1138]
+  - @krizaka/settings@0.7.0
+
 ## 0.11.1
 
 ### Patch Changes

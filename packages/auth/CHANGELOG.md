@@ -1,5 +1,12 @@
 # @krizaka/auth
 
+## 0.13.3
+
+### Patch Changes
+
+- Updated dependencies [a8e1138]
+  - @krizaka/settings@0.7.0
+
 ## 0.13.2
 
 ### Patch Changes
