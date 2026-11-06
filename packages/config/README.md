@@ -307,16 +307,23 @@ ONE chain of git hooks for every Krizaka repository, delivered by this public pa
 
 `krizaka-hooks install` writes three shims in `<git common dir>/krizaka-hooks/` and sets `core.hooksPath` to them. It is idempotent (a second run prints nothing and changes nothing), skips outside a git repository and in CI, and never exits non-zero. A clone without the package or without node still commits and pushes: the shim says it skipped.
 
-| Hook | Step | What it does |
-| --- | --- | --- |
-| pre-commit | `secrets` | `gitleaks git --staged --redact` with the repository's `.gitleaks.toml`, else the org rules of krizaka/.github. gitleaks missing: a notice, the commit goes. |
+| Hook       | Step       | What it does                                                                                                                                                                                                                 |
+| ---------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| pre-commit | `secrets`  | `gitleaks git --staged --redact` with the repository's `.gitleaks.toml`, else the org rules of krizaka/.github. gitleaks missing: a notice, the commit goes.                                                                 |
 | commit-msg | `trailers` | every `Co-authored-by` must be on the org's public allow-list (`scripts/commit-identities.json` of krizaka/.github, cached one day in `~/.cache/krizaka/hooks`). List unreachable and not cached: a notice, the commit goes. |
-| pre-push | your steps | the declared steps below; without a declaration, the repository's `precheck` npm script if it has one. |
+| pre-push   | your steps | the declared steps below; without a declaration, the repository's `precheck` npm script if it has one.                                                                                                                       |
 
 **The declaration** is data, a `krizaka.hooks` field of `package.json` (the catalogue reads it as is). Each hook takes a list of `{ "name", "run" }`; the built-in steps of pre-commit and commit-msg always run first, a declared pre-push list replaces the `precheck` default:
 
 ```json
-{ "krizaka": { "hooks": { "pre-push": [{ "name": "check", "run": "pnpm run check" }], "pre-commit": [{ "name": "format", "run": "pnpm exec prettier --check ." }] } } }
+{
+  "krizaka": {
+    "hooks": {
+      "pre-push": [{ "name": "check", "run": "pnpm run check" }],
+      "pre-commit": [{ "name": "format", "run": "pnpm exec prettier --check ." }]
+    }
+  }
+}
 ```
 
 Steps run in order and stop at the first failure with one line, ``krizaka-hooks: pre-push · check: `pnpm run check` failed (exit 1)…``, and exit code 1. A malformed declaration is refused with its path (`krizaka.hooks.pre-push[0]: "run" is required`).
