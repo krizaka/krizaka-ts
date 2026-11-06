@@ -1,6 +1,6 @@
 # @krizaka/credits
 
-**One credits ledger for every Krizaka product.** It replaces three models: Yomizaka's `audit_credits` and `free_audit_used_at` columns on `accounts` (`reserveAudit` / `releaseAudit` / `refundFailedAudit`), and the Java kit's `credit_wallet` / `credit_ledger_entry` / `credit_hold` (`krizaka-billing`, whose names and events it follows). The coupons module (#46) grants capped credits through it.
+**One credits ledger for every Krizaka product.** It replaces three models: Verikora's `audit_credits` and `free_audit_used_at` columns on `accounts` (`reserveAudit` / `releaseAudit` / `refundFailedAudit`), and the Java kit's `credit_wallet` / `credit_ledger_entry` / `credit_hold` (`krizaka-billing`, whose names and events it follows). The coupons module (#46) grants capped credits through it.
 
 > **The ledger is append-only and the balance is derived.** Nothing stores a balance that could drift: what is left of a pot is the sum of its lines. A database trigger refuses any `UPDATE` or `DELETE` of a line. Credits are integers, never floats.
 
@@ -45,6 +45,6 @@ await credits.refund(tx, { accountId, consumed: `audit-${auditId}`, reason: "the
 - **Tables** (`creditsSchema`, Postgres schema `credits`): `grant`, `entry`, `hold`. The one product table it references is the owner (`owner`, the account table). An account that has credits is **anonymised, never deleted**: it is an accounting record, like an invoice.
 - `creditsLedgerContract` (`@krizaka/credits/testkit`) is the contract every store runs; `memoryCreditStore()` is for unit tests (it has no transaction, so `lock` does nothing: concurrency is proved on PostgreSQL).
 
-## Adopting it (Yomizaka)
+## Adopting it (Verikora)
 
-`audit_credits` becomes a purchased pot (`purchase` once per account for the balance it has, key `import-<accountId>`), the free audit a granted pot with `onExhausted: "fallback_paid"`, `reserveAudit` a `consume` (a `PAYWALL` is already Yomizaka's 402), `releaseAudit` and `refundFailedAudit` a `refund` of the consume key.
+`audit_credits` becomes a purchased pot (`purchase` once per account for the balance it has, key `import-<accountId>`), the free audit a granted pot with `onExhausted: "fallback_paid"`, `reserveAudit` a `consume` (a `PAYWALL` is already Verikora's 402), `releaseAudit` and `refundFailedAudit` a `refund` of the consume key.

@@ -47,7 +47,7 @@ export function describeStore(
 }
 
 export interface WhereOptions {
-  /** Stores that are not configurable but fixed places (Yomizaka's managed database in Toronto), by kind. */
+  /** Stores that are not configurable but fixed places (Verikora's managed database in Toronto), by kind. */
   fixed?: Readonly<Record<string, StoreDescriptor>>;
   /** Kinds that exist only for development data. */
   devOnly?: readonly string[];

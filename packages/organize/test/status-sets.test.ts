@@ -4,7 +4,7 @@ import { checkMove, checkStatusSet, movesFrom, statusOrder, statusSetProblems, u
 import { DECISION, INVOICE_STATE } from "./fixtures";
 
 describe("a status set", () => {
-  it("accepts Yomizaka's decision and Akinaza's derived invoice state", () => {
+  it("accepts Verikora's decision and Folioviv's derived invoice state", () => {
     expect(statusSetProblems(DECISION)).toEqual([]);
     expect(checkStatusSet(INVOICE_STATE)).toBe(INVOICE_STATE);
   });

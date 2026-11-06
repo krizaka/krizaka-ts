@@ -27,10 +27,10 @@ const passwords = {
 
 describe("the e-mail change mail and token", () => {
   it("is in the person's language, names the product, carries the link and its validity", () => {
-    const fr = emailChangeMail("Akinaza", "fr", "https://www.akinaza.com/fr/confirm-email?token=x");
-    expect(fr.subject).toBe("Confirmez votre nouvelle adresse — Akinaza");
-    expect(fr.text).toContain("https://www.akinaza.com/fr/confirm-email?token=x");
-    expect(emailChangeMail("Akinaza", "en", "https://u").subject).toBe("Confirm your new address — Akinaza");
+    const fr = emailChangeMail("Folioviv", "fr", "https://www.folioviv.com/fr/confirm-email?token=x");
+    expect(fr.subject).toBe("Confirmez votre nouvelle adresse — Folioviv");
+    expect(fr.text).toContain("https://www.folioviv.com/fr/confirm-email?token=x");
+    expect(emailChangeMail("Folioviv", "en", "https://u").subject).toBe("Confirm your new address — Folioviv");
   });
   it("tokens carry the product's prefix", () => {
     expect(isEmailChangeToken("ae", `ae1.${"A".repeat(43)}`)).toBe(true);
@@ -43,11 +43,11 @@ describe("the e-mail change mail and token", () => {
     expect(accountsMigration()).toMatch(/CREATE TABLE IF NOT EXISTS password_resets/);
   });
   it("the password reset mail is in the person's language, names the product, carries the link, its validity and that it is used once", () => {
-    const fr = passwordResetMail("Yomizaka", "fr", "https://www.yomizaka.com/fr/reset-password?token=x");
-    expect(fr.subject).toBe("Réinitialisez votre mot de passe — Yomizaka");
-    expect(fr.text).toContain("https://www.yomizaka.com/fr/reset-password?token=x");
+    const fr = passwordResetMail("Verikora", "fr", "https://www.verikora.com/fr/reset-password?token=x");
+    expect(fr.subject).toBe("Réinitialisez votre mot de passe — Verikora");
+    expect(fr.text).toContain("https://www.verikora.com/fr/reset-password?token=x");
     expect(fr.text).toContain("30 min");
-    expect(passwordResetMail("Yomizaka", "en", "https://u").subject).toBe("Reset your password — Yomizaka");
+    expect(passwordResetMail("Verikora", "en", "https://u").subject).toBe("Reset your password — Verikora");
   });
 });
 
@@ -79,8 +79,8 @@ describe.runIf(enabled)("the account service on PostgreSQL", () => {
       query: (sql, params) => query(sql, params),
       transaction,
       mail: async (m) => void mails.push(m),
-      baseUrl: "https://www.akinaza.com",
-      product: "Akinaza",
+      baseUrl: "https://www.folioviv.com",
+      product: "Folioviv",
       tokenPrefix: "ae",
       passwords: {
         hash: async (p: string) => {

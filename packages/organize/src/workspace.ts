@@ -40,7 +40,7 @@ export interface WorkspaceDeps {
   audit?: AuditTrail;
   /** The outbox (or a wrapper over `@krizaka/webhooks`): one event per status move. */
   events?: WorkspaceEvents;
-  /** The product's own consequence of moves, in the same transaction (Yomizaka closes the file and purges its documents). */
+  /** The product's own consequence of moves, in the same transaction (Verikora closes the file and purges its documents). */
   onMoved?: (tx: Query, moves: readonly StatusMove[]) => Promise<void>;
   newId?: () => string;
 }

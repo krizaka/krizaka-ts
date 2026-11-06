@@ -214,7 +214,7 @@ describe("the admin over the environment", () => {
   const s3Env: DeploymentStorage = {
     environment: "prod",
     provider: "s3",
-    prefix: "yomizaka",
+    prefix: "verikora",
     s3: {
       endpoint: "https://tor1.digitaloceanspaces.com",
       region: "tor1",
@@ -240,7 +240,7 @@ describe("the admin over the environment", () => {
     for (const a of [null, admin({})])
       expect(resolveStorage(s3Env, a)).toMatchObject({
         provider: "s3",
-        settings: { bucket: "docs", region: "tor1", prefix: "yomizaka" },
+        settings: { bucket: "docs", region: "tor1", prefix: "verikora" },
         descriptor: { residency: "canada" },
       });
   });

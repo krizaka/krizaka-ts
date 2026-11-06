@@ -30,7 +30,7 @@ export type FamilyStatus = "released" | "development";
 
 /**
  * One name of the family, the only place it is written. The naming rule (founder, 2026-10-30): the company is
- * « Krizaka »; a product goes by its own name (« Yomizaka », never « Krizaka Yomizaka »); a library or a tool is always
+ * « Krizaka »; a product goes by its own name (« Verikora », never « Krizaka Verikora »); a library or a tool is always
  * « Krizaka <X> » (« Krizaka UI », never « UI » alone outside a group headed « Open source »).
  */
 export interface FamilyEntry {

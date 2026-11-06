@@ -1,4 +1,4 @@
-// Small pages that reproduce what the layout audit must catch (yomizaka#435) and one that is fine, for `check-page-audit.mjs`:
+// Small pages that reproduce what the layout audit must catch (verikora#435) and one that is fine, for `check-page-audit.mjs`:
 // the guard is proven on its own fixtures before it is trusted on the app.
 
 const page = (body, css = "") =>
@@ -33,7 +33,7 @@ export const FOLDED_SECTION = page(
 
 /** A page whose `<main>` draws nothing. */
 export const EMPTY_MAIN = page("");
-/** The signed-in frame asks 1000 px of a 700 px screen under a 60 px notice (akinaza#444). */
+/** The signed-in frame asks 1000 px of a 700 px screen under a 60 px notice (folioviv#444). */
 export const FRAME_FORCES_SCROLL = page(
   `<div style="height:60px">notice</div><div data-app-frame-slot><div style="min-height:1000px">shell</div></div>`,
 );
@@ -63,14 +63,14 @@ export const CHROME_BAD = `<!doctype html><html><body><main><p>Hello</p></main><
 
 /** A short token in a table row stretched by a tall neighbour: the cell is tall, its text is one line. */
 export const TOKEN_IN_STRETCHED_ROW = page(
-  `<table style="width:600px"><tbody><tr><td>orazaka-media-pack</td><td>${"A long description. ".repeat(30)}</td></tr></tbody></table>`,
+  `<table style="width:600px"><tbody><tr><td>sovkora-media-pack</td><td>${"A long description. ".repeat(30)}</td></tr></tbody></table>`,
 );
 /** An identifier in a narrow cell that breaks every few characters. */
 export const TOKEN_WRAPPED = page(
   `<table style="width:100px;table-layout:fixed"><tbody><tr><td style="word-break:break-all;font-size:20px">abcdefghijklmnopqrstuvwxyz0123456789</td></tr></tbody></table>`,
 );
 
-/** A map that laid out at 0 px: `absolute inset-0` in a frame with no height of its own (akinaza#488). */
+/** A map that laid out at 0 px: `absolute inset-0` in a frame with no height of its own (folioviv#488). */
 export const MAP_COLLAPSED = page(
   `<section><div style="position:relative"><div class="maplibregl-map" style="position:absolute;inset:0"><canvas width="0" height="0"></canvas></div></div></section>`,
 );
@@ -85,7 +85,7 @@ export const MAP_NO_CANVAS = page(
 /** A map that is not drawn (display none: a closed tab, a small screen): nothing to measure. */
 export const MAP_HIDDEN = page(`<section><div class="maplibregl-map" style="display:none"></div></section>`);
 
-/** Two controls on top of each other: a title button over a row's button (akinaza#214, the composer's « Style » over « Réservation »). */
+/** Two controls on top of each other: a title button over a row's button (folioviv#214, the composer's « Style » over « Réservation »). */
 export const CONTROLS_OVERLAP = page(
   `<button style="display:block;width:200px;height:40px">Réservation</button><button style="display:block;width:200px;height:40px;margin-top:-20px;position:relative">Style</button>`,
 );

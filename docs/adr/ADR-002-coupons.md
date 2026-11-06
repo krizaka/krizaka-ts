@@ -15,13 +15,13 @@ There are two kinds. A **discount** coupon reduces a price at checkout. A **cred
 
 What exists, read in the products on 2026-10-23 (details and file:line in the design, §1):
 - **No product has coupons, promo codes or discounts.**
-- **Yomizaka and Akinaza** pay through `@krizaka/payments` 0.1.0, a Stripe adapter without the SDK.
+- **Verikora and Folioviv** pay through `@krizaka/payments` 0.1.0, a Stripe adapter without the SDK.
   - Prices are Stripe prices found by lookup key.
   - Taxes are Stripe Tax: `automatic_tax`, `tax_id_collection` (krizaka-ui `packages/payments/src/stripe.ts:137-151`).
   - Entitlements are columns on `accounts`, written by each product's own `billing.ts`.
-  - Akinaza's 39 $ founder offer is a price, not a coupon.
+  - Folioviv's 39 $ founder offer is a price, not a coupon.
 - **a former product** has its own payment package with five gateways, and an append-only credit ledger in cents, with holds.
-- **Orazaka's** credits live in the Java `krizaka-billing`: `GRANTED` and `PURCHASED` buckets, holds, an idempotency key per entry. It has no payment provider at all.
+- **Sovkora's** credits live in the Java `krizaka-billing`: `GRANTED` and `PURCHASED` buckets, holds, an idempotency key per entry. It has no payment provider at all.
 - **The idempotency gap.** `@krizaka/payments`' `applyOnce` records a webhook's id before its handler runs, and not in the same transaction (`events.ts:15-21`). A coupon redeemed there could be lost (the handler fails after the id is recorded) or double-counted (a retry with a new event id).
 
 ## Decision: option B, our own `@krizaka/coupons`, with the provider as an adapter
@@ -35,7 +35,7 @@ What exists, read in the products on 2026-10-23 (details and file:line in the de
    - The Stripe adapter turns those terms into a Stripe coupon, created **once per terms version** and remembered by `@krizaka/payments`. It passes the coupon as `discounts: [{ coupon }]` on the Checkout Session; Stripe accepts one coupon per session.
    - We **never create Stripe promotion codes.** The code a person types exists only in our database. Our limits and our rate limits apply, and Stripe holds no second truth.
    - Stripe Tax computes the tax **after** the discount: « Stripe Tax calculates tax after applying discounts to the subtotal » (docs.stripe.com/tax/calculating, « Discounts and tax calculations », read 2026-10-23). So GST and QST are on the discounted amount, with no code of ours.
-   - The `manual` provider (#34: on site, invoice later) applies the same terms as a line discount before tax, as Akinaza's invoices already do (`discountCents`, `packages/core/src/tax.ts:69-74`).
+   - The `manual` provider (#34: on site, invoice later) applies the same terms as a line discount before tax, as Folioviv's invoices already do (`discountCents`, `packages/core/src/tax.ts:69-74`).
 3. **Credit coupons are ours alone.**
    - Redeeming one grants credits in `@krizaka/credits`, the ledger of ADR-001's module map, which follows `krizaka-billing`'s model.
    - Every grant carries:
@@ -55,13 +55,13 @@ What exists, read in the products on 2026-10-23 (details and file:line in the de
    - A partner owns coupons. The admin sees each partner's redemptions, discounts given and revenue.
    - Commission is **out of scope**. The hook is `evt.coupon.redeemed.v1`, which carries the partner id and the amounts paid, for a later commission module to consume.
 6. **The existing billing code moves into shared packages first, in this order:**
-   1. `@krizaka/payments` moves to krizaka-ts (ADR-001 cut #6). Its webhook events are applied in the effect's transaction; it gains discount terms on checkout, and the `checkout_expired` and `payment_refunded` events. The copied `payment_events` migration (Yomizaka 0009, Akinaza 0010) becomes the module's, adopted.
+   1. `@krizaka/payments` moves to krizaka-ts (ADR-001 cut #6). Its webhook events are applied in the effect's transaction; it gains discount terms on checkout, and the `checkout_expired` and `payment_refunded` events. The copied `payment_events` migration (Verikora 0009, Folioviv 0010) becomes the module's, adopted.
    2. The three copied routes (checkout, portal, webhook) become route handlers of the package.
    3. The subscription state on `accounts` (four columns × two products) becomes `payments.subscription`, adopted.
-   4. Yomizaka's `audit_credits` / free-audit logic moves to `@krizaka/credits` (ADR-001 cut #7), with its behaviour unchanged.
+   4. Verikora's `audit_credits` / free-audit logic moves to `@krizaka/credits` (ADR-001 cut #7), with its behaviour unchanged.
    5. Then comes `@krizaka/coupons`.
-   6. a former product keeps its own credits and gateways until a later move. Orazaka's credits stay in Java (§7).
-7. **Orazaka gets the same model in Java.** Orazaka's billing is `krizaka-billing`; the web client has no database. Its coupons are therefore a twin in `krizaka-billing`, with the same tables, refusal codes and events. Its credit coupon is a `GRANT` with the cap. This is filed as a Java issue after the TypeScript package proves the model.
+   6. a former product keeps its own credits and gateways until a later move. Sovkora's credits stay in Java (§7).
+7. **Sovkora gets the same model in Java.** Sovkora's billing is `krizaka-billing`; the web client has no database. Its coupons are therefore a twin in `krizaka-billing`, with the same tables, refusal codes and events. Its credit coupon is a `GRANT` with the cap. This is filed as a Java issue after the TypeScript package proves the model.
 
 ## The options weighed
 
@@ -82,7 +82,7 @@ What exists, read in the products on 2026-10-23 (details and file:line in the de
 
 ## Consequences and costs
 
-- **The order is longer before the first coupon:** `payments` moved and made transactional, then `credits`, then `coupons`. This order also fixes the idempotency gap for every payment, coupon or not, and gives Yomizaka one ledger instead of columns.
+- **The order is longer before the first coupon:** `payments` moved and made transactional, then `credits`, then `coupons`. This order also fixes the idempotency gap for every payment, coupon or not, and gives Verikora one ledger instead of columns.
 - **Discount terms are immutable once used.** After a coupon's first redemption, the admin cannot change its percent, amount, currency or duration, only its window, limits, status and partner. A new offer is a new coupon. This keeps the Stripe coupon cache valid and the history readable.
 - **Stripe coupons pile up slowly:** one per terms version, never one per checkout.
 - **A provider that cannot apply discounts** (CCBill, Segpay) makes discount coupons unavailable there, said by a typed refusal (`COUPON_PROVIDER`). Credit coupons are unaffected.

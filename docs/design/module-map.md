@@ -2,9 +2,9 @@
 
 This is the evidence and the plan of [ADR-001](../adr/ADR-001-modular-architecture.md), for krizaka/krizaka-ts#47.
 - **Sources:** a read-only pass over `main` on 2026-10-23, at these commits:
-  - yomizaka `7b77d2e`, akinaza `86d35a2`, a former product `9df64cb`, a former product `239e402`, a former product `7d34595`, a former product `6a06067`;
-  - orazaka-web-client, plus the Java repositories it calls.
-- **Path notation:** paths are relative to each repository. `Y` = yomizaka, `A` = akinaza, `K` = a former product, `O` = a former product, `S` = a former product, `R` = a former product, `W` = orazaka-web-client.
+  - verikora `7b77d2e`, folioviv `86d35a2`, a former product `9df64cb`, a former product `239e402`, a former product `7d34595`, a former product `6a06067`;
+  - sovkora-web, plus the Java repositories it calls.
+- **Path notation:** paths are relative to each repository. `Y` = verikora, `A` = folioviv, `K` = a former product, `O` = a former product, `S` = a former product, `R` = a former product, `W` = sovkora-web.
 
 ## 1. The inventory: capabilities × products
 
@@ -12,7 +12,7 @@ This is the evidence and the plan of [ADR-001](../adr/ADR-001-modular-architectu
 
 | Product | Driver / ORM | Migration tool and runner | Test database | Transactions |
 |---|---|---|---|---|
-| Y | raw `pg`, pool of 5 on `globalThis` (`apps/web/lib/db.ts:10-35`) | own runner: `pg_advisory_lock(73191)`, `schema_migrations(version text)`, one tx each (`lib/db.ts:38-64`); SQL strings in `lib/migrations.ts` (0001–0026, no 0018); runs at server start (`instrumentation.ts:13-14`) | env-gated (`YOMIZAKA_DB_IT=1`), real PG, no isolation (`lib/db.integration.test.ts:18-20`) | none outside migrations; atomic `UPDATE … RETURNING` (`lib/billing.ts:56-57`) |
+| Y | raw `pg`, pool of 5 on `globalThis` (`apps/web/lib/db.ts:10-35`) | own runner: `pg_advisory_lock(73191)`, `schema_migrations(version text)`, one tx each (`lib/db.ts:38-64`); SQL strings in `lib/migrations.ts` (0001–0026, no 0018); runs at server start (`instrumentation.ts:13-14`) | env-gated (`VERIKORA_DB_IT=1`), real PG, no isolation (`lib/db.integration.test.ts:18-20`) | none outside migrations; atomic `UPDATE … RETURNING` (`lib/billing.ts:56-57`) |
 | A | drizzle `node-postgres` (`packages/db/src/client.ts:13-23`) | drizzle-kit `generate` + drizzle `migrate` under `pg_advisory_lock(73193)` (`packages/db/src/migrate.ts:11-20`) on `DATABASE_DIRECT_URL`; 30 journal entries, snapshots only for 0000–0001 | Testcontainers or CI's PG, one `ak_it_<hex>` database per test file (`packages/db/src/test/db.ts:13-41`) | `db.transaction` (`Tx`, `client.ts:7`) |
 | K | copy of A (`client.ts` byte-identical) | same, lock 73192 | copy of A without `freshEmptyDatabase` | same |
 | O | drizzle-orm 0.45 + `pg` (`packages/db/src/client.ts:14,146`) | drizzle-kit files applied by its own runner, all pending in one tx (`packages/db/src/migrations.ts:1-68`), bundled as `migrate.cjs`, DigitalOcean PRE_DEPLOY (`migrate.ts:1-45`) | not found; env-gated tests on `DATABASE_URL` | ~47 `.transaction(` sites |
@@ -21,8 +21,8 @@ This is the evidence and the plan of [ADR-001](../adr/ADR-001-modular-architectu
 | W | no database (two catch-all proxy routes, `src/app/api/v1/[...path]/route.ts:15-61`) | Java: initdb SQL + dated scripts (`krizaka-billing/infra/initdb/70-billing.sql`); Flyway only in `krizaka-persistence` (`KrizakaMigrations.java:75-86`) | Java Testcontainers ITs | JDBC |
 
 **How the krizaka-ts packages reach a product's database today:**
-- **Akinaza:** one generator per package (`packages/db/src/gen-{account,api-keys,organize,roles,settings,webhooks}-migration.ts`) prints the package's SQL into a committed `drizzle/00NN_*.sql`. A drift test checks it (`api-keys.test.ts:9-27`, `organize.test.ts:26`).
-- **Yomizaka:** it calls the function inside its list (`lib/migrations.ts:448-451`, `accountsMigration()` as 0023).
+- **Folioviv:** one generator per package (`packages/db/src/gen-{account,api-keys,organize,roles,settings,webhooks}-migration.ts`) prints the package's SQL into a committed `drizzle/00NN_*.sql`. A drift test checks it (`api-keys.test.ts:9-27`, `organize.test.ts:26`).
+- **Verikora:** it calls the function inside its list (`lib/migrations.ts:448-451`, `accountsMigration()` as 0023).
 
 ### 1.2 Every other capability
 
@@ -71,7 +71,7 @@ This is the evidence and the plan of [ADR-001](../adr/ADR-001-modular-architectu
 | 8 | `privacy` (consent, export, erasure) | 6 partial | Loi 25 | each module contributes its own export and erasure |
 | 9 | `storage` | 4 | documents, media | #44 is filed |
 | 10 | `notifications` | 1 full (O) + 1 partial | engagement | built from O's model on mail + push + realtime |
-| 11 | `follows` / `reviews` | 1 + planned | Akinaza's shops, a former product | #37 is filed (draft PR #38) |
+| 11 | `follows` / `reviews` | 1 + planned | Folioviv's shops, a former product | #37 is filed (draft PR #38) |
 | 12 | admin descriptors | 7 consoles | admin configures everything | needs krizaka-ui screens |
 | — | invoices, scheduling, customers, search | 1 product each | — | stay product-local until a second product needs them |
 
@@ -85,7 +85,7 @@ This is the evidence and the plan of [ADR-001](../adr/ADR-001-modular-architectu
 | 4 | `rate-limit` | fixed window and token bucket, memory and database stores | `LimitStore` | `rate_limit.bucket` | — | one limit per action (`limits.<action>.perIp`, `.perSubject`, `.windowSeconds`) | **Y**, A, K, O, S, R | db |
 | 5 | `payments` | providers (`stripe`, `manual`), checkout, portal, discounts, modes (#34), webhook events applied in the same tx as their effect | `PaymentProvider`, `PaymentStore` | `payments.event`, `payments.customer`, `payments.payment` | `evt.payment.paid.v1`, `evt.subscription.changed.v1`, `evt.checkout.expired.v1` | provider, mode, currencies (#34) | **Y**, A | db, outbox |
 | 6 | `credits` | ledger: grant, purchase, debit, hold, release, expire; caps per grant | `LedgerStore` | `credits.entry`, `credits.hold`, `credits.grant` | `evt.credit.granted.v1`, `evt.credit.exhausted.v1` | `credits.holdTtlMinutes` | **Y** (replaces `audit_credits`), O later | db, outbox |
-| 7 | `coupons` | discount and credit coupons, partners, redemptions (#46) | `CouponStore`, payments' discount port | `coupons.coupon`, `coupons.redemption`, `coupons.partner` | `evt.coupon.redeemed.v1`, `evt.coupon.exhausted.v1` | `coupons.*` (the design is `docs/design/coupons.md`, added by PR #49; the scope is [#46](https://github.com/krizaka/krizaka-ts/issues/46)) | **Y**, A, Orazaka | db, payments, credits, audit, rate-limit, outbox, settings |
+| 7 | `coupons` | discount and credit coupons, partners, redemptions (#46) | `CouponStore`, payments' discount port | `coupons.coupon`, `coupons.redemption`, `coupons.partner` | `evt.coupon.redeemed.v1`, `evt.coupon.exhausted.v1` | `coupons.*` (the design is `docs/design/coupons.md`, added by PR #49; the scope is [#46](https://github.com/krizaka/krizaka-ts/issues/46)) | **Y**, A, Sovkora | db, payments, credits, audit, rate-limit, outbox, settings |
 | 8 | `auth` (extended) | + sessions, password hashing, client IP, admin gate, `/api/me` contract (krizaka-ui#551), IdentityProvider (#32) | `SessionStore`, `IdentityProvider` | `auth.session` (adopts `sessions`) | `evt.account.created.v1` | `auth.sessionDays`, `auth.allowedAdminIps` | **A**, Y, K | db |
 | 9 | `mail` | `@krizaka/email` + its stores (delivery log, suppression, idempotency) + providers (Mailgun, Resend, log) + outbox delivery | `MailProvider` | `mail.delivery`, `mail.suppression` | `evt.mail.bounced.v1` | `mail.from`, `mail.replyTo` (secrets stay in env) | **A** (its outbox is never flushed today), Y, O, S, R, K | db, outbox |
 | 10 | `privacy` | consents by purpose and version, export assembled from every module's `exportFor`, erasure through every module's `eraseFor`, retention | `PrivacyContributor` (implemented by each module) | `privacy.consent`, `privacy.request` | `evt.privacy.erased.v1` | `privacy.exportSyncBudgetMs`, retention per purpose | **Y**, A, S, O, R | db, audit, outbox |
@@ -96,39 +96,39 @@ This is the evidence and the plan of [ADR-001](../adr/ADR-001-modular-architectu
 | 14 | admin descriptors | each module's `./admin` read by generic @krizaka/ui screens | — | — | — | — | **Y** | each module |
 | — | `settings`, `api-keys`, `webhooks`, `organize`, `brief` (existing) | unchanged purpose; adopt `db`'s types, declare their schema, move to their own schema in their next major (`settings` first) | as today | adopted in `public`, then their own schema | — | as today | Y, A | db |
 
-**Not modules:** feature flags are settings (`flag()`, `packages/settings/src/registry.ts:34`). `@krizaka/orazaka-client` (#33) is a provider adapter (an AI port that products and modules call), not a business module.
+**Not modules:** feature flags are settings (`flag()`, `packages/settings/src/registry.ts:34`). `@krizaka/sovkora-client` (#33) is a provider adapter (an AI port that products and modules call), not a business module.
 
 ### 3.1 The same map as an ordered list
 
-1. **db.** Shared types, transactions, module schemas embedded in the product's sequence, the test database. One table, `krizaka_module_versions`. First adopter: Akinaza. Depends on nothing.
-2. **audit.** Who did what, append-only, in `audit.entry`, with a retention setting. First adopter: Yomizaka. Depends on db.
-3. **outbox.** Events written in the transaction, delivered at least once by a leased worker (duplicates possible after a crash, so consumers are idempotent), in `outbox.message`. First adopter: Akinaza. Depends on db.
-4. **rate-limit.** Limits per action from settings, memory or database store, in `rate_limit.bucket`. First adopter: Yomizaka. Depends on db.
+1. **db.** Shared types, transactions, module schemas embedded in the product's sequence, the test database. One table, `krizaka_module_versions`. First adopter: Folioviv. Depends on nothing.
+2. **audit.** Who did what, append-only, in `audit.entry`, with a retention setting. First adopter: Verikora. Depends on db.
+3. **outbox.** Events written in the transaction, delivered at least once by a leased worker (duplicates possible after a crash, so consumers are idempotent), in `outbox.message`. First adopter: Folioviv. Depends on db.
+4. **rate-limit.** Limits per action from settings, memory or database store, in `rate_limit.bucket`. First adopter: Verikora. Depends on db.
 5. **payments.**
    - Providers stripe and manual, checkout, portal and discounts.
    - Events are applied in the same transaction as their effect.
    - Tables `payments.event`, `customer`, `payment`.
-   - First adopter: Yomizaka. Depends on db and outbox.
+   - First adopter: Verikora. Depends on db and outbox.
 6. **credits.**
    - A ledger with caps per grant, in `credits.entry`, `hold` and `grant`.
    - It follows krizaka-billing's model.
-   - First adopter: Yomizaka. Depends on db and outbox.
+   - First adopter: Verikora. Depends on db and outbox.
 7. **coupons.**
    - Discount and credit coupons, partners and redemptions, in `coupons.coupon`, `redemption` and `partner`.
-   - First adopter: Yomizaka.
+   - First adopter: Verikora.
    - Depends on db, payments, credits, audit, rate-limit, outbox and settings.
 8. **auth basics.**
    - Sessions, password, client IP, the admin gate and the `/api/me` contract, in `auth.session`.
-   - First adopter: Akinaza. Depends on db.
+   - First adopter: Folioviv. Depends on db.
 9. **mail.**
    - Templates from `@krizaka/email`, providers, delivery log and suppression, delivered through the outbox.
    - Tables `mail.delivery`, `suppression`.
-   - First adopter: Akinaza. Depends on db and outbox.
+   - First adopter: Folioviv. Depends on db and outbox.
 10. **privacy.**
     - Consents, export and erasure assembled from every module.
     - Tables `privacy.consent`, `request`.
-    - First adopter: Yomizaka. Depends on db, audit and outbox.
-11. **storage.** Objects behind one port, Bunny, S3, local, memory, encrypted, in `storage.object`. First adopter: Yomizaka. Depends on db.
+    - First adopter: Verikora. Depends on db, audit and outbox.
+11. **storage.** Objects behind one port, Bunny, S3, local, memory, encrypted, in `storage.object`. First adopter: Verikora. Depends on db.
 
     **video.** Videos behind one port:
     - creation, signed TUS uploads, playback tokens and status webhooks;
@@ -140,8 +140,8 @@ This is the evidence and the plan of [ADR-001](../adr/ADR-001-modular-architectu
     - Bell, channels, preferences and caps.
     - Tables `notifications.item`, `preference`, `device`.
     - First adopter: a former product. Depends on db, outbox and mail.
-13. **follows and reviews.** In `follows.follow` and `reviews.review`. First adopter: Akinaza. Depends on db and outbox.
-14. **admin descriptors.** Each module's admin resource, read by generic screens in @krizaka/ui. First adopter: Yomizaka. Depends on each module.
+13. **follows and reviews.** In `follows.follow` and `reviews.review`. First adopter: Folioviv. Depends on db and outbox.
+14. **admin descriptors.** Each module's admin resource, read by generic screens in @krizaka/ui. First adopter: Verikora. Depends on each module.
 
 ## 4. Java alignment
 
@@ -163,21 +163,21 @@ Each line below is ready to file. The CTO files them after « validé »; the pr
 
 | # | Issue (krizaka-ts) | Scope | Acceptance | First adopter (separate PR) |
 |---|---|---|---|---|
-| 1 | `feat(db): @krizaka/db: shared types, transactions, module schemas, test database` | `Query`/`Database`/`Clock`/`ModuleSchema`; `transaction`; `emitMigration` + marker table; `assertModules`; `assertEmbedded`; a runner for products without one; `@krizaka/db/testing` (`createTestDatabase({ connect, migrate })` with an injected connection factory and migration sequence, `assertUpgrade`) | Unit tests; integration on CI's PostgreSQL: fresh DB, two modules with a cross-FK, upgrade N-1 → N, adopt existing tables; no network beyond the DB; README, changeset | Akinaza: its 6 generators become `emitMigration`, behaviour unchanged |
-| 2 | `refactor: the six packages on @krizaka/db (types, schema declaration, adopt markers)` | Each package declares its `ModuleSchema` (tables in `public`, adopted); `Query`/`Clock` from `db`; folds in #30's functional names | Every package's tests green; Akinaza's and Yomizaka's databases adopt with no DDL change | Yomizaka |
-| 3 | `feat(audit): @krizaka/audit` | `audit.entry`, `record(tx, …)`, filters, retention, Loi 25 redaction | contract kit on memory and PG | Yomizaka (`lib/audit.ts`) |
-| 4 | `feat(outbox): @krizaka/outbox` | `append(tx, event)`, leased worker, backoff, dead letters, settings | an exclusive claim: two workers never hold the same row during a valid lease; a crash test where a worker delivers then dies before acknowledging, and the row is delivered again after the lease (at least once); an idempotent consumer test where a repeated event id has one effect; retry then dead letter | Akinaza (`mail_outbox`, webhook deliveries) |
-| 5 | `feat(rate-limit): @krizaka/rate-limit` | memory + DB stores, limits from settings | the three byte-identical copies' tests pass on the package | Yomizaka, then A, K |
-| 6 | `feat(payments): @krizaka/payments moves to krizaka-ts; events applied in the effect's transaction; discounts` | the package and its history move (same name, next minor); `applyInTransaction(tx, event, handlers)`; `discount` in `CheckoutRequest`; `checkout_expired` event; #34's modes after | a failing handler leaves the event unrecorded (the test that is missing today); Stripe mocked | Yomizaka |
-| 7 | `feat(credits): @krizaka/credits` | ledger, holds, caps per grant, krizaka-billing's entry types | concurrent debit of the last credit; cap per day and month | Yomizaka (`audit_credits` → ledger, behaviour unchanged) |
-| 8 | `feat(coupons): @krizaka/coupons` (#46) | the design `docs/design/coupons.md` (PR #49), once #46's phase 1 is validated; the scope is [#46](https://github.com/krizaka/krizaka-ts/issues/46) | see #46 phase 2 | Yomizaka, then Akinaza, then Orazaka |
-| 9 | `feat(auth): sessions, password, client IP, admin gate, /api/me contract` | the byte-identical files become exports; contract of krizaka-ui#551 | the copied tests pass on the package | Akinaza, Yomizaka, a former product |
-| 10 | `feat(mail): @krizaka/mail on @krizaka/email` | stores for delivery log, suppression, idempotency; Mailgun/Resend/log providers; outbox delivery | an outbox flush that really runs (Akinaza's gap) | Akinaza |
-| 11 | `feat(privacy): @krizaka/privacy` | consents, `PrivacyContributor`, export, erasure, retention | each existing module contributes; an export lists every module's data | Yomizaka |
-| 12 | `feat(storage, video)` (#44) | as #44 says, on `db`'s types: two packages, `storage` and `video` | as #44 | Yomizaka (storage), a former product (video) |
+| 1 | `feat(db): @krizaka/db: shared types, transactions, module schemas, test database` | `Query`/`Database`/`Clock`/`ModuleSchema`; `transaction`; `emitMigration` + marker table; `assertModules`; `assertEmbedded`; a runner for products without one; `@krizaka/db/testing` (`createTestDatabase({ connect, migrate })` with an injected connection factory and migration sequence, `assertUpgrade`) | Unit tests; integration on CI's PostgreSQL: fresh DB, two modules with a cross-FK, upgrade N-1 → N, adopt existing tables; no network beyond the DB; README, changeset | Folioviv: its 6 generators become `emitMigration`, behaviour unchanged |
+| 2 | `refactor: the six packages on @krizaka/db (types, schema declaration, adopt markers)` | Each package declares its `ModuleSchema` (tables in `public`, adopted); `Query`/`Clock` from `db`; folds in #30's functional names | Every package's tests green; Folioviv's and Verikora's databases adopt with no DDL change | Verikora |
+| 3 | `feat(audit): @krizaka/audit` | `audit.entry`, `record(tx, …)`, filters, retention, Loi 25 redaction | contract kit on memory and PG | Verikora (`lib/audit.ts`) |
+| 4 | `feat(outbox): @krizaka/outbox` | `append(tx, event)`, leased worker, backoff, dead letters, settings | an exclusive claim: two workers never hold the same row during a valid lease; a crash test where a worker delivers then dies before acknowledging, and the row is delivered again after the lease (at least once); an idempotent consumer test where a repeated event id has one effect; retry then dead letter | Folioviv (`mail_outbox`, webhook deliveries) |
+| 5 | `feat(rate-limit): @krizaka/rate-limit` | memory + DB stores, limits from settings | the three byte-identical copies' tests pass on the package | Verikora, then A, K |
+| 6 | `feat(payments): @krizaka/payments moves to krizaka-ts; events applied in the effect's transaction; discounts` | the package and its history move (same name, next minor); `applyInTransaction(tx, event, handlers)`; `discount` in `CheckoutRequest`; `checkout_expired` event; #34's modes after | a failing handler leaves the event unrecorded (the test that is missing today); Stripe mocked | Verikora |
+| 7 | `feat(credits): @krizaka/credits` | ledger, holds, caps per grant, krizaka-billing's entry types | concurrent debit of the last credit; cap per day and month | Verikora (`audit_credits` → ledger, behaviour unchanged) |
+| 8 | `feat(coupons): @krizaka/coupons` (#46) | the design `docs/design/coupons.md` (PR #49), once #46's phase 1 is validated; the scope is [#46](https://github.com/krizaka/krizaka-ts/issues/46) | see #46 phase 2 | Verikora, then Folioviv, then Sovkora |
+| 9 | `feat(auth): sessions, password, client IP, admin gate, /api/me contract` | the byte-identical files become exports; contract of krizaka-ui#551 | the copied tests pass on the package | Folioviv, Verikora, a former product |
+| 10 | `feat(mail): @krizaka/mail on @krizaka/email` | stores for delivery log, suppression, idempotency; Mailgun/Resend/log providers; outbox delivery | an outbox flush that really runs (Folioviv's gap) | Folioviv |
+| 11 | `feat(privacy): @krizaka/privacy` | consents, `PrivacyContributor`, export, erasure, retention | each existing module contributes; an export lists every module's data | Verikora |
+| 12 | `feat(storage, video)` (#44) | as #44 says, on `db`'s types: two packages, `storage` and `video` | as #44 | Verikora (storage), a former product (video) |
 | 13 | `feat(notifications): @krizaka/notifications` | a former product's matrix and burst caps, channels | preferences respected per channel; caps | a former product |
-| 14 | `feat(community)` (#37) | as #37, on `db` and `outbox` | as #37 | Akinaza |
-| 15 | krizaka-ui: `feat(admin): generic module screens from ./admin descriptors` | table, filters, detail, actions | coupons' screens built from them | Yomizaka |
+| 14 | `feat(community)` (#37) | as #37, on `db` and `outbox` | as #37 | Folioviv |
+| 15 | krizaka-ui: `feat(admin): generic module screens from ./admin descriptors` | table, filters, detail, actions | coupons' screens built from them | Verikora |
 
 ### 5.1 Delivery status (2026-10-26)
 
@@ -194,11 +194,11 @@ Each line below is ready to file. The CTO files them after « validé »; the pr
 
 | Issue | Where it fits |
 |---|---|
-| #44 storage, video | modules 11 (`storage`) and 11b (`video`), two packages as #44 says. Built on `db`'s types; storage's port keeps the shape `organize` and Yomizaka already use. |
+| #44 storage, video | modules 11 (`storage`) and 11b (`video`), two packages as #44 says. Built on `db`'s types; storage's port keeps the shape `organize` and Verikora already use. |
 | #46 coupons | module 7, after `payments` (discounts, transactional events) and `credits`. |
 | #34 payments | module 5. The package moves here first; the modes (online, on site, after) follow in the same module. |
 | #37 / #38 follows, reviews | module 13. The draft PR #38 should take `db`'s `Query`/`Clock` and declare its schema before it merges. |
-| #33 orazaka-client (#39 is its closed Copilot PR) | not a business module: a provider adapter that modules and products call. Unchanged. |
+| #33 sovkora-client (#39 is its closed Copilot PR) | not a business module: a provider adapter that modules and products call. Unchanged. |
 | #30 functional names | folded into cut #2. |
 | #32 IdentityProvider | part of module 8. |
 | krizaka-ui#551 `/api/me` | the first `./contract` (module 8). |

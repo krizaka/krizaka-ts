@@ -48,11 +48,11 @@ export interface AccountDeps {
    */
   transaction?: <T>(work: (query: Query) => Promise<T>) => Promise<T>;
   mail: (mail: Mail) => Promise<void>;
-  /** `https://www.akinaza.com`: the e-mail change link is `<baseUrl>/<locale>/confirm-email?token=…`, the reset link `<baseUrl>/<locale>/reset-password?token=…`. */
+  /** `https://www.folioviv.com`: the e-mail change link is `<baseUrl>/<locale>/confirm-email?token=…`, the reset link `<baseUrl>/<locale>/reset-password?token=…`. */
   baseUrl: string;
-  /** The product's name, in the words of the mail (« Akinaza »). */
+  /** The product's name, in the words of the mail (« Folioviv »). */
   product: string;
-  /** The product's token prefix, two or three letters (`ye1.` for Yomizaka: `ye`). The tokens are `<prefix>1.<43 base64url>`. */
+  /** The product's token prefix, two or three letters (`ye1.` for Verikora: `ye`). The tokens are `<prefix>1.<43 base64url>`. */
   tokenPrefix: string;
   passwords: {
     hash: (password: string) => Promise<string>;

@@ -7,7 +7,7 @@ import { apiKeysMigration, apiKeysSchema } from "../src";
 
 const sha = (text: string) => createHash("sha256").update(text).digest("hex");
 
-/** SHA-256 of what `apiKeysMigration(…)` returned before the module schema existed (recorded from that code): the proof that akinaza and yomizaka adopt with no DDL change. */
+/** SHA-256 of what `apiKeysMigration(…)` returned before the module schema existed (recorded from that code): the proof that folioviv and verikora adopt with no DDL change. */
 const BEFORE = {
   default: "65a8c2cee01432a016cb553fb8f9765e39a9fe51f1ad30bfab7693120a65ac20",
   users: "e4ac93b2e82d800720cad21879c05e60eeb7e1b255e958a8c1747431ffc0920d",

@@ -8,8 +8,8 @@ export type { Clock, Query } from "@krizaka/db";
 import type { Query } from "@krizaka/db";
 
 /**
- * Whose data it is. Usually an account (`{ kind: "account", id }`), but a product's data subject is not always an account: Akinaza's
- * is a client file, Yomizaka's a tenant on an application. The `kind` says which.
+ * Whose data it is. Usually an account (`{ kind: "account", id }`), but a product's data subject is not always an account: Folioviv's
+ * is a client file, Verikora's a tenant on an application. The `kind` says which.
  */
 export interface Subject {
   /** What the id identifies: `account`, `client`, `application`. Lower-case letters, digits and `_`. */

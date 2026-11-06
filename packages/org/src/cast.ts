@@ -2,7 +2,7 @@ import { defaultUrl, listDefaults } from "./defaults";
 import type { OrgDefaultItem } from "./org.types";
 
 /** The products that have a demo cast. */
-export type CastProduct = "orazaka" | "yomizaka" | "akinaza";
+export type CastProduct = "sovkora" | "verikora" | "folioviv";
 
 /** What a persona does in the app: a member, a shop owner or a customer of one, an administrator. */
 export type CastRole = "member" | "admin" | "owner" | "client";
@@ -33,7 +33,7 @@ export const CAST: readonly CastPersona[] = [
   // The same three people as the deployed QA accounts (Eric, Mira, Camille) in each product, so a laptop and the dev deployment hold the same names.
   {
     id: "eric",
-    product: "yomizaka",
+    product: "verikora",
     firstName: "Éric",
     displayName: "Éric Tremblay",
     role: "member",
@@ -43,7 +43,7 @@ export const CAST: readonly CastPersona[] = [
   },
   {
     id: "mira",
-    product: "yomizaka",
+    product: "verikora",
     firstName: "Mira",
     displayName: "Mira Haddad",
     role: "admin",
@@ -53,7 +53,7 @@ export const CAST: readonly CastPersona[] = [
   },
   {
     id: "camille",
-    product: "yomizaka",
+    product: "verikora",
     firstName: "Camille",
     displayName: "Camille Tremblay",
     role: "member",
@@ -61,11 +61,11 @@ export const CAST: readonly CastPersona[] = [
     avatar: "visual-artist",
     workspace: "rosemont-villeray",
   },
-  // Orazaka: the accounts already deployed on dev. Éric is the user (ORAZAKA_USER_*, APP_QA_ORAZAKA_PERSONA_*), Mira the administrator
-  // (ORAZAKA_ADMIN_*, APP_QA_ORAZAKA_MIRA_*), Krizaka the company as an SME customer (APP_QA_ORAZAKA_KRIZAKA_*). The greeting reads the name: never « qa_user ».
+  // Sovkora: the accounts already deployed on dev. Éric is the user (SOVKORA_USER_*, APP_QA_SOVKORA_PERSONA_*), Mira the administrator
+  // (SOVKORA_ADMIN_*, APP_QA_SOVKORA_MIRA_*), Krizaka the company as an SME customer (APP_QA_SOVKORA_KRIZAKA_*). The greeting reads the name: never « qa_user ».
   {
     id: "eric",
-    product: "orazaka",
+    product: "sovkora",
     firstName: "Éric",
     displayName: "Éric Tremblay",
     role: "member",
@@ -75,7 +75,7 @@ export const CAST: readonly CastPersona[] = [
   },
   {
     id: "mira",
-    product: "orazaka",
+    product: "sovkora",
     firstName: "Mira",
     displayName: "Mira Haddad",
     role: "admin",
@@ -85,7 +85,7 @@ export const CAST: readonly CastPersona[] = [
   },
   {
     id: "krizaka",
-    product: "orazaka",
+    product: "sovkora",
     firstName: "Krizaka",
     displayName: "Krizaka",
     role: "member",
@@ -93,10 +93,10 @@ export const CAST: readonly CastPersona[] = [
     avatar: "tech-architect",
     workspace: "demo",
   },
-  // Akinaza: Éric owns the Krizaka studio, Léa is the Saint-Henri walker, Camille is her first client, Mira administers.
+  // Folioviv: Éric owns the Krizaka studio, Léa is the Saint-Henri walker, Camille is her first client, Mira administers.
   {
     id: "eric",
-    product: "akinaza",
+    product: "folioviv",
     firstName: "Éric",
     displayName: "Éric Tremblay",
     role: "owner",
@@ -107,7 +107,7 @@ export const CAST: readonly CastPersona[] = [
   },
   {
     id: "mira",
-    product: "akinaza",
+    product: "folioviv",
     firstName: "Mira",
     displayName: "Mira Haddad",
     role: "admin",
@@ -117,7 +117,7 @@ export const CAST: readonly CastPersona[] = [
   },
   {
     id: "lea",
-    product: "akinaza",
+    product: "folioviv",
     firstName: "Léa",
     displayName: "Léa Beaulieu",
     role: "owner",
@@ -128,7 +128,7 @@ export const CAST: readonly CastPersona[] = [
   },
   {
     id: "camille",
-    product: "akinaza",
+    product: "folioviv",
     firstName: "Camille",
     displayName: "Camille Tremblay",
     role: "client",
@@ -138,7 +138,7 @@ export const CAST: readonly CastPersona[] = [
   },
   {
     id: "jordan",
-    product: "akinaza",
+    product: "folioviv",
     firstName: "Jordan",
     displayName: "Jordan Lee",
     role: "client",
@@ -148,7 +148,7 @@ export const CAST: readonly CastPersona[] = [
   },
   {
     id: "nadia",
-    product: "akinaza",
+    product: "folioviv",
     firstName: "Nadia",
     displayName: "Nadia Benali",
     role: "client",
@@ -158,7 +158,7 @@ export const CAST: readonly CastPersona[] = [
   },
   {
     id: "etienne",
-    product: "akinaza",
+    product: "folioviv",
     firstName: "Étienne",
     displayName: "Étienne Gagnon",
     role: "client",
@@ -168,7 +168,7 @@ export const CAST: readonly CastPersona[] = [
   },
   {
     id: "sofia",
-    product: "akinaza",
+    product: "folioviv",
     firstName: "Sofia",
     displayName: "Sofia Rossi",
     role: "client",

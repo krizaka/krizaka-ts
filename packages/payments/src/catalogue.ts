@@ -185,7 +185,7 @@ export interface PriceEntryLike {
 /**
  * The plans to create at the processor, from the product's price catalogue (ADR-009: prices are data, read through settings).
  * Only entries on sale with a figure and a billing unit the processor knows (`month`, `year`, `once`) become plans; an entry on quote,
- * internal, in preparation or in another unit is left out. The lookup key is the entry's key (`yomizaka.pro`).
+ * internal, in preparation or in another unit is left out. The lookup key is the entry's key (`verikora.pro`).
  * @param entries the catalogue as of now (`priceCatalogue(...).catalogue(clock.now())`)
  * @param names the display name per entry key (a message of the product)
  * @param taxCode the processor's tax code of the products

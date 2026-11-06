@@ -1,7 +1,7 @@
 import { Ajv2020 } from "ajv/dist/2020.js";
 import { describe, expect, it } from "vitest";
 
-import { apps, appSchema, footerLine, org, orgSchema } from "../src";
+import { apps, appSchema, findCodeNames, footerLine, org, orgSchema } from "../src";
 
 const ajv = new Ajv2020({ allErrors: true, strict: false });
 const text = JSON.stringify(org);
@@ -14,9 +14,9 @@ describe("the org JSON", () => {
 
   it("says every product is in development (krizaka-com#468)", () => {
     expect(org.products.map((p) => [p.id, p.status])).toEqual([
-      ["orazaka", "development"],
-      ["yomizaka", "development"],
-      ["akinaza", "development"],
+      ["sovkora", "development"],
+      ["verikora", "development"],
+      ["folioviv", "development"],
     ]);
   });
 
@@ -36,7 +36,7 @@ describe("the org JSON", () => {
   });
 
   it("lists only the live products", () => {
-    expect(org.products.map((p) => p.id)).toEqual(["orazaka", "yomizaka", "akinaza"]);
+    expect(org.products.map((p) => p.id)).toEqual(["sovkora", "verikora", "folioviv"]);
   });
 
   it("holds public facts only: no address, phone, figure, secret or IP", () => {
@@ -78,9 +78,9 @@ describe("the apps' runtime config", () => {
     }
   });
 
-  it("names no removed host: Orazaka answers on www.orazaka.com (dev.orazaka.com was removed on 2026-11-05)", () => {
-    expect(apps.orazaka?.apiBaseUrl.dev).toBe("https://www.orazaka.com");
-    expect(JSON.stringify(apps)).not.toContain("dev.orazaka.com");
+  it("points every product at its own dev host, never a retired code-name host (krizaka-internal#2659)", () => {
+    for (const [id, config] of Object.entries(apps)) expect(config.apiBaseUrl.dev).toBe(`https://dev.${id}.com`);
+    expect(findCodeNames(JSON.stringify(apps))).toEqual([]);
   });
 
   it("holds no secret", () => {
@@ -89,6 +89,6 @@ describe("the apps' runtime config", () => {
 
   it("refuses a field the schema does not know", () => {
     const validate = ajv.compile(appSchema);
-    expect(validate({ ...apps.orazaka, apiKey: "x" })).toBe(false);
+    expect(validate({ ...apps.sovkora, apiKey: "x" })).toBe(false);
   });
 });

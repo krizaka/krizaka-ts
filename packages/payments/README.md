@@ -11,7 +11,7 @@ import { transaction } from "@krizaka/db";
 const payments = processorAdapter({
   secretKey,
   webhookSecret, // from the environment: PAYMENTS_STRIPE_SECRET_KEY, PAYMENTS_STRIPE_WEBHOOK_SECRET
-  plans: { pro: { lookupKey: "yomizaka.pro", mode: "subscription" } },
+  plans: { pro: { lookupKey: "verikora.pro", mode: "subscription" } },
   clock, // needed for expiresAt
   discounts: dbDiscountStore(query), // needed for a discount
   webhookToleranceSeconds, // the admin's payments.webhookToleranceSeconds
@@ -65,7 +65,7 @@ await applyOnceInTransaction(
 - **Events.** `payment_paid` and `subscription_started` carry `checkoutRef`, `paymentRef`, `invoiceRef`, `amountTotal`, `amountDiscount`, `currency`, `metadata`. `checkout_expired` (release a reservation) and `payment_refunded` (`amountRefunded` is **cumulative**; the payment is named by `paymentRef`, and by `invoiceRef` for a subscription) are translated too. A fully discounted checkout (`no_payment_required`) is a paid one without `paymentRef`.
 - **Webhooks are verified and idempotent.** `Stripe-Signature` is checked in constant time over the raw body inside a replay window (the admin's setting). `applyOnceInTransaction` writes the event id and runs the handler in **one transaction**: a handler that throws leaves the event unrecorded and the retry applies it; many requests at once apply it exactly once (tested on PostgreSQL). `applyOnce` (id first, `forget` on failure) stays for handlers with no database effect.
 - **Through the outbox.** `announcePayment(tx, outbox, event)` appends `evt.payment.<fact>.v1` to `@krizaka/outbox` in the handler's transaction, with an id derived from the processor's event id: announced once, delivered at least once.
-- **Tables** (`paymentsSchema`, Postgres schema `payments`): `event` (the record of applied events) and `discount`. A product that has `public.payment_events` (Yomizaka migration 0009, Akinaza 0010) runs `adoptPaymentEventsSql()` once, which **moves the table with its rows** into `payments.event`, then emits version 1. Until then `pgEventStore(query)` reads `public.payment_events`.
+- **Tables** (`paymentsSchema`, Postgres schema `payments`): `event` (the record of applied events) and `discount`. A product that has `public.payment_events` (Verikora migration 0009, Folioviv 0010) runs `adoptPaymentEventsSql()` once, which **moves the table with its rows** into `payments.event`, then emits version 1. Until then `pgEventStore(query)` reads `public.payment_events`.
 - **Settings** (`@krizaka/payments/settings`): `payments.webhookToleranceSeconds` (300, 30–900).
 - **Catalogue setup.** `krizaka-payments-setup --catalogue catalogue.json [--webhook-url …] [--secret-out file]` creates, idempotently, products, prices (tax exclusive), the customer portal and the webhook endpoint (now listening to `checkout.session.expired` and `charge.refunded` too; an older endpoint is updated). A changed amount is a new price that takes over the lookup key (`transfer_lookup_key`), so subscriptions already sold keep theirs. `plansFromPrices(entries, names)` builds the plans from the settings price catalogue: what is on sale, with a figure, in `month` / `year` / `once`.
 - **Formatting.** `formatMoney` / `formatPrice`: « $39 » in English, « 39 $ » in French; decimals only when there are some; any currency's exponent.

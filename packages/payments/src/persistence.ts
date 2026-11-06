@@ -4,7 +4,7 @@ import type { DiscountStore, EventStore } from "./port";
 
 /**
  * The PostgreSQL record of applied notifications, `payments.event (id text primary key, type text not null, received_at timestamptz default now())`
- * (see `paymentsSchema`; it is also the shape of the `payment_events` table Yomizaka and Akinaza already have).
+ * (see `paymentsSchema`; it is also the shape of the `payment_events` table Verikora and Folioviv already have).
  * @param query the product's query, or the transaction's
  * @param table the schema and table, default `payments.event`
  */
@@ -57,6 +57,6 @@ export function dbDiscountStore(query: Query, schema = "payments"): DiscountStor
   };
 }
 
-/** The record as Yomizaka and Akinaza have it today, `public.payment_events`: for a product that has not moved it yet (see `adoptPaymentEventsSql`). */
+/** The record as Verikora and Folioviv have it today, `public.payment_events`: for a product that has not moved it yet (see `adoptPaymentEventsSql`). */
 export const pgEventStore = (query: Query): Required<EventStore> =>
   dbEventStore(query, { schema: "public", table: "payment_events" });

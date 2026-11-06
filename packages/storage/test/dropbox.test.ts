@@ -93,7 +93,7 @@ function fakeDropbox(options: { revoked?: boolean } = {}) {
 
 const clock = { now: () => new Date("2026-10-28T12:00:00Z") };
 const make = () =>
-  dropboxStore({ clientId: "cid", refreshToken: "RT", prefix: "yomizaka", fetch: fakeDropbox().call, clock });
+  dropboxStore({ clientId: "cid", refreshToken: "RT", prefix: "verikora", fetch: fakeDropbox().call, clock });
 
 objectStoreContract("dropbox", make);
 

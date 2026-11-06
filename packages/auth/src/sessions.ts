@@ -3,7 +3,7 @@ import crypto from "node:crypto";
 import type { Clock } from "@krizaka/db";
 
 /**
- * Web sessions (the copies each product carried: Yomizaka `ys1.`, Akinaza `as1.`). The cookie holds a random token
+ * Web sessions (the copies each product carried: Verikora `ys1.`, Folioviv `as1.`). The cookie holds a random token
  * (`<prefix>1.` and 32 bytes); the store keeps only its keyed hash, so a leaked table opens nothing. The account is re-read on every
  * request (a suspension applies at once). The lifetime is the setting `auth.sessionDays`.
  */
@@ -125,7 +125,7 @@ export interface SessionCookie {
 
 /**
  * The session cookie: HttpOnly, SameSite=Lax, on the whole site, `Secure` where the product says (production).
- * @param options the cookie's name (`yomizaka_session`) and whether it is `Secure`
+ * @param options the cookie's name (`verikora_session`) and whether it is `Secure`
  */
 export function sessionCookie(token: string, expires: Date, options: { name: string; secure: boolean }): SessionCookie {
   return {

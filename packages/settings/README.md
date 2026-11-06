@@ -28,13 +28,13 @@ was sold at (`versionId`) and keeps it.
 import { AVAILABILITY, definePrices, findTypedPrices, priceCatalogue, pricesMigration, priceStore, publicCatalogue, UNIT } from "@krizaka/settings";
 
 const prices = definePrices([
-  { product: "akinaza", plan: "starter", unit: UNIT.month, amountCents: 4500, availability: AVAILABILITY.founderLimited, limits: { founderCap: 20 } },
-  { product: "akinaza", plan: "scale", unit: UNIT.month, amountCents: 9900, availability: AVAILABILITY.preparing },
+  { product: "folioviv", plan: "starter", unit: UNIT.month, amountCents: 4500, availability: AVAILABILITY.founderLimited, limits: { founderCap: 20 } },
+  { product: "folioviv", plan: "scale", unit: UNIT.month, amountCents: 9900, availability: AVAILABILITY.preparing },
 ]);
 await db.query(pricesMigration()); // once, in your migrations (idempotent; includes the settings' tables)
 const catalogue = priceCatalogue(prices, priceStore({ query }));
 const shown = publicCatalogue(await catalogue.catalogue(now));   // a public page: never internal, « en préparation » without a figure
-await catalogue.schedule({ id: adminId, label: email }, "akinaza.starter", { amountCents: 4900 }, effectiveFrom, now);
+await catalogue.schedule({ id: adminId, label: email }, "folioviv.starter", { amountCents: 4900 }, effectiveFrom, now);
 const sold = await catalogue.version(subscription.priceVersionId); // the price it was sold at, forever
 expect(findTypedPrices(messages)).toEqual([]);                    // a product's test: no amount typed in a message
 ```

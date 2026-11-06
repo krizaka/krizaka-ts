@@ -207,7 +207,7 @@ function cutColumnsOf() {
   return [...new Set(cut)].slice(0, 3);
 }
 
-/** The top chrome never overlaps (yomizaka#449): the in-flow blocks above the page (`[data-top-chrome]`, e.g. the development-version notice) and a bar that is fixed or sticky at the top of the viewport. Two of them that share pixels hide one another. */
+/** The top chrome never overlaps (verikora#449): the in-flow blocks above the page (`[data-top-chrome]`, e.g. the development-version notice) and a bar that is fixed or sticky at the top of the viewport. Two of them that share pixels hide one another. */
 function topBoxOf(el) {
   return el.getBoundingClientRect().height === 0 && el.firstElementChild ? el.firstElementChild : el;
 }
@@ -279,7 +279,7 @@ function wrappedOf() {
     .map((el) => (el.textContent || "").trim().slice(0, 24));
 }
 
-/** The whole measure of a page. Decorative layers (aria-hidden), fixed elements and anything inside a scroller are left out of the layout probes (yomizaka#435). */
+/** The whole measure of a page. Decorative layers (aria-hidden), fixed elements and anything inside a scroller are left out of the layout probes (verikora#435). */
 /** A heading with no text (and no image or labelled icon) says nothing to a screen reader. */
 function emptyHeadingsOf() {
   return [...document.querySelectorAll("h1, h2, h3")].filter(
@@ -307,7 +307,7 @@ function actionsOf() {
 }
 
 /**
- * The signed-in frame's own screen (akinaza#444): its shell (`min-height`) and its sticky rail must fit in what is left of the viewport
+ * The signed-in frame's own screen (folioviv#444): its shell (`min-height`) and its sticky rail must fit in what is left of the viewport
  * under the notice, or every page, an empty one included, scrolls by the notice's height. `null` when the page has no `[data-app-frame-slot]`.
  */
 function frameOf(doc) {
@@ -579,7 +579,7 @@ export function problemsOf(
 export const MIN_MAP_SIDE = 120;
 
 /**
- * An empty map (akinaza#488): a box under `min` px on a side, a GL map with no canvas, a Leaflet map with no loaded tile.
+ * An empty map (folioviv#488): a box under `min` px on a side, a GL map with no canvas, a Leaflet map with no loaded tile.
  * `maps` is `true` (the default minimum) or `{ min, required }`; with `required`, a page that was expected to draw a map and has none is a problem too.
  */
 function mapProblems(where, found, option) {

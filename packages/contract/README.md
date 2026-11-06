@@ -41,4 +41,4 @@ never put in the message** — an answer or a URL may carry a secret.
 ## Exports
 
 `defineContract`, `expectContract`, `assertContract`, `expectProviderAnswer`, `fetchContract`, `ContractError`, and the builders `text`,
-`count`, `nonEmptyList`. `zod >= 4` is a peer dependency. Java services keep `orazaka-contracts` (httpyac).
+`count`, `nonEmptyList`. `zod >= 4` is a peer dependency. Java services keep `sovkora-contracts` (httpyac).

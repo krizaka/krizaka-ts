@@ -1,6 +1,6 @@
 import { addSeconds, differenceInSeconds, isBefore } from "date-fns";
 
-import { ORAZAKA_CODE, OrazakaError } from "./errors";
+import { SOVKORA_CODE, SovkoraError } from "./errors";
 
 export interface Clock {
   now(): Date;
@@ -23,7 +23,7 @@ export function createCircuit(options: CircuitOptions, clock: Clock) {
   let openUntil: Date | null = null;
   let probing = false;
   return {
-    /** Throws `ORAZAKA_CIRCUIT_OPEN` while the circuit is open (or its probe is in flight). */
+    /** Throws `SOVKORA_CIRCUIT_OPEN` while the circuit is open (or its probe is in flight). */
     check(): void {
       if (openUntil === null) return;
       const now = clock.now();
@@ -53,7 +53,7 @@ export function createCircuit(options: CircuitOptions, clock: Clock) {
 export type Circuit = ReturnType<typeof createCircuit>;
 
 const open = (retryAfterSeconds: number) =>
-  new OrazakaError(ORAZAKA_CODE.circuitOpen, "Orazaka failed several times in a row: not calling it for a moment", {
+  new SovkoraError(SOVKORA_CODE.circuitOpen, "Sovkora failed several times in a row: not calling it for a moment", {
     retryAfterSeconds,
     status: 502,
   });

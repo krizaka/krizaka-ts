@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 // A bundler that serves the barrel to the browser (a client component imports `can` or a role table from it) replaces
-// `node:crypto` by a shim without `scrypt`: loading the module must not call it (akinaza#515: `promisify(undefined)` threw
+// `node:crypto` by a shim without `scrypt`: loading the module must not call it (folioviv#515: `promisify(undefined)` threw
 // at load and blanked every page of the shop).
 //
 // The test re-imports the whole barrel after `vi.resetModules()`, so every module of the package and its dependencies (the database client,

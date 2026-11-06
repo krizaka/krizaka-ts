@@ -7,7 +7,7 @@ describe("the family's names", () => {
   it("calls the company Krizaka and every product by its own name, never prefixed", () => {
     expect(familyName("krizaka")).toBe("Krizaka");
     const products = org.family.filter((e) => e.group === "products");
-    expect(products.map((e) => e.name)).toEqual(["Orazaka", "Yomizaka", "Akinaza"]);
+    expect(products.map((e) => e.name)).toEqual(["Sovkora", "Verikora", "Folioviv"]);
     for (const p of products) {
       expect(p.name).not.toMatch(/^Krizaka /);
       expect(p.short).toBe(p.name);

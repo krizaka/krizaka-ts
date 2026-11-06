@@ -3,10 +3,10 @@ valid:
   - |
     const a = defaultFor("person", seed);
   - |
-    const b = "https://krizaka-assets.b-cdn.net/site/products/akinaza/tour/report.webm";
+    const b = "https://krizaka-assets.b-cdn.net/site/products/folioviv/tour/report.webm";
 invalid:
   - |
-    const a = "https://krizaka-assets.b-cdn.net/people/defaults/v1/akinaza/person.svg";
+    const a = "https://krizaka-assets.b-cdn.net/people/defaults/v1/folioviv/person.svg";
   - |
     const b = `${CDN}/defaults/v1/shop/shop-1-512.webp`;
   - |

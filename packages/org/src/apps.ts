@@ -17,7 +17,7 @@ const app = (id: string, devUrl: string): AppConfig => ({
 
 /** The runtime config a mobile app may know, per live product. The app reads it at start, with a copy built into the binary as fallback. */
 export const apps: Record<string, AppConfig> = {
-  orazaka: app("orazaka", "https://www.orazaka.com"),
-  yomizaka: app("yomizaka", "https://dev.yomizaka.com"),
-  akinaza: app("akinaza", "https://dev.akinaza.com"),
+  sovkora: app("sovkora", "https://dev.sovkora.com"),
+  verikora: app("verikora", "https://dev.verikora.com"),
+  folioviv: app("folioviv", "https://dev.folioviv.com"),
 };

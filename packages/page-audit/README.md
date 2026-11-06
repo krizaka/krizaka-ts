@@ -17,15 +17,15 @@ const problems = await auditRoutes({ base, routes: ["/en", "/fr"], checks: { h1:
 ```
 
 `auditContext` / `loadSettled` / `resizeSettled` open a context with reduced motion and no View Transition, and wait for none to run
-before anything is measured (yomizaka#354). `prepare(page, route)` signs in or seeds; `launch` gives your own browser.
+before anything is measured (verikora#354). `prepare(page, route)` signs in or seeds; `launch` gives your own browser.
 
 ## The dev-preview crawls, in one audit (0.3)
 
 Opt-in through `checks` (nothing changes for a repo that does not ask): `status` (HTTP 4xx/5xx or no response), `emptyMain`, `frame`
 (the signed-in frame, `[data-app-frame-slot]`, forces a scroll), `minAction` (a button-styled action under N px), `boxes` (a landmark
 wider than its box), `landmarks` (`"public"` one footer naming Krizaka and a nav, `"app"`, `"auth"`), `pictures`, `emptyControls`,
-`hardColors`, `maps` (an empty map, akinaza#488: a GL / Leaflet / `[data-kz-map]` box under 120 px on a side, a GL map with no canvas,
-a Leaflet map with no loaded tile; `maps: { required: true }` also fails a page that should draw one but has none), `smallTargets` (a control under 44 px on a side — an inline link in a sentence is exempt), `controlOverlaps` (two interactive elements that share pixels on screen, one not inside the other — akinaza#214: the composer's title over a row). Console noise the app tolerates: `ignoreConsole: [/…/]` (`[]` counts every error); `attempts` retries a route.
+`hardColors`, `maps` (an empty map, folioviv#488: a GL / Leaflet / `[data-kz-map]` box under 120 px on a side, a GL map with no canvas,
+a Leaflet map with no loaded tile; `maps: { required: true }` also fails a page that should draw one but has none), `smallTargets` (a control under 44 px on a side — an inline link in a sentence is exempt), `controlOverlaps` (two interactive elements that share pixels on screen, one not inside the other — folioviv#214: the composer's title over a row). Console noise the app tolerates: `ignoreConsole: [/…/]` (`[]` counts every error); `attempts` retries a route.
 
 ```js
 const routes = await routesFromSitemap(base, { first: ["/", "/docs"], limit: 14 }); // a crawl as the route source (null: nothing answers)

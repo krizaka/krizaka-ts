@@ -42,7 +42,7 @@ describe("what counts as a problem on a rendered page", () => {
       /no accessible name/,
     );
   });
-  it("a card out of its panel, two sections covering each other, a column cut off (yomizaka#435)", () => {
+  it("a card out of its panel, two sections covering each other, a column cut off (verikora#435)", () => {
     assert.match(
       problemsOf("x", { ...fine, overflowing: ["div[collection-card] out of section[binder]"] })[0],
       /overflows its panel \(div\[collection-card\]/,
@@ -54,7 +54,7 @@ describe("what counts as a problem on a rendered page", () => {
     assert.match(problemsOf("x", { ...fine, cutColumns: ["aside[activity] cut by div.grid"] })[0], /is cut off/);
     assert.deepEqual(problemsOf("x", { ...fine, overflowing: [], overlaps: [], cutColumns: [] }), []);
   });
-  it("two controls that overlap, when asked (akinaza#214)", () => {
+  it("two controls that overlap, when asked (folioviv#214)", () => {
     const result = { ...fine, controlOverlaps: ["h3.kz-title over button.kz-row"] };
     assert.match(
       problemsOf("x", result, { controlOverlaps: true })[0],
@@ -76,7 +76,7 @@ describe("what counts as a problem on a rendered page", () => {
     assert.match(problemsOf("x", fine, { errors: ["React error #418"] })[0], /console error — React error #418/);
     assert.match(problemsOf("x", { ...fine, chips: [40, 48] })[0], /40 px tall/);
   });
-  it("the top chrome that chromeOverlaps: the fixed bar over the notice (yomizaka#449)", () => {
+  it("the top chrome that chromeOverlaps: the fixed bar over the notice (verikora#449)", () => {
     assert.match(
       problemsOf("/fr @390 dark", { ...fine, chromeOverlaps: ["div.kz-environment-notice / header.fixed.top-3"] })[0],
       /top chrome chromeOverlaps \(div.kz-environment-notice \/ header.fixed.top-3\)/,
@@ -91,7 +91,7 @@ describe("what counts as a problem on a rendered page", () => {
   });
 });
 
-describe("the checks of the dev-preview crawls (akinaza#341, orazaka-web-client#124), opt-in", () => {
+describe("the checks of the dev-preview crawls (folioviv#341, sovkora-web#124), opt-in", () => {
   it("the HTTP status of the load: 4xx, 5xx, or no response", () => {
     assert.deepEqual(problemsOf("x", fine, { status: 200 }), []);
     assert.match(problemsOf("x", fine, { status: 404 })[0], /HTTP 404/);
@@ -151,7 +151,7 @@ describe("the checks of the dev-preview crawls (akinaza#341, orazaka-web-client#
     );
     assert.match(problemsOf("x", { ...fine, landmarks: { ...ok, nav: false } }, { landmarks: "app" })[0], /no <nav>/);
   });
-  it("an empty map: 0 px, no canvas, no loaded tile (akinaza#488); nothing when it is drawn or when not asked", () => {
+  it("an empty map: 0 px, no canvas, no loaded tile (folioviv#488); nothing when it is drawn or when not asked", () => {
     const map = { name: "div.maplibregl-map", width: 600, height: 300, canvas: true, leaflet: false, tiles: 0 };
     assert.deepEqual(problemsOf("x", { ...fine, maps: [map] }, { maps: true }), []);
     assert.match(problemsOf("x", { ...fine, maps: [{ ...map, height: 0 }] }, { maps: true })[0], /600x0 px \(empty\)/);

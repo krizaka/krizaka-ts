@@ -61,7 +61,7 @@ describe("session tokens", () => {
   it("hash as the products' copies did (HMAC-SHA256 keyed `session:<key>`), so the sessions already stored keep working", () => {
     const token = `ys1.${"A".repeat(43)}`;
     const { sessions } = setup();
-    // recorded from Yomizaka's `tokenHash(token, "s".repeat(32))`
+    // recorded from Verikora's `tokenHash(token, "s".repeat(32))`
     expect(sessions.tokenHash(token)).toBe("7105d1fcb40076d40fa5507585d53aa46c1286435d724a7d9ea55b7a46188924");
     expect(sessions.tokenHash(token)).toBe(crypto.createHmac("sha256", `session:${KEY}`).update(token).digest("hex"));
     const other = createSessions<Account>({
@@ -157,8 +157,8 @@ describe("opening, resolving and ending a session", () => {
 describe("the cookie", () => {
   const expires = new Date("2026-11-09T12:00:00Z");
   it("is HttpOnly, SameSite=Lax, on the whole site, Secure where the product says", () => {
-    expect(sessionCookie("t", expires, { name: "yomizaka_session", secure: true })).toEqual({
-      name: "yomizaka_session",
+    expect(sessionCookie("t", expires, { name: "verikora_session", secure: true })).toEqual({
+      name: "verikora_session",
       value: "t",
       httpOnly: true,
       secure: true,
@@ -175,15 +175,15 @@ describe("the cookie", () => {
 
 describe("the session token of a request", () => {
   const token = `ys1.${"B".repeat(43)}`;
-  const web = { cookie: "yomizaka_session" };
+  const web = { cookie: "verikora_session" };
   it("reads the cookie of the web", () => {
-    expect(sessionTokenOf(new Headers({ cookie: `a=b; yomizaka_session=${token}` }), web)).toBe(token);
+    expect(sessionTokenOf(new Headers({ cookie: `a=b; verikora_session=${token}` }), web)).toBe(token);
   });
   it("reads the bearer of a native app, and prefers it to a stale cookie", () => {
     expect(sessionTokenOf(new Headers({ authorization: `Bearer ${token}` }), web)).toBe(token);
     expect(
       sessionTokenOf(
-        new Headers({ authorization: `bearer ${token}`, cookie: `yomizaka_session=ys1.${"C".repeat(43)}` }),
+        new Headers({ authorization: `bearer ${token}`, cookie: `verikora_session=ys1.${"C".repeat(43)}` }),
         web,
       ),
     ).toBe(token);
@@ -193,7 +193,7 @@ describe("the session token of a request", () => {
       sessionTokenOf(new Headers({ authorization: `Bearer ${token}` }), { ...web, bearer: false }),
     ).toBeUndefined();
     expect(
-      sessionTokenOf(new Headers({ authorization: `Bearer ${token}`, cookie: `yomizaka_session=${token}` }), {
+      sessionTokenOf(new Headers({ authorization: `Bearer ${token}`, cookie: `verikora_session=${token}` }), {
         ...web,
         bearer: false,
       }),

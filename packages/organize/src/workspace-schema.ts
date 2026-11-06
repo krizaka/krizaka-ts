@@ -25,7 +25,7 @@ export interface WorkspaceKindDecl {
 }
 
 export interface WorkspaceDecl {
-  /** The table of the workspace, the scope (Yomizaka's accounts, Akinaza's shops). */
+  /** The table of the workspace, the scope (Verikora's accounts, Folioviv's shops). */
   scope: string;
   /** The table of the people who author views and move states (the accounts). */
   users: string;

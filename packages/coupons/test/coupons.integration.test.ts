@@ -344,7 +344,7 @@ describe.runIf(enabled)("coupons: PostgreSQL", () => {
     const adapter = processorAdapter({
       secretKey: "test-key",
       webhookSecret: "whsec-test",
-      plans: { pro: { lookupKey: "yomizaka.pro", mode: "subscription" } },
+      plans: { pro: { lookupKey: "verikora.pro", mode: "subscription" } },
       fetch: fake,
       clock: { now: () => now },
       discounts: memoryDiscountStore(),

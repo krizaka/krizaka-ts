@@ -10,7 +10,7 @@ Oussama, on `localDay` added to `@krizaka/intl` in krizaka-ui: « the side witho
 
 - `@krizaka/intl` lives in the UI repository. krizaka-ts re-implemented the same date logic privately (`brief/src/week.ts`, with its own `Intl.DateTimeFormat`).
 - Server packages sit in krizaka-ui (`payments`, `push`, `realtime`), next to packages that render.
-- krizaka-ts is already « the TypeScript kit for every repository, like krizaka-build for Java »: `@krizaka/config` (ESLint `krizakaStack()`, the dependency-cruiser preset, the ratchet, the ast-grep pack) moved here first.
+- krizaka-ts is already « the TypeScript kit for every repository, like krizaka-java for Java »: `@krizaka/config` (ESLint `krizakaStack()`, the dependency-cruiser preset, the ratchet, the ast-grep pack) moved here first.
 
 ## Decision
 

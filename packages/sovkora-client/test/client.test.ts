@@ -3,17 +3,17 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import {
-  createOrazakaClient,
+  createSovkoraClient,
   isTerminal,
-  ORAZAKA_CODE,
-  OrazakaError,
-  orazakaRefusal,
   outputOf,
   parseRun,
+  SOVKORA_CODE,
+  SovkoraError,
+  sovkoraRefusal,
 } from "../src";
 
 /**
- * Contract tests against the edge's answers kept in `test/fixtures` (the shapes of orazaka-studio's `RunResponse`,
+ * Contract tests against the edge's answers kept in `test/fixtures` (the shapes of sovkora-studio-service's `RunResponse`,
  * `RunArtefactResponse` and the installation list). When the edge changes a shape, a fixture changes here first.
  */
 const fixture = (name: string) => readFileSync(new URL(`./fixtures/${name}.json`, import.meta.url), "utf8");
@@ -51,11 +51,11 @@ function clockAt(start: string) {
   return { clock: { now: () => now }, advance: (ms: number) => (now = new Date(now.getTime() + ms)) };
 }
 
-const make = (replies: Reply[], extra: Partial<Parameters<typeof createOrazakaClient>[0]> = {}) => {
+const make = (replies: Reply[], extra: Partial<Parameters<typeof createSovkoraClient>[0]> = {}) => {
   const e = edge(replies);
   const t = clockAt("2026-10-26T12:00:00Z");
-  const client = createOrazakaClient({
-    baseUrl: "https://api.orazaka.test/",
+  const client = createSovkoraClient({
+    baseUrl: "https://api.sovkora.test/",
     apiKey: "oz_test",
     clock: t.clock,
     fetch: e.fetch,
@@ -63,13 +63,13 @@ const make = (replies: Reply[], extra: Partial<Parameters<typeof createOrazakaCl
   });
   return { client, ...e, ...t };
 };
-const failure = async (promise: Promise<unknown>): Promise<OrazakaError> => {
+const failure = async (promise: Promise<unknown>): Promise<SovkoraError> => {
   const error = await promise.then(
     () => null,
     (e: unknown) => e,
   );
-  expect(error).toBeInstanceOf(OrazakaError);
-  return error as OrazakaError;
+  expect(error).toBeInstanceOf(SovkoraError);
+  return error as SovkoraError;
 };
 
 describe("starting a run", () => {
@@ -84,9 +84,9 @@ describe("starting a run", () => {
     expect(run).toMatchObject({ id: RUN_ID, studioKey: "compliance-check", status: "RUNNING", outputs: [] });
     expect(replayed).toBe(false);
     expect(seen.map((s) => `${s.method} ${s.url}`)).toEqual([
-      "GET https://api.orazaka.test/api/v1/studios/installations",
-      "POST https://api.orazaka.test/api/v1/studios/compliance-check/installations?locale=en",
-      "POST https://api.orazaka.test/api/v1/studios/compliance-check/runs",
+      "GET https://api.sovkora.test/api/v1/studios/installations",
+      "POST https://api.sovkora.test/api/v1/studios/compliance-check/installations?locale=en",
+      "POST https://api.sovkora.test/api/v1/studios/compliance-check/runs",
     ]);
     expect(seen[2]).toMatchObject({
       headers: { authorization: "Bearer oz_test", "content-type": "application/json" },
@@ -124,7 +124,7 @@ describe("starting a run", () => {
   it("answers a key reused for another request with its own code", async () => {
     const { client } = make([{ status: 422, body: fixture("key-reused") }], { autoInstall: false });
     expect(await failure(client.startRun("compliance-check", {}, { idempotencyKey: "k" }))).toMatchObject({
-      code: ORAZAKA_CODE.keyReused,
+      code: SOVKORA_CODE.keyReused,
       status: 409,
       details: { upstreamStatus: 422 },
     });
@@ -132,12 +132,12 @@ describe("starting a run", () => {
 
   it("refuses what is not a Studio key or an idempotency key before any call", async () => {
     const { client, seen } = make([]);
-    expect(await failure(client.startRun("../runs", {}))).toMatchObject({ code: ORAZAKA_CODE.input });
+    expect(await failure(client.startRun("../runs", {}))).toMatchObject({ code: SOVKORA_CODE.input });
     expect(await failure(client.startRun("compliance-check", {}, { idempotencyKey: "has space" }))).toMatchObject({
-      code: ORAZAKA_CODE.input,
+      code: SOVKORA_CODE.input,
     });
     expect(await failure(client.startRun("compliance-check", {}, { idempotencyKey: "x".repeat(256) }))).toMatchObject({
-      code: ORAZAKA_CODE.input,
+      code: SOVKORA_CODE.input,
     });
     expect(seen).toEqual([]);
   });
@@ -147,7 +147,7 @@ describe("reading a run", () => {
   it("reads the status and the outputs", async () => {
     const { client, seen } = make([{ status: 200, body: fixture("run-succeeded") }]);
     const run = await client.getRun(RUN_ID);
-    expect(seen[0]?.url).toBe(`https://api.orazaka.test/api/v1/studios/runs/${RUN_ID}`);
+    expect(seen[0]?.url).toBe(`https://api.sovkora.test/api/v1/studios/runs/${RUN_ID}`);
     expect(run.status).toBe("SUCCEEDED");
     expect(isTerminal(run)).toBe(true);
     expect(outputOf(run, "score")).toBe("92");
@@ -158,7 +158,7 @@ describe("reading a run", () => {
 
   it("refuses an id that is not a run id before any call", async () => {
     const { client, seen } = make([]);
-    expect(await failure(client.getRun("../../admin"))).toMatchObject({ code: ORAZAKA_CODE.badRun, status: 400 });
+    expect(await failure(client.getRun("../../admin"))).toMatchObject({ code: SOVKORA_CODE.badRun, status: 400 });
     expect(seen).toEqual([]);
   });
 
@@ -169,7 +169,7 @@ describe("reading a run", () => {
       { status: 200, body: '{"id":"a","studioKey":"s","status":"RUNNING","outputs":[{"key":1}]}' },
     ]);
     for (let i = 0; i < 3; i += 1)
-      expect(await failure(client.getRun(RUN_ID))).toMatchObject({ code: ORAZAKA_CODE.shape });
+      expect(await failure(client.getRun(RUN_ID))).toMatchObject({ code: SOVKORA_CODE.shape });
   });
 
   it("keeps a status it does not know", () => {
@@ -199,7 +199,7 @@ describe("waiting for a run", () => {
   it("gives up when the time is over, by the injected clock", async () => {
     const t = clockAt("2026-10-26T12:00:00Z");
     const e = edge(Array.from({ length: 10 }, () => ({ status: 200, body: fixture("run-accepted") })));
-    const client = createOrazakaClient({
+    const client = createSovkoraClient({
       baseUrl: "https://x",
       apiKey: "k",
       clock: t.clock,
@@ -207,7 +207,7 @@ describe("waiting for a run", () => {
       sleep: async (ms) => void t.advance(ms),
     });
     expect(await failure(client.waitForRun(RUN_ID, { intervalMs: 1000, timeoutMs: 3000 }))).toMatchObject({
-      code: ORAZAKA_CODE.waitExpired,
+      code: SOVKORA_CODE.waitExpired,
     });
     expect(e.seen.length).toBeLessThanOrEqual(6);
   });
@@ -215,19 +215,19 @@ describe("waiting for a run", () => {
 
 describe("what the edge refuses", () => {
   it.each([
-    [401, ORAZAKA_CODE.key],
-    [403, ORAZAKA_CODE.key],
-    [402, ORAZAKA_CODE.credits],
-    [409, ORAZAKA_CODE.locked],
-    [400, ORAZAKA_CODE.input],
-    [422, ORAZAKA_CODE.input],
-    [404, ORAZAKA_CODE.notFound],
-    [451, ORAZAKA_CODE.consent],
+    [401, SOVKORA_CODE.key],
+    [403, SOVKORA_CODE.key],
+    [402, SOVKORA_CODE.credits],
+    [409, SOVKORA_CODE.locked],
+    [400, SOVKORA_CODE.input],
+    [422, SOVKORA_CODE.input],
+    [404, SOVKORA_CODE.notFound],
+    [451, SOVKORA_CODE.consent],
   ])("%i is %s", async (status, code) => {
     const { client } = make([{ status, body: "{}" }]);
     const error = await failure(client.getRun(RUN_ID));
     expect(error).toMatchObject({ code, details: { upstreamStatus: status } });
-    expect(orazakaRefusal(status).code).toBe(code);
+    expect(sovkoraRefusal(status).code).toBe(code);
   });
 
   it("429 says when to come back, from the header first, bounded", async () => {
@@ -238,7 +238,7 @@ describe("what the edge refuses", () => {
       { status: 429, body: "{}" },
     ]);
     expect(await failure(client.getRun(RUN_ID))).toMatchObject({
-      code: ORAZAKA_CODE.busy,
+      code: SOVKORA_CODE.busy,
       status: 429,
       retryAfterSeconds: 12,
     });
@@ -249,7 +249,7 @@ describe("what the edge refuses", () => {
 
   it("no key, no call", async () => {
     const { client, seen } = make([], { apiKey: undefined });
-    expect(await failure(client.studios())).toMatchObject({ code: ORAZAKA_CODE.notConfigured, status: 503 });
+    expect(await failure(client.studios())).toMatchObject({ code: SOVKORA_CODE.notConfigured, status: 503 });
     expect(seen).toEqual([]);
   });
 });
@@ -260,10 +260,10 @@ describe("when the edge is down", () => {
 
   it("tells a timeout from no answer and from a 5xx", async () => {
     const { client } = make([timeout, down, { status: 503 }], { circuit: false });
-    expect(await failure(client.getRun(RUN_ID))).toMatchObject({ code: ORAZAKA_CODE.timeout });
-    expect(await failure(client.getRun(RUN_ID))).toMatchObject({ code: ORAZAKA_CODE.unavailable });
+    expect(await failure(client.getRun(RUN_ID))).toMatchObject({ code: SOVKORA_CODE.timeout });
+    expect(await failure(client.getRun(RUN_ID))).toMatchObject({ code: SOVKORA_CODE.unavailable });
     expect(await failure(client.getRun(RUN_ID))).toMatchObject({
-      code: ORAZAKA_CODE.unavailable,
+      code: SOVKORA_CODE.unavailable,
       details: { upstreamStatus: 503 },
     });
   });
@@ -274,7 +274,7 @@ describe("when the edge is down", () => {
       signal = init?.signal;
       return new Response(fixture("run-accepted"));
     }) as unknown as typeof globalThis.fetch;
-    await createOrazakaClient({
+    await createSovkoraClient({
       baseUrl: "https://x",
       apiKey: "k",
       clock: clockAt("2026-10-26T12:00:00Z").clock,
@@ -288,10 +288,10 @@ describe("when the edge is down", () => {
     const replies: Reply[] = [down, down, down, down, down, { status: 200, body: fixture("run-succeeded") }];
     const { client, seen, advance } = make(replies);
     for (let i = 0; i < 5; i += 1)
-      expect(await failure(client.getRun(RUN_ID))).toMatchObject({ code: ORAZAKA_CODE.unavailable });
+      expect(await failure(client.getRun(RUN_ID))).toMatchObject({ code: SOVKORA_CODE.unavailable });
     expect(client.circuit?.isOpen).toBe(true);
     const refused = await failure(client.getRun(RUN_ID));
-    expect(refused).toMatchObject({ code: ORAZAKA_CODE.circuitOpen });
+    expect(refused).toMatchObject({ code: SOVKORA_CODE.circuitOpen });
     expect(refused.retryAfterSeconds).toBeGreaterThan(0);
     expect(seen).toHaveLength(5); // the sixth call never left
     advance(31_000);
@@ -305,15 +305,15 @@ describe("when the edge is down", () => {
     });
     for (let i = 0; i < 5; i += 1) await failure(client.getRun(RUN_ID));
     advance(31_000);
-    expect(await failure(client.getRun(RUN_ID))).toMatchObject({ code: ORAZAKA_CODE.unavailable });
-    expect(await failure(client.getRun(RUN_ID))).toMatchObject({ code: ORAZAKA_CODE.circuitOpen });
+    expect(await failure(client.getRun(RUN_ID))).toMatchObject({ code: SOVKORA_CODE.unavailable });
+    expect(await failure(client.getRun(RUN_ID))).toMatchObject({ code: SOVKORA_CODE.circuitOpen });
     expect(seen).toHaveLength(6);
   });
 
   it("a refusal is an answer: it never opens the circuit", async () => {
     const { client } = make(Array.from({ length: 8 }, () => ({ status: 401 })));
     for (let i = 0; i < 8; i += 1)
-      expect(await failure(client.getRun(RUN_ID))).toMatchObject({ code: ORAZAKA_CODE.key });
+      expect(await failure(client.getRun(RUN_ID))).toMatchObject({ code: SOVKORA_CODE.key });
     expect(client.circuit?.isOpen).toBe(false);
   });
 
@@ -378,7 +378,7 @@ describe("external checks", () => {
       runId: RUN_ID,
     });
     expect(seen).toHaveLength(1);
-    expect(`${seen[0]?.method} ${seen[0]?.url}`).toBe("POST https://api.orazaka.test/api/v1/checks/court-records");
+    expect(`${seen[0]?.method} ${seen[0]?.url}`).toBe("POST https://api.sovkora.test/api/v1/checks/court-records");
     expect(seen[0]?.headers.authorization).toBe("Bearer oz_test");
     expect(seen[0]?.body).toEqual({ ...subject, runId: RUN_ID, consented: true });
   });
@@ -407,28 +407,28 @@ describe("external checks", () => {
     const result = await client.collectCheck("case-777", { subjectId: "tenant-42", consented: true });
     expect(result).toMatchObject({ outcome: "MATCH", category: "CRIMINAL", providerRef: "case-777" });
     expect(`${seen[0]?.method} ${seen[0]?.url}`).toBe(
-      "GET https://api.orazaka.test/api/v1/checks/case-777?subjectId=tenant-42&consented=true",
+      "GET https://api.sovkora.test/api/v1/checks/case-777?subjectId=tenant-42&consented=true",
     );
   });
 
   it("maps the door's refusals to the stable codes: 404 not found, 403 key, 429 busy", async () => {
     const { client } = make([{ status: 404 }, { status: 403 }, { status: 429, headers: { "retry-after": "7" } }]);
     expect((await failure(client.collectCheck("case-9", { subjectId: "s", consented: true }))).code).toBe(
-      ORAZAKA_CODE.notFound,
+      SOVKORA_CODE.notFound,
     );
-    expect((await failure(client.startCheck("credit", { subject, consented: true }))).code).toBe(ORAZAKA_CODE.key);
+    expect((await failure(client.startCheck("credit", { subject, consented: true }))).code).toBe(SOVKORA_CODE.key);
     const busy = await failure(client.startCheck("credit", { subject, consented: true }));
-    expect(busy.code).toBe(ORAZAKA_CODE.busy);
+    expect(busy.code).toBe(SOVKORA_CODE.busy);
     expect(busy.retryAfterSeconds).toBe(7);
   });
 
   it("refuses a purpose or a reference that is not one, before any call", async () => {
     const { client, seen } = make([]);
     expect((await failure(client.startCheck("identity" as never, { subject, consented: true }))).code).toBe(
-      ORAZAKA_CODE.input,
+      SOVKORA_CODE.input,
     );
     expect((await failure(client.collectCheck("../runs", { subjectId: "s", consented: true }))).code).toBe(
-      ORAZAKA_CODE.input,
+      SOVKORA_CODE.input,
     );
     expect(seen).toHaveLength(0);
   });
@@ -440,13 +440,13 @@ describe("external checks", () => {
       { status: 200, body: answer({ refusal: "NO_KEY" }) },
     ]);
     for (let i = 0; i < 3; i++)
-      expect((await failure(client.startCheck("credit", { subject, consented: true }))).code).toBe(ORAZAKA_CODE.shape);
+      expect((await failure(client.startCheck("credit", { subject, consented: true }))).code).toBe(SOVKORA_CODE.shape);
   });
 
-  it("without a key, throws ORAZAKA_NOT_CONFIGURED and asks nobody", async () => {
+  it("without a key, throws SOVKORA_NOT_CONFIGURED and asks nobody", async () => {
     const { client, seen } = make([], { apiKey: undefined });
     expect((await failure(client.startCheck("credit", { subject, consented: true }))).code).toBe(
-      ORAZAKA_CODE.notConfigured,
+      SOVKORA_CODE.notConfigured,
     );
     expect(seen).toHaveLength(0);
   });

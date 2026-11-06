@@ -23,7 +23,7 @@ export interface StatusState {
   key: string;
   label: Label;
   tone: StatusTone;
-  /** A final state has no way out (Yomizaka's decision closes the file). */
+  /** A final state has no way out (Verikora's decision closes the file). */
   final?: boolean;
 }
 

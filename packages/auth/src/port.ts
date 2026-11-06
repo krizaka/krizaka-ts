@@ -1,5 +1,5 @@
 /**
- * The account PORT (ADR-0008 of Yomizaka, now shared). A product's account — name, language, theme, avatar, e-mail change with
+ * The account PORT (ADR-0008 of Verikora, now shared). A product's account — name, language, theme, avatar, e-mail change with
  * verification, password (changed when signed in, or reset by a mailed link), sessions, export, deletion — behind one interface. Every product keeps its OWN accounts: no central
  * service, no runtime dependency between products.
  */

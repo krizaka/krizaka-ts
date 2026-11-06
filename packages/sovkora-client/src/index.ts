@@ -15,12 +15,12 @@ export {
 } from "./checks";
 export { type Circuit, type CircuitOptions, type Clock, createCircuit } from "./circuit";
 export {
-  createOrazakaClient,
-  type OrazakaClient,
-  type OrazakaClientOptions,
+  createSovkoraClient,
+  type SovkoraClient,
+  type SovkoraClientOptions,
   type StartedRun,
   type StartRunOptions,
   type WaitOptions,
 } from "./client";
-export { ORAZAKA_CODE, type OrazakaCode, OrazakaError, orazakaRefusal } from "./errors";
-export { isTerminal, type OrazakaRun, outputOf, parseInstallations, parseRun, RUN_STATUS, type RunOutput } from "./run";
+export { SOVKORA_CODE, type SovkoraCode, SovkoraError, sovkoraRefusal } from "./errors";
+export { isTerminal, outputOf, parseInstallations, parseRun, RUN_STATUS, type RunOutput, type SovkoraRun } from "./run";

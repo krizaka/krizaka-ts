@@ -1,4 +1,4 @@
-// One way for every browser audit to measure (yomizaka#354): never while a View Transition is swapping the page.
+// One way for every browser audit to measure (verikora#354): never while a View Transition is swapping the page.
 //
 // The flake: the page was read while a transition was running (« Viewport size changed », 0 of 2 h1). The cure is the
 // same everywhere, so it lives here and nowhere else: the context emulates reduced motion (the app honours it, the page

@@ -4,7 +4,7 @@ import { checkKindConfig, droppedStates, kindConfigProblems, MARKERS } from "../
 import { DECISION, fileConfig, INVOICE_STATE } from "./fixtures";
 
 describe("a kind's configuration", () => {
-  it("accepts the pilot's, and an Akinaza invoice with a derived set and no system view", () => {
+  it("accepts the pilot's, and an Folioviv invoice with a derived set and no system view", () => {
     expect(kindConfigProblems(fileConfig())).toEqual([]);
     expect(checkKindConfig({ ...fileConfig({ kind: "invoice", status: INVOICE_STATE, views: [] }) }).status).toBe(
       INVOICE_STATE,
