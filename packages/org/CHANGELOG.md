@@ -1,5 +1,11 @@
 # @krizaka/org
 
+## 1.1.0
+
+### Minor Changes
+
+- 57a7bc7: Add `org.links.social`, Krizaka's own social accounts (Instagram, `https://www.instagram.com/krizakahq/`), with its JSON Schema and a type `OrgSocialLink`, so footers and structured data read the address from the org (krizaka-internal#365).
+
 ## 1.0.0
 
 ### Major Changes
