@@ -10,7 +10,8 @@ function urls(value: unknown, path = ""): [string, string][] {
   return [];
 }
 
-const SELF = new Set(["$schema", "base"]); // `$schema` is published by the release this file belongs to (not there yet when first written); `base` is a folder, not a file
+const SELF = new Set(["$schema", "base"]);
+const OUTSIDE = "links."; // the company's accounts on other platforms: not ours to request (they answer a bot with a login wall) // `$schema` is published by the release this file belongs to (not there yet when first written); `base` is a folder, not a file
 
 async function answers(url: string): Promise<number> {
   const head = await fetch(url, { method: "HEAD", redirect: "follow" });
@@ -31,7 +32,9 @@ async function answersOrRetry(url: string, attempts = 3): Promise<number> {
 }
 
 describe("every URL in the org JSON answers", () => {
-  const all = [...urls(org), ...urls(apps)].filter(([path]) => !SELF.has(path.split(".").pop() ?? ""));
+  const all = [...urls(org), ...urls(apps)].filter(
+    ([path]) => !SELF.has(path.split(".").pop() ?? "") && !path.startsWith(OUTSIDE),
+  );
   const unique = [...new Set(all.map(([, url]) => url))];
 
   it("has URLs to check", () => {

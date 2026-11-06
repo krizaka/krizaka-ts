@@ -32,6 +32,7 @@ export type {
   OrgMark,
   OrgProduct,
   OrgSite,
+  OrgSocialLink,
   ProductStatus,
 } from "./org.types";
 export { appSchema, orgSchema } from "./schema";
