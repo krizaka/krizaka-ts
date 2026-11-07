@@ -1,6 +1,6 @@
 # @krizaka/db
 
-The database foundation of every Krizaka module ([ADR-001](../../docs/adr/ADR-001-modular-architecture.md)). It has **no database
+The database foundation of every Krizaka module (ADR-001). It has **no database
 client**: you pass your own connection (`pg`'s `Client` or `PoolClient` fits as it is).
 
 - **The shared types:** `Query`, `Connection`, `Connect`, `Clock`.

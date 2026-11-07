@@ -25,7 +25,7 @@ await organize.tags.assign(owner, "shop", shopId, [tagId]);
 ## The workspace, organised (ADR-003)
 
 Tags with a colour marker, **status sets as data**, **saved views** and **bulk actions**, scoped to a **workspace** the product
-declares (an account, a shop), configured by the admin in the database, audited. Decision: [ADR-003](../../docs/adr/ADR-003-workspace-organised.md).
+declares (an account, a shop), configured by the admin in the database, audited. Decision: ADR-003.
 
 ```ts
 import { createWorkspace, dbWorkspaceStore, filterSql, parseView, workspaceSchema, type WorkspaceDecl } from "@krizaka/organize";
