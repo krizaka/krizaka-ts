@@ -1,6 +1,6 @@
 # The documentation site (site/, ts.krizaka.com): lint, tests and the static build on every change to what it documents or to
 # the site. The deployment is DigitalOcean App Platform's (.do/app.yaml): it rebuilds and publishes on every push to main.
-name: Site
+name: Docs site
 
 on:
   push:
