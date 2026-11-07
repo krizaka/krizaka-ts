@@ -1,6 +1,6 @@
 # Coupons: the design
 
-This is the design of [ADR-002](../adr/ADR-002-coupons.md) for krizaka/krizaka-ts#46. It sits in ADR-001's module map as module 7: after `payments` (5) and `credits` (6), and on `db`, `audit`, `rate-limit`, `outbox` and `settings`.
+This is the design of ADR-002 for krizaka/krizaka-ts#46. It sits in ADR-001's module map as module 7: after `payments` (5) and `credits` (6), and on `db`, `audit`, `rate-limit`, `outbox` and `settings`.
 
 **Sources:** a read-only pass over `main` on 2026-10-23: verikora `7b77d2e`, folioviv `86d35a2`, a former product `239e402`, sovkora-web, and krizaka-billing.
 
