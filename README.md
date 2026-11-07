@@ -46,6 +46,7 @@ pnpm run check      # lint · typecheck · tests
 ```
 
 <!-- krizaka:workflows:start -->
+
 ## Workflows
 
 What runs in the Actions tab of this repository.
@@ -60,6 +61,7 @@ What runs in the Actions tab of this repository.
 - **Scorecard** (`scorecard.yml`): OpenSSF Scorecard of the repository. Runs when branch rules change, on a schedule, on demand.
 - **Security scan** (`security.yml`): Secret scan (gitleaks) and workflow scan (zizmor); both are required checks. Runs on every pull request, in the merge queue, on push.
 - **Docs site** (`site.yml`): Lints, tests and builds the documentation site. Runs on push, on every pull request, on demand, on a schedule.
+
 <!-- krizaka:workflows:end -->
 
 ## License
