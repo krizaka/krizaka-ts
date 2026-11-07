@@ -1,12 +1,13 @@
 {
   "name": "@krizaka/architecture",
   "version": "0.1.0",
-  "description": "The C4 view of a repository, generated from its code: containers from the workspaces, components from the folders, the imports between them, the external services from the env declarations. Dependency-free, runs on a local checkout, writes JSON and a text version.",
+  "description": "The C4 view of a repository, generated from its code and manifests: containers from the workspaces (with their version and the org dependencies that build them, from the lockfile), Maven modules, crates and Python projects, components from the folders, the imports between them, the external services from the env declarations. Runs on a local checkout or a map of files, writes JSON and a text version.",
   "keywords": [
     "krizaka",
     "c4",
     "architecture",
-    "dependencies"
+    "dependencies",
+    "versions"
   ],
   "homepage": "https://ts.krizaka.com/architecture",
   "bugs": "https://github.com/krizaka/krizaka-ts/issues",
@@ -42,6 +43,11 @@
     "test": "node --test",
     "check": "pnpm run lint && pnpm run test",
     "prepublishOnly": "pnpm run check"
+  },
+  "dependencies": {
+    "fast-xml-parser": "5.12.0",
+    "smol-toml": "1.9.1",
+    "yaml": "2.8.1"
   },
   "devDependencies": {
     "@krizaka/config": "workspace:^",

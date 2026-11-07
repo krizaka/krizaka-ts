@@ -1,8 +1,10 @@
-// The facts of a checkout: its containers (workspace packages or Maven modules), its source files with what each imports and reads.
-import { basename, join, posix, resolve } from "node:path";
+// The facts of a repository's files: its containers (workspace packages or Maven modules) with the unit each one is, its source
+// files with what each imports and reads.
+import { posix } from "node:path";
 
-import { mavenModules, readJson, readText, walk, workspaceDirs } from "./files.mjs";
+import { classify, jsonOf, mavenModules, textOf, workspaceDirs } from "./files.mjs";
 import { envNamesOf, localTarget, packageOf, specifiersOf } from "./imports.mjs";
+import { readPom, unitsOf } from "./units.mjs";
 
 const FRAMEWORKS = [
   ["next", "Next.js", true],
@@ -14,48 +16,44 @@ const FRAMEWORKS = [
   ["hono", "Hono", true],
 ];
 
-const npmContainer = (root, dir) => {
-  const pkg = readJson(join(root, dir, "package.json")) ?? {};
+const npmContainer = (files, dir, repo) => {
+  const pkg = jsonOf(files, posix.join(dir, "package.json")) ?? {};
   const deps = { ...pkg.dependencies, ...pkg.devDependencies, ...pkg.peerDependencies };
   const framework = FRAMEWORKS.find(([name]) => name in (pkg.dependencies ?? {}));
   const app = /^apps?\//.test(dir) || Boolean(framework?.[2]) || Boolean(pkg.private && pkg.scripts?.start);
   return {
     dir,
-    name: pkg.name ?? (dir === "." ? basename(resolve(root)) : posix.basename(dir)),
+    name: pkg.name ?? (dir === "." ? repo : posix.basename(dir)),
     description: pkg.description ?? "",
     kind: app ? "app" : "library",
     technology: framework?.[1] ?? "TypeScript",
+    ecosystem: "npm",
     deps: Object.keys(deps),
     manifest: posix.join(dir, "package.json"),
   };
 };
 
-const artifactIds = (xml) => [...xml.matchAll(/<artifactId>\s*([^<\s]+)\s*<\/artifactId>/g)].map((m) => m[1]);
-
-const mavenContainer = (root, dir) => {
-  const pom = readText(join(root, dir, "pom.xml"));
-  const own = artifactIds(
-    pom.replace(/<parent>[\s\S]*?<\/parent>/, "").replace(/<dependencies>[\s\S]*?<\/dependencies>/g, ""),
-  )[0];
-  const deps = [...pom.matchAll(/<dependency>([\s\S]*?)<\/dependency>/g)].flatMap((m) => artifactIds(m[1]).slice(0, 1));
+const mavenContainer = (files, dir) => {
+  const pom = readPom(textOf(files, posix.join(dir, "pom.xml")));
   return {
     dir,
-    name: own ?? posix.basename(dir),
-    description: (/<description>([^<]*)<\/description>/.exec(pom)?.[1] ?? "").trim(),
+    name: pom?.artifactId ?? posix.basename(dir),
+    description: pom?.description ?? "",
     kind: "module",
     technology: "Maven",
-    deps,
+    ecosystem: "maven",
+    deps: pom?.dependencyIds ?? [],
     manifest: posix.join(dir, "pom.xml"),
   };
 };
 
-/** The containers of a checkout: workspace packages, else Maven modules, else the root package itself. */
-export function containersOf(root) {
-  const packages = workspaceDirs(root);
-  if (packages.length) return packages.map((d) => npmContainer(root, d));
-  const modules = mavenModules(root);
-  if (modules.length) return modules.map((d) => mavenContainer(root, d));
-  return readJson(join(root, "package.json")) ? [npmContainer(root, ".")] : [];
+/** The containers of a repository: workspace packages, else Maven modules, else the root package itself. */
+export function containersOf(files, repo) {
+  const packages = workspaceDirs(files);
+  if (packages.length) return packages.map((d) => npmContainer(files, d, repo));
+  const modules = mavenModules(files);
+  if (modules.length) return modules.map((d) => mavenContainer(files, d));
+  return jsonOf(files, "package.json") ? [npmContainer(files, ".", repo)] : [];
 }
 
 const insideOf = (dir, path) => (dir === "." ? path : path.slice(dir.length + 1));
@@ -74,10 +72,10 @@ export function componentOf(container, path) {
   return segments.length < 2 ? "root" : segments[0];
 }
 
-const factsOf = (root, containers, path) => {
+const factsOf = (files, containers, path) => {
   const container = containerOfPath(containers, path);
   if (!container) return undefined;
-  const source = readText(join(root, path));
+  const source = textOf(files, path);
   const imports = specifiersOf(source).flatMap((spec) => {
     const name = packageOf(spec);
     if (name) return [{ kind: "package", name }];
@@ -93,25 +91,25 @@ const factsOf = (root, containers, path) => {
   };
 };
 
-const declarationsOf = (root, containers, paths) =>
+const declarationsOf = (files, containers, paths) =>
   paths.flatMap((path) => {
     const container = containerOfPath(containers, path);
     return container
-      ? [{ path, container: container.dir, names: envNamesOf(readText(join(root, path)), { declaration: true }) }]
+      ? [{ path, container: container.dir, names: envNamesOf(textOf(files, path), { declaration: true }) }]
       : [];
   });
 
-/** Everything the C4 levels are built from. */
-export function scan(root) {
-  const repo = readJson(join(root, "package.json"))?.name ?? basename(resolve(root));
-  const containers = containersOf(root);
-  const found = walk(root);
-  const files = found.code.map((p) => factsOf(root, containers, p)).filter(Boolean);
+/** Everything the C4 levels are built from: `name` is the repository's name when its root package.json has none. */
+export function scan(files, name) {
+  const repo = jsonOf(files, "package.json")?.name ?? name;
+  const containers = containersOf(files, repo);
+  const found = classify(files);
   return {
     repo,
     containers,
-    files,
-    declarations: declarationsOf(root, containers, found.env),
+    units: unitsOf(files),
+    files: found.code.map((p) => factsOf(files, containers, p)).filter(Boolean),
+    declarations: declarationsOf(files, containers, found.env),
     testCount: found.tests.length,
   };
 }
