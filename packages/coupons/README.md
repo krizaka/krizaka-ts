@@ -1,6 +1,6 @@
 # @krizaka/coupons
 
-**Discount and credit coupons the admin manages**, for every Krizaka product (decision: [ADR-002](../../docs/adr/ADR-002-coupons.md), design: [coupons.md](../../docs/design/coupons.md)). The product's database is the source of truth; the payment provider applies a discount from immutable terms this module hands it; a credit coupon grants capped credits in `@krizaka/credits`. It evolves what exists: it does not start a second billing system.
+**Discount and credit coupons the admin manages**, for every Krizaka product (decision: ADR-002, design: [coupons.md](../../docs/design/coupons.md)). The product's database is the source of truth; the payment provider applies a discount from immutable terms this module hands it; a credit coupon grants capped credits in `@krizaka/credits`. It evolves what exists: it does not start a second billing system.
 
 > **A free offer is always a capped credit coupon, never a 100 % discount.** A discount stops at 99.99 % and at the admin's `coupons.maxPercentOff`; a fixed amount never runs forever and never exceeds that share of the price; a credit coupon always carries credits, an expiry and what happens when they run out.
 
