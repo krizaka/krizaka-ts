@@ -1,4 +1,7 @@
-// The three C4 levels (context, containers, components) from the facts of a checkout: `{ level, nodes, edges }` each.
+// The three C4 levels (context, containers, components) from the facts of a repository: `{ level, nodes, edges }` each.
+import { basename, resolve } from "node:path";
+
+import { filesOfCheckout } from "./files.mjs";
 import { contextOf } from "./imports.mjs";
 import { asc } from "./order.mjs";
 import { componentOf, containerOfPath, scan } from "./scan.mjs";
@@ -139,15 +142,24 @@ const libraryNode = (facts) => {
     : [];
 };
 
+/** What the manifests say about a container: the unit at its directory, of its ecosystem (version, org dependencies). */
+const unitFields = (facts, c) => {
+  const unit = facts.units.find((u) => u.path === c.dir && u.ecosystem === c.ecosystem);
+  if (!unit) return {};
+  const { ecosystem, language, version, published, dependsOn } = unit;
+  return { ecosystem, language, version, published, dependsOn };
+};
+
 const containerNodes = (facts) =>
   facts.containers.map((c) => {
     const own = facts.files.filter((f) => f.container === c.dir).map((f) => f.path);
-    return node(containerId(c), "container", c.kind, c.name, {
+    const base = node(containerId(c), "container", c.kind, c.name, {
       description: c.description,
       technology: c.technology,
       files: [c.manifest, ...own],
       fileCount: own.length + 1,
     });
+    return { ...base, ...unitFields(facts, c) };
   });
 
 const containerLevel = (facts, use) => {
@@ -220,9 +232,12 @@ const componentLevel = (facts, use, containers) => {
   return { level: "components", nodes: [...componentNodes(facts), ...refs].sort(byId), edges };
 };
 
-/** The C4 view of a checkout: `{ schema, repo, levels: { context, containers, components } }`, deterministic. */
-export function buildC4(root) {
-  const facts = scan(root);
+/**
+ * The C4 view of a repository's files (`path -> text`, repo-relative): `{ schema, repo, levels }`, deterministic. `name` is the
+ * repository's name when its root package.json has none.
+ */
+export function buildC4FromFiles(files, { name } = {}) {
+  const facts = scan(files, name ?? "repository");
   const use = envUse(facts);
   const containers = containerLevel(facts, use);
   return {
@@ -234,4 +249,9 @@ export function buildC4(root) {
       components: componentLevel(facts, use, containers),
     },
   };
+}
+
+/** The C4 view of a checkout on disk: the same as `buildC4FromFiles` on the files it reads there. */
+export function buildC4(root) {
+  return buildC4FromFiles(filesOfCheckout(root), { name: basename(resolve(root)) });
 }
