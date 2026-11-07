@@ -8,7 +8,7 @@
 - The **configuration shared by every Krizaka JavaScript repository**: ESLint flat configs, tsconfig bases, Prettier,
   EditorConfig, and the `krizaka-ratchet` debt counter.
 - The **non-negotiable UI rules** of the refactor (study §2.12), the **stack rules** of
-  [ADR-001](https://github.com/krizaka/krizaka-ui/blob/main/docs/adr/ADR-001-tanstack-under-krizaka-facades.md) (no fetch in a client effect, no direct
+  [ADR-001](https://github.com/krizaka/krizaka-internal/blob/main/docs/adr/krizaka-ui/ADR-001-tanstack-under-krizaka-facades.md) (no fetch in a client effect, no direct
   `@tanstack/*` import, no hand-written table or form), the « Krizaka first » covered-domains map with the dependency-cruiser
   preset generated from it (`covered-domains.json` is the single source: a domain is added there, never in a tool), and the rule against
   locale ternaries. No product word:

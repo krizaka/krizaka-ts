@@ -126,7 +126,7 @@ A rule is never switched off because it is noisy: fix the code or let the ratche
 
 ### The three stack rules
 
-From [ADR-001](https://github.com/krizaka/krizaka-ui/blob/main/docs/adr/ADR-001-tanstack-under-krizaka-facades.md) — the TanStack engines run headless, behind
+From ADR-001 — the TanStack engines run headless, behind
 `@krizaka/*` facades; a product never imports them. Warnings: `krizaka-ratchet` counts the same patterns, so an app
 adopts them before it is clean and brings each count to 0 by the end of its adoption.
 

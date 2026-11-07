@@ -1,7 +1,7 @@
 # Krizaka TS — agent contract
 
 Krizaka TS is the TypeScript counterpart of Krizaka Java: backend building blocks shared by every Krizaka product, published on
-npm under `@krizaka/` (Apache-2.0). ADR: krizaka/.github `docs/adr/ADR-006-krizaka-ts-organize.md`. Epic: krizaka/.github#183.
+npm under `@krizaka/` (Apache-2.0). ADR: `krizaka-internal` docs/adr/.github/ADR-006-krizaka-ts-organize.md. Epic: krizaka/.github#183.
 
 - **A package is generic**: no import from a product, no environment variable, no vendor SDK, no ambient clock (`Clock` injected),
   no database client (a `Query` function is passed in). Rules are data. Ports for everything else.
@@ -39,7 +39,7 @@ These are the defects code review found most often on 2026-10-23. Check them you
 ## 9. Anti-slop (ADR-015)
 
 What a model tends to write and the code does not need. Each line points at the rule that refuses it
-([ADR-015](https://github.com/krizaka/.github/blob/main/docs/adr/ADR-015-ai-code-audit-measured-and-enforced.md), [docs/standards/guards.md](https://github.com/krizaka/.github/blob/main/docs/standards/guards.md)).
+([ADR-015](https://github.com/krizaka/krizaka-internal/blob/main/docs/adr/.github/ADR-015-ai-code-audit-measured-and-enforced.md), [docs/standards/guards.md](https://github.com/krizaka/.github/blob/main/docs/standards/guards.md)).
 
 1. **No defensive null on `@NullMarked` code.** No `Objects.requireNonNull` or `if (x == null)` on a value the type already
    guarantees. Enforced by NullAway at compile time; a new package is `@NullMarked` (ArchUnit).

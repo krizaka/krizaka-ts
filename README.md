@@ -37,7 +37,7 @@ copies. Published on npm under `@krizaka/` (Apache-2.0).
 **Documentation**: [ts.krizaka.com](https://ts.krizaka.com) is the docs home — one page per package, generated from each package's README, its exports and its changelog, with the version npm lists (nothing typed by hand). A package's README stays its source: install, API, examples; the products using it are
 Folioviv and Verikora. The site, [ts.krizaka.com](https://ts.krizaka.com) (like java.krizaka.com), is generated from these files by `site/` at every change.
 
-Decision: [ADR-006](https://github.com/krizaka/.github/blob/main/docs/adr/ADR-006-krizaka-ts-organize.md). Contract for contributors and agents: [AGENTS.md](AGENTS.md).
+Decision: ADR-006. Contract for contributors and agents: [AGENTS.md](AGENTS.md).
 
 ```bash
 pnpm install
