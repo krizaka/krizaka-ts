@@ -1,6 +1,6 @@
 {
   "name": "@krizaka/architecture",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "The C4 view of a repository, generated from its code and manifests: containers from the workspaces (with their version and the org dependencies that build them, from the lockfile), Maven modules, crates and Python projects, components from the folders, the imports between them, the external services from the env declarations. Runs on a local checkout or a map of files, writes JSON and a text version.",
   "keywords": [
     "krizaka",
