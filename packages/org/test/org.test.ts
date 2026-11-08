@@ -38,6 +38,7 @@ describe("the org JSON", () => {
   it("publishes Krizaka's own social accounts (krizaka-internal#365)", () => {
     expect(org.links.social).toEqual([
       { id: "instagram", label: "Instagram", url: "https://www.instagram.com/krizakahq/" },
+      { id: "youtube", label: "YouTube", url: "https://www.youtube.com/@krizakahq" },
     ]);
     const validate = ajv.compile(orgSchema);
     expect(validate({ ...org, links: { social: [{ id: "instagram", label: "Instagram", url: "http://x" }] } })).toBe(
