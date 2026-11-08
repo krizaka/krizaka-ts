@@ -179,8 +179,8 @@ describe("units: Rust and Python", () => {
     filesOf({
       "Cargo.toml": '[workspace]\nmembers = ["plugin"]\n',
       "plugin/Cargo.toml":
-        '[package]\nname = "tauri-plugin-krizaka"\nversion = "0.4.0"\npublish = false\n\n[dependencies]\nkrizaka-desktop = { git = "https://github.com/krizaka/krizaka-desktop", tag = "v0.3.0" }\nserde = "1"\n',
-      "kit/Cargo.toml": '[package]\nname = "krizaka-desktop"\nversion = "0.4.0"\n',
+        '[package]\nname = "tauri-plugin-krizaka"\nversion = "0.4.0"\npublish = false\n\n[dependencies]\nkrizaka-rust = { git = "https://github.com/krizaka/krizaka-rust", tag = "v0.3.0" }\nserde = "1"\n',
+      "kit/Cargo.toml": '[package]\nname = "krizaka-rust"\nversion = "0.4.0"\n',
       "bad/Cargo.toml": "[package\nname=",
       "worker/pyproject.toml":
         '[project]\nname = "sovkora-worker"\nversion = "1.0.0"\ndependencies = ["krizaka-common>=0.2", "httpx"]\n',
@@ -193,11 +193,11 @@ describe("units: Rust and Python", () => {
     assert.deepEqual(
       units.filter((u) => u.ecosystem === "cargo").map((u) => [u.path, u.name, u.published]),
       [
-        ["kit", "krizaka-desktop", true],
+        ["kit", "krizaka-rust", true],
         ["plugin", "tauri-plugin-krizaka", false],
       ],
     );
-    const kit = dep(unit(units, "plugin", "cargo"), "krizaka-desktop");
+    const kit = dep(unit(units, "plugin", "cargo"), "krizaka-rust");
     assert.equal(kit.range, "v0.3.0");
     assert.equal(kit.have, "0.3.0");
   });
