@@ -85,7 +85,7 @@ export const org: Org = {
   $schema: ORG_SCHEMA_URL,
   schemaVersion: 2,
   version: pkg.version,
-  updatedAt: "2026-10-30",
+  updatedAt: "2026-11-08",
   company: {
     legalName: "Technologies Krizaka Inc.",
     tradeName: "Krizaka",
@@ -148,7 +148,10 @@ export const org: Org = {
     email: null,
   },
   links: {
-    social: [{ id: "instagram", label: "Instagram", url: "https://www.instagram.com/krizakahq/" }],
+    social: [
+      { id: "instagram", label: "Instagram", url: "https://www.instagram.com/krizakahq/" },
+      { id: "youtube", label: "YouTube", url: "https://www.youtube.com/@krizakahq" },
+    ],
   },
   footer: {
     line: {
