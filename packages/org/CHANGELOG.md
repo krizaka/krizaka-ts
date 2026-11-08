@@ -1,5 +1,11 @@
 # @krizaka/org
 
+## 1.1.1
+
+### Patch Changes
+
+- 1eb999c: Add YouTube (`https://www.youtube.com/@krizakahq`) to `org.links.social` (krizaka-internal#365).
+
 ## 1.1.0
 
 ### Minor Changes
