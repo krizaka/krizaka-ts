@@ -37,13 +37,32 @@ copies. Published on npm under `@krizaka/` (Apache-2.0).
 **Documentation**: [ts.krizaka.com](https://ts.krizaka.com) is the docs home — one page per package, generated from each package's README, its exports and its changelog, with the version npm lists (nothing typed by hand). A package's README stays its source: install, API, examples; the products using it are
 Folioviv and Verikora. The site, [ts.krizaka.com](https://ts.krizaka.com) (like java.krizaka.com), is generated from these files by `site/` at every change.
 
-Decision: [ADR-006](https://github.com/krizaka/.github/blob/main/docs/adr/ADR-006-krizaka-ts-organize.md). Contract for contributors and agents: [AGENTS.md](AGENTS.md).
+Decision: ADR-006. Contract for contributors and agents: [AGENTS.md](AGENTS.md).
 
 ```bash
 pnpm install
 pre-commit install   # once: the gitleaks and zizmor hooks on each commit
 pnpm run check      # lint · typecheck · tests
 ```
+
+<!-- krizaka:workflows:start -->
+
+## Workflows
+
+What runs in the Actions tab of this repository.
+
+- **Bump @krizaka packages** (`bump-krizaka.yml`): Opens one auto-merged PR that bumps the @krizaka packages after a release. Runs when another repository triggers it, on demand.
+- **CI** (`ci.yml`): Lint, tests and build of the repository. Runs on push, on every pull request, in the merge queue.
+- **Dependabot auto-merge** (`dependabot-automerge.yml`): Auto-merges safe Dependabot updates. Runs on every pull request.
+- **Docs map** (`docs-map.yml`): Checks the docs map of the repository. Runs on every pull request.
+- **Merge resolution** (`merge-resolution.yml`): Fails a PR that drops what main added without a deletion-explained line. Runs on every pull request.
+- **Release notes** (`release-notes.yml`): Writes the release notes. Runs on push.
+- **Release** (`release.yml`): Versions and publishes the packages (Changesets). Runs on push, on demand.
+- **Scorecard** (`scorecard.yml`): OpenSSF Scorecard of the repository. Runs when branch rules change, on a schedule, on demand.
+- **Security scan** (`security.yml`): Secret scan (gitleaks) and workflow scan (zizmor); both are required checks. Runs on every pull request, in the merge queue, on push.
+- **Docs site** (`site.yml`): Lints, tests and builds the documentation site. Runs on push, on every pull request, on demand, on a schedule.
+
+<!-- krizaka:workflows:end -->
 
 ## License
 

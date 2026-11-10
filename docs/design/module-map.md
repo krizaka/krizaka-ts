@@ -1,6 +1,6 @@
 # The module map: what exists, what each module is, in which order it comes
 
-This is the evidence and the plan of [ADR-001](../adr/ADR-001-modular-architecture.md), for krizaka/krizaka-ts#47.
+This is the evidence and the plan of ADR-001, for krizaka/krizaka-ts#47.
 
 - **Sources:** a read-only pass over `main` on 2026-10-23, at these commits:
   - verikora `7b77d2e`, folioviv `86d35a2`, a former product `9df64cb`, a former product `239e402`, a former product `7d34595`, a former product `6a06067`;
