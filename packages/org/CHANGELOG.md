@@ -1,5 +1,11 @@
 # @krizaka/org
 
+## 1.2.0
+
+### Minor Changes
+
+- 274fc8c: Add LinkedIn to `org.links.social` (krizaka-internal#3141).
+
 ## 1.1.1
 
 ### Patch Changes

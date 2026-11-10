@@ -151,6 +151,7 @@ export const org: Org = {
     social: [
       { id: "instagram", label: "Instagram", url: "https://www.instagram.com/krizakahq/" },
       { id: "youtube", label: "YouTube", url: "https://www.youtube.com/@krizakahq" },
+      { id: "linkedin", label: "LinkedIn", url: "https://www.linkedin.com/company/krizaka-technologies-inc" },
     ],
   },
   footer: {

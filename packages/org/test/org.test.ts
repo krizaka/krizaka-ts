@@ -35,11 +35,18 @@ describe("the org JSON", () => {
     expect(org.footer.legal.map((l) => l.id)).toEqual(["privacy", "terms"]);
   });
 
-  it("publishes Krizaka's own social accounts (krizaka-internal#365)", () => {
+  it("publishes Krizaka's own social accounts (krizaka-internal#365, krizaka-internal#3141)", () => {
     expect(org.links.social).toEqual([
       { id: "instagram", label: "Instagram", url: "https://www.instagram.com/krizakahq/" },
       { id: "youtube", label: "YouTube", url: "https://www.youtube.com/@krizakahq" },
+      { id: "linkedin", label: "LinkedIn", url: "https://www.linkedin.com/company/krizaka-technologies-inc" },
     ]);
+    // LinkedIn uses HTTPS
+    const linkedin = org.links.social.find((l) => l.id === "linkedin");
+    expect(linkedin?.url).toMatch(/^https:/);
+    // all ids are unique
+    const ids = org.links.social.map((l) => l.id);
+    expect(ids).toEqual([...new Set(ids)]);
     const validate = ajv.compile(orgSchema);
     expect(validate({ ...org, links: { social: [{ id: "instagram", label: "Instagram", url: "http://x" }] } })).toBe(
       false,
