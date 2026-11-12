@@ -33,6 +33,24 @@ The product keeps what is its own: its session cookie and token hashing (`tokenH
 
 A role model is data: `defineRoles({ roles, permissions, manages })` says which roles exist, what each may do and who may hand which role to whom. `createRoles` keeps memberships (one person, several scopes, a role in each) and invitations (an e-mail invited with a role, a link used once, only its hash kept, never demoting), refuses to remove or demote the last owner, and answers `authorize(account, scope, "invoices")` with the role or a stable refusal (`NOT_A_MEMBER` 404, `FORBIDDEN` 403). `rolesMigration(roles, { scopeTable })` makes the tables.
 
+## Invitation-only sign-up
+
+While a product's sign-up is closed, its administration invites an address to create an account. This is not `createRoles().invite` (which puts an **existing** account in a scope): a sign-up invitation is instance-level, there is no account yet. `signupInvitationsSchema` makes the table (`emitMigration`); `signupInvitations({ query, tokenPrefix, tokenHash, ttlDays? })` keeps them:
+
+- `invite({ email, invitedBy, grant? }, now)` answers the link token once (`<prefix>1.<43 base64url>`, 256 random bits); only its keyed hash is stored. A new invitation of the same address replaces the open one, whose link opens nothing any more. `grant` (`{ kind, ref }`, e.g. `{ kind: "coupon", ref: "<pilot code>" }`) is an opaque entitlement set by the inviter, never read from the client. The address is validated as given: spaces around it are refused, not trimmed.
+- `peek(token, now)` answers `{ email, expiresAt }`, to pre-fill and lock the address field; read-only.
+- `redeem(token, { email }, now)` uses the link once, for the invited address only (lower-cased), in one atomic `UPDATE … RETURNING`: of two concurrent redemptions exactly one wins. It answers `{ email, grant, invitedBy }`.
+- `revoke(id, actor, now)`, `resend(id, actor, now)` (a new invitation with a new token: the stored hash is never sent), `pending(now)` (the open ones, oldest first, bounded).
+- Refusals are `SignupInvitationError` with a status and a stable code: `INVITE_INVALID` (400) for an unknown, malformed, expired, used or revoked link alike — the answer never tells which —, `INVITE_WRONG_ADDRESS` (403), `INVITE_BAD_ADDRESS`, `INVITE_BAD_GRANT`, `INVITE_BAD_ACTOR` (400). An invitation lives `SIGNUP_INVITATION_TTL_DAYS` (7) days; a product may set 1 to 30.
+
+The product's part:
+
+- **The gate.** The sign-up route accepts a valid invitation even while sign-up is closed, and answers its own « closed » refusal to everything else: an invitation never opens the sign-up to anyone but the invited address.
+- **One transaction.** Build the invitations on the transaction's `query` and, in that transaction, `redeem`, create the account, mark **the returned address** verified (redeeming proves the mailbox; never another address), and apply `grant` once. If anything fails, the rollback leaves the link good.
+- **Rate limiting** of `invite`, `peek` and `redeem` (`@krizaka/rate-limit`), and **the audit line** of every invitation, revocation and redemption (who, which address, when): the library keeps neither.
+- **The mail**, with the link and its validity. The token is never logged, never in an analytics event, never in a URL a third party sees (`Referrer-Policy`).
+- An address that already has an account: the product decides (refuse to invite, or let the redemption fail on its unique address).
+
 ## Federated sign-in (Google, Apple, Facebook, native PKCE)
 
 Each product keeps its own accounts; **krizaka-users** is the federation provider behind a port, so a product holds no OAuth app of its own. `IdentityProvider` has two calls: `start(provider, returnTo, { codeChallenge? })` gives the address to send the person to, `complete(code, { codeVerifier? })` exchanges the one-time code (single use) for a verified `ExternalIdentity` (`issuer`, `subject`, `email`, `emailVerified`). A return address stays on the product (a path); an unknown provider is refused.

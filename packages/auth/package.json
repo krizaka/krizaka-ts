@@ -71,6 +71,7 @@
   "dependencies": {
     "@krizaka/db": "workspace:^",
     "@krizaka/settings": "workspace:^",
+    "@krizaka/time": "workspace:^",
     "date-fns": "^4.4.0"
   },
   "peerDependencies": {
