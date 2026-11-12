@@ -13,6 +13,7 @@ import {
   passwordResetMail,
   type Query,
 } from "../src";
+import { transactionIn } from "./database";
 
 /** The account adapter against a real PostgreSQL (CI's service; locally ORGANIZE_DB_IT=1 DATABASE_URL=…), in a schema of its own. */
 const enabled = process.env.ORGANIZE_DB_IT === "1" && !!process.env.DATABASE_URL;
@@ -57,22 +58,7 @@ describe.runIf(enabled)("the account service on PostgreSQL", () => {
   let query: Query;
   const mails: Mail[] = [];
   const issued: string[] = [];
-  /** A real transaction on its own connection (the product's pool does this), in the test's schema. */
-  const transaction = async <T>(work: (q: Query) => Promise<T>): Promise<T> => {
-    const c = new pg.Client({ connectionString: process.env.DATABASE_URL });
-    await c.connect();
-    try {
-      await c.query(`SET search_path TO ${schemaName}; BEGIN`);
-      const result = await work(async (sql, params) => (await c.query(sql, params as unknown[])).rows as never);
-      await c.query("COMMIT");
-      return result;
-    } catch (error) {
-      await c.query("ROLLBACK").catch(() => undefined);
-      throw error;
-    } finally {
-      await c.end();
-    }
-  };
+  const transaction = transactionIn(() => schemaName);
   let hashFails = 0;
   const service = () =>
     dbAccounts({

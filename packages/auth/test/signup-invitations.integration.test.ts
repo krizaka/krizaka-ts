@@ -5,6 +5,7 @@ import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { type Query, signupInvitations, signupInvitationsSchema } from "../src";
+import { serialQuery, transactionIn } from "./database";
 
 /** Sign-up invitations against a real PostgreSQL (CI's service; locally ORGANIZE_DB_IT=1 DATABASE_URL=…), in a schema of its own. */
 const enabled = process.env.ORGANIZE_DB_IT === "1" && !!process.env.DATABASE_URL;
@@ -21,21 +22,7 @@ describe.runIf(enabled)("sign-up invitations on PostgreSQL", () => {
     signupInvitations({ query: q, tokenPrefix: "ye", tokenHash: hash });
   const address = (label = "camille") => `${label}-${Math.random().toString(36).slice(2)}@test.example`;
   /** The product's transaction: its own connection, in the test's schema; rolled back when the work throws. */
-  const transaction = async <T>(work: (q: Query) => Promise<T>): Promise<T> => {
-    const c = new pg.Client({ connectionString: process.env.DATABASE_URL });
-    await c.connect();
-    try {
-      await c.query(`SET search_path TO ${schemaName}; BEGIN`);
-      const result = await work(async (sql, params) => (await c.query(sql, params as unknown[])).rows as never);
-      await c.query("COMMIT");
-      return result;
-    } catch (error) {
-      await c.query("ROLLBACK").catch(() => undefined); // the original error is the one thrown
-      throw error;
-    } finally {
-      await c.end();
-    }
-  };
+  const transaction = transactionIn(() => schemaName);
   const stored = async (email: string) =>
     (await client.query("SELECT * FROM signup_invitations WHERE email = $1 ORDER BY created_at", [email])).rows;
 
@@ -43,12 +30,7 @@ describe.runIf(enabled)("sign-up invitations on PostgreSQL", () => {
     client = new pg.Client({ connectionString: process.env.DATABASE_URL });
     await client.connect();
     await client.query(`CREATE SCHEMA ${schemaName}; SET search_path TO ${schemaName}`);
-    let queue: Promise<unknown> = Promise.resolve(); // one client: statements run one after another
-    query = (sql, params) => {
-      const run = queue.then(async () => (await client.query(sql, params as unknown[])).rows);
-      queue = run.catch(() => undefined);
-      return run as never;
-    };
+    query = serialQuery(() => client);
     const sql = signupInvitationsSchema.migrations[0]!.sql({ schema: schemaName, tables: {} });
     await client.query(sql);
     await client.query(sql); // twice: safe
@@ -148,7 +130,7 @@ describe.runIf(enabled)("sign-up invitations on PostgreSQL", () => {
     await expect(invitations().revoke(first.invitation.id, "admin-1", NOW)).rejects.toMatchObject({
       code: "INVITE_INVALID",
     });
-    expect((await stored(email)).length).toBe(1);
+    expect(await stored(email)).toHaveLength(1);
     expect(await invitations().redeem(second.token, { email }, NOW)).toEqual({
       email,
       grant: PILOT,
@@ -156,7 +138,7 @@ describe.runIf(enabled)("sign-up invitations on PostgreSQL", () => {
     });
     // once used, the address may be invited again (a new row; the used one stays)
     await invitations().invite({ email, invitedBy: "admin-1" }, NOW);
-    expect((await stored(email)).length).toBe(2);
+    expect(await stored(email)).toHaveLength(2);
   });
 
   it("resend sends a new token for the same address and grant; the previous one stops working", async () => {
