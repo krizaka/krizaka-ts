@@ -48,6 +48,8 @@ export const DELIVERY_STATUS = {
   failed: "failed",
   suppressed: "suppressed",
   duplicate: "duplicate",
+  /** Off production, the recipient is not on `mail.allowlist`: the provider was never called. */
+  notAllowlisted: "not-allowlisted",
 } as const;
 export type DeliveryStatus = (typeof DELIVERY_STATUS)[keyof typeof DELIVERY_STATUS];
 
@@ -91,13 +93,19 @@ export interface MailStore {
 }
 
 export interface MailSettings {
-  provider: "log" | "mailgun" | "resend";
+  provider: "log" | "mailgun" | "resend" | "mailpit";
   /** The sender, `Name <address>` or an address. */
   from: string;
   /** Where replies go; empty for none. */
   replyTo: string;
   /** Days the delivery log and the idempotency keys are kept. */
   retentionDays: number;
+  /** The deployment: only `production` sends to anyone. Any other value (`dev`, `staging`, empty…) is off production. Never guessed from a host name. */
+  environment: string;
+  /** Off production, the only addresses mailed (bare, lower-case). Ignored in production. */
+  allowlist: readonly string[];
+  /** The Mailpit base URL, used when `provider` is `mailpit`. */
+  mailpitUrl: string;
 }
 
 export const MAIL_CODE = {

@@ -8,6 +8,8 @@ export {
   logProvider,
   type MailgunOptions,
   mailgunProvider,
+  type MailpitOptions,
+  mailpitProvider,
   providerFor,
   type ProviderKeys,
   type ResendOptions,

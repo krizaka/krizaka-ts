@@ -95,6 +95,44 @@ export function resendProvider(options: ResendOptions): MailProvider {
   };
 }
 
+export interface MailpitOptions {
+  /** Mailpit's base URL, e.g. `http://127.0.0.1:8025`. */
+  apiUrl: string;
+  fetch: FetchLike;
+}
+
+const nameAndAddress = (full: string) => {
+  const open = full.lastIndexOf("<");
+  const name = open > 0 ? full.slice(0, open).trim().replace(/^"|"$/g, "") : "";
+  return name === "" ? { Email: bareAddress(full) } : { Email: bareAddress(full), Name: name };
+};
+
+/** Mailpit's send API (JSON, no key): a local inbox for development, nothing leaves the machine. */
+export function mailpitProvider(options: MailpitOptions): MailProvider {
+  const base = withoutTrailingSlashes(options.apiUrl);
+  return {
+    name: "mailpit",
+    async send(mail) {
+      const body = {
+        From: nameAndAddress(mail.from),
+        To: [nameAndAddress(mail.to)],
+        Subject: mail.subject,
+        Text: mail.text,
+        ...(mail.html === undefined ? {} : { HTML: mail.html }),
+        ...(mail.replyTo ? { ReplyTo: [nameAndAddress(mail.replyTo)] } : {}),
+      };
+      const res = await options.fetch(`${base}/api/v1/send`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const answer = await res.text();
+      if (!res.ok) throw failure("mailpit", res.status, answer);
+      return { messageId: idOf(answer, "ID") };
+    },
+  };
+}
+
 /** The development provider: writes one JSON line per mail (without its body) and sends nothing. */
 export function logProvider(write: (line: string) => void): MailProvider {
   return {
@@ -126,7 +164,7 @@ export interface ProviderKeys {
 /**
  * The provider the admin chose (`mail.provider`). A provider chosen without its key is refused loudly, never replaced by `log`:
  * a reset mail must not vanish silently.
- * @throws MailError when the chosen provider lacks its key (or its domain, for Mailgun)
+ * @throws MailError when the chosen provider lacks its key (or its domain, for Mailgun; its base URL, `mail.mailpitUrl`, for Mailpit, which needs no key)
  */
 export function providerFor(
   kind: MailSettings["provider"],
@@ -135,6 +173,11 @@ export function providerFor(
   write: (line: string) => void,
 ): MailProvider {
   if (kind === "log") return logProvider(write);
+  if (kind === "mailpit") {
+    if (!keys.apiUrl)
+      throw new MailError(MAIL_CODE.badSettings, "mail.provider is mailpit but its base URL is not set");
+    return mailpitProvider({ apiUrl: keys.apiUrl, fetch });
+  }
   if (!keys.apiKey) throw new MailError(MAIL_CODE.badSettings, `mail.provider is ${kind} but its API key is not set`);
   if (kind === "resend")
     return resendProvider({ apiKey: keys.apiKey, fetch, ...(keys.apiUrl ? { apiUrl: keys.apiUrl } : {}) });

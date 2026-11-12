@@ -3,7 +3,7 @@ import { defineModule } from "@krizaka/db";
 /**
  * The tables of « mail », in their own Postgres schema: `delivery` (the log, with the recipient as a hash, never a body),
  * `suppression` (the addresses never mailed again, as a SHA-256 hash: the list holds no address) and `idempotency` (the keys
- * already sent). They reference no product table. Version 1 is frozen once released: a change is version 2.
+ * already sent). They reference no product table. Version 1 is frozen once released: a change is a new version (2 adds the `not-allowlisted` status).
  */
 export const mailSchema = defineModule({
   module: "mail",
@@ -35,6 +35,14 @@ CREATE TABLE ${c.schema}.idempotency (
   created_at timestamptz NOT NULL
 );
 CREATE INDEX idempotency_created ON ${c.schema}.idempotency (created_at);`,
+    },
+    {
+      version: 2,
+      name: "delivery status not-allowlisted",
+      sql: (c) => `
+ALTER TABLE ${c.schema}.delivery DROP CONSTRAINT delivery_status_check;
+ALTER TABLE ${c.schema}.delivery ADD CONSTRAINT delivery_status_check
+  CHECK (status IN ('sent', 'failed', 'suppressed', 'duplicate', 'not-allowlisted'));`,
     },
   ],
 });

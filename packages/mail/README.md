@@ -5,9 +5,10 @@ Mail for every Krizaka product: queued in the caller's transaction through `@kri
 - **It takes mail already rendered.** Templates are `@krizaka/email`'s (a UI package this one never imports). `emailPorts(store, clock)` gives `@krizaka/email` its three ports (`DeliveryLog`, `SuppressionList`, `IdempotencyStore`) over the same tables, so a direct `sendEmail` and the queue share one log, one suppression list and one set of keys.
 - **At least once, never lost.** `deliver` checks the suppression list, checks the key, sends, and only then claims the key: a crash between the send and the claim sends again (a duplicate reset mail beats a lost one); a redelivery after the claim is a no-op.
 - **Addresses are hashed** (SHA-256 of the normal form) in the suppression list and in the delivery log. The queued message holds the address until the outbox purges it.
-- **Providers** are adapters over an injected `fetch`: `mailgunProvider`, `resendProvider`, `logProvider` (development, writes no body). `providerFor(settings.provider, keys, fetch, write)` picks the one the admin chose and refuses a provider without its key instead of falling back to `log`.
+- **Providers** are adapters over an injected `fetch`: `mailgunProvider`, `resendProvider`, `mailpitProvider` (Mailpit's HTTP send API, no key, base URL `mail.mailpitUrl`; `MAIL_PROVIDER=mailpit` for a local run), `logProvider` (development, writes no body). `providerFor(settings.provider, keys, fetch, write)` picks the one the admin chose and refuses a provider without its key instead of falling back to `log`.
+- **Off production, mail goes only to the allowlist** (ADR-033, decision 8). Only `mail.environment` = `production` sends to anyone; any other value (default `dev`, so a forgotten setting fails closed) mails only the addresses of `mail.allowlist` (default `test@krizaka.com`, `bonjour@krizaka.com`), puts `[test <environment>]` before the subject, and refuses the rest BEFORE the provider is called: the log line is `not-allowlisted` (recipient hashed) and the key is not claimed. Production ignores the allowlist. The product fills the setting from its own deployment variable; the package never guesses it from a host name. Run migration 2 of `mailSchema` (it adds the status).
 - **Bounces and complaints** come back through the provider's signed webhook: `parseMailgunWebhook` and `parseResendWebhook` verify the signature and the age, and answer the addresses to suppress (a permanent failure or hard bounce, a complaint, an unsubscribe). A transient bounce is ignored.
-- **The admin's settings** (`@krizaka/mail/settings`): `mail.provider` (`log`, `mailgun`, `resend`), `mail.from`, `mail.replyTo`, `mail.retentionDays`. Keys, the Mailgun domain and the webhook signing keys stay in the environment (`MAIL_PROVIDER`-style names, read by the product and passed in).
+- **The admin's settings** (`@krizaka/mail/settings`): `mail.provider` (`log`, `mailgun`, `resend`, `mailpit`), `mail.from`, `mail.replyTo`, `mail.retentionDays`, `mail.environment`, `mail.allowlist` (comma-separated), `mail.mailpitUrl`. Keys, the Mailgun domain and the webhook signing keys stay in the environment (`MAIL_PROVIDER`-style names, read by the product and passed in).
 
 ```ts
 import { createOutbox, runWorker } from "@krizaka/outbox";
@@ -23,10 +24,25 @@ const mail = createMail({
 });
 
 // in the use case's transaction: the mail leaves only if the transaction commits
-await mail.queue(tx, { to, subject, text, category: "transactional", template: "password-reset", locale: "fr", idempotencyKey: `reset:${resetId}` });
+await mail.queue(tx, {
+  to,
+  subject,
+  text,
+  category: "transactional",
+  template: "password-reset",
+  locale: "fr",
+  idempotencyKey: `reset:${resetId}`,
+});
 
 // in the worker process
-await runWorker({ outbox, query, owner, topic: MAIL_TOPIC, deliver: (m) => mail.deliver(m).then(() => undefined), sleep });
+await runWorker({
+  outbox,
+  query,
+  owner,
+  topic: MAIL_TOPIC,
+  deliver: (m) => mail.deliver(m).then(() => undefined),
+  sleep,
+});
 
 // in the webhook route
 const suppression = parseMailgunWebhook(rawBody, env.MAIL_WEBHOOK_SIGNING_KEY, nowSeconds);

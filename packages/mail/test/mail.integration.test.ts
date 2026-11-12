@@ -14,7 +14,7 @@ describe.runIf(enabled)("mail: PostgreSQL", () => {
   const query = async (sql: string, params?: unknown[]) => (await pool.query(sql, params)).rows;
   beforeAll(async () => {
     pool = new pg.Pool({ connectionString: process.env.DATABASE_URL, max: 20 });
-    await pool.query(emitMigration(mailSchema, 1, { tables: {}, schema }));
+    for (const version of [1, 2]) await pool.query(emitMigration(mailSchema, version, { tables: {}, schema }));
   });
   afterAll(async () => {
     await pool.query(`DROP SCHEMA ${schema} CASCADE`);

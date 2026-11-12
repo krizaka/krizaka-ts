@@ -8,7 +8,20 @@ export const MAIL_DEFAULTS: MailSettings = {
   from: "Krizaka <no-reply@krizaka.com>",
   replyTo: "",
   retentionDays: 90,
+  environment: "dev",
+  allowlist: ["test@krizaka.com", "bonjour@krizaka.com"],
+  mailpitUrl: "http://127.0.0.1:8025",
 };
+
+export const PRODUCTION = "production";
+
+/** The `[test <label>]` an off-production subject starts with; the label is the environment's name. */
+export const testSubject = (environment: string, subject: string) => `[test ${environment.trim() || "dev"}] ${subject}`;
+
+/** Off production only the allowlist is mailed; production ignores it. */
+export const isAllowed = (s: Pick<MailSettings, "environment" | "allowlist">, address: string) =>
+  s.environment === PRODUCTION ||
+  s.allowlist.some((a) => normalizeAddress(bareAddress(a)) === normalizeAddress(bareAddress(address)));
 
 const ADDRESS = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/;
 const TOKEN = /^[a-z][a-z0-9_.-]{0,39}$/;
