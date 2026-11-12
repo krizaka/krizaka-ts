@@ -1,4 +1,6 @@
 import { createHmac } from "node:crypto";
+import { createServer } from "node:http";
+import type { AddressInfo } from "node:net";
 
 import { createOutbox, drainOnce, memoryOutboxStore, OUTBOX_DEFAULTS } from "@krizaka/outbox";
 import { describe, expect, it } from "vitest";
@@ -14,7 +16,9 @@ import {
   MAIL_DEFAULTS,
   mailgunProvider,
   type MailMessage,
+  mailpitProvider,
   type MailProvider,
+  type MailSettings,
   memoryMailStore,
   type OutgoingMail,
   parseMailgunWebhook,
@@ -22,6 +26,7 @@ import {
   providerFor,
   resendProvider,
 } from "../src";
+import { readMailSettings } from "../src/settings";
 import { mailStoreContract, T0 } from "../src/testkit";
 
 mailStoreContract("memory", () => memoryMailStore());
@@ -39,7 +44,7 @@ const message = (over: Partial<MailMessage> = {}): MailMessage => ({
 const tx = async () => [];
 
 /** A mail module on the memory outbox and store, a provider that records, and a clock the test moves. */
-function harness(provider?: Partial<MailProvider>) {
+function harness(provider?: Partial<MailProvider>, over: Partial<MailSettings> = {}) {
   let now = T0;
   const clock = { now: () => now };
   const store = memoryMailStore();
@@ -53,7 +58,13 @@ function harness(provider?: Partial<MailProvider>) {
   const mail = createMail({
     clock,
     outbox,
-    settings: { ...MAIL_DEFAULTS, from: "Krizaka <no-reply@krizaka.com>", replyTo: "help@krizaka.com" },
+    settings: {
+      ...MAIL_DEFAULTS,
+      environment: "production",
+      from: "Krizaka <no-reply@krizaka.com>",
+      replyTo: "help@krizaka.com",
+      ...over,
+    },
     store,
     provider: real,
   });
@@ -340,5 +351,140 @@ describe("the ports of @krizaka/email", () => {
       status: "sent",
     });
     expect((await store.recent(1))[0]).toMatchObject({ status: "sent", at: T0.toISOString() });
+  });
+});
+
+describe("off production, mail goes only to the allowlist", () => {
+  it("refuses a recipient outside the allowlist before the provider, records it hashed, and prefixes nothing it did not send", async () => {
+    const h = harness(undefined, { environment: "dev" });
+    await h.mail.queue(tx, message());
+    expect(await h.drain()).toMatchObject({ delivered: 1 });
+    expect(h.sent).toEqual([]);
+    const [line] = await h.store.recent(5);
+    expect(line).toMatchObject({ status: "not-allowlisted", to: hashAddress("ana@example.com") });
+    expect(JSON.stringify(line)).not.toContain("ana@example.com");
+    // the key is not claimed: the same mail is sent once the address is allowed
+    expect(await h.store.hasKey("reset:1")).toBe(false);
+  });
+
+  it("sends to the default allowlist (case and name ignored) with a [test <label>] subject", async () => {
+    const h = harness(undefined, { environment: "staging" });
+    expect(MAIL_DEFAULTS.allowlist).toEqual(["test@krizaka.com", "bonjour@krizaka.com"]);
+    await h.mail.queue(tx, message({ to: "Test <TEST@krizaka.com>" }));
+    await h.mail.queue(tx, message({ to: "bonjour@krizaka.com", idempotencyKey: "reset:2" }));
+    await h.drain();
+    expect(h.sent.map((m) => m.subject)).toEqual([
+      "[test staging] Reset your password",
+      "[test staging] Reset your password",
+    ]);
+  });
+
+  it("uses the setting's allowlist instead of the default", async () => {
+    const h = harness(undefined, { environment: "dev", allowlist: ["ana@example.com"] });
+    await h.mail.queue(tx, message());
+    await h.mail.queue(tx, message({ to: "test@krizaka.com", idempotencyKey: "reset:2" }));
+    await h.drain();
+    expect(h.sent.map((m) => m.to)).toEqual(["ana@example.com"]);
+  });
+
+  it("production ignores the allowlist and leaves the subject alone", async () => {
+    const h = harness(undefined, { environment: "production", allowlist: [] });
+    await h.mail.queue(tx, message());
+    await h.drain();
+    expect(h.sent.map((m) => m.subject)).toEqual(["Reset your password"]);
+  });
+
+  it("an empty or unknown environment is not production", async () => {
+    const h = harness(undefined, { environment: "" });
+    await h.mail.queue(tx, message());
+    await h.drain();
+    expect(h.sent).toEqual([]);
+  });
+
+  it("reads the allowlist and the environment from the settings, with the safe defaults", async () => {
+    expect(await readMailSettings(() => undefined)).toMatchObject({
+      environment: "dev",
+      allowlist: ["test@krizaka.com", "bonjour@krizaka.com"],
+      mailpitUrl: "http://127.0.0.1:8025",
+    });
+    const read = (key: string): string | undefined =>
+      (
+        ({
+          "mail.environment": "production",
+          "mail.allowlist": " a@b.co, ,C@d.co ",
+          "mail.provider": "mailpit",
+        }) as Record<string, string>
+      )[key];
+    expect(await readMailSettings(read)).toMatchObject({
+      environment: "production",
+      allowlist: ["a@b.co", "c@d.co"],
+      provider: "mailpit",
+    });
+  });
+});
+
+describe("the Mailpit provider", () => {
+  const serve = async (answer: (body: unknown) => { status: number; body: string }) => {
+    const seen: { url: string; body: unknown }[] = [];
+    const server = createServer((req, res) => {
+      let raw = "";
+      req.on("data", (c) => (raw += c));
+      req.on("end", () => {
+        const body = JSON.parse(raw) as unknown;
+        seen.push({ url: req.url ?? "", body });
+        const a = answer(body);
+        res.writeHead(a.status, { "content-type": "application/json" }).end(a.body);
+      });
+    });
+    await new Promise<void>((r) => server.listen(0, "127.0.0.1", r));
+    const { port } = server.address() as AddressInfo;
+    return { seen, url: `http://127.0.0.1:${port}/`, close: () => new Promise((r) => server.close(r)) };
+  };
+  const out: OutgoingMail = {
+    ...message(),
+    from: "Krizaka <no-reply@krizaka.com>",
+    html: "<p>Hi</p>",
+    replyTo: "help@krizaka.com",
+  };
+
+  it("posts the mail to /api/v1/send and returns Mailpit's id", async () => {
+    const s = await serve(() => ({ status: 200, body: '{"ID":"abc"}' }));
+    try {
+      const provider = providerFor("mailpit", { apiUrl: s.url }, globalThis.fetch as FetchLike, () => {});
+      expect(provider.name).toBe("mailpit");
+      expect(await provider.send(out)).toEqual({ messageId: "abc" });
+      expect(s.seen).toEqual([
+        {
+          url: "/api/v1/send",
+          body: {
+            From: { Email: "no-reply@krizaka.com", Name: "Krizaka" },
+            To: [{ Email: "ana@example.com" }],
+            Subject: "Reset your password",
+            Text: "Open the link.",
+            HTML: "<p>Hi</p>",
+            ReplyTo: [{ Email: "help@krizaka.com" }],
+          },
+        },
+      ]);
+    } finally {
+      await s.close();
+    }
+  });
+
+  it("throws a provider error when Mailpit refuses", async () => {
+    const s = await serve(() => ({ status: 400, body: "nope" }));
+    try {
+      await expect(
+        mailpitProvider({ apiUrl: s.url, fetch: globalThis.fetch as FetchLike }).send(out),
+      ).rejects.toMatchObject({
+        code: MAIL_CODE.provider,
+      });
+    } finally {
+      await s.close();
+    }
+  });
+
+  it("needs no key, but a base URL", () => {
+    expect(() => providerFor("mailpit", {}, globalThis.fetch as FetchLike, () => {})).toThrow(/mailpit/);
   });
 });
