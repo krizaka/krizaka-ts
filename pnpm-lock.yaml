@@ -143,6 +143,9 @@ importers:
       '@krizaka/settings':
         specifier: workspace:^
         version: link:../settings
+      '@krizaka/time':
+        specifier: workspace:^
+        version: link:../time
       date-fns:
         specifier: ^4.4.0
         version: 4.4.0
@@ -6042,7 +6045,7 @@ snapshots:
       obug: 2.2.1
       std-env: 4.3.0
       tinyrainbow: 3.2.0
-      vitest: 4.1.12(@types/node@22.20.5)(@vitest/coverage-v8@4.1.12)(vite@8.3.5(@types/node@22.20.5)(esbuild@0.27.7)(yaml@2.9.1))
+      vitest: 4.1.12(@types/node@22.20.5)(@vitest/coverage-v8@4.1.12)(vite@8.3.5(@types/node@22.20.5)(esbuild@0.28.2)(yaml@2.9.1))
 
   '@vitest/expect@4.1.12':
     dependencies:

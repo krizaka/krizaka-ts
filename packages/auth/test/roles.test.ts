@@ -4,6 +4,7 @@ import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { can, createRoles, defineRoles, rolesMigration, type RolesQuery } from "../src";
+import { serialQuery } from "./database";
 
 /** The model of a shop: three roles, the permissions each holds, who may hand which role to whom — data, never `if (role === …)`. */
 const SHOP = defineRoles({
@@ -57,12 +58,7 @@ describe.runIf(enabled)("roles on PostgreSQL", () => {
     client = new pg.Client({ connectionString: process.env.DATABASE_URL });
     await client.connect();
     await client.query(`CREATE SCHEMA ${schemaName}; SET search_path TO ${schemaName}`);
-    let queue: Promise<unknown> = Promise.resolve(); // one client: statements run one after another
-    query = (sql, params) => {
-      const run = queue.then(async () => (await client.query(sql, params as unknown[])).rows);
-      queue = run.catch(() => undefined);
-      return run as never;
-    };
+    query = serialQuery(() => client);
     await client.query(
       "CREATE TABLE accounts (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), email text UNIQUE NOT NULL, name text)",
     );

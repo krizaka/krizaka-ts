@@ -83,7 +83,7 @@ export {
   RolesError,
   type RolesQuery,
 } from "./roles";
-export { accountsSchema, identityLinksSchema, rolesSchema, sessionsSchema } from "./schema";
+export { accountsSchema, identityLinksSchema, rolesSchema, sessionsSchema, signupInvitationsSchema } from "./schema";
 export {
   clearedSessionCookie,
   createSessions,
@@ -98,6 +98,20 @@ export {
 } from "./sessions";
 export { memorySessionStore } from "./sessions-memory";
 export { dbSessionStore, type DbSessionStoreOptions } from "./sessions-persistence";
+export {
+  SIGNUP_INVITATION_CODE,
+  SIGNUP_INVITATION_MAX_DAYS,
+  SIGNUP_INVITATION_MIN_DAYS,
+  SIGNUP_INVITATION_PENDING_MAX,
+  SIGNUP_INVITATION_TTL_DAYS,
+  type SignupGrant,
+  type SignupInvitation,
+  type SignupInvitationCode,
+  SignupInvitationError,
+  type SignupInvitations,
+  signupInvitations,
+  type SignupInvitationsDeps,
+} from "./signup-invitations";
 export {
   type Fetcher,
   parseExternalIdentity,

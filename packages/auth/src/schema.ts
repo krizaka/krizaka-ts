@@ -157,3 +157,40 @@ CREATE INDEX IF NOT EXISTS sessions_account ON sessions(account_id);
     },
   ],
 });
+
+/**
+ * Invitations to create an account while sign-up is closed (`signupInvitations`): instance-level, bound to an address, a link used
+ * once whose keyed hash alone is kept, revocable, with an optional opaque grant. At most one open invitation per address (a partial
+ * unique index): a new invitation replaces it. In `public` beside the other auth tables, so its queries stay un-qualified. Idempotent.
+ */
+export const signupInvitationsSchema = defineModule({
+  module: "auth_signup_invitations",
+  schema: "public",
+  migrations: [
+    {
+      version: 1,
+      name: "sign-up invitations",
+      sql: () => `
+CREATE TABLE IF NOT EXISTS signup_invitations (
+  id         uuid PRIMARY KEY,
+  email      text NOT NULL CHECK (email = lower(email) AND char_length(email) BETWEEN 3 AND 254),
+  token_hash text NOT NULL UNIQUE,
+  invited_by text NOT NULL CHECK (char_length(invited_by) BETWEEN 1 AND 200),
+  grant_kind text CHECK (grant_kind IS NULL OR grant_kind ~ '^[a-z][a-z0-9_-]{0,39}$'),
+  grant_ref  text CHECK (grant_ref IS NULL OR char_length(grant_ref) BETWEEN 1 AND 200),
+  created_at timestamptz NOT NULL,
+  expires_at timestamptz NOT NULL,
+  used_at    timestamptz,
+  revoked_at timestamptz,
+  revoked_by text CHECK (revoked_by IS NULL OR char_length(revoked_by) BETWEEN 1 AND 200),
+  CHECK ((grant_kind IS NULL) = (grant_ref IS NULL)),
+  CHECK (expires_at > created_at),
+  CHECK (used_at IS NULL OR revoked_at IS NULL),
+  CHECK ((revoked_at IS NULL) = (revoked_by IS NULL))
+);
+CREATE UNIQUE INDEX IF NOT EXISTS signup_invitations_open ON signup_invitations(email) WHERE used_at IS NULL AND revoked_at IS NULL;
+CREATE INDEX IF NOT EXISTS signup_invitations_pending ON signup_invitations(created_at) WHERE used_at IS NULL AND revoked_at IS NULL;
+`,
+    },
+  ],
+});
