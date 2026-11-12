@@ -24,10 +24,25 @@ const mail = createMail({
 });
 
 // in the use case's transaction: the mail leaves only if the transaction commits
-await mail.queue(tx, { to, subject, text, category: "transactional", template: "password-reset", locale: "fr", idempotencyKey: `reset:${resetId}` });
+await mail.queue(tx, {
+  to,
+  subject,
+  text,
+  category: "transactional",
+  template: "password-reset",
+  locale: "fr",
+  idempotencyKey: `reset:${resetId}`,
+});
 
 // in the worker process
-await runWorker({ outbox, query, owner, topic: MAIL_TOPIC, deliver: (m) => mail.deliver(m).then(() => undefined), sleep });
+await runWorker({
+  outbox,
+  query,
+  owner,
+  topic: MAIL_TOPIC,
+  deliver: (m) => mail.deliver(m).then(() => undefined),
+  sleep,
+});
 
 // in the webhook route
 const suppression = parseMailgunWebhook(rawBody, env.MAIL_WEBHOOK_SIGNING_KEY, nowSeconds);
