@@ -1,0 +1,23 @@
+id: no-raw-video
+valid:
+  - |
+    const a = <VideoPlayer src={src} />;
+  - |
+    const b = <MediaCarousel items={items} />;
+  - |
+    const c = <PausableLoop src={src} />;
+  - |
+    const d = <VerticalVideo src={src} />;
+  - |
+    const e = React.createElement("audio", props);
+  - |
+    const f = <videoLike />;
+invalid:
+  - |
+    const a = <video src={src} controls />;
+  - |
+    const b = <video autoPlay muted loop><source src={src} /></video>;
+  - |
+    const c = React.createElement("video", { src });
+  - |
+    const d = createElement("video", { src });
