@@ -1,0 +1,34 @@
+id: no-raw-video
+language: Tsx
+severity: error
+message: "No raw `<video>`: use the media components of `@krizaka/ui` — `MediaCarousel`, `VideoPlayer`, `VerticalVideo`, `PausableLoop`, `media-player` (ADR « library first », krizaka-internal#3273). A local copy of a player is the same debt."
+note: "krizaka-internal#3273: products carried their own players and raw `<video>` elements. The rule ships to products, not to krizaka-ui's own sources (its sgconfig does not adopt the web set)."
+rule:
+  any:
+    - kind: jsx_self_closing_element
+      has:
+        field: name
+        regex: ^video$
+    - kind: jsx_opening_element
+      has:
+        field: name
+        regex: ^video$
+    - kind: call_expression
+      all:
+        - has:
+            field: function
+            any:
+              - regex: ^createElement$
+              - regex: ^React\.createElement$
+        - has:
+            field: arguments
+            has:
+              kind: string
+              regex: ^["']video["']$
+              nthChild: 1
+ignores:
+  - "**/node_modules/**"
+  - "**/.next/**"
+  - "**/dist/**"
+  - "**/*.test.ts"
+  - "**/*.test.tsx"

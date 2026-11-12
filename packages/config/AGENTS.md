@@ -28,6 +28,7 @@
 - `eslint` ^9 and `typescript` ^5 are peer dependencies; `eslint-config-next` and `prettier` are optional peers.
   Plugins are dependencies.
 - The ratchet never raises a recorded count: `--update` only lowers, and still fails on an increase.
+- **ast-grep `web/no-raw-video`**: no raw `<video>` / `createElement("video")` in products — `@krizaka/ui` media components (krizaka-internal#3273). Adopted through `krizaka-sg-ratchet` (`sg:ratchet:update` records the product's current count; never raised).
 - The package lints itself with its own configuration (`eslint.config.mjs`, relative imports); the other packages of krizaka-ts consume it from npm.
 
 ## 3. Quality gates
