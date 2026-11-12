@@ -1,6 +1,6 @@
 {
   "name": "@krizaka/mail",
-  "version": "0.1.4",
+  "version": "0.2.0",
   "description": "Mail for every Krizaka product: queued in the caller's transaction through the outbox, delivered once per idempotency key, never to a suppressed address (stored as a hash); providers (Mailgun, Resend, Mailpit, log); off production only an allowlist is mailed over an injected fetch; bounces and complaints from signed webhooks. No vendor SDK, no environment variable, no wall clock.",
   "keywords": [
     "krizaka",
