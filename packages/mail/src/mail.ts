@@ -12,7 +12,7 @@ import {
   type MailStore,
   type Query,
 } from "./port";
-import { bareAddress, checkMessage, hashAddress, uuidOf } from "./rules";
+import { bareAddress, checkMessage, hashAddress, isAllowed, PRODUCTION, testSubject, uuidOf } from "./rules";
 import type { Suppression } from "./webhooks";
 
 /** The topic the mail is queued on, and the event that names it: the outbox routes by these. */
@@ -106,10 +106,19 @@ export function createMail(deps: MailDeps): Mail {
         return DELIVERY_STATUS.duplicate;
       }
       const s = await settings();
+      if (!isAllowed(s, message.to)) {
+        await log({ ...base, status: DELIVERY_STATUS.notAllowlisted, detail: s.environment });
+        return DELIVERY_STATUS.notAllowlisted;
+      }
       const provider = typeof deps.provider === "function" ? deps.provider(s) : deps.provider;
       const replyTo = message.replyTo || s.replyTo;
       try {
-        const sent = await provider.send({ ...message, from: s.from, ...(replyTo ? { replyTo } : {}) });
+        const sent = await provider.send({
+          ...message,
+          ...(s.environment === PRODUCTION ? {} : { subject: testSubject(s.environment, message.subject) }),
+          from: s.from,
+          ...(replyTo ? { replyTo } : {}),
+        });
         await deps.store.claimKey(message.idempotencyKey, deps.clock.now());
         await log({
           ...base,
