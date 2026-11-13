@@ -1,5 +1,6 @@
 # A @krizaka release reaches this repository in minutes (krizaka/.github#388): the publisher sends `krizaka-release`, the
 # shared workflow bumps the ranges and opens one auto-merged pull request. Run it by hand with « dry-run » to see the plan.
+# The `bump` job keeps `permissions: contents: read`: the called job asks for it, and without it the run is a startup_failure.
 name: Bump @krizaka packages
 
 on:
@@ -18,7 +19,10 @@ permissions: {}
 
 jobs:
   bump:
-    uses: krizaka/.github/.github/workflows/bump-krizaka.yml@ef3449fd9bf0e6dd2b37e27dc12bf7da1653feb9 # main
+    # The called job reads the repository (contents: read); a caller job that grants less is a startup_failure with 0 jobs (krizaka-internal#3342).
+    permissions:
+      contents: read
+    uses: krizaka/.github/.github/workflows/bump-krizaka.yml@a5c115f5a6a3760b537581a26850a02f52e0fa6b # main
     with:
       packages: ${{ github.event.client_payload.packages && toJSON(github.event.client_payload.packages) || inputs.packages }}
       dry-run: ${{ inputs.dry-run == true }}
