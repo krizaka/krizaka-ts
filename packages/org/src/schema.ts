@@ -1,4 +1,5 @@
 import { CDN, ORG_SCHEMA_URL } from "./org";
+import { PRODUCT_STATUS } from "./org.types";
 
 const localized = {
   type: "object",
@@ -175,7 +176,7 @@ export const orgSchema = {
         properties: {
           id: slug,
           name: { type: "string", minLength: 1 },
-          status: { enum: ["development", "devPreview"] },
+          status: { enum: [...PRODUCT_STATUS] },
           url: httpsUrl,
           repo: httpsUrl,
         },

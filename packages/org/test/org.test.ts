@@ -1,7 +1,7 @@
 import { Ajv2020 } from "ajv/dist/2020.js";
 import { describe, expect, it } from "vitest";
 
-import { apps, appSchema, findCodeNames, footerLine, org, orgSchema } from "../src";
+import { apps, appSchema, findCodeNames, footerLine, org, orgSchema, PRODUCT_STATUS } from "../src";
 
 const ajv = new Ajv2020({ allErrors: true, strict: false });
 const text = JSON.stringify(org);
@@ -18,6 +18,29 @@ describe("the org JSON", () => {
       ["verikora", "development"],
       ["folioviv", "development"],
     ]);
+  });
+
+  it("has one closed set of product statuses, the schema and the data agree (krizaka-internal#3425)", () => {
+    expect(PRODUCT_STATUS).toEqual(["design", "upcoming", "construction", "development", "paused", "devPreview"]);
+    const validate = ajv.compile(orgSchema);
+    for (const status of PRODUCT_STATUS) {
+      const products = org.products.map((p, i) => (i === 0 ? { ...p, status } : p));
+      expect(validate({ ...org, products }), status).toBe(true);
+    }
+  });
+
+  it("refuses a product status outside the set", () => {
+    const validate = ajv.compile(orgSchema);
+    for (const status of ["live", "Paused", "released", ""]) {
+      const products = org.products.map((p, i) => (i === 0 ? { ...p, status } : p));
+      expect(validate({ ...org, products }), status).toBe(false);
+    }
+  });
+
+  it("still parses for a reader of schema 2: every status the data carries was in the old set", () => {
+    const old = new Set(["development", "devPreview"]);
+    for (const p of org.products) expect(old.has(p.status), p.id).toBe(true);
+    expect(org.schemaVersion).toBe(2);
   });
 
   it("refuses a fact the schema does not know", () => {

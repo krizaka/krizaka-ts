@@ -4,7 +4,14 @@ export interface Localized {
   en: string;
 }
 
-export type ProductStatus = "development" | "devPreview";
+/**
+ * Where a product stands, the one closed set every site reads (krizaka-internal#3425). `design`: in conception, nothing built.
+ * `upcoming`: announced. `construction`: being built, nothing offered. `development`: built in the open. `paused`: work paused
+ * for now. `devPreview`: runs on its dev site for QA. Adding a value is compatible (schema 2 stays); a reader of the old two-value
+ * set only breaks if the data uses a new one, so a new value ships with its readers.
+ */
+export const PRODUCT_STATUS = ["design", "upcoming", "construction", "development", "paused", "devPreview"] as const;
+export type ProductStatus = (typeof PRODUCT_STATUS)[number];
 
 export interface OrgProduct {
   id: string;
