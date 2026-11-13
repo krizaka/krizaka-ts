@@ -43,7 +43,8 @@ Apache-2.0 · [Krizaka TypeScript](https://github.com/krizaka/krizaka-ts)
 
 **Service discovery only** (founder, 2026-11-01): the addresses and versions clients resolve (API URLs, minimum and latest app
 versions, the default media, the family's names and addresses). It is read at start by the apps and published at each release.
-Names, status, store availability and the footer contents are **not** in it: they are admin configuration of each
+A product's **status** (`PRODUCT_STATUS`: `design`, `upcoming`, `construction`, `development`, `paused`, `devPreview`) is in it, one closed set every site reads instead of typing its own (krizaka-internal#3425).
+Names, store availability and the footer contents are **not** in it: they are admin configuration of each
 app in its database, through `@krizaka/settings` (audit trail), read at runtime and at build where needed (a save redeploys).
 The shared validation (no code name as a display name, FR/EN labels, valid URLs) lives in the settings package.
 

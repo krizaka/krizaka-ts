@@ -35,6 +35,7 @@ export type {
   OrgSocialLink,
   ProductStatus,
 } from "./org.types";
+export { PRODUCT_STATUS } from "./org.types";
 export { appSchema, orgSchema } from "./schema";
 
 import { org } from "./org";
