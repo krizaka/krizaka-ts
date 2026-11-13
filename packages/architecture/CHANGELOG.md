@@ -1,5 +1,11 @@
 # @krizaka/architecture
 
+## 0.2.1
+
+### Patch Changes
+
+- ae09f3f: yaml 2.8.3 (security advisories GHSA for yaml < 2.8.3)
+
 ## 0.2.0
 
 ### Minor Changes
