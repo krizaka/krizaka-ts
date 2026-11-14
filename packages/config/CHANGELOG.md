@@ -1,5 +1,15 @@
 # @krizaka/config
 
+## 0.26.0
+
+### Minor Changes
+
+- 2ba6d17: Add `@krizaka/config/env-spec`: `checkEnvSpec` (the env schema against the deploy spec's `envs`, with a `notDeclared` map of key → reason) and `readAppSpecEnvs` (a DigitalOcean App spec file read into its `envs` per component), so no app keeps its own copy (krizaka-internal#3650).
+
+### Patch Changes
+
+- 5922e5f: no-local-ui-copy lists the names @krizaka/ui 4.6.0 exports (regenerated with gen:ui-names).
+
 ## 0.25.0
 
 ### Minor Changes
