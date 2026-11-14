@@ -65,7 +65,8 @@ export const screen = <const S extends ManualScreen>(block: S): S => block;
 /** A field of an action's input, as the schema declares it. */
 export interface ManualField<L extends string = ManualLocale> {
   name: string;
-  required: boolean;
+  /** Whether the schema requires it; null when the action has no schema (a multipart form described by hand). */
+  required: boolean | null;
   /** The values a closed field accepts (a union of string literals); empty otherwise. */
   choices: readonly string[];
   text: Text<L>;

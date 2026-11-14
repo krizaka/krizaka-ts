@@ -118,7 +118,10 @@ function inputFields(ref: SchemaRef, checker: ts.TypeChecker): Omit<ManualField,
   const input = member(member(member(checker.getTypeAtLocation(at), "~standard"), "types"), "input");
   if (!input) return null;
   const branches = input.isUnion() ? input.types : [input];
-  const fields = new Map<string, Omit<ManualField, "text"> & { branches: number; open: boolean }>();
+  const fields = new Map<
+    string,
+    { name: string; required: boolean; choices: string[]; branches: number; open: boolean }
+  >();
   for (const branch of branches)
     for (const property of checker.getPropertiesOfType(branch)) {
       const type = checker.getNonNullableType(checker.getTypeOfSymbolAtLocation(property, at));
@@ -209,7 +212,7 @@ class BlockReader {
     texts: { readonly [key: string]: Literal },
     where: string,
   ): Omit<ManualField, "text">[] | null {
-    if (schema === undefined) return Object.keys(texts).map((name) => ({ name, required: true, choices: [] }));
+    if (schema === undefined) return Object.keys(texts).map((name) => ({ name, required: null, choices: [] }));
     const read = schema instanceof SchemaRef ? inputFields(schema, this.checker) : null;
     if (read === null) {
       this.fail(`${where}.input is not a schema the extractor can read (a Standard Schema: zod, valibot…)`);

@@ -12,6 +12,8 @@ export interface ManualLabels {
   settings: string;
   howTo: string;
   address: string;
+  /** What comes between a label and its text: `: ` in English, ` : ` in French. */
+  colon: string;
 }
 
 export const MANUAL_LABELS: Readonly<Record<ManualLocale, ManualLabels>> = {
@@ -25,6 +27,7 @@ export const MANUAL_LABELS: Readonly<Record<ManualLocale, ManualLabels>> = {
     settings: "Settings (administrator)",
     howTo: "How to",
     address: "Address",
+    colon: ": ",
   },
   fr: {
     actions: "Ce que vous pouvez faire",
@@ -36,6 +39,7 @@ export const MANUAL_LABELS: Readonly<Record<ManualLocale, ManualLabels>> = {
     settings: "Réglages (administrateur)",
     howTo: "Comment faire",
     address: "Adresse",
+    colon: " : ",
   },
 };
 
@@ -63,6 +67,8 @@ function entriesTable(entries: readonly ManualEntry[], locale: ManualLocale): st
   return ["| | |", "| --- | --- |", ...entries.map((e) => `| \`${e.key}\` | ${cell(e.text[locale])} |`)];
 }
 
+const requirementOf = (required: boolean, labels: ManualLabels) => (required ? labels.required : labels.optional);
+
 function actionSection(action: ManualActionPage, locale: ManualLocale, labels: ManualLabels): string[] {
   const out = [`### ${action.title[locale]}`, "", action.does[locale], ""];
   if (action.fields.length > 0) {
@@ -70,7 +76,8 @@ function actionSection(action: ManualActionPage, locale: ManualLocale, labels: M
     for (const f of action.fields) {
       const values = f.choices.map((c) => "`" + c + "`").join(", ");
       const choices = values === "" ? "" : ` (${labels.oneOf} ${values})`;
-      out.push(`- **${f.name}** — ${f.required ? labels.required : labels.optional}: ${f.text[locale]}${choices}`);
+      const requirement = f.required === null ? "" : ` — ${requirementOf(f.required, labels)}`;
+      out.push(`- **${f.name}**${requirement}${labels.colon}${f.text[locale]}${choices}`);
     }
     out.push("");
   }
@@ -80,7 +87,7 @@ function actionSection(action: ManualActionPage, locale: ManualLocale, labels: M
 
 /** The Markdown body of one page in one language. */
 export function manualMarkdown(page: ManualPage, locale: ManualLocale, labels = MANUAL_LABELS[locale]): string {
-  const out = [page.summary[locale], "", `${labels.address}: \`${page.route}\``, ""];
+  const out = [page.summary[locale], "", `${labels.address}${labels.colon}\`${page.route}\``, ""];
   for (const how of page.howTo) {
     out.push(`## ${labels.howTo} — ${how.title[locale]}`, "");
     how.steps.forEach((step: Text, i) => out.push(`${i + 1}. ${step[locale]}`));

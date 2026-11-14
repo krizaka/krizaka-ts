@@ -97,6 +97,15 @@ describe("a missing source fails the build", () => {
     ]);
   });
 
+  it("a field described without a schema is listed as written, its requirement unknown", () => {
+    const block = checkBlock.replace("      input: UploadBody,\n", "");
+    const manual = buildManual(fixtureSources({ program: fixtureProgram({ [CHECK]: block }) }));
+    expect(manual.pages[0]?.actions[0]?.fields.map((f) => [f.name, f.required])).toEqual([
+      ["kind", null],
+      ["note", null],
+    ]);
+  });
+
   it("an action whose route handler moved, or does not export the method", () => {
     expect(problemsWith({ [CHECK]: checkBlock.replace("POST /api/documents", "POST /api/files") })).toEqual([
       expect.stringContaining("no route handler answers /api/files (route.ts missing or moved)"),

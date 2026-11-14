@@ -1,9 +1,11 @@
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 
 import { buildManual } from "../src/extract";
 import { manualDocuments, slugOf } from "../src/index";
 import { routeOf } from "../src/routes";
-import { fixtureSources } from "./fixture";
+import { CHECK, fixtureProgram, fixtureSources } from "./fixture";
 
 describe("routes", () => {
   it("an app router file answers its folder's address, groups and slots left out, dynamic segments kept", () => {
@@ -29,9 +31,18 @@ describe("manualDocuments", () => {
     expect(check?.markdown).toContain("## Comment faire — Vérifier un bail");
     expect(check?.markdown).toContain("1. Connectez-vous.\n2. Déposez le bail.\n3. Lisez le rapport.");
     expect(check?.markdown).toContain("![Vérifier un bail](/journeys/start-a-check.webm)");
-    expect(check?.markdown).toContain("- **kind** — obligatoire: Ce qu’est le document. (au choix `lease`, `invoice`)");
-    expect(check?.markdown).toContain("- **note** — facultatif: Une note pour vous.");
+    expect(check?.markdown).toContain(
+      "- **kind** — obligatoire : Ce qu’est le document. (au choix `lease`, `invoice`)",
+    );
+    expect(check?.markdown).toContain("- **note** — facultatif : Une note pour vous.");
     expect(check?.markdown).toContain("| `FILE_TOO_LARGE` | Le fichier dépasse 10 Mo. |");
+  });
+
+  it("says nothing of required when no schema says it (a multipart form described by hand)", () => {
+    const block = readFileSync(CHECK, "utf8").replace("      input: UploadBody,\n", "");
+    const [check] = manualDocuments(buildManual(fixtureSources({ program: fixtureProgram({ [CHECK]: block }) })), "fr");
+    expect(check?.markdown).toContain("- **kind** : Ce qu’est le document.\n");
+    expect(check?.markdown).toContain("Adresse : `/app/check`");
   });
 
   it("writes the English page with the screen's errors and the administrator's settings", () => {
