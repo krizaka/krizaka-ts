@@ -15,7 +15,7 @@ export {
   startConnection,
 } from "./cloud-connectors";
 export { CLOUD_KEY_KINDS, type CloudKeyConfig, cloudKeyService } from "./cloud-keys";
-export { checkEndpointDns, isPrivateAddress, type Resolver } from "./dns-check";
+export { checkEndpointDns, type Resolver } from "./dns-check";
 export {
   dropboxAuthorizeUrl,
   exchangeDropboxCode,
@@ -57,6 +57,7 @@ export {
   type ProviderPlugin,
   type ProviderRegistry,
 } from "./open-provider";
+export { isPrivateAddress } from "./private-address";
 export { remoteStore, type RemoteStoreOptions } from "./remote-store";
 export { createStorage, type Storage, type StorageDeps, type StorageLimits, type UploadInput } from "./storage";
 export {
