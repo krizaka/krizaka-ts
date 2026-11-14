@@ -1,5 +1,11 @@
 # @krizaka/org
 
+## 1.6.0
+
+### Minor Changes
+
+- b7f7c28: Folioviv's persona cast names every dev account (krizaka-internal#2716): thirteen new personas with their full name and role, a new `staff` role.
+
 ## 1.5.0
 
 ### Minor Changes
