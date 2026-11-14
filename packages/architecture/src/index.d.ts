@@ -90,3 +90,103 @@ export const isOrgPackage: Record<Ecosystem, (name: string) => boolean>;
 export function baseVersion(range: string | null | undefined): string | null;
 /** Does a directory match a workspace glob (`apps/*`, `packages/**`, `deploy/backup`)? */
 export function globMatches(glob: string, dir: string): boolean;
+
+export type Point = readonly [number, number];
+export interface Box {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/** A node of a laid-out view (pixels, rounded). `compound` nodes hold others (their `parent` points at them). */
+export interface ArchNode extends Box {
+  id: string;
+  parent: string | null;
+  kind: string;
+  shape: string;
+  title: string;
+  technology: string | null;
+  description: string | null;
+  compound: boolean;
+}
+
+export interface ArchEdge {
+  id: string;
+  source: string;
+  target: string;
+  label: string | null;
+  /** Bézier points, start to end (or target to source when `back`). */
+  points: readonly Point[];
+  labelBBox: Box | null;
+  /** The step number of a dynamic view's edge, in the model's order; null in a static view. */
+  step: number | null;
+  /** Graphviz drew the edge against its rank: the points run from the target to the source. */
+  back: boolean;
+}
+
+export interface ArchView {
+  id: string;
+  title: string;
+  dynamic: boolean;
+  bounds: Box;
+  nodes: ArchNode[];
+  edges: ArchEdge[];
+}
+
+export interface ModelFile {
+  path: string;
+  text: string;
+}
+
+export interface HashedFile {
+  path: string;
+  sha256: string;
+}
+
+export type ModelRule = "model" | "no-specification" | "home" | "views";
+
+export interface ModelProblem {
+  rule: ModelRule;
+  path: string;
+  line: number;
+  message: string;
+}
+
+export interface LayoutOptions {
+  /** The org's files the model is written against (specification, org elements). With a base, a model writes no specification. */
+  base?: ModelFile[];
+  /** The system a model may only extend: every element it adds must have an id inside it (`platform.tooling.x`). */
+  system?: string;
+  /** The view ids to return, in this order; each must exist. Default: every view LikeC4 does not add by itself (not the implicit `index`), the containers view for a C4. */
+  views?: string[];
+}
+
+export interface Layout {
+  schema: "krizaka.layout/1";
+  tool: { name: "@krizaka/architecture"; likec4: string };
+  /** The sha256 of every source file: the model's and the base's. */
+  sources: { model: HashedFile[]; base: HashedFile[] };
+  /** The check's verdict: `ok` (a refused model throws), the system it was checked against, the elements the model adds. */
+  check: { status: "ok"; system: string | null; errors: []; elements: string[] };
+  views: ArchView[];
+}
+
+export const LAYOUT_SCHEMA: "krizaka.layout/1";
+export const RULES: Readonly<Record<"model" | "specification" | "home" | "views", ModelRule>>;
+
+/** A model the check refuses. `rule` is the first rule that failed; `problems` lists every one. */
+export class ArchitectureModelError extends Error {
+  readonly rule: ModelRule;
+  readonly problems: ModelProblem[];
+  constructor(problems: ModelProblem[]);
+}
+
+/**
+ * Check a LikeC4 model with the org's rules and lay its views out, at build time. Deterministic: the same sources give the
+ * same layout. Takes a LikeC4 text, a list of files, or the C4 `buildC4` returns (its containers view, no hand-written model).
+ * @throws {ArchitectureModelError}
+ */
+export function layoutViews(model: string | ModelFile[] | C4, options?: LayoutOptions): Promise<Layout>;
+/** The LikeC4 files of a C4's containers level (a specification, the containers, their relations, a `containers` view). */
+export function modelOfC4(c4: C4): ModelFile[];

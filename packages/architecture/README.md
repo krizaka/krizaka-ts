@@ -24,6 +24,35 @@ const units = unitsOf(files); // every unit with its version and the org depende
 Also exported: `isOrgPackage` (per ecosystem), `baseVersion` (`^0.19.0` → `0.19.0`) and `globMatches` (a workspace glob against
 a directory).
 
+## Laying views out (`layoutViews`, build time)
+
+One layout step for every consumer (blog, docs sites, cockpit; the drawing is `@krizaka/ui`'s, which imports only the types
+`ArchView`, `ArchNode`, `ArchEdge`, `Box` and `Point` from here). `layoutViews(model, options)` checks a LikeC4 model with the
+org's rules, lays its views out with LikeC4's own parser and Graphviz, and returns the geometry — no network, no setting, the
+same sources give the same JSON.
+
+```js
+import { buildC4, layoutViews, ArchitectureModelError } from "@krizaka/architecture";
+const out = await layoutViews([{ path: "agents.c4", text }], { base: orgFiles, system: "platform.tooling" });
+// { schema: "krizaka.layout/1", tool, sources: { model, base }  (sha256 of each file),
+//   check: { status: "ok", system, errors: [], elements }, views: ArchView[] }
+const containers = await layoutViews(buildC4("/path/to/checkout")); // the containers view of a repo, no hand-written model
+```
+
+`model` is a LikeC4 text, `[{ path, text }]` or the C4 `buildC4` returns. Options: `base` (the org's `specification.c4` and
+`org.c4`: a model then writes no specification), `system` (a model only extends this system: every element it adds lives
+inside it), `views` (ids to return, in this order; the implicit `index` landscape only when named). A model the check refuses
+throws an `ArchitectureModelError` whose `rule` (`model`, `no-specification`, `home`, `views`) and `problems` (`path`, `line`,
+`message`) say why. A dynamic view's edges carry their `step`; an edge Graphviz drew against its rank is `back` (its points run
+from the target to the source). `@likec4/language-services` is pinned and does the parsing (ADR-026).
+
+```bash
+npx krizaka-architecture layout model.c4 --out views.json --base specification.c4 --base org.c4 --system platform.tooling
+npx krizaka-architecture layout ../my-repo --out views.json     # a directory: its containers view, through buildC4
+```
+
+Exit 0 when laid out, 1 with the rule when the model is refused, 2 on a bad call.
+
 ## The units and their versions (`unitsOf`)
 
 A unit is what a manifest declares, each with `path`, `manifest`, `ecosystem`, `language`, `name`, `version`, `published` (an org
