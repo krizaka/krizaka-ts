@@ -121,6 +121,9 @@
     "contract": {
       "hook": "One response schema (zod) asserted by route tests, journeys, monitors and fetch wrappers: a 204, a missing field or an undefined count fails with the field’s path."
     },
+    "docs": {
+      "hook": "The user manual generated at build from the code: a typed block beside each screen, read from the TypeScript program and checked against the routes, schemas, error catalogue and journeys; a gap fails the build."
+    },
     "time": {
       "hook": "Date arithmetic on an instant, exact in any time zone: the facade the « Krizaka first » dates rule points to."
     },
