@@ -52,7 +52,12 @@ export interface ManualDocument {
 }
 
 /** A table cell holds one line: a pipe would open a column. */
-const cell = (s: string) => s.replace(/\|/g, "\\|").replace(/\s*\n\s*/g, " ");
+const cell = (s: string) =>
+  s
+    .split("\n")
+    .map((line) => line.trim())
+    .join(" ")
+    .replaceAll("|", "\\|");
 
 function entriesTable(entries: readonly ManualEntry[], locale: ManualLocale): string[] {
   return ["| | |", "| --- | --- |", ...entries.map((e) => `| \`${e.key}\` | ${cell(e.text[locale])} |`)];
@@ -63,7 +68,8 @@ function actionSection(action: ManualActionPage, locale: ManualLocale, labels: M
   if (action.fields.length > 0) {
     out.push(`**${labels.fields}**`, "");
     for (const f of action.fields) {
-      const choices = f.choices.length > 0 ? ` (${labels.oneOf} ${f.choices.map((c) => `\`${c}\``).join(", ")})` : "";
+      const values = f.choices.map((c) => "`" + c + "`").join(", ");
+      const choices = values === "" ? "" : ` (${labels.oneOf} ${values})`;
       out.push(`- **${f.name}** — ${f.required ? labels.required : labels.optional}: ${f.text[locale]}${choices}`);
     }
     out.push("");

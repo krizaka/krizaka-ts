@@ -19,11 +19,19 @@ export function routeOf(file: string, root: string): string | null {
   return `/${segments.join("/")}`;
 }
 
+/** A segment's name without the brackets of a dynamic or catch-all segment: `[id]` → `id`, `[[...slug]]` → `slug`. */
+function segmentName(segment: string): string {
+  let name = segment;
+  while (name.startsWith("[")) name = name.slice(1);
+  while (name.endsWith("]")) name = name.slice(0, -1);
+  return name.startsWith("...") ? name.slice(3) : name;
+}
+
 /** The slug of a route, for a page's address in the manual: `/app/documents/[id]` → `app-documents-id`; `/` → `home`. */
 export function slugOf(route: string): string {
   const slug = route
     .split("/")
-    .map((s) => s.replace(/^\[+\.*|\]+$/g, ""))
+    .map(segmentName)
     .filter((s) => s !== "")
     .join("-");
   return slug === "" ? "home" : slug;

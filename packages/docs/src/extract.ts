@@ -135,7 +135,8 @@ class BlockReader {
 
   text(value: Literal | undefined, where: string): Text | null {
     if (!isRecord(value)) {
-      this.fail(`${where} has no text: write it as { ${this.sources.locales.map((l) => `${l}: "…"`).join(", ")} }`);
+      const shape = this.sources.locales.map((l) => l + ': "…"').join(", ");
+      this.fail(`${where} has no text: write it as { ${shape} }`);
       return null;
     }
     const missing = this.sources.locales.filter((l) => {
@@ -180,6 +181,24 @@ class BlockReader {
     return out;
   }
 
+  /** The fields the action's schema declares, or those described when it has none; null when its schema cannot be read. */
+  private declaredFields(
+    schema: Literal | undefined,
+    texts: { readonly [key: string]: Literal },
+    where: string,
+  ): Omit<ManualField, "text">[] | null {
+    if (schema === undefined) return Object.keys(texts).map((name) => ({ name, required: true, choices: [] }));
+    const read = schema instanceof SchemaRef ? inputFields(schema, this.checker) : null;
+    if (read === null) {
+      this.fail(`${where}.input is not a schema the extractor can read (a Standard Schema: zod, valibot…)`);
+      return null;
+    }
+    const names = new Set(read.map((f) => f.name));
+    for (const name of Object.keys(texts).filter((n) => !names.has(n)))
+      this.fail(`${where}.fields.${name} describes a field the input schema does not have`);
+    return read;
+  }
+
   private fields(action: { readonly [key: string]: Literal }, where: string): ManualField[] {
     const described = action.fields;
     if (described !== undefined && !isRecord(described)) {
@@ -187,23 +206,8 @@ class BlockReader {
       return [];
     }
     const texts = described ?? {};
-    const schema = action.input;
-    let declared: Omit<ManualField, "text">[];
-    if (schema === undefined) {
-      declared = Object.keys(texts).map((name) => ({ name, required: true, choices: [] }));
-    } else {
-      const read = schema instanceof SchemaRef ? inputFields(schema, this.checker) : null;
-      if (read === null) {
-        this.fail(`${where}.input is not a schema the extractor can read (a Standard Schema: zod, valibot…)`);
-        return [];
-      }
-      declared = read;
-      const names = new Set(read.map((f) => f.name));
-      for (const name of Object.keys(texts))
-        if (!names.has(name)) this.fail(`${where}.fields.${name} describes a field the input schema does not have`);
-    }
     const out: ManualField[] = [];
-    for (const field of declared) {
+    for (const field of this.declaredFields(action.input, texts, where) ?? []) {
       const text = this.text(texts[field.name], `${where}: the field « ${field.name} »`);
       if (text) out.push({ ...field, text });
     }
@@ -305,47 +309,63 @@ function pageOf(
   return title && summary && problems.length === before ? { ...page, title, summary } : null;
 }
 
+/** The screens' pages and the manual blocks under the screens' folder, by folder. */
+function screenFiles(files: ts.SourceFile[], screens: string) {
+  const pages = new Map<string, string>();
+  const blocks = new Map<string, ts.SourceFile>();
+  for (const file of files.filter((f) => inside(f.fileName, screens))) {
+    const name = path.basename(file.fileName);
+    if (SCREEN_FILE.test(name)) pages.set(path.dirname(file.fileName), file.fileName);
+    if (name === MANUAL_FILE) blocks.set(path.dirname(file.fileName), file);
+  }
+  return { pages, blocks };
+}
+
+/** What `pending` must not hold, and the blocks whose page is gone: the lists that only go down. */
+function staleProblems(
+  pages: Map<string, string>,
+  blocks: Map<string, ts.SourceFile>,
+  pending: Set<string>,
+  screens: string,
+): ManualProblem[] {
+  const routes = new Set([...pages.values()].map((page) => routeOf(page, screens) ?? "/"));
+  const orphans = [...blocks].filter(([folder]) => !pages.has(folder));
+  return [
+    ...orphans.map(([, block]) => ({
+      file: path.relative(screens, block.fileName),
+      message: "a manual block beside no page",
+    })),
+    ...[...pending]
+      .filter((route) => !routes.has(route))
+      .map((route) => ({ file: "pending", message: `${route} is not a screen any more: remove it` })),
+  ];
+}
+
 /** The manual and every gap found on the way; `buildManual` is the build's entry point. */
 export function readManual(input: ManualSources): { manual: Manual; problems: ManualProblem[] } {
   const sources = { ...input, locales: input.locales ?? DEFAULT_LOCALES };
   const checker = sources.program.getTypeChecker();
   const files = productFiles(sources.program);
   const routes = handlers(files, sources.app, checker);
-  const screens = new Map<string, string>();
-  const blocks = new Map<string, ts.SourceFile>();
-  for (const file of files) {
-    if (!inside(file.fileName, sources.screens)) continue;
-    const name = path.basename(file.fileName);
-    if (SCREEN_FILE.test(name)) screens.set(path.dirname(file.fileName), file.fileName);
-    if (name === MANUAL_FILE) blocks.set(path.dirname(file.fileName), file);
-  }
+  const { pages: screenPages, blocks } = screenFiles(files, sources.screens);
   const pending = new Set(sources.pending ?? []);
   const problems: ManualProblem[] = [];
   const pages: ManualPage[] = [];
-  const seen = new Set<string>();
-  for (const [folder, page] of screens) {
+  for (const [folder, page] of screenPages) {
     const route = routeOf(page, sources.screens) ?? "/";
-    seen.add(route);
     const block = blocks.get(folder);
-    const relative = path.relative(sources.screens, page);
-    if (!block) {
-      if (!pending.has(route))
-        problems.push({
-          file: relative,
-          message: `the screen ${route} has no ${MANUAL_FILE} beside its page: write its manual block (or list the route in pending)`,
-        });
-      continue;
-    }
-    if (pending.has(route))
-      problems.push({ file: relative, message: `the screen ${route} is documented: remove it from pending` });
-    const built = pageOf(route, block, sources, routes, checker, problems);
+    const file = path.relative(sources.screens, page);
+    if (block && pending.has(route))
+      problems.push({ file, message: `the screen ${route} is documented: remove it from pending` });
+    if (!block && !pending.has(route))
+      problems.push({
+        file,
+        message: `the screen ${route} has no ${MANUAL_FILE} beside its page: write its manual block (or list the route in pending)`,
+      });
+    const built = block && pageOf(route, block, sources, routes, checker, problems);
     if (built) pages.push(built);
   }
-  for (const [folder, block] of blocks)
-    if (!screens.has(folder))
-      problems.push({ file: path.relative(sources.screens, block.fileName), message: "a manual block beside no page" });
-  for (const route of pending)
-    if (!seen.has(route)) problems.push({ file: "pending", message: `${route} is not a screen any more: remove it` });
+  problems.push(...staleProblems(screenPages, blocks, pending, sources.screens));
   pages.sort((a, b) => a.order - b.order || a.route.localeCompare(b.route));
   return { manual: { pages, pending: [...pending].sort((a, b) => a.localeCompare(b)) }, problems };
 }
