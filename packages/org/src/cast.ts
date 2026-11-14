@@ -190,7 +190,7 @@ export const CAST: readonly CastPersona[] = [
   },
   // The other Folioviv dev accounts of krizaka-internal#2716 (full names; their e-mails stay in the app seed, on the reserved test domains).
   foliovivDevAccount("philippe", "Philippe", "Philippe Gauthier", "owner", "community-lead", "krizaka-studio"),
-  foliovivDevAccount("myriam", "Myriam", "Myriam Dubé", "admin", "ai-builder", "administration"),
+  foliovivDevAccount("myriam", "Myriam", "Myriam Dubé", "owner", "ai-builder", "ines-encrevive"),
   foliovivDevAccount("eric-krizaka", "Éric", "Éric Bouchard", "owner", "community-lead", "krizaka-studio"),
   foliovivDevAccount("camille-staff", "Camille", "Camille Pelletier", "staff", "visual-artist", "krizaka-studio"),
   foliovivDevAccount("marie-eve", "Marie-Ève", "Marie-Ève Fortin", "client", "digital-creator", "saint-henri"),
