@@ -100,3 +100,7 @@ one (environment variables, CSS classes, hosts, URLs, package coordinates, code 
 - `findCodeNames` allows nothing any more (URLs, hosts, `@krizaka/*`, `com.krizaka.*`, backticks were allowed before), and
   `visibleText` no longer drops a `data-code-name` line.
 - `org.products` / `org.family` ids, `apps/<id>.json` and `CastProduct` use the new ids.
+
+## Mascots
+
+`org.mascot` is the company's bird (falcon); `org.products[*].mascot` is each product's own (duck = Sovkora, owl = Verikora, beaver = Folioviv, crane = Kridoc), from the closed set `MASCOT_BIRDS`. An app reads its bird here, never a default of its own.

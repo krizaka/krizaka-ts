@@ -25,6 +25,7 @@ export type {
   FooterSite,
   LegalId,
   Localized,
+  MascotBird,
   Org,
   OrgAvatar,
   OrgBanner,
@@ -38,7 +39,7 @@ export type {
   ProductStatus,
   ResolvedFooter,
 } from "./org.types";
-export { PRODUCT_STATUS } from "./org.types";
+export { MASCOT_BIRDS, PRODUCT_STATUS } from "./org.types";
 export { appSchema, orgSchema } from "./schema";
 
 import { org } from "./org";

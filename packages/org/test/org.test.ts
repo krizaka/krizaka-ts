@@ -1,7 +1,17 @@
 import { Ajv2020 } from "ajv/dist/2020.js";
 import { describe, expect, it } from "vitest";
 
-import { apps, appSchema, brandOf, findCodeNames, footerLine, org, orgSchema, PRODUCT_STATUS } from "../src";
+import {
+  apps,
+  appSchema,
+  brandOf,
+  findCodeNames,
+  footerLine,
+  MASCOT_BIRDS,
+  org,
+  orgSchema,
+  PRODUCT_STATUS,
+} from "../src";
 
 const ajv = new Ajv2020({ allErrors: true, strict: false });
 const text = JSON.stringify(org);
@@ -10,6 +20,28 @@ describe("the org JSON", () => {
   it("validates against its schema", () => {
     const validate = ajv.compile(orgSchema);
     expect(validate(org), JSON.stringify(validate.errors)).toBe(true);
+  });
+
+  it("carries each product's bird and the org's own, from the closed set (krizaka-internal#3642)", () => {
+    expect(org.mascot).toBe("falcon");
+    expect(Object.fromEntries(org.products.map((p) => [p.id, p.mascot]))).toEqual({
+      sovkora: "duck",
+      verikora: "owl",
+      folioviv: "beaver",
+      kridoc: "crane",
+    });
+    for (const bird of [org.mascot, ...org.products.map((p) => p.mascot)]) expect(MASCOT_BIRDS).toContain(bird);
+    const birds = [org.mascot, ...org.products.map((p) => p.mascot)];
+    expect(new Set(birds).size).toBe(birds.length);
+  });
+
+  it("exposes the birds in the JSON a reader fetches, and the schema refuses a bird outside the set", () => {
+    const json = JSON.parse(text) as typeof org;
+    expect(json.mascot).toBe("falcon");
+    expect(json.products.every((p) => MASCOT_BIRDS.includes(p.mascot))).toBe(true);
+    const validate = ajv.compile(orgSchema);
+    expect(validate({ ...json, products: [{ ...json.products[0], mascot: "dodo" }] })).toBe(false);
+    expect(validate({ ...json, mascot: undefined })).toBe(false);
   });
 
   it("says every product is in development (krizaka-com#468)", () => {
@@ -85,6 +117,7 @@ describe("the org JSON", () => {
       status: "development",
       url: "https://www.kridoc.com",
       repo: "https://github.com/krizaka/kridoc",
+      mascot: "crane",
     });
   });
 
