@@ -1,5 +1,12 @@
 # @krizaka/config
 
+## 0.24.0
+
+### Minor Changes
+
+- 8db66ca: `no-raw-control` also refuses a raw `<form>`: the message names `@krizaka/ui/form` (founder, 2026-11-14: « form elle doit utiliser cet import »).
+- f74633d: Two rules in the `web` set make every app use `@krizaka/ui`: `no-raw-control` (a raw `<button>`, `<input>`, `<select>`, `<textarea>`, `<table>` or `<dialog>` is refused, the message names the component to import) and `no-local-ui-copy` (a component declared locally under a name `@krizaka/ui` exports is refused; the names are generated from its exports with `pnpm run gen:ui-names`). A legitimate case takes a written `// ui-allow: <reason>`. Refs krizaka-internal#3569.
+
 ## 0.23.0
 
 ### Minor Changes
