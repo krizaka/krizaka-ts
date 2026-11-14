@@ -21,7 +21,11 @@ describe("the family's names", () => {
   });
 
   it("is a system of the family: `kridoc` is an entry the architecture tool can extend (krizaka-internal#3561)", () => {
-    expect(familyEntry("kridoc")).toMatchObject({ group: "products", status: "development", url: "https://www.kridoc.com" });
+    expect(familyEntry("kridoc")).toMatchObject({
+      group: "products",
+      status: "development",
+      url: "https://www.kridoc.com",
+    });
   });
 
   it("agrees with the products and sites lists: same names, same addresses", () => {
