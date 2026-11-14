@@ -11,7 +11,8 @@ const RULE = fileURLToPath(new URL("../ast-grep/web/no-local-ui-copy.yml", impor
 export const BEGIN = "# generated:begin — `pnpm run gen:ui-names`, from the exports of @krizaka/ui";
 export const END = "# generated:end";
 /** A component: PascalCase with a lowercase letter, no dot (`SiteFooter.Column` is a member), not a constant (`PAPER_GRAIN_ID`). */
-const COMPONENT = /^[A-Z][A-Za-z0-9]*[a-z][A-Za-z0-9]*$/;
+const COMPONENT = /^[A-Z][A-Za-z0-9]*$/;
+const isComponent = (/** @type {string} */ name) => COMPONENT.test(name) && /[a-z]/.test(name);
 
 const pascal = (/** @type {string} */ s) =>
   s.replace(/(^|-)([a-z0-9])/g, (/** @type {string} */ _, /** @type {string} */ __, /** @type {string} */ c) =>
@@ -33,12 +34,12 @@ export function componentNames(dir = uiPackageDir()) {
     const item = JSON.parse(readFileSync(file, "utf8"));
     const found = (item.web?.props ?? [])
       .map((/** @type {{ component: string }} */ p) => p.component)
-      .filter((/** @type {string} */ c) => COMPONENT.test(c));
+      .filter((/** @type {string} */ c) => isComponent(c));
     for (const component of found) names.add(component);
     // the entry's own name (`./tabs` → `Tabs`, `./data-table` → `DataTable`): a compound's namespace is no documented prop.
     if (found.length > 0 && /^\.\/[a-z0-9-]+$/.test(subpath)) names.add(pascal(subpath.slice(2)));
   }
-  return [...names].sort();
+  return [...names].sort((a, b) => a.localeCompare(b));
 }
 
 export const block = (/** @type {string[]} */ names) => `${BEGIN}\n    regex: ^(${names.join("|")})$\n    ${END}`;
