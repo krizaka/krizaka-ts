@@ -155,13 +155,21 @@ The **covered-domains map** is `covered-domains.json`, the single source. Each d
 refused in an app; the preset generates `krizaka-first-<domain>` from it, and the page « Use Krizaka first » of
 ui.krizaka.com is laid out from it (`coveredDomainsMarkdown()`).
 
-| Domain                                             | Krizaka home                                                                                                                   | Refused in an app                                                                                                              | Rule                  |
-| :------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------- | :-------------------- |
-| Dates, times, local days                           | `@krizaka/intl` (formatting, `localDay`), `@krizaka/time` (arithmetic; a facade created on the first real need, krizaka-ts#76) | `date-fns*`, `@date-fns/*`, `dayjs`, `luxon`, `moment`, `moment-timezone`                                                      | `krizaka-first-dates` |
-| Words, languages                                   | `@krizaka/i18n`                                                                                                                | `i18next*`, `react-i18next`, `next-intl`, `next-i18next`, `react-intl`, `@formatjs/*`, `@lingui/*`, `i18n-js`, `typesafe-i18n` | `krizaka-first-i18n`  |
-| Data fetching, cache, tables, forms, virtual lists | `@krizaka/query`, `@krizaka/ui`, `@krizaka/pacer`                                                                              | `@tanstack/*`                                                                                                                  | `krizaka-first-query` |
-| Icons                                              | `@krizaka/icons`                                                                                                               | `lucide-react`, `react-icons`, `@heroicons/*`                                                                                  | `krizaka-first-icons` |
-| Interface primitives                               | `@krizaka/ui`                                                                                                                  | `@radix-ui/*`, `radix-ui`                                                                                                      | `krizaka-first-ui`    |
+| Domain                                             | Krizaka home                                                                                                                       | Refused in an app                                                                                                              | Rule                       |
+| :------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------- | :------------------------- |
+| Dates, times, local days                           | `@krizaka/intl` (formatting, `localDay`), `@krizaka/time` (arithmetic; a facade created on the first real need, krizaka-ts#76)     | `date-fns*`, `@date-fns/*`, `dayjs`, `luxon`, `moment`, `moment-timezone`                                                      | `krizaka-first-dates`      |
+| Words, languages                                   | `@krizaka/i18n`                                                                                                                    | `i18next*`, `react-i18next`, `next-intl`, `next-i18next`, `react-intl`, `@formatjs/*`, `@lingui/*`, `i18n-js`, `typesafe-i18n` | `krizaka-first-i18n`       |
+| Data fetching, cache, tables, forms, virtual lists | `@krizaka/query`, `@krizaka/ui`, `@krizaka/pacer`                                                                                  | `@tanstack/*`                                                                                                                  | `krizaka-first-query`      |
+| Icons                                              | `@krizaka/icons`                                                                                                                   | `lucide-react`, `react-icons`, `@heroicons/*`                                                                                  | `krizaka-first-icons`      |
+| Interface primitives                               | `@krizaka/ui`                                                                                                                      | `@radix-ui/*`, `radix-ui`                                                                                                      | `krizaka-first-ui`         |
+| Browser audits of a page                           | `@krizaka/page-audit` (journeys, settle and visual checks over the browser)                                                        | `playwright-core`                                                                                                              | `krizaka-first-page-audit` |
+| Object storage and OAuth clients                   | `@krizaka/storage` (`opendalStore` over every cloud, `startConnection` / `finishConnection` for the OAuth authorization code flow) | `arctic`, `opendal`                                                                                                            | `krizaka-first-storage`    |
+
+The map has two parts. The five domains above are typed in `covered-domains.json`. The **facade domains** are declared next
+to the package that wraps the library — `"krizaka": { "facade": { "wraps": ["opendal"], "use": "…" } }` in its package.json
+(krizaka-internal#3582) — and generated into `facades.json` (`pnpm run gen:package-exports` in this package; a test fails
+when the committed file is behind). Both feed the same `krizaka-first-<domain>` rules, so a new facade is one declaration
+in the package, never a line here.
 
 An entry is a package (`dayjs`, and its subpaths), a prefix (`date-fns*`) or a scope (`@tanstack/*`). It matches the
 resolved file and the module as written when it cannot be resolved (a package the app does not declare), never a local
@@ -376,3 +384,14 @@ One source for the code rules (ADR-013, `docs/standards/guards.md`): the reposit
 - **`krizaka-sg-ratchet`** runs `ast-grep scan`, counts the violations per rule and refuses any increase against `sg-ratchet.json` (`--update` lowers the counts, records a new rule, never raises one). The rules are those of the `ruleDirs`.
 - **`krizaka-seo-family --base http://localhost:3000 --host https://www.example.com …`** is the SEO contract of every site of the family (robots.txt, sitemap, llms.txt, canonical, Open Graph, JSON-LD, noindex); its flags are in the header of `bin/krizaka-seo-family.mjs`.
 - The rules' tests are in `ast-grep/rule-tests` and run with this package's `pnpm test`.
+
+### Every app uses the `@krizaka` packages (app set, krizaka-internal#3582)
+
+`no-local-lib-copy` (the `app` set of the ast-grep pack, for an app that consumes the packages: krizaka-ts itself, where they
+are defined, does not adopt it) refuses a function, class, interface, type or `const` declared locally under a name a
+`@krizaka/*` package of krizaka-ts exports (`createOutbox`, `OrganizeError`, `addHours`…). The list is generated from the
+exports of the packages (`pnpm run gen:package-exports`; a test fails when the committed rule is behind), only distinctive
+names count (two words, 8 characters: `Query` or `Clock` stay free). An implementation of a package's port under the same
+name takes a written reason, read by the rule: `// lib-allow: <reason>` on the line above. The bypass of a facade is the
+`krizaka-first-<domain>` rules above, extended with the pairs the packages declare. An app records its existing hits once
+(`krizaka-sg-ratchet --update`, `krizaka-known-violations`); the counts only go down.

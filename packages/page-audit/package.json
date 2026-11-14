@@ -79,5 +79,14 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "krizaka": {
+    "facade": {
+      "title": "Browser audits of a page",
+      "wraps": [
+        "playwright-core"
+      ],
+      "use": "`@krizaka/page-audit` (journeys, settle and visual checks over the browser)"
+    }
   }
 }

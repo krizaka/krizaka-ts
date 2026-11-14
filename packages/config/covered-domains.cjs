@@ -3,11 +3,13 @@
 // configs, and Node imports it from ESM (`import { coveredDomains } from "@krizaka/config/covered-domains"`).
 
 const map = require("./covered-domains.json");
+/** The libraries the packages of krizaka-ts wrap, declared next to each package and generated (`pnpm run gen:package-exports`). */
+const facades = require("./facades.json");
 
 /** @typedef {{ id: string, title: string, home: string, use: string, refused: string[] }} CoveredDomain */
 
 /** The domains, in the order of the map. @type {readonly CoveredDomain[]} */
-const coveredDomains = Object.freeze(map.domains);
+const coveredDomains = Object.freeze([...map.domains, ...facades.domains]);
 
 /** The last thing every message says. */
 const MISSING_FUNCTION = "Missing function? add it to the package first.";

@@ -107,5 +107,15 @@
     "opendal": {
       "optional": true
     }
+  },
+  "krizaka": {
+    "facade": {
+      "title": "Object storage and OAuth clients",
+      "wraps": [
+        "opendal",
+        "arctic"
+      ],
+      "use": "`@krizaka/storage` (`opendalStore` over every cloud, `startConnection` / `finishConnection` for the OAuth authorization code flow)"
+    }
   }
 }

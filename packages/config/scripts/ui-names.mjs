@@ -7,6 +7,8 @@ import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { generatedBlock } from "./generated-block.mjs";
+
 const RULE = fileURLToPath(new URL("../ast-grep/web/no-local-ui-copy.yml", import.meta.url));
 export const BEGIN = "# generated:begin — `pnpm run gen:ui-names`, from the exports of @krizaka/ui";
 export const END = "# generated:end";
@@ -42,15 +44,7 @@ export function componentNames(dir = uiPackageDir()) {
   return [...names].sort((a, b) => a.localeCompare(b));
 }
 
-export const block = (/** @type {string[]} */ names) => `${BEGIN}\n    regex: ^(${names.join("|")})$\n    ${END}`;
-
-/** The rule file with its generated block replaced by the one of `names`. */
-export function render(/** @type {string} */ source, /** @type {string[]} */ names) {
-  const start = source.indexOf(BEGIN);
-  const end = source.indexOf(END);
-  if (start < 0 || end < start) throw new Error(`${RULE}: the generated markers are missing`);
-  return source.slice(0, start) + block(names) + source.slice(end + END.length);
-}
+export const { block, render } = generatedBlock(BEGIN, END, RULE);
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const source = readFileSync(RULE, "utf8");

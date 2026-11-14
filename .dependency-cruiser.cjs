@@ -7,9 +7,12 @@
 const RENDERING =
   "^(node_modules/)?@krizaka/(ui|tokens|fonts|icons|tailwind|charts|email)(/|$)|(^|/)node_modules/@krizaka/(ui|tokens|fonts|icons|tailwind|charts|email)(/|$)";
 
-// `packages/time` is the dates facade (krizaka-ts#76): the one package that may import the date library. Each package is cruised
-// from its own folder (scripts/deps.mjs), so the facade is the run whose folder is `time`.
-const facade = require("node:path").basename(process.cwd()) === "time";
+// A facade package may import the library it wraps: `packages/time` is the dates facade (krizaka-ts#76), and a package that
+// declares `krizaka.facade` in its package.json (krizaka-internal#3582: storage, page-audit) wraps what it lists. Each package is
+// cruised from its own folder (scripts/deps.mjs), so the facade is the run whose folder is that package.
+const facade =
+  require("node:path").basename(process.cwd()) === "time" ||
+  Boolean(require(require("node:path").join(process.cwd(), "package.json")).krizaka?.facade);
 const preset = require("@krizaka/config/dependency-cruiser").withOptions({ exemptFrom: facade ? ["^src/"] : [] });
 
 module.exports = {

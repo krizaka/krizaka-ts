@@ -131,6 +131,7 @@ describe("published surface", () => {
   it.each([
     "./covered-domains",
     "./covered-domains.json",
+    "./facades.json",
     "./dependency-cruiser",
     "./known-violations",
     "./eslint/stack",
