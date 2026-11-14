@@ -1,11 +1,11 @@
 id: no-raw-control
 language: Tsx
 severity: error
-message: "No raw control in an app: `<button>` → `Button` (@krizaka/ui/button) · `<input>` and `<textarea>` → `Input` / `Textarea` (@krizaka/ui/field), or `TextField` / `TextArea` in a form (@krizaka/ui/form) · `<select>` → `Select` (@krizaka/ui/field) or `Combobox` (@krizaka/ui/combobox) · `<table>` → `DataTable` (@krizaka/ui/data-table) · `<dialog>` → `Dialog` (@krizaka/ui/dialog). A legitimate raw element (an SVG chart's focus target, an e-mail template) takes a written reason: `// ui-allow: <reason>` on the line above, or `{/* ui-allow: <reason> */}` in JSX."
+message: "No raw control in an app: `<button>` → `Button` (@krizaka/ui/button) · `<input>` and `<textarea>` → `Input` / `Textarea` (@krizaka/ui/field), or `TextField` / `TextArea` in a form (@krizaka/ui/form) · `<select>` → `Select` (@krizaka/ui/field) or `Combobox` (@krizaka/ui/combobox) · `<table>` → `DataTable` (@krizaka/ui/data-table) · `<dialog>` → `Dialog` (@krizaka/ui/dialog) · `<form>` → `Form` (@krizaka/ui/form), or `SchemaForm` (@krizaka/ui/schema-form). A legitimate raw element (an SVG chart's focus target, an e-mail template) takes a written reason: `// ui-allow: <reason>` on the line above, or `{/* ui-allow: <reason> */}` in JSX."
 note: 'krizaka-internal#3569: apps built their own controls beside the library. A `type="hidden"` input carries no control and is not refused. krizaka-ui itself does not adopt the web set (it defines them).'
 utils:
   raw-name:
-    regex: ^(button|input|select|textarea|table|dialog)$
+    regex: ^(button|input|select|textarea|table|dialog|form)$
   ui-allow:
     kind: comment
     regex: ui-allow:\s*[^\s*/]

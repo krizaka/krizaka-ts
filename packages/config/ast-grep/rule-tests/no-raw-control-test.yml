@@ -1,6 +1,10 @@
 id: no-raw-control
 valid:
   - |
+    const k = <Form onSubmit={save}><TextField name="q" /></Form>;
+  - |
+    const l = <formatter />;
+  - |
     const a = <Button>Save</Button>;
   - |
     const b = <Field.Root><Input /></Field.Root>;
@@ -32,6 +36,8 @@ valid:
       return <button aria-label="Zoom" />;
     }
 invalid:
+  - |
+    const k = <form onSubmit={go}><Button>Go</Button></form>;
   - |
     const a = <button onClick={go}>Go</button>;
   - |
