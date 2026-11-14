@@ -10,6 +10,7 @@
 import { mkdirSync } from "node:fs";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
+import { HERO_WIDTHS, heroProblems } from "./check-hero.mjs";
 
 /** The widths the site is read at, from the narrowest phone to a wide desktop. */
 export const WIDTHS = [360, 390, 768, 1024, 1440];
@@ -58,6 +59,7 @@ async function checkPage(page, { base, path, width, theme, shots }) {
   await page.evaluate(() => document.fonts.ready);
   const issues = await page.evaluate(measure);
   const isHome = path === "/" || path === "/fr/";
+  if (isHome && HERO_WIDTHS.includes(width)) issues.push(...(await heroProblems(page)));
   if (shots && isHome && (width === 390 || width === 1440)) {
     await page.screenshot({ path: `${shots}/home${path === "/" ? "" : "-fr"}-${width}-${theme}.png`, fullPage: true });
   }

@@ -15,18 +15,20 @@ import {
 import { Button } from "@krizaka/ui/button";
 import { ArgumentCard } from "@krizaka/ui/argument-card";
 import { CardGrid } from "@krizaka/ui/card-grid";
-import { LandingPage } from "@krizaka/ui/landing-page";
+import { CtaPanel } from "@krizaka/ui/cta-panel";
 import { LinkCard } from "@krizaka/ui/link-card";
-import { NumberTicker } from "@krizaka/ui/number-ticker";
 import { Section } from "@krizaka/ui/page";
+import { PageHero } from "@krizaka/ui/page-hero";
+import { SpecimenTag } from "@krizaka/ui/specimen-tag";
 import { format, getDictionary, localizedPath, type Locale } from "@/lib/i18n";
-import { exportedNames, packages } from "@/lib/packages";
+import { HERO_PACKAGE } from "@/lib/install";
+import { packages } from "@/lib/packages";
 import { JAVA_URL, NPM_ORG_URL, REPOSITORY_URL, UI_URL, npmPackageUrl } from "@/lib/site";
 import InstallTabs from "./InstallTabs";
 
-/* The home of ts.krizaka.com, on the landing template of @krizaka/ui: a split hero (the promise, and the install command in
-   each package manager), the facts read at build, why (three pillars), the packages (one card each, from the generated
-   data), the ways on. Every figure is data (the packages and npm); every word is a message. */
+/* The home of ts.krizaka.com: a hero (the promise, and beside it the install command of the foundation package in each
+   package manager, one frame), its facts as a specimen tag under the actions, why (three pillars), the packages (one card
+   each, from the generated data), the ways on. Every figure is data (the packages and npm); every word is a message. */
 
 const ICONS: Record<string, typeof PackIcon> = {
   auth: ShieldIcon,
@@ -46,14 +48,22 @@ export default function Home({ locale }: { locale: Locale }) {
   const licenses = [...new Set(all.map((p) => p.license))];
   const nodes = [...new Set(all.map((p) => p.node).filter((n): n is string => Boolean(n)))];
 
+  const pillars = [
+    { id: "ports", size: "lg", icon: <PackIcon size={22} />, ...t.pillars.ports },
+    { id: "proven", size: "md", icon: <StudioIcon size={22} />, ...t.pillars.proven },
+    { id: "released", size: "md", icon: <UserIcon size={22} />, ...t.pillars.released },
+  ] as const;
+
   return (
     <main id="nd-page" className="jh-home">
-      <LandingPage
-        eyebrow={t.hero.eyebrow}
-        title={t.hero.title}
-        lead={t.hero.lead}
-        actions={
-          <>
+      <div>
+        <PageHero
+          eyebrow={t.hero.eyebrow}
+          title={t.hero.title}
+          lead={t.hero.lead}
+          aside={<InstallTabs names={HERO_PACKAGE} locale={locale} />}
+        >
+          <div className="jh-actions">
             <Button asChild variant="primary" size="lg">
               <Link href={path("/start")}>
                 {t.hero.start} <ForwardIcon size={16} aria-hidden />
@@ -62,69 +72,33 @@ export default function Home({ locale }: { locale: Locale }) {
             <Button asChild variant="secondary" size="lg">
               <a href="#packages">{t.hero.packages}</a>
             </Button>
-          </>
-        }
-        visualLabel="npm"
-        visual={
-          <div className="jh-gen">
-            <InstallTabs names={all.map((p) => p.name).join(" ")} locale={locale} />
           </div>
-        }
-        proofs={[
-          {
-            value: <NumberTicker value={all.filter((p) => p.version).length} locale={locale} />,
-            label: t.proofs.packages,
-          },
-          {
-            value: <NumberTicker value={all.reduce((n, p) => n + exportedNames(p), 0)} locale={locale} />,
-            label: t.proofs.exports,
-          },
-          { value: licenses.join(" · "), label: t.proofs.license },
-          ...(nodes.length === 1
-            ? [{ value: <span className="jh-mono">Node {nodes[0]}</span>, label: t.proofs.node }]
-            : []),
-        ]}
-        featuresHeading={{ eyebrow: t.pillars.eyebrow, title: t.pillars.title, lead: t.pillars.lead }}
-        features={[
-          {
-            id: "ports",
-            size: "lg",
-            icon: <PackIcon size={22} />,
-            title: t.pillars.ports.title,
-            text: t.pillars.ports.text,
-          },
-          {
-            id: "proven",
-            size: "md",
-            icon: <StudioIcon size={22} />,
-            title: t.pillars.proven.title,
-            text: t.pillars.proven.text,
-          },
-          {
-            id: "released",
-            size: "md",
-            icon: <UserIcon size={22} />,
-            title: t.pillars.released.title,
-            text: t.pillars.released.text,
-          },
-        ]}
-        closing={{
-          title: t.closing.title,
-          body: t.closing.body,
-          actions: (
-            <>
-              <Button asChild variant="primary" size="lg">
-                <Link href={path(`/${first.id}`)}>{t.closing.packages}</Link>
-              </Button>
-              <Button asChild variant="secondary" size="lg">
-                <a href={REPOSITORY_URL}>
-                  {t.closing.source} <ExternalIcon size={16} aria-hidden />
-                </a>
-              </Button>
-            </>
-          ),
-        }}
-      >
+          <SpecimenTag
+            className="jh-facts"
+            fields={[
+              { label: t.proofs.packages, value: String(all.filter((p) => p.version).length) },
+              { label: t.proofs.license, value: licenses.join(" · ") },
+              ...(nodes.length === 1
+                ? [{ label: t.proofs.node, value: <span className="jh-mono">Node {nodes[0]}</span> }]
+                : []),
+            ]}
+          />
+        </PageHero>
+
+        <Section id="features" eyebrow={t.pillars.eyebrow} title={t.pillars.title} lead={t.pillars.lead} reveal>
+          <ul className="kz-tpl-bento">
+            {pillars.map((f) => (
+              <li key={f.id} data-size={f.size} data-reveal="">
+                <span className="kz-block-icon" aria-hidden>
+                  {f.icon}
+                </span>
+                <h3>{f.title}</h3>
+                <p>{f.text}</p>
+              </li>
+            ))}
+          </ul>
+        </Section>
+
         <Section
           id="packages"
           eyebrow={t.packages.eyebrow}
@@ -189,7 +163,19 @@ export default function Home({ locale }: { locale: Locale }) {
             />
           </CardGrid>
         </Section>
-      </LandingPage>
+        <Section spacing="sm" aria-labelledby="home-closing">
+          <CtaPanel id="home-closing" title={t.closing.title} body={t.closing.body} reveal>
+            <Button asChild variant="primary" size="lg">
+              <Link href={path(`/${first.id}`)}>{t.closing.packages}</Link>
+            </Button>
+            <Button asChild variant="secondary" size="lg">
+              <a href={REPOSITORY_URL}>
+                {t.closing.source} <ExternalIcon size={16} aria-hidden />
+              </a>
+            </Button>
+          </CtaPanel>
+        </Section>
+      </div>
     </main>
   );
 }

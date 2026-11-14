@@ -236,13 +236,19 @@ html:has(.jh-home) .kz-site-bar[data-compact] {
   letter-spacing: -0.02em;
 }
 
-/* The hero's install command: the tabs fill the window. */
-.jh-gen {
-  display: grid;
-  gap: 14px;
-  padding: clamp(14px, 2vw, 18px);
-  min-width: 0;
+/* The hero: the actions, and the facts as a tag under them; the install command beside, in one frame that scrolls inside
+   itself (the tabs and the block are never wider than their column). */
+.jh-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
 }
-.jh-gen pre {
-  font-size: clamp(11.5px, 1.5vw, 13px);
+.jh-facts {
+  margin-top: 24px;
+  max-width: 100%;
+}
+.jh-home .kz-hero-aside,
+.jh-home .kz-hero-aside > * {
+  min-width: 0;
+  max-width: 100%;
 }
