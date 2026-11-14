@@ -24,7 +24,7 @@ describe("the demo cast", () => {
   it("names every Folioviv dev account of #2716, owner-state ones included", () => {
     const names: Record<string, [string, string]> = {
       philippe: ["Philippe Gauthier", "owner"],
-      myriam: ["Myriam Dubé", "admin"],
+      myriam: ["Myriam Dubé", "owner"],
       "eric-krizaka": ["Éric Bouchard", "owner"],
       "camille-staff": ["Camille Pelletier", "staff"],
       "marie-eve": ["Marie-Ève Fortin", "client"],
