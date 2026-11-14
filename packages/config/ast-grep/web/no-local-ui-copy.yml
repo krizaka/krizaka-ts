@@ -1,0 +1,57 @@
+id: no-local-ui-copy
+language: Tsx
+severity: error
+message: "No local copy of a @krizaka/ui component: this name is exported by the library (`Button`, `DataTable`, `Tabs`, `SiteFooter`…). Import it from `@krizaka/ui/<entry>` (the list is on ui.krizaka.com), or, if the library lacks what you need, add it to krizaka-ui. A local one with a written reason: a `// ui-allow: <reason>` comment on the line above."
+note: "krizaka-internal#3569: apps carried their own Button, footer, table… The names are generated from the exports of @krizaka/ui (`pnpm run gen:ui-names`), never typed by hand. A page's `export default function Page` is Next's file convention, not a copy. krizaka-ui itself does not adopt the web set (it defines them)."
+utils:
+  ui-name:
+    kind: identifier
+    # generated:begin — `pnpm run gen:ui-names`, from the exports of @krizaka/ui
+    regex: ^(AccountMenu|AccountProfileCard|AccountSettings|Achievement|AchievementList|ActionBar|ActivityFeed|Agenda|Alert|AlertDialog|AnalysisReport|AnatomyPlate|AppFrame|AppHeader|AppHeaderCount|AppShell|AppShellBody|AppShellGroup|AppShellHeader|AppShellItem|AppShellMain|AppShellRoot|AppShellSearch|AppShellSidebar|AppearanceSettings|ArgumentCard|AuthLayout|Avatar|AvatarGroup|AvatarPicker|AvatarRoot|Badge|BirdPlate|Button|Calendar|Captcha|CaptchaDisclosure|Caption|Card|CardBody|CardGrid|CardImage|CardMedia|CardOverlay|CardRoot|CardStat|CardTitle|CataloguePage|ChangelogPage|Chapter|ChapterFoot|ChapterHead|ChapterIndex|Chat|Checkbox|Chip|ChipGroup|ChipLink|ChipRow|ChoiceCards|ChoiceGrid|Cluster|CodeBlock|CodeTabs|CollectionSwitcher|Combobox|Command|CommandDialog|CommandEmpty|CommandGroup|CommandInput|CommandItem|CommandList|CommandLoading|CommandRoot|CommandSeparator|CommandShortcut|ComparisonTable|ComponentPage|ConfirmButton|ContactPage|ContinuePrompt|ConversationItem|CopyButton|Countdown|CoverHero|CreditsMeter|CtaPanel|DashboardLayout|DataTable|DataTableColumnsMenu|DataTableExport|DataTableFilters|DateField|DatePicker|DateRangePicker|DateWheel|DayStrip|DecisionList|DescriptionList|DesktopWindow|DetailLayout|DetailNotes|DetailSection|DeviceFrame|Dialog|DialogContent|DiffView|DocsArticlePage|DocsHubPage|DocsLayout|DocsNav|DocumentViewer|Doodle|DoodleBird|DropOverlay|DropdownMenu|DropdownMenuCheckboxItem|DropdownMenuContent|DropdownMenuItem|DropdownMenuRadioItem|DropdownMenuSubContent|DropdownMenuSubTrigger|Dropzone|Elephant|EmbedFacade|Emblem|EmptyState|EngineFlow|EntityHeader|EnvironmentNotice|ErrorPage|ErrorState|Facts|Field|FieldArray|FileUpload|FilterBar|FilterMenu|Flock|Footnote|FootnoteRef|Footnotes|ForceUpdateScreen|Form|FormError|FormField|FormSteps|FormTotals|GalleryPage|GenUiStream|GenUiSurface|Genui|Glossary|GlossaryTerm|GlowCard|GoalGauge|GradeStamp|IconButton|IdentityCard|ImageCropper|Input|Kanban|Kbd|KeyValueGrid|KindConfigEditor|KpiExplained|LandingPage|Landscape|LanguagePicker|LanguageSwitch|LegalPage|LinkCard|LinkComponent|List|Loader|LoaderGlyph|LoadingRegion|LoadingState|LocationPicker|LongformPage|MaintenanceScreen|Map|MapRoot|MarginItem|MarginLayout|Markdown|Marker|MarkerPicker|MarketingLayout|Mascot|MascotQuote|MascotState|Mascots|MatchDialog|MediaCapture|MediaGallery|MessageBubble|MessageComposer|Meter|MeterValue|Money|MoneyInput|MonthPicker|NavBar|NavBarActions|NavBarBadge|NavBarBrand|NavBarFamily|NavBarItems|NavBarLanguage|NavBarLink|NavBarMenu|NavBarMenuLink|NavBarMobile|NavBarMobileGroup|NavBarMobileLink|NavBarMobilePreferences|NavBarRepo|NavBarRoot|NavBarSession|NextActions|NotificationPreferences|NumberTicker|OpeningHours|Page|PageHeader|PageHero|PageIndex|Pagination|PaperGrain|PeriodSwitch|PersonCard|Phoenix|PinnedNote|PlanStrip|PointerLight|Polaroid|Popover|PopoverContent|PriceCatalogueEditor|PricingPage|ProductBarActions|ProductPage|ProfileBanner|ProfileCard|Progress|PromiseCard|PromoCodeField|Proposal|ProposalReview|Pulse|QrCode|QrTooLongError|QuotaMeter|RadioGroup|RadioGroupButton|RadioGroupCard|RadioGroupItem|RadioGroupRoot|RadioGroupSegment|RadiusCircle|RailNav|RailNavBody|RailNavItem|RailNavRoot|RailNavShell|RetroTv|ReviewCard|ReviewSummary|Reviews|Route|RouteStateProvider|Router|SavedViews|Scene|SchemaForm|ScrollStage|SearchField|Section|SectionBackdrop|SectionHeading|SectionThumbnail|Select|SelectionBar|Separator|ServiceCard|SettingsLayout|SettingsRow|SettingsSection|Sheet|Shop|ShopComposer|ShopFrame|ShopGallery|ShopSection|ShopSign|ShortFeed|Showcase|Signature|SiteCahier|SiteCahierDoc|SiteCahierHero|SiteFooter|SiteFooterColumn|SiteFooterLink|Skeleton|SkeletonShape|SkeletonText|SkipLink|Slider|Slot|SlotPicker|SpecimenTag|SpeedLines|Spinner|SplitView|StageBanner|Stamp|Stat|StatGauge|StatGrid|StaticMap|StatusChip|StatusPage|StatusSetEditor|StepProgress|StepShowcase|Stepper|StickyAction|Stuck|StyledText|Submit|SuccessState|SwipeDeck|Switch|Tabs|TabsList|TabsNav|TabsNavLink|TabsRoot|TabsTrigger|TagChip|TagInput|TagMarker|TagSelector|TagSetEditor|TapedPhoto|TaskTray|TerminalReplay|TextArea|TextField|TextStyle|TextStylePicker|Textarea|Theme|ThemeProvider|ThemeScript|ThemeToggle|Ticks|TimePicker|Timeline|Toast|Toaster|Toc|TocLayout|Tooltip|TooltipProvider|TreeView|TypingIndicator|UpdatePrompt|UploadList|UploadQueue|Usage|UsageChart|UsageTiles|UserPosition|VerifiedBadge|VersusCard|VerticalVideo|VideoPlayer|VideoTrimmer|Virtual|VirtualGrid|VirtualList|VisuallyHidden|Wall|Watch|Waveform|WelcomeState|Wheel|WheelDivider|WheelPicker|Widget)$
+    # generated:end
+  ui-allow:
+    kind: comment
+    regex: ui-allow:\s*[^\s*/]
+rule:
+  any:
+    - kind: function_declaration
+      has:
+        field: name
+        matches: ui-name
+    - kind: variable_declarator
+      has:
+        field: name
+        matches: ui-name
+      inside:
+        kind: lexical_declaration
+        stopBy: neighbor
+  not:
+    any:
+      # `export default function Page()`: the framework's file convention.
+      - inside:
+          kind: export_statement
+          regex: ^export\s+default\b
+          stopBy: neighbor
+      # `// ui-allow: reason` before the declaration, or before the `export` / `const` that holds it.
+      - follows:
+          matches: ui-allow
+          stopBy: neighbor
+      - inside:
+          any:
+            - kind: export_statement
+            - kind: lexical_declaration
+          follows:
+            matches: ui-allow
+            stopBy: neighbor
+          stopBy:
+            not:
+              any:
+                - kind: export_statement
+                - kind: lexical_declaration
+ignores:
+  - "**/node_modules/**"
+  - "**/.next/**"
+  - "**/dist/**"
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+  - "**/*.stories.tsx"
