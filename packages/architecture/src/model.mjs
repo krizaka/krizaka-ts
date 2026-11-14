@@ -6,7 +6,8 @@ import { SCHEMA } from "./c4.mjs";
 export const CONTAINERS_VIEW = "containers";
 
 const KINDS = ["app", "library", "module", "external"];
-const quote = (text) => `'${String(text).replace(/[\\']/g, (c) => `\\${c}`)}'`;
+const escaped = (text) => String(text).replace(/[\\']/g, (c) => "\\" + c);
+const quote = (text) => `'${escaped(text)}'`;
 const firstSentence = (text) => {
   const flat = String(text ?? "")
     .replace(/\s+/g, " ")
@@ -38,7 +39,7 @@ export function modelOfC4(c4) {
     "}",
     "views {",
     `  view ${CONTAINERS_VIEW} {`,
-    `    title ${quote(`${c4.repo} · containers`)}`,
+    `    title ${quote(c4.repo + " · containers")}`,
     "    include *",
     "  }",
     "}",

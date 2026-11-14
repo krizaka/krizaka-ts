@@ -17,12 +17,12 @@ export const RULES = Object.freeze({
   views: "views",
 });
 
+const describe = (p) => "  " + p.path + ":" + p.line + " [" + p.rule + "] " + p.message;
+
 /** A model the check refuses: `rule` is the first rule that failed, `problems` lists every one. */
 export class ArchitectureModelError extends Error {
   constructor(problems) {
-    super(
-      `the architecture model is refused (${problems[0].rule}):\n${problems.map((p) => `  ${p.path}:${p.line} [${p.rule}] ${p.message}`).join("\n")}`,
-    );
+    super(`the architecture model is refused (${problems[0].rule}):\n${problems.map(describe).join("\n")}`);
     this.name = "ArchitectureModelError";
     this.rule = problems[0].rule;
     this.problems = problems;
@@ -30,6 +30,7 @@ export class ArchitectureModelError extends Error {
 }
 
 const sha256 = (text) => createHash("sha256").update(text).digest("hex");
+const byString = (a, b) => Number(a > b) - Number(a < b);
 const byPath = (a, b) => Number(a.path > b.path) - Number(a.path < b.path);
 /** LikeC4 breaks a long label with a newline for its own drawing; a page wraps words itself. */
 const flat = (s) =>
@@ -84,11 +85,11 @@ export function viewOf(v) {
 const withHash = (files) => files.map(({ path, text }) => ({ path, text, sha256: sha256(text) })).sort(byPath);
 const virtualFiles = (files, root) => files.map((f) => [`${root}${f.path}`, f.text]);
 
-/** Parse virtual files; run `use` on the LikeC4 instance, always disposed. */
-async function withModel(files, use) {
+/** Parse virtual files; run `run` on the LikeC4 instance, always disposed. */
+async function withModel(files, run) {
   const likec4 = await fromSources(Object.fromEntries(files));
   try {
-    return await use(likec4);
+    return await run(likec4);
   } finally {
     await likec4.dispose();
   }
@@ -148,7 +149,7 @@ export async function layoutViews(model, options = {}) {
       const own = [...(await likec4.computedModel()).elements()]
         .map((e) => e.id)
         .filter((id) => !known.has(id))
-        .sort();
+        .sort(byString);
       if (system)
         for (const id of own.filter((x) => !x.startsWith(`${system}.`)))
           found.push(
