@@ -78,6 +78,15 @@ export async function mapLimit(items, limit, task) {
   return results;
 }
 
+/** The alert body of a host: the dead URLs (capped), or the all-clear. */
+export function bodyOf(host, dead) {
+  if (!dead.length) return `Every URL of the org JSON on \`${host}\` answers 200.\n`;
+  const lines = dead.slice(0, MAX_LISTED).map((line) => `- ${line}`);
+  if (dead.length > MAX_LISTED) lines.push(`- … and ${dead.length - MAX_LISTED} more`);
+  const head = `${dead.length} URL(s) of the org JSON on \`${host}\` do not answer 200 (daily watch \`org-urls\`, one retry done):`;
+  return `${head}\n\n${lines.join("\n")}\n`;
+}
+
 /** One entry per host, `green` or `red`, with the alert body naming the dead URLs. */
 export function reportByHost(urls, reasons) {
   const hosts = new Map();
@@ -89,16 +98,7 @@ export function reportByHost(urls, reasons) {
   });
   return [...hosts]
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([host, dead]) => ({
-      host,
-      state: dead.length ? "red" : "green",
-      body: dead.length
-        ? `${dead.length} URL(s) of the org JSON on \`${host}\` do not answer 200 (daily watch \`org-urls\`, one retry done):\n\n${dead
-            .slice(0, MAX_LISTED)
-            .map((line) => `- ${line}`)
-            .join("\n")}${dead.length > MAX_LISTED ? `\n- … and ${dead.length - MAX_LISTED} more` : ""}\n`
-        : `Every URL of the org JSON on \`${host}\` answers 200.\n`,
-    }));
+    .map(([host, dead]) => ({ host, state: dead.length ? "red" : "green", body: bodyOf(host, dead) }));
 }
 
 async function main(output) {
