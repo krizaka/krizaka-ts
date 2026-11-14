@@ -7,7 +7,7 @@ describe("the family's names", () => {
   it("calls the company Krizaka and every product by its own name, never prefixed", () => {
     expect(familyName("krizaka")).toBe("Krizaka");
     const products = org.family.filter((e) => e.group === "products");
-    expect(products.map((e) => e.name)).toEqual(["Sovkora", "Verikora", "Folioviv"]);
+    expect(products.map((e) => e.name)).toEqual(["Sovkora", "Verikora", "Folioviv", "Kridoc"]);
     for (const p of products) {
       expect(p.name).not.toMatch(/^Krizaka /);
       expect(p.short).toBe(p.name);
@@ -18,6 +18,14 @@ describe("the family's names", () => {
     const libraries = org.family.filter((e) => e.group === "open-source");
     expect(libraries.map((e) => e.name)).toEqual(["Krizaka UI", "Krizaka Java", "Krizaka TypeScript", "Krizaka Lab"]);
     for (const l of libraries) expect(l.name).toBe(`Krizaka ${l.short}`);
+  });
+
+  it("is a system of the family: `kridoc` is an entry the architecture tool can extend (krizaka-internal#3561)", () => {
+    expect(familyEntry("kridoc")).toMatchObject({
+      group: "products",
+      status: "development",
+      url: "https://www.kridoc.com",
+    });
   });
 
   it("agrees with the products and sites lists: same names, same addresses", () => {

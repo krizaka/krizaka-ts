@@ -1,7 +1,7 @@
 import { Ajv2020 } from "ajv/dist/2020.js";
 import { describe, expect, it } from "vitest";
 
-import { apps, appSchema, findCodeNames, footerLine, org, orgSchema, PRODUCT_STATUS } from "../src";
+import { apps, appSchema, brandOf, findCodeNames, footerLine, org, orgSchema, PRODUCT_STATUS } from "../src";
 
 const ajv = new Ajv2020({ allErrors: true, strict: false });
 const text = JSON.stringify(org);
@@ -17,6 +17,7 @@ describe("the org JSON", () => {
       ["sovkora", "development"],
       ["verikora", "development"],
       ["folioviv", "development"],
+      ["kridoc", "development"],
     ]);
   });
 
@@ -77,8 +78,18 @@ describe("the org JSON", () => {
     expect(validate({ ...org, links: { social: [{ id: "instagram", label: "Instagram" }] } })).toBe(false);
   });
 
+  it("lists Kridoc in development at its own site, with its public repository (krizaka-internal#3561)", () => {
+    expect(org.products.find((p) => p.id === "kridoc")).toEqual({
+      id: "kridoc",
+      name: "Kridoc",
+      status: "development",
+      url: "https://www.kridoc.com",
+      repo: "https://github.com/krizaka/kridoc",
+    });
+  });
+
   it("lists only the live products", () => {
-    expect(org.products.map((p) => p.id)).toEqual(["sovkora", "verikora", "folioviv"]);
+    expect(org.products.map((p) => p.id)).toEqual(["sovkora", "verikora", "folioviv", "kridoc"]);
   });
 
   it("holds public facts only: no address, phone, figure, secret or IP", () => {
@@ -113,7 +124,8 @@ describe("the family's status is honest", () => {
 describe("the apps' runtime config", () => {
   it("has one validated file per live product", () => {
     const validate = ajv.compile(appSchema);
-    expect(Object.keys(apps)).toEqual(org.products.map((p) => p.id));
+    // Kridoc is a service the products carry (no app of its own, no dev host): it has no runtime config.
+    expect(Object.keys(apps)).toEqual(org.products.filter((p) => brandOf(p.id).kind === "product").map((p) => p.id));
     for (const [id, config] of Object.entries(apps)) {
       expect(config.app).toBe(id);
       expect(validate(config), JSON.stringify(validate.errors)).toBe(true);

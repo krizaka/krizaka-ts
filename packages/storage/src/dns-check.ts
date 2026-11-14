@@ -3,26 +3,7 @@ import net from "node:net";
 
 import { checkEndpoint } from "./endpoint";
 import { STORAGE_CODE, StorageError } from "./port";
-
-/** A loopback, private, link-local, unspecified or unique-local address, v4 or v6 (an IPv4-mapped v6 address is read as its v4). */
-export function isPrivateAddress(address: string): boolean {
-  const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/i.exec(address);
-  const ip = mapped?.[1] ?? address;
-  if (net.isIPv4(ip)) {
-    const [a = 0, b = 0] = ip.split(".").map(Number);
-    return (
-      a === 0 ||
-      a === 10 ||
-      a === 127 ||
-      (a === 169 && b === 254) ||
-      (a === 172 && b >= 16 && b <= 31) ||
-      (a === 192 && b === 168) ||
-      (a === 100 && b >= 64 && b <= 127)
-    );
-  }
-  const v6 = ip.toLowerCase();
-  return v6 === "::" || v6 === "::1" || /^f[cd]/.test(v6) || /^fe[89ab]/.test(v6);
-}
+import { isPrivateAddress } from "./private-address";
 
 export type Resolver = (host: string) => Promise<string[]>;
 const defaultResolver: Resolver = async (host) => (await lookup(host, { all: true })).map((a) => a.address);

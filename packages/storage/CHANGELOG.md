@@ -1,5 +1,17 @@
 # @krizaka/storage
 
+## 0.11.5
+
+### Patch Changes
+
+- 4d6aa9d: Security fix: `checkEndpoint` (used alone by `createProviderRegistry` and the storage settings) now judges a literal host with `isPrivateAddress`, the same SSRF rule as `checkEndpointDns`, instead of its own shorter list. It now refuses CGNAT (100.64/10), multicast, reserved, benchmarking and documentation ranges, IPv4-mapped and NAT64 addresses in hex (`[::ffff:7f00:1]`, `[64:ff9b::a00:1]`), IPv6 multicast, site-local, 6to4, Teredo and everything outside global unicast, whatever the spelling (`https://2130706433`, `https://0x7f.0.0.1`). A host name that starts with digits (`https://10.example.com`) is no longer refused by mistake. `isPrivateAddress` no longer imports `node:net`: it is pure, so the edge-safe default entry can use it.
+
+## 0.11.4
+
+### Patch Changes
+
+- f8dade2: Security fix: `isPrivateAddress`, the SSRF guard behind `checkEndpointDns`, now fails closed. It refuses multicast (224/4, ff00::/8), reserved (240/4, broadcast), benchmarking (198.18/15), documentation (192.0.2/24, 198.51.100/24, 203.0.113/24, 2001:db8::/32, 3fff::/20), IETF assignments, 6to4, Teredo, deprecated site-local and every IPv6 address outside global unicast, judges an IPv4-mapped or NAT64 (64:ff9b::/96) address by the IPv4 inside it (dotted or hex), and returns `true` for a scoped address or any input that is not an IP literal. Before, a multicast address, a hostname or garbage were « not private ». The ranges are data read by `node:net`'s `BlockList`.
+
 ## 0.11.3
 
 ### Patch Changes

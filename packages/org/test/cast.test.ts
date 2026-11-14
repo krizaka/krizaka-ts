@@ -21,6 +21,30 @@ describe("the demo cast", () => {
     }
   });
 
+  it("names every Folioviv dev account of #2716, owner-state ones included", () => {
+    const names: Record<string, [string, string]> = {
+      philippe: ["Philippe Gauthier", "owner"],
+      myriam: ["Myriam Dubé", "admin"],
+      "eric-krizaka": ["Éric Bouchard", "owner"],
+      "camille-staff": ["Camille Pelletier", "staff"],
+      "marie-eve": ["Marie-Ève Fortin", "client"],
+      olivier: ["Olivier Bergeron", "client"],
+      annie: ["Annie Savard", "client"],
+      hugo: ["Hugo Lemieux", "client"],
+      maelle: ["Maëlle Cèdre", "owner"],
+      "ines-encrevive": ["Inès Encrevive", "owner"],
+      "ines-debut": ["Inès Morin", "owner"],
+      yan: ["Yan Cloutier", "owner"],
+      "camille-ferland": ["Camille Ferland", "owner"],
+    };
+    for (const [id, [displayName, role]] of Object.entries(names)) {
+      const p = persona("folioviv", id);
+      expect(p.displayName, id).toBe(displayName);
+      expect(p.role, id).toBe(role);
+    }
+    for (const p of castOf("folioviv")) expect(p.displayName.trim(), p.id).not.toBe("");
+  });
+
   it("holds no e-mail address and no secret", () => {
     expect(JSON.stringify(CAST)).not.toMatch(/@|password|secret/i);
   });
@@ -45,7 +69,7 @@ describe("the demo cast", () => {
   it("gives each product a member or owner and an administrator", () => {
     expect(personaByRole("verikora", "member").id).toBe("eric");
     expect(personaByRole("verikora", "admin").displayName).toBe("Mira Haddad");
-    expect(castOf("folioviv").filter((p) => p.role === "client")).toHaveLength(5);
+    expect(castOf("folioviv").filter((p) => p.role === "client")).toHaveLength(9);
     expect(() => persona("verikora", "nobody")).toThrow(/known: eric, mira, camille/);
   });
 

@@ -1,5 +1,17 @@
 # @krizaka/org
 
+## 1.6.0
+
+### Minor Changes
+
+- b7f7c28: Folioviv's persona cast names every dev account (krizaka-internal#2716): thirteen new personas with their full name and role, a new `staff` role.
+
+## 1.5.0
+
+### Minor Changes
+
+- dd9728a: `org.products` and `org.family` list Kridoc (status `development`, `https://www.kridoc.com`, repository `krizaka/kridoc`). krizaka.com can read Kridoc's status from the org JSON, and `kridoc` is a system of the family that an architecture model can extend (krizaka-internal#3561). `apps` still holds the products that have an app: Kridoc has none.
+
 ## 1.4.0
 
 ### Minor Changes
