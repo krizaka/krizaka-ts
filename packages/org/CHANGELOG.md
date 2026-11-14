@@ -1,5 +1,11 @@
 # @krizaka/org
 
+## 1.4.0
+
+### Minor Changes
+
+- a4f475c: The org JSON tells each site what its footer shows: `footer.sites` (ui, lab, java, ts, rust, krizaka) selects the family groups, the social ids, the source link, the licence, the legal links and the version line, in the type and the published schema; `footerFor(siteId)` returns it resolved. Java has no Maven Central link.
+
 ## 1.3.0
 
 ### Minor Changes
