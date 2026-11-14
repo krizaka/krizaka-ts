@@ -344,6 +344,25 @@ Tests: `test/hooks-*.test.ts` (a real git repository per test: a refused and a p
 
 In a pnpm workspace, a dependency that names another package of the same workspace is written `workspace:`, never a registry range: a range goes stale once the dependency is versioned (`^0.1.0` against 0.4.0), `changeset version` fails and no Version Packages pull request is opened. Run `npx --yes -p @krizaka/config krizaka-workspace-guard` from the repository root (it reads `pnpm-workspace.yaml`); it exits 1 and lists each offending dependency. Peer ranges are a published contract and stay. Rule `workspace-guard` of the org registry (krizaka/.github#388).
 
+## The env schema against the deploy spec (`@krizaka/config/env-spec`)
+
+Every key an app reads is declared in its DigitalOcean App spec, or justified as left out. `checkEnvSpec` is pure (schema keys, the spec's `envs` per component, a `notDeclared` map key → reason); `readAppSpecEnvs(file)` reads a spec file (YAML, block or flow style) into those `envs`, with no network.
+
+```ts
+import { checkEnvSpec, readAppSpecEnvs } from "@krizaka/config/env-spec";
+
+const envs = readAppSpecEnvs(join(__dirname, "../../../deploy/digitalocean/app.yaml"));
+const { problems } = checkEnvSpec({
+  schemaKeys: Object.keys(envSchema.shape),
+  envs,
+  components: ["web"], // the components that count; default: all
+  notDeclared: { MAIL_FROM: "mail is off on dev: declared the day it is turned on" },
+});
+expect(problems).toEqual([]);
+```
+
+It reports `missing` (read, neither declared nor justified), `stale` (justified but gone from the schema, or declared after all), `undeclaredWithoutReason`, and `plainSecrets` (a `type: SECRET` whose value is not the `__KEY__` placeholder). Tests: `test/env-spec.test.ts`.
+
 ## License
 
 [Apache-2.0](https://github.com/krizaka/krizaka-ts/blob/main/LICENSE)
