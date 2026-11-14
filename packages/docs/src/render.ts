@@ -51,7 +51,7 @@ export interface ManualDocument {
   title: string;
   description: string;
   generated: true;
-  /** The body, without its title (the article page shows it). */
+  /** The body, without its title and its description (the article page shows them as its title and lead). */
   markdown: string;
 }
 
@@ -85,9 +85,9 @@ function actionSection(action: ManualActionPage, locale: ManualLocale, labels: M
   return out;
 }
 
-/** The Markdown body of one page in one language. */
+/** The Markdown body of one page in one language: no title and no summary, which the article page shows as its title and lead. */
 export function manualMarkdown(page: ManualPage, locale: ManualLocale, labels = MANUAL_LABELS[locale]): string {
-  const out = [page.summary[locale], "", `${labels.address}${labels.colon}\`${page.route}\``, ""];
+  const out = [`${labels.address}${labels.colon}\`${page.route}\``, ""];
   for (const how of page.howTo) {
     out.push(`## ${labels.howTo} — ${how.title[locale]}`, "");
     how.steps.forEach((step: Text, i) => out.push(`${i + 1}. ${step[locale]}`));

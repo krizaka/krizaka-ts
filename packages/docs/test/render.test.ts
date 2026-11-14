@@ -53,5 +53,9 @@ describe("manualDocuments", () => {
     expect(document?.markdown).toContain("## Settings (administrator)");
     expect(document?.markdown).toContain("Address: `/app/documents/[id]`");
     expect(document?.description).toBe("The document, its report | and its file.");
+    expect(
+      document?.markdown,
+      "the article page shows the description as its lead: the body does not repeat it",
+    ).not.toContain("The document, its report");
   });
 });
