@@ -1,0 +1,61 @@
+id: no-raw-control
+language: Tsx
+severity: error
+message: "No raw control in an app: `<button>` → `Button` (@krizaka/ui/button) · `<input>` and `<textarea>` → `Input` / `Textarea` (@krizaka/ui/field), or `TextField` / `TextArea` in a form (@krizaka/ui/form) · `<select>` → `Select` (@krizaka/ui/field) or `Combobox` (@krizaka/ui/combobox) · `<table>` → `DataTable` (@krizaka/ui/data-table) · `<dialog>` → `Dialog` (@krizaka/ui/dialog). A legitimate raw element (an SVG chart's focus target, an e-mail template) takes a written reason: `// ui-allow: <reason>` on the line above, or `{/* ui-allow: <reason> */}` in JSX."
+note: 'krizaka-internal#3569: apps built their own controls beside the library. A `type="hidden"` input carries no control and is not refused. krizaka-ui itself does not adopt the web set (it defines them).'
+utils:
+  raw-name:
+    regex: ^(button|input|select|textarea|table|dialog)$
+  ui-allow:
+    kind: comment
+    regex: ui-allow:\s*[^\s*/]
+  ui-allow-jsx:
+    kind: jsx_expression
+    has:
+      matches: ui-allow
+rule:
+  any:
+    - kind: jsx_self_closing_element
+      has:
+        field: name
+        matches: raw-name
+    - kind: jsx_element
+      has:
+        field: open_tag
+        has:
+          field: name
+          matches: raw-name
+  not:
+    any:
+      # `type="hidden"`: no control.
+      - has:
+          kind: jsx_attribute
+          regex: ^type=["']hidden["']$
+          stopBy: neighbor
+      - has:
+          field: open_tag
+          has:
+            kind: jsx_attribute
+            regex: ^type=["']hidden["']$
+      # the reason, written before the element: a comment, or `{/* … */}` among JSX children.
+      - follows:
+          any:
+            - matches: ui-allow
+            - matches: ui-allow-jsx
+          stopBy: neighbor
+      # … or before the `return` / the parenthesis that holds it.
+      - inside:
+          any:
+            - kind: return_statement
+            - kind: parenthesized_expression
+          follows:
+            matches: ui-allow
+            stopBy: neighbor
+          stopBy: neighbor
+ignores:
+  - "**/node_modules/**"
+  - "**/.next/**"
+  - "**/dist/**"
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+  - "**/*.stories.tsx"

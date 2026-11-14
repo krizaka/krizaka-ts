@@ -1,0 +1,64 @@
+id: no-raw-control
+valid:
+  - |
+    const a = <Button>Save</Button>;
+  - |
+    const b = <Field.Root><Input /></Field.Root>;
+  - |
+    const c = <DataTable rows={rows} />;
+  - |
+    const d = <input type="hidden" name="csrf" value={token} />;
+  - |
+    const e = <div><span>text</span></div>;
+  - |
+    const f = <buttonLike />;
+  - |
+    function A() {
+      return (
+        // ui-allow: the e-mail client renders no component
+        <table><tbody /></table>
+      );
+    }
+  - |
+    const g = (
+      <div>
+        {/* ui-allow: a native file picker inside the cropper */}
+        <input type="file" />
+      </div>
+    );
+  - |
+    function B() {
+      // ui-allow: the SVG chart's focus target
+      return <button aria-label="Zoom" />;
+    }
+invalid:
+  - |
+    const a = <button onClick={go}>Go</button>;
+  - |
+    const b = <button type="submit" />;
+  - |
+    const c = <input name="q" />;
+  - |
+    const d = <select><option>a</option></select>;
+  - |
+    const e = <textarea rows={3} />;
+  - |
+    const f = <table><tbody /></table>;
+  - |
+    const g = <dialog open />;
+  - |
+    const h = <div><input type="text" /></div>;
+  - |
+    const i = (
+      <div>
+        {/* TODO */}
+        <button />
+      </div>
+    );
+  - |
+    const j = (
+      <div>
+        {/* ui-allow: */}
+        <input />
+      </div>
+    );

@@ -83,7 +83,8 @@
   "scripts": {
     "lint": "eslint . --max-warnings 0 && tsc --noEmit --noUnusedLocals --noUnusedParameters --noFallthroughCasesInSwitch --noImplicitReturns",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --coverage --coverage.provider=v8 --coverage.reporter=lcov --coverage.reporter=text-summary \"--coverage.include=src/**/*.ts\" && ast-grep test --skip-snapshot-tests -c ast-grep/sgconfig.yml",
+    "gen:ui-names": "node scripts/ui-names.mjs",
+    "test": "vitest run --coverage --coverage.provider=v8 --coverage.reporter=lcov --coverage.reporter=text-summary \"--coverage.include=src/**/*.ts\" \"--coverage.include=scripts/**/*.mjs\" && ast-grep test --skip-snapshot-tests -c ast-grep/sgconfig.yml",
     "size": "size-limit",
     "publint": "publint",
     "check": "pnpm run lint && pnpm run test && pnpm run size && pnpm run publint"
@@ -114,6 +115,7 @@
   },
   "devDependencies": {
     "@ast-grep/cli": "0.51.0",
+    "@krizaka/ui": "^4.4.1",
     "@size-limit/file": "^14.2.0",
     "@types/estree": "^1.0.8",
     "@types/node": "^22.15.0",

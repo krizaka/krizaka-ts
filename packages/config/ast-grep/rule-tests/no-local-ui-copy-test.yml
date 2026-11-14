@@ -1,0 +1,38 @@
+id: no-local-ui-copy
+valid:
+  - |
+    import { Button } from "@krizaka/ui/button";
+    export function Save() { return <Button>Save</Button>; }
+  - |
+    const alias = Button;
+  - |
+    export function SaveButton() { return null; }
+  - |
+    export default function Page() { return null; }
+  - |
+    // ui-allow: a print-only table the library cannot render
+    function DataTable() { return null; }
+  - |
+    // ui-allow: the e-mail template cannot import a client component
+    export function Button() { return null; }
+  - |
+    // ui-allow: the e-mail template cannot import a client component
+    const Badge = () => null;
+  - |
+    // ui-allow: chart tooltip, no library equivalent
+    export const Tooltip = () => null;
+invalid:
+  - |
+    function Button() { return <button />; }
+  - |
+    export function DataTable() { return <table />; }
+  - |
+    const SiteFooter = () => <footer />;
+  - |
+    export const Tabs = () => null;
+  - |
+    // ui-allow:
+    function Card() { return null; }
+  - |
+    // a plain comment is no reason
+    function Badge() { return null; }
