@@ -69,7 +69,7 @@ const violationsOf = (run = cruise()) =>
 
 describe("the covered-domains map", () => {
   it("names, for every domain, a Krizaka home and what is refused", () => {
-    expect(coveredDomains.map((d) => d.id)).toEqual(["dates", "i18n", "query", "icons", "ui"]);
+    expect(coveredDomains.map((d) => d.id)).toEqual(["dates", "i18n", "query", "icons", "ui", "page-audit", "storage"]);
     for (const domain of coveredDomains) {
       expect(domain.home).toMatch(/^@krizaka\//);
       expect(domain.use).toContain(domain.home);
