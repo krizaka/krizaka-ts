@@ -40,6 +40,7 @@
     "./covered-domains": "./covered-domains.cjs",
     "./covered-domains.json": "./covered-domains.json",
     "./facades.json": "./facades.json",
+    "./env-spec": "./deploy/env-spec.js",
     "./known-violations": "./ratchet/known-violations.js",
     "./server-client-boundary": "./ratchet/server-client-boundary.js",
     "./patterns": "./patterns.js",
@@ -68,6 +69,7 @@
     "edit-check",
     "workspace-guard",
     "ast-grep",
+    "deploy",
     "eslint",
     "ratchet",
     "tsconfig",
@@ -100,7 +102,8 @@
     "eslint-plugin-sonarjs": "^4.2.2",
     "globals": "^17.13.0",
     "tinyglobby": "^0.2.17",
-    "typescript-eslint": "^8.71.1"
+    "typescript-eslint": "^8.71.1",
+    "yaml": "2.8.3"
   },
   "peerDependencies": {
     "eslint": "^9 || ^10",

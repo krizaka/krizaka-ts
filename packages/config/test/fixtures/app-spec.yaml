@@ -1,0 +1,16 @@
+name: demo-dev
+envs:
+  - { key: APP_ORIGIN, scope: RUN_TIME, value: "https://dev.demo.test" }
+services:
+  - name: web
+    envs:
+      - { key: DATABASE_URL, scope: RUN_TIME, type: SECRET, value: __DATABASE_URL__ }
+      - key: AUTH_SECRET
+        scope: RUN_TIME
+        type: SECRET
+        value: oops-a-real-value
+      - { key: APP_NAME, scope: RUN_TIME, value: demo }
+jobs:
+  - name: backup
+    envs:
+      - { key: BACKUP_AGE_RECIPIENT, scope: RUN_TIME, value: age1x }
