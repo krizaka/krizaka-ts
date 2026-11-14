@@ -1,6 +1,6 @@
 {
   "name": "@krizaka/docs",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "The documentation module of every Krizaka product. Its first part is the user manual generated at build from the code: the functional text lives next to the screen it describes (a typed `manual.ts` beside each page), the extractor reads it from the TypeScript program with the routes, the input fields of the schemas, the error and settings catalogues and the e2e journeys, and a screen without its text, a stale route, an undescribed field or an unknown error code fails the build.",
   "keywords": [
     "krizaka",
