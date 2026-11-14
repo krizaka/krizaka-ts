@@ -98,7 +98,17 @@ function manualExpression(file: ts.SourceFile, checker: ts.TypeChecker): ts.Expr
   return declaration && ts.isVariableDeclaration(declaration) ? declaration.initializer : undefined;
 }
 
-/** The fields a user sends through a Standard Schema (zod, valibot…): its input type's properties. Null when it is not one. */
+/** The values of a closed field (a union of string literals); empty for an open one. */
+function choicesOf(type: ts.Type): string[] {
+  const parts = type.isUnion() ? type.types : [type];
+  return parts.every((t) => t.isStringLiteral()) ? parts.map((t) => (t as ts.StringLiteralType).value) : [];
+}
+
+/**
+ * The fields a user sends through a Standard Schema (zod, valibot…): its input type's properties. A union (a discriminated union of
+ * actions) gives every property of every branch: required only when each branch requires it, with the choices of all branches.
+ * Null when it is not a Standard Schema.
+ */
 function inputFields(ref: SchemaRef, checker: ts.TypeChecker): Omit<ManualField, "text">[] | null {
   const at = ref.node;
   const member = (type: ts.Type | undefined, name: string) => {
@@ -107,16 +117,28 @@ function inputFields(ref: SchemaRef, checker: ts.TypeChecker): Omit<ManualField,
   };
   const input = member(member(member(checker.getTypeAtLocation(at), "~standard"), "types"), "input");
   if (!input) return null;
-  return checker.getPropertiesOfType(input).map((field) => {
-    const type = checker.getNonNullableType(checker.getTypeOfSymbolAtLocation(field, at));
-    const parts = type.isUnion() ? type.types : [type];
-    const closed = parts.every((t) => t.isStringLiteral());
-    return {
-      name: field.name,
-      required: (field.flags & ts.SymbolFlags.Optional) === 0,
-      choices: closed ? parts.map((t) => (t as ts.StringLiteralType).value) : [],
-    };
-  });
+  const branches = input.isUnion() ? input.types : [input];
+  const fields = new Map<string, Omit<ManualField, "text"> & { branches: number; open: boolean }>();
+  for (const branch of branches)
+    for (const property of checker.getPropertiesOfType(branch)) {
+      const type = checker.getNonNullableType(checker.getTypeOfSymbolAtLocation(property, at));
+      const required = (property.flags & ts.SymbolFlags.Optional) === 0;
+      const seen = fields.get(property.name);
+      const values = choicesOf(type);
+      fields.set(property.name, {
+        name: property.name,
+        required: (seen?.required ?? true) && required,
+        choices: [...new Set([...(seen?.choices ?? []), ...values])],
+        branches: (seen?.branches ?? 0) + 1,
+        open: (seen?.open ?? false) || values.length === 0,
+      });
+    }
+  // A field open in one branch is open: its closed values elsewhere are not the whole story.
+  return [...fields.values()].map(({ branches: count, open, ...field }) => ({
+    ...field,
+    required: field.required && count === branches.length,
+    choices: open ? [] : field.choices,
+  }));
 }
 
 /** Reads one manual block into a page, writing every gap it meets into `problems`. */

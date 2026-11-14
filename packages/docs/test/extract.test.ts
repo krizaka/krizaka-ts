@@ -47,6 +47,15 @@ describe("buildManual on a complete app", () => {
     ]);
   });
 
+  it("lists every field of a discriminated union, required only when every branch requires it, with all the choices", () => {
+    expect(
+      manual.pages[1]?.actions[0]?.fields.map(({ name, required, choices }) => ({ name, required, choices })),
+    ).toEqual([
+      { name: "action", required: true, choices: ["archive", "delete"] },
+      { name: "reason", required: false, choices: ["duplicate", "mistake"] },
+    ]);
+  });
+
   it("reads error codes through the typed catalogue's constants and takes their words from the product's messages", () => {
     expect(manual.pages[0]?.actions[0]?.errors.map((e) => e.key)).toEqual(["FILE_TOO_LARGE", "EXTRACTING"]);
     expect(manual.pages[1]?.errors).toEqual([{ key: "NOT_FOUND", text: { en: "Not found.", fr: "Introuvable." } }]);
