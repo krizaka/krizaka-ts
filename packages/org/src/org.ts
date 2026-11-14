@@ -64,6 +64,7 @@ const FAMILY_ROWS: FamilyRow[] = [
   ["sovkora", "Sovkora", "Sovkora", "products", "development", "https://www.sovkora.com", gh("sovkora")],
   ["verikora", "Verikora", "Verikora", "products", "development", "https://www.verikora.com", gh("verikora")],
   ["folioviv", "Folioviv", "Folioviv", "products", "development", "https://www.folioviv.com", gh("folioviv")],
+  ["kridoc", "Kridoc", "Kridoc", "products", "development", "https://www.kridoc.com", gh("kridoc")],
   ["ui", "Krizaka UI", "UI", "open-source", "development", "https://ui.krizaka.com", gh("krizaka-ui")],
   ["java", "Krizaka Java", "Java", "open-source", "development", "https://java.krizaka.com", gh("krizaka-java")],
   ["ts", "Krizaka TypeScript", "TypeScript", "open-source", "development", "https://ts.krizaka.com", gh("krizaka-ts")],
@@ -144,6 +145,13 @@ export const org: Org = {
       status: "development",
       url: "https://www.folioviv.com",
       repo: "https://github.com/krizaka/folioviv",
+    },
+    {
+      id: "kridoc",
+      name: "Kridoc",
+      status: "development",
+      url: "https://www.kridoc.com",
+      repo: "https://github.com/krizaka/kridoc",
     },
   ],
   sites: [
