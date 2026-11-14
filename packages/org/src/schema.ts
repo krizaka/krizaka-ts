@@ -1,4 +1,4 @@
-import { CDN, ORG_SCHEMA_URL } from "./org";
+import { CDN, org, ORG_SCHEMA_URL } from "./org";
 import { PRODUCT_STATUS } from "./org.types";
 
 const localized = {
@@ -23,6 +23,20 @@ const themed = {
 } as const;
 const date = { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$" } as const;
 const semver = { type: "string", pattern: "^\\d+\\.\\d+\\.\\d+$" } as const;
+
+const footerSite = {
+  type: "object",
+  additionalProperties: false,
+  required: ["families", "social", "source", "license", "legal", "version"],
+  properties: {
+    families: { type: "array", uniqueItems: true, items: { enum: ["krizaka", "products", "open-source", "github"] } },
+    social: { type: "array", uniqueItems: true, items: { enum: org.links.social.map((s) => s.id) } },
+    source: { anyOf: [httpsUrl, { type: "null" }] },
+    license: { type: "boolean" },
+    legal: { type: "array", uniqueItems: true, items: { enum: ["privacy", "terms"] } },
+    version: { type: "boolean" },
+  },
+} as const;
 
 const defaultItems = {
   type: "array",
@@ -248,9 +262,10 @@ export const orgSchema = {
     footer: {
       type: "object",
       additionalProperties: false,
-      required: ["line", "legal"],
+      required: ["line", "legal", "sites"],
       properties: {
         line: localized,
+        sites: { type: "object", additionalProperties: footerSite, propertyNames: slug, minProperties: 1 },
         legal: {
           type: "array",
           minItems: 1,

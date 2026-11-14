@@ -51,6 +51,27 @@ The shared validation (no code name as a display name, FR/EN labels, valid URLs)
 A rename is therefore: the administrator edits the value in the app's settings, saves, and the build-time pages redeploy.
 The seed below is only the default of that setting.
 
+## Reading your footer
+
+The org JSON says what each site's footer shows (`footer.sites`, krizaka-internal#3563). A site never filters the family by
+hand: it asks `footerFor(siteId)` and renders the result.
+
+```ts
+import { footerFor } from "@krizaka/org";
+
+const footer = footerFor("ts"); // ui, lab, java, ts, rust or krizaka; an unknown id throws
+footer.groups; // [{ group, entries }] the family groups to list, in order
+footer.social; // the social accounts to show
+footer.source; // the site's source-code link, or null
+footer.license; // « Apache-2.0 », or null
+footer.legal; // the legal links (label and url in fr and en)
+footer.line; // « Une entreprise de Technologies Krizaka · Fait à Montréal »
+footer.version; // whether the site's version line shows
+```
+
+Changing what a site shows is a pull request on this data and a release; the schema refuses an unknown social id, family
+group or legal page.
+
 ## Brands (`brands`, a seed)
 
 Since 1.0.0 (founder, 2026-11-06, krizaka-internal#2659) a brand's id **is** its commercial name in lower case — `verikora`,

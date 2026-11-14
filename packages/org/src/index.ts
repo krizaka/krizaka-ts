@@ -22,6 +22,8 @@ export type {
   FamilyEntry,
   FamilyGroup,
   FamilyStatus,
+  FooterSite,
+  LegalId,
   Localized,
   Org,
   OrgAvatar,
@@ -34,12 +36,13 @@ export type {
   OrgSite,
   OrgSocialLink,
   ProductStatus,
+  ResolvedFooter,
 } from "./org.types";
 export { PRODUCT_STATUS } from "./org.types";
 export { appSchema, orgSchema } from "./schema";
 
 import { org } from "./org";
-import type { Localized } from "./org.types";
+import type { Localized, ResolvedFooter } from "./org.types";
 
 /** The text of a localized pair for a language (`fr` or `en`; anything else reads English). */
 export const localized = (text: Localized, locale: string): string => (locale === "fr" ? text.fr : text.en);
@@ -54,3 +57,28 @@ export const familyEntry = (id: string) => {
   return entry;
 };
 export const familyName = (id: string): string => familyEntry(id).name;
+
+/**
+ * What the footer of a site shows, resolved from the org data (`footer.sites`): the family groups with their entries, the social
+ * accounts, the legal links, the line. A site renders it and never filters by hand; an unknown site id throws.
+ */
+export const footerFor = (siteId: string): ResolvedFooter => {
+  const sel = org.footer.sites[siteId];
+  if (!sel) throw new Error(`Unknown footer site "${siteId}".`);
+  const pick = <T extends { id: string }>(all: T[], ids: string[]) =>
+    ids.map((id) => {
+      const found = all.find((x) => x.id === id);
+      if (!found) throw new Error(`Footer of "${siteId}": unknown id "${id}".`);
+      return found;
+    });
+  return {
+    id: siteId,
+    groups: sel.families.map((group) => ({ group, entries: org.family.filter((e) => e.group === group) })),
+    social: pick(org.links.social, sel.social),
+    source: sel.source,
+    license: sel.license ? org.company.license : null,
+    legal: pick(org.footer.legal, sel.legal),
+    line: org.footer.line,
+    version: sel.version,
+  };
+};
