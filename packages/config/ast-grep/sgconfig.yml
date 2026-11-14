@@ -4,6 +4,7 @@
 ruleDirs:
   - core
   - web
+  - app
   - html
 testConfigs:
   - testDir: rule-tests

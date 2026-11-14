@@ -1,0 +1,36 @@
+id: no-local-lib-copy
+valid:
+  - |
+    import { createOutbox } from "@krizaka/outbox";
+    export const outbox = createOutbox({ clock });
+  - |
+    const alias = createOutbox;
+  - |
+    export function sendWelcome() {}
+  - |
+    export interface Query {}
+  - |
+    // lib-allow: the app's own port implementation, a different contract
+    export function createOutbox() {}
+  - |
+    // lib-allow: wraps the package class for the app's logger
+    export class OrganizeError extends Error {}
+  - |
+    // lib-allow: wraps the package type
+    export const addHours = (d: Date) => d;
+invalid:
+  - |
+    export function createOutbox() {}
+  - |
+    function addHours(d: Date, h: number) { return d; }
+  - |
+    export class OrganizeError extends Error {}
+  - |
+    export interface NotificationStore { list(): string[] }
+  - |
+    export type ApiKeyRecord = { id: string };
+  - |
+    export const addMinutes = (d: Date, m: number) => d;
+  - |
+    // lib-allow:
+    export function createOutbox() {}
