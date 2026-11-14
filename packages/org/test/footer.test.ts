@@ -23,6 +23,17 @@ describe("footerFor", () => {
     }
   });
 
+  it("shows the source, the licence and the version on every developer site, none on krizaka.com", () => {
+    for (const id of ["ui", "lab", "java", "ts", "rust"]) {
+      const footer = footerFor(id);
+      expect(footer.source).toBe(`https://github.com/krizaka/krizaka-${id}`);
+      expect(footer.license).not.toBeNull();
+      expect(footer.version).toBe(true);
+    }
+    const company = footerFor("krizaka");
+    expect([company.source, company.license, company.version]).toEqual([null, null, false]);
+  });
+
   it("gives Java a source link and no Maven Central link", () => {
     const java = footerFor("java");
     expect(java.source).toBe("https://github.com/krizaka/krizaka-java");

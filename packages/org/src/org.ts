@@ -83,14 +83,14 @@ const family: FamilyEntry[] = FAMILY_ROWS.map(([id, name, short, group, status, 
 
 const SOCIAL = ["instagram", "youtube", "linkedin"];
 
-/** The shared selection: the whole family, every social account, the licence and both legal links; a site sets its source link and its version line. */
-const developerFooter = (source: string | null, version: boolean): FooterSite => ({
+/** The shared selection of the developer sites: the whole family, every social account, the source, the licence, both legal links and the version line (founder target, krizaka-internal#754). */
+const developerFooter = (source: string | null): FooterSite => ({
   families: ["krizaka", "products", "open-source", "github"],
   social: SOCIAL,
   source,
   license: true,
   legal: ["privacy", "terms"],
-  version,
+  version: true,
 });
 
 export const org: Org = {
@@ -184,13 +184,13 @@ export const org: Org = {
       },
     ],
     sites: {
-      krizaka: { ...developerFooter(null, false), license: false },
-      ui: developerFooter(gh("krizaka-ui"), true),
-      lab: developerFooter(gh("krizaka-lab"), false),
+      krizaka: { ...developerFooter(null), license: false, version: false },
+      ui: developerFooter(gh("krizaka-ui")),
+      lab: developerFooter(gh("krizaka-lab")),
       // Java is no longer published on Maven Central (founder, 2026-11-14): the source link only.
-      java: developerFooter(gh("krizaka-java"), true),
-      ts: developerFooter(gh("krizaka-ts"), false),
-      rust: developerFooter(gh("krizaka-rust"), false),
+      java: developerFooter(gh("krizaka-java")),
+      ts: developerFooter(gh("krizaka-ts")),
+      rust: developerFooter(gh("krizaka-rust")),
     },
   },
 };
