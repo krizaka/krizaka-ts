@@ -1,6 +1,6 @@
 import pkg from "../package.json" with { type: "json" };
 import { defaults as centralDefaults } from "./defaults";
-import type { Localized, Org, OrgAvatar, OrgMark } from "./org.types";
+import type { FooterSite, Localized, Org, OrgAvatar, OrgMark } from "./org.types";
 
 /** The pull zone that serves the brand files and this JSON. */
 export const CDN = "https://krizaka-assets.b-cdn.net";
@@ -80,6 +80,18 @@ const family: FamilyEntry[] = FAMILY_ROWS.map(([id, name, short, group, status, 
   url,
   repo,
 }));
+
+const SOCIAL = ["instagram", "youtube", "linkedin"];
+
+/** The shared selection of the developer sites: the whole family, every social account, the source, the licence, both legal links and the version line (founder target, krizaka-internal#754). */
+const developerFooter = (source: string | null): FooterSite => ({
+  families: ["krizaka", "products", "open-source", "github"],
+  social: SOCIAL,
+  source,
+  license: true,
+  legal: ["privacy", "terms"],
+  version: true,
+});
 
 export const org: Org = {
   $schema: ORG_SCHEMA_URL,
@@ -171,5 +183,14 @@ export const org: Org = {
         url: { fr: "https://www.krizaka.com/fr/terms", en: "https://www.krizaka.com/en/terms" },
       },
     ],
+    sites: {
+      krizaka: { ...developerFooter(null), license: false, version: false },
+      ui: developerFooter(gh("krizaka-ui")),
+      lab: developerFooter(gh("krizaka-lab")),
+      // Java is no longer published on Maven Central (founder, 2026-11-14): the source link only.
+      java: developerFooter(gh("krizaka-java")),
+      ts: developerFooter(gh("krizaka-ts")),
+      rust: developerFooter(gh("krizaka-rust")),
+    },
   },
 };

@@ -108,6 +108,37 @@ export interface OrgMark {
   png1024: string;
 }
 
+/** The ids of the legal pages a footer may link. */
+export type LegalId = "privacy" | "terms";
+
+/** What one site's footer shows (krizaka-internal#3563): a selection out of the org data, never text of its own. */
+export interface FooterSite {
+  /** The family groups listed, in this order. */
+  families: FamilyGroup[];
+  /** The ids of `links.social` shown, in this order. */
+  social: string[];
+  /** The site's own source-code link; `null` shows none. */
+  source: string | null;
+  /** Whether the licence (`company.license`) shows. */
+  license: boolean;
+  /** The ids of `footer.legal` shown, in this order. */
+  legal: LegalId[];
+  /** Whether the version line of the site shows. */
+  version: boolean;
+}
+
+/** A footer, resolved by `footerFor`: the entries, the socials and the legal links, ready to render. */
+export interface ResolvedFooter {
+  id: string;
+  groups: { group: FamilyGroup; entries: FamilyEntry[] }[];
+  social: OrgSocialLink[];
+  source: string | null;
+  license: string | null;
+  legal: Org["footer"]["legal"];
+  line: Localized;
+  version: boolean;
+}
+
 export interface Org {
   $schema: string;
   /** The contract: `2` adds `defaults` (compatible: everything of `1` is unchanged). */
@@ -160,7 +191,9 @@ export interface Org {
   };
   footer: {
     line: Localized;
-    legal: { id: "privacy" | "terms"; label: Localized; url: Localized }[];
+    legal: { id: LegalId; label: Localized; url: Localized }[];
+    /** What each site shows, keyed by site id (`ui`, `lab`, `java`, `ts`, `rust`, `krizaka`): a site reads it with `footerFor`. */
+    sites: Record<string, FooterSite>;
   };
 }
 
