@@ -4,8 +4,8 @@ import type { OrgDefaultItem } from "./org.types";
 /** The products that have a demo cast. */
 export type CastProduct = "sovkora" | "verikora" | "folioviv";
 
-/** What a persona does in the app: a member, a shop owner or a customer of one, an administrator. */
-export type CastRole = "member" | "admin" | "owner" | "client";
+/** What a persona does in the app: a member, a shop owner or a customer of one, an administrator, a member of a shop's staff. */
+export type CastRole = "member" | "admin" | "owner" | "client" | "staff";
 
 /** One fictitious person of the demo cast. No e-mail domain and no password: those come from the environment, through the secrets map. */
 export interface CastPersona {
@@ -23,6 +23,18 @@ export interface CastPersona {
   readonly banner?: string;
   /** The demo workspace the persona belongs to (a key the app's seed knows: a set of folders, a shop). */
   readonly workspace: string;
+}
+
+/** A Folioviv dev account of krizaka-internal#2716: French, on Folioviv; only who they are, their role, avatar and workspace vary. */
+function foliovivDevAccount(
+  id: string,
+  firstName: string,
+  displayName: string,
+  role: CastRole,
+  avatar: string,
+  workspace: string,
+): CastPersona {
+  return { id, product: "folioviv", firstName, displayName, role, locale: "fr", avatar, workspace };
 }
 
 /** The versioned cast. Change it here, then re-run each app's `seed --cast`: every environment gets the same people. */
@@ -176,6 +188,20 @@ export const CAST: readonly CastPersona[] = [
     avatar: "salon-tattoo-maker",
     workspace: "saint-henri",
   },
+  // The other Folioviv dev accounts of krizaka-internal#2716 (full names; their e-mails stay in the app seed, on the reserved test domains).
+  foliovivDevAccount("philippe", "Philippe", "Philippe Gauthier", "owner", "community-lead", "krizaka-studio"),
+  foliovivDevAccount("myriam", "Myriam", "Myriam Dubé", "admin", "ai-builder", "administration"),
+  foliovivDevAccount("eric-krizaka", "Éric", "Éric Bouchard", "owner", "community-lead", "krizaka-studio"),
+  foliovivDevAccount("camille-staff", "Camille", "Camille Pelletier", "staff", "visual-artist", "krizaka-studio"),
+  foliovivDevAccount("marie-eve", "Marie-Ève", "Marie-Ève Fortin", "client", "digital-creator", "saint-henri"),
+  foliovivDevAccount("olivier", "Olivier", "Olivier Bergeron", "client", "boom-bap", "saint-henri"),
+  foliovivDevAccount("annie", "Annie", "Annie Savard", "client", "salon-tattoo-maker", "saint-henri"),
+  foliovivDevAccount("hugo", "Hugo", "Hugo Lemieux", "client", "tech-architect", "saint-henri"),
+  foliovivDevAccount("maelle", "Maëlle", "Maëlle Cèdre", "owner", "studio-maker", "maelle-cedre"),
+  foliovivDevAccount("ines-encrevive", "Inès", "Inès Encrevive", "owner", "salon-tattoo-maker", "ines-encrevive"),
+  foliovivDevAccount("ines-debut", "Inès", "Inès Morin", "owner", "digital-creator", "ines-debut"),
+  foliovivDevAccount("yan", "Yan", "Yan Cloutier", "owner", "boom-bap", "yan-seul"),
+  foliovivDevAccount("camille-ferland", "Camille", "Camille Ferland", "owner", "visual-artist", "camille-ferland"),
 ];
 
 /** The personas of a product, in cast order. */
