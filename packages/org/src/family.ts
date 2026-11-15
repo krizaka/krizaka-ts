@@ -124,7 +124,7 @@ export const family: readonly FamilyMember[] = [
     },
   },
   {
-    // Kridoc is the managed storage (Krizaka ECM, krizaka-internal#1916); a product like the others (CTO, #3913).
+    // Kridoc is the managed storage (krizaka-internal#1916); a product like the others (CTO, #3913).
     id: "kridoc",
     name: "Kridoc",
     short: "Kridoc",
