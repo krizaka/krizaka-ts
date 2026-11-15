@@ -1,5 +1,11 @@
 # @krizaka/config
 
+## 0.27.1
+
+### Patch Changes
+
+- e8cfd68: `krizaka-seo-family --dev-host`: the run no longer crashes on `consoleMode` read before its declaration; a CLI test runs the mode end to end (krizaka-internal#3899).
+
 ## 0.27.0
 
 ### Minor Changes
