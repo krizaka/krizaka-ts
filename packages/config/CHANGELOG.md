@@ -1,5 +1,11 @@
 # @krizaka/config
 
+## 0.27.0
+
+### Minor Changes
+
+- f87faba: `krizaka-seo-family --dev-host --index off`: the contract of a development host that serves its pages (robots Disallow, noindex, canonical and hreflang on the www host; no sitemap, llms.txt or JSON-LD rule), krizaka-internal#3899.
+
 ## 0.26.2
 
 ### Patch Changes
