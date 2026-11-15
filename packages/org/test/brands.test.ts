@@ -24,14 +24,14 @@ describe("the commercial names (krizaka-internal#2035)", () => {
   });
 
   it("carries the founder's decisions (krizaka-internal#2034, #2659)", () => {
-    expect(brands.map((b) => b.id)).toEqual(["verikora", "folioviv", "sovkora", "kridoc"]);
+    expect(brands.map((b) => b.id)).toEqual(["sovkora", "verikora", "folioviv", "kridoc"]);
     expect(brandOf("folioviv").domains).toEqual({
       site: "https://www.folioviv.com",
       app: "https://folioviv.app",
       shop: "https://folioviv.shop",
       dev: "https://dev.folioviv.com",
     });
-    expect(brandOf("kridoc").kind).toBe("service");
+    expect(brandOf("kridoc").kind).toBe("product");
     for (const b of brands) expect(b.id).toBe(b.commercialName.toLowerCase());
   });
 

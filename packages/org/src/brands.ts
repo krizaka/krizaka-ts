@@ -1,16 +1,18 @@
+import { family } from "./family";
 import type { Localized } from "./org.types";
+import { MEMBER } from "./org.types";
 
 /**
  * The brands of Krizaka (krizaka-internal#2033, #2035; renamed 2026-11-06, krizaka-internal#2659): one id per brand, and the
  * id is the commercial name (`verikora`), the customer reads « Verikora by Krizaka ». Every app, site and template reads
  * them from here — never a literal.
  *
- * These are NOT in `org.json`: the org JSON is service discovery only (the addresses and versions clients resolve). Names,
- * status, stores and the footer are admin configuration of each app (`@krizaka/settings`, audit trail); this module is the
- * seed and the validation vocabulary, not a published file.
+ * The names and hosts are computed from the family table (`family.ts`), which `org.json` publishes (`members`). Stores and the
+ * footer are admin configuration of each app (`@krizaka/settings`, audit trail); this module is the seed and the validation
+ * vocabulary.
  */
 
-/** `product`: sold on its own. `service`: a part the products carry (Kridoc, the managed storage). */
+/** `product`: sold on its own. `service`: kept for readers of 1.x; no brand is one since Kridoc became a product (krizaka-internal#3913). */
 export type BrandKind = "product" | "service";
 
 export interface OrgBrand {
@@ -27,37 +29,21 @@ export interface OrgBrand {
 
 const ENDORSEMENT = { en: "by Krizaka", fr: "par Krizaka" };
 
-const brand = (id: string, commercialName: string, kind: BrandKind, domains: OrgBrand["domains"]): OrgBrand => ({
-  id,
-  commercialName,
-  kind,
-  endorsement: ENDORSEMENT,
-  domains,
-});
-
-/** The brands, one per product or service. */
-export const brands: readonly OrgBrand[] = [
-  brand("verikora", "Verikora", "product", {
-    site: "https://www.verikora.com",
-    app: null,
-    shop: null,
-    dev: "https://dev.verikora.com",
-  }),
-  brand("folioviv", "Folioviv", "product", {
-    site: "https://www.folioviv.com",
-    app: "https://folioviv.app",
-    shop: "https://folioviv.shop",
-    dev: "https://dev.folioviv.com",
-  }),
-  brand("sovkora", "Sovkora", "product", {
-    site: "https://www.sovkora.com",
-    app: null,
-    shop: null,
-    dev: "https://dev.sovkora.com",
-  }),
-  // Kridoc is the managed storage (Krizaka ECM, krizaka-internal#1916).
-  brand("kridoc", "Kridoc", "service", { site: "https://www.kridoc.com", app: null, shop: null, dev: null }),
-];
+/** The brands, one per public product, computed from the family table (krizaka-internal#3913). Kridoc is a product like the others. */
+export const brands: readonly OrgBrand[] = family
+  .filter((m) => m.kind === MEMBER.product && m.visibility === "public" && m.urls.site)
+  .map((m) => ({
+    id: m.id,
+    commercialName: m.name,
+    kind: "product",
+    endorsement: ENDORSEMENT,
+    domains: {
+      site: m.urls.site as string,
+      app: m.urls.app ?? null,
+      shop: m.urls.shop ?? null,
+      dev: m.urls.dev ?? null,
+    },
+  }));
 
 /**
  * The historic table, and the only place the retired code names are written (founder, 2026-11-06, krizaka-internal#2659):

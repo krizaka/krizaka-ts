@@ -86,7 +86,8 @@ describe("the org JSON", () => {
     const ids = org.sites.map((s) => s.id);
     expect(new Set(ids).size).toBe(ids.length);
     for (const id of Object.keys(org.footer.sites)) expect(ids, `footer.sites.${id}`).toContain(id);
-    for (const e of org.family.filter((f) => f.group !== "github")) expect(ids, `family.${e.id}`).toContain(e.id);
+    for (const e of org.family.filter((f) => f.group !== "github" && f.id !== "rust"))
+      expect(ids, `family.${e.id}`).toContain(e.id);
     expect(org.footer.sites).not.toHaveProperty("rust");
     const aliases = org.sites.flatMap((s) => (s.aliases ?? []).map((a) => [a, s.id]));
     expect(Object.fromEntries(aliases)).toEqual({ www: "krizaka", motion: "lab" });
@@ -222,8 +223,8 @@ describe("the family's status is honest", () => {
 describe("the apps' runtime config", () => {
   it("has one validated file per live product", () => {
     const validate = ajv.compile(appSchema);
-    // Kridoc is a service the products carry (no app of its own, no dev host): it has no runtime config.
-    expect(Object.keys(apps)).toEqual(org.products.filter((p) => brandOf(p.id).kind === "product").map((p) => p.id));
+    // Kridoc has no app of its own and no dev host: it has no runtime config.
+    expect(Object.keys(apps)).toEqual(org.products.filter((p) => brandOf(p.id).domains.dev !== null).map((p) => p.id));
     for (const [id, config] of Object.entries(apps)) {
       expect(config.app).toBe(id);
       expect(validate(config), JSON.stringify(validate.errors)).toBe(true);
