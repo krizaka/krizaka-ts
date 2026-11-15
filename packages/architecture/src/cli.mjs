@@ -1,12 +1,20 @@
 #!/usr/bin/env node
 // krizaka-architecture <repo-path> [--out c4.json] [--level context|containers|components] [--text [file]]
+// krizaka-architecture layout <model.c4 | repo-path> [--out views.json] [--base f.c4]... [--system id] [--view id]...
 // Without --out the JSON goes to stdout. With --level the file holds that level only: { level, nodes, edges }.
 import { existsSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { buildC4, toText } from "./index.mjs";
+import { runLayout } from "./layout-cli.mjs";
 
 const args = process.argv.slice(2);
+if (args[0] === "layout") {
+  // exitCode, not exit(): a large JSON on a pipe must be flushed first
+  process.exitCode = await runLayout(args.slice(1));
+  await new Promise((done) => process.stdout.write("", done));
+  process.exit(process.exitCode);
+}
 const flag = (name) => {
   const i = args.indexOf(`--${name}`);
   if (i < 0) return undefined;

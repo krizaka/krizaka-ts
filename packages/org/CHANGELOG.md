@@ -1,5 +1,11 @@
 # @krizaka/org
 
+## 1.6.1
+
+### Patch Changes
+
+- 50bf475: Folioviv's cast: Myriam Dubé is an owner (she owns the Encre Vive Studio shop on dev; her account role is USER, not administrator), in the `ines-encrevive` workspace (krizaka-internal#2716).
+
 ## 1.6.0
 
 ### Minor Changes
