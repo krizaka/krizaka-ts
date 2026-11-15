@@ -20,6 +20,7 @@
     "release": "pnpm turbo run build && changeset publish",
     "sg:fix": "node scripts/sg-fix.mjs",
     "version-packages": "changeset version && pnpm install --lockfile-only",
+    "krizaka:postbump": "pnpm --filter @krizaka/config run gen:ui-names && pnpm --filter @krizaka/config run gen:package-exports",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,mjs,cjs,json,css}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,mjs,cjs,json,css}\""
   },
