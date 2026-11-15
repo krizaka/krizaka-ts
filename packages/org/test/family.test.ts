@@ -30,9 +30,8 @@ describe("the family's names", () => {
 
   it("agrees with the products and sites lists: same names, same addresses", () => {
     for (const p of org.products) expect([familyEntry(p.id).name, familyEntry(p.id).url]).toEqual([p.name, p.url]);
-    for (const s of org.sites.filter((s) => s.id !== "www")) {
-      const id = s.id === "motion" ? "lab" : s.id;
-      expect([familyEntry(id).name, familyEntry(id).url]).toEqual([s.name, s.url]);
+    for (const s of org.sites.filter((s) => s.id !== "krizaka")) {
+      expect([familyEntry(s.id).name, familyEntry(s.id).url]).toEqual([s.name, s.url]);
     }
   });
 

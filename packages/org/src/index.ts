@@ -38,6 +38,8 @@ export type {
   OrgSocialLink,
   ProductStatus,
   ResolvedFooter,
+  SiteKind,
+  SiteTone,
 } from "./org.types";
 export { MASCOT_BIRDS, PRODUCT_STATUS } from "./org.types";
 export { appSchema, orgSchema } from "./schema";

@@ -1,6 +1,6 @@
 import pkg from "../package.json" with { type: "json" };
 import { defaults as centralDefaults } from "./defaults";
-import type { FooterSite, Localized, Org, OrgAvatar, OrgMark } from "./org.types";
+import type { FooterSite, Localized, Org, OrgAvatar, OrgMark, OrgSite } from "./org.types";
 
 /** The pull zone that serves the brand files and this JSON. */
 export const CDN = "https://krizaka-assets.b-cdn.net";
@@ -82,6 +82,125 @@ const family: FamilyEntry[] = FAMILY_ROWS.map(([id, name, short, group, status, 
   repo,
 }));
 
+/**
+ * Every public site, one id each (krizaka-internal#3785). A product site points at its product: same bird, same url (a test pins it).
+ * Every bird is `own`: it wears its own palette, never the host accent.
+ */
+const SITES: OrgSite[] = [
+  {
+    id: "krizaka",
+    name: "krizaka.com",
+    url: "https://www.krizaka.com",
+    kind: "company",
+    mascot: { bird: "falcon", tone: "own" },
+    description: {
+      fr: "Technologies Krizaka : des logiciels pour les entreprises d'ici, construits à la vue de tous.",
+      en: "Technologies Krizaka: software for local businesses, built in the open.",
+    },
+    aliases: ["www"],
+  },
+  {
+    id: "blog",
+    name: "Blog",
+    url: "https://blog.krizaka.com",
+    kind: "company",
+    mascot: { bird: "falcon", tone: "own" },
+    description: {
+      fr: "Le blogue de Krizaka : ce que nous construisons et ce que nous en apprenons.",
+      en: "The Krizaka blog: what we build and what we learn from it.",
+    },
+  },
+  {
+    id: "ui",
+    name: "Krizaka UI",
+    url: "https://ui.krizaka.com",
+    kind: "docs",
+    mascot: { bird: "magpie", tone: "own" },
+    description: {
+      fr: "Composants React, variables de design et blocs de pages partagés par chaque produit Krizaka.",
+      en: "React components, design variables and page blocks shared by every Krizaka product.",
+    },
+  },
+  {
+    id: "java",
+    name: "Krizaka Java",
+    url: "https://java.krizaka.com",
+    kind: "docs",
+    mascot: { bird: "pigeon", tone: "own" },
+    description: {
+      fr: "Briques Spring Boot des services Krizaka. Pas encore de registre public : le code et les versions sont sur GitHub.",
+      en: "Spring Boot building blocks for Krizaka services. No public registry yet: the source and the releases are on GitHub.",
+    },
+  },
+  {
+    id: "ts",
+    name: "Krizaka TypeScript",
+    url: "https://ts.krizaka.com",
+    kind: "docs",
+    mascot: { bird: "lovebird", tone: "own" },
+    description: {
+      fr: "Briques TypeScript pour le serveur et le client, publiées sur npm sous @krizaka/.",
+      en: "TypeScript building blocks for server and client, published on npm under @krizaka/.",
+    },
+  },
+  {
+    id: "lab",
+    name: "Krizaka Lab",
+    url: "https://lab.krizaka.com",
+    kind: "lab",
+    mascot: { bird: "flamingo", tone: "own" },
+    description: {
+      fr: "Le laboratoire du mouvement : des essais de 3D et d'animation, montrés avant d'entrer dans les produits.",
+      en: "The motion lab: 3D and animation experiments, shown before they reach the products.",
+    },
+    aliases: ["motion"],
+  },
+  {
+    id: "sovkora",
+    name: "Sovkora",
+    url: "https://www.sovkora.com",
+    kind: "product",
+    mascot: { bird: "duck", tone: "own" },
+    description: {
+      fr: "Sovkora : des vidéos et des médias produits par l'IA, du scénario au rendu.",
+      en: "Sovkora: AI-made video and media, from script to render.",
+    },
+  },
+  {
+    id: "verikora",
+    name: "Verikora",
+    url: "https://www.verikora.com",
+    kind: "product",
+    mascot: { bird: "owl", tone: "own" },
+    description: {
+      fr: "Verikora : lire un document et en vérifier les faits, les chiffres et les données personnelles.",
+      en: "Verikora: read a document and check its facts, figures and personal data.",
+    },
+  },
+  {
+    id: "folioviv",
+    name: "Folioviv",
+    url: "https://www.folioviv.com",
+    kind: "product",
+    mascot: { bird: "beaver", tone: "own" },
+    description: {
+      fr: "Folioviv : réservations, vitrine et heures d'ouverture des commerces locaux.",
+      en: "Folioviv: bookings, storefront and opening hours for local businesses.",
+    },
+  },
+  {
+    id: "kridoc",
+    name: "Kridoc",
+    url: "https://www.kridoc.com",
+    kind: "product",
+    mascot: { bird: "crane", tone: "own" },
+    description: {
+      fr: "Kridoc : vos documents, classés et retrouvables, au même endroit.",
+      en: "Kridoc: your documents, filed and findable, in one place.",
+    },
+  },
+];
+
 const SOCIAL = ["instagram", "youtube", "linkedin"];
 
 /** The shared selection of the developer sites: the whole family, every social account, the source, the licence, both legal links and the version line (founder target, krizaka-internal#754). */
@@ -159,14 +278,7 @@ export const org: Org = {
       mascot: "crane",
     },
   ],
-  sites: [
-    { id: "www", name: "krizaka.com", url: "https://www.krizaka.com" },
-    { id: "ui", name: "Krizaka UI", url: "https://ui.krizaka.com" },
-    { id: "java", name: "Krizaka Java", url: "https://java.krizaka.com" },
-    { id: "ts", name: "Krizaka TypeScript", url: "https://ts.krizaka.com" },
-    { id: "motion", name: "Krizaka Lab", url: "https://lab.krizaka.com" },
-    { id: "blog", name: "Blog", url: "https://blog.krizaka.com" },
-  ],
+  sites: SITES,
   family,
   contact: {
     page: { fr: "https://www.krizaka.com/fr/contact", en: "https://www.krizaka.com/en/contact" },
@@ -203,7 +315,6 @@ export const org: Org = {
       // Java is no longer published on Maven Central (founder, 2026-11-14): the source link only.
       java: developerFooter(gh("krizaka-java")),
       ts: developerFooter(gh("krizaka-ts")),
-      rust: developerFooter(gh("krizaka-rust")),
     },
   },
 };

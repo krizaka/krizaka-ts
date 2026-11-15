@@ -205,8 +205,21 @@ export const orgSchema = {
       items: {
         type: "object",
         additionalProperties: false,
-        required: ["id", "name", "url"],
-        properties: { id: slug, name: { type: "string", minLength: 1 }, url: httpsUrl },
+        required: ["id", "name", "url", "kind", "mascot", "description"],
+        properties: {
+          id: slug,
+          name: { type: "string", minLength: 1 },
+          url: httpsUrl,
+          kind: { enum: ["company", "product", "docs", "lab"] },
+          mascot: {
+            type: "object",
+            additionalProperties: false,
+            required: ["bird", "tone"],
+            properties: { bird: { enum: [...MASCOT_BIRDS] }, tone: { enum: ["own", "brand"] } },
+          },
+          description: localized,
+          aliases: { type: "array", items: slug, uniqueItems: true },
+        },
       },
     },
     family: {

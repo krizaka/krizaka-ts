@@ -1,7 +1,7 @@
 # @krizaka/org
 
 **The public facts about Krizaka, in one validated JSON.** The legal name, the NEQ, « Fait à Montréal » in French and English,
-the brand marks, the default avatars, the live products (Sovkora, Verikora, Folioviv), the sites, the public contact, the footer
+the brand marks, the default avatars, the live products (Sovkora, Verikora, Folioviv), the sites (each with its kind, bird and description), the public contact, the footer
 line and the legal links — read by every footer, site and app, so changing one takes one pull request here.
 
 ```ts
@@ -51,6 +51,17 @@ The shared validation (no code name as a display name, FR/EN labels, valid URLs)
 A rename is therefore: the administrator edits the value in the app's settings, saves, and the build-time pages redeploy.
 The seed below is only the default of that setting.
 
+## Sites, birds and ids
+
+`org.sites` lists every public site once, under one id (`krizaka`, `blog`, `ui`, `java`, `ts`, `lab`, and the products `sovkora`,
+`verikora`, `folioviv`, `kridoc`). Each carries its `kind` (`company`, `product`, `docs`, `lab`), its identity bird as
+`mascot: { bird, tone }` and a `description` in French and English. Every tone is `own`: the bird wears its own palette, never
+the host's accent. A product site carries its product's bird; a documentation site never reuses a product's bird or the falcon
+(tests pin both).
+
+**Deprecated in 1.8.0, removed in 1.9.0:** the old site ids `www` and `motion` are only listed as `aliases` of `krizaka` and
+`lab`. `footer.sites.rust` is gone: no such site exists.
+
 ## Reading your footer
 
 The org JSON says what each site's footer shows (`footer.sites`, krizaka-internal#3563). A site never filters the family by
@@ -59,7 +70,7 @@ hand: it asks `footerFor(siteId)` and renders the result.
 ```ts
 import { footerFor } from "@krizaka/org";
 
-const footer = footerFor("ts"); // ui, lab, java, ts, rust or krizaka; an unknown id throws
+const footer = footerFor("ts"); // krizaka, ui, lab, java or ts; an unknown id throws
 footer.groups; // [{ group, entries }] the family groups to list, in order
 footer.social; // the social accounts to show
 footer.source; // the site's source-code link, or null
