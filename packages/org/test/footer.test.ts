@@ -12,7 +12,7 @@ const withSite = (patch: Record<string, unknown>) => {
 
 describe("footerFor", () => {
   it("resolves every site entry of the org JSON", () => {
-    expect(Object.keys(org.footer.sites).sort()).toEqual(["java", "krizaka", "lab", "rust", "ts", "ui"]);
+    expect(Object.keys(org.footer.sites).sort()).toEqual(["java", "krizaka", "lab", "ts", "ui"]);
     for (const id of Object.keys(org.footer.sites)) {
       const footer = footerFor(id);
       expect(footer.id).toBe(id);
@@ -24,7 +24,7 @@ describe("footerFor", () => {
   });
 
   it("shows the source, the licence and the version on every developer site, none on krizaka.com", () => {
-    for (const id of ["ui", "lab", "java", "ts", "rust"]) {
+    for (const id of ["ui", "lab", "java", "ts"]) {
       const footer = footerFor(id);
       expect(footer.source).toBe(`https://github.com/krizaka/krizaka-${id}`);
       expect(footer.license).not.toBeNull();

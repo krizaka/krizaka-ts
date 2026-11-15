@@ -42,10 +42,30 @@ export interface OrgProduct {
   mascot: MascotBird;
 }
 
+/** What a site is: the company's own, a product's, a documentation site of a library, or the motion lab. */
+export type SiteKind = "company" | "product" | "docs" | "lab";
+
+/**
+ * How a site wears its bird. `own`: its own palette, never the host's accent (the duck of Sovkora stays Sovkora's colour on
+ * the Java site). `brand`: the host's accent.
+ */
+export type SiteTone = "own" | "brand";
+
 export interface OrgSite {
+  /** One id per site, the same in `family` and `footer.sites` (`krizaka`, `lab`). */
   id: string;
   name: string;
   url: string;
+  kind: SiteKind;
+  /** The site's identity bird. A product site carries its product's bird (`products[].mascot`); a docs site never reuses a product's or the falcon. */
+  mascot: { bird: MascotBird; tone: SiteTone };
+  /** The one-line description every kit and card reads, in both languages. */
+  description: Localized;
+  /**
+   * The ids this site used to go by (`www`, `motion`), kept for one minor: deprecated in 1.8.0, removed in 1.9.0. Read the
+   * site by its `id`.
+   */
+  aliases?: string[];
 }
 
 /** Where an entry of the family sits: the company's own pages, the products, the open-source libraries and tools, GitHub. */
@@ -213,7 +233,7 @@ export interface Org {
   footer: {
     line: Localized;
     legal: { id: LegalId; label: Localized; url: Localized }[];
-    /** What each site shows, keyed by site id (`ui`, `lab`, `java`, `ts`, `rust`, `krizaka`): a site reads it with `footerFor`. */
+    /** What each site shows, keyed by site id (`krizaka`, `ui`, `lab`, `java`, `ts`; every key is a site id): a site reads it with `footerFor`. */
     sites: Record<string, FooterSite>;
   };
 }

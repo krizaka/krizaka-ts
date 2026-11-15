@@ -44,6 +44,71 @@ describe("the org JSON", () => {
     expect(validate({ ...json, mascot: undefined })).toBe(false);
   });
 
+  it("gives every site a kind, a bird in its own tone and a description (krizaka-internal#3785)", () => {
+    expect(Object.fromEntries(org.sites.map((s) => [s.id, s.mascot.bird]))).toEqual({
+      krizaka: "falcon",
+      blog: "falcon",
+      ui: "magpie",
+      java: "pigeon",
+      ts: "lovebird",
+      lab: "flamingo",
+      sovkora: "duck",
+      verikora: "owl",
+      folioviv: "beaver",
+      kridoc: "crane",
+    });
+    for (const s of org.sites) {
+      expect(s.mascot.tone, s.id).toBe("own");
+      expect(s.description.fr.length, s.id).toBeGreaterThan(0);
+      expect(s.description.en.length, s.id).toBeGreaterThan(0);
+    }
+    expect(org.sites.filter((s) => s.kind === "product").map((s) => s.id)).toEqual(org.products.map((p) => p.id));
+  });
+
+  it("points each product site at its product: same bird, same url", () => {
+    for (const p of org.products) {
+      const site = org.sites.find((s) => s.id === p.id);
+      expect(site?.kind, p.id).toBe("product");
+      expect(site?.mascot.bird, p.id).toBe(p.mascot);
+      expect(site?.url, p.id).toBe(p.url);
+    }
+  });
+
+  it("refuses a docs site that reuses a product's bird or the falcon", () => {
+    const reserved = new Set([org.mascot, ...org.products.map((p) => p.mascot)]);
+    const docs = org.sites.filter((s) => s.kind === "docs" || s.kind === "lab");
+    expect(docs.map((s) => s.id).sort()).toEqual(["java", "lab", "ts", "ui"]);
+    for (const s of docs) expect(reserved.has(s.mascot.bird), s.id).toBe(false);
+    expect(new Set(docs.map((s) => s.mascot.bird)).size).toBe(docs.length);
+  });
+
+  it("uses one id per site across sites, family and footer.sites; old ids are aliases only", () => {
+    const ids = org.sites.map((s) => s.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const id of Object.keys(org.footer.sites)) expect(ids, `footer.sites.${id}`).toContain(id);
+    for (const e of org.family.filter((f) => f.group !== "github")) expect(ids, `family.${e.id}`).toContain(e.id);
+    expect(org.footer.sites).not.toHaveProperty("rust");
+    const aliases = org.sites.flatMap((s) => (s.aliases ?? []).map((a) => [a, s.id]));
+    expect(Object.fromEntries(aliases)).toEqual({ www: "krizaka", motion: "lab" });
+    for (const [alias] of aliases) expect(ids).not.toContain(alias);
+  });
+
+  it("says where Java's artefacts are without naming Maven Central, and gives Kridoc its line", () => {
+    const java = org.sites.find((s) => s.id === "java");
+    expect(`${java?.description.fr} ${java?.description.en}`).not.toMatch(/maven central/i);
+    expect(java?.description.en).toMatch(/GitHub/);
+    expect(org.sites.find((s) => s.id === "kridoc")?.description.en.length).toBeGreaterThan(0);
+  });
+
+  it("the schema refuses a site without a bird, or with a tone outside the set", () => {
+    const json = JSON.parse(text) as typeof org;
+    const validate = ajv.compile(orgSchema);
+    const [first, ...rest] = json.sites;
+    expect(validate({ ...json, sites: [{ ...first, mascot: undefined }, ...rest] })).toBe(false);
+    expect(validate({ ...json, sites: [{ ...first, mascot: { bird: "falcon", tone: "pink" } }, ...rest] })).toBe(false);
+    expect(validate({ ...json, sites: [{ ...first, kind: "shop" }, ...rest] })).toBe(false);
+  });
+
   it("says every product is in development (krizaka-com#468)", () => {
     expect(org.products.map((p) => [p.id, p.status])).toEqual([
       ["sovkora", "development"],
