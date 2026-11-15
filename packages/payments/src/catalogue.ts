@@ -145,7 +145,8 @@ async function ensureWebhook(
 
 const registrationLabel = (r: Registration) => {
   const province = r.country_options?.ca?.province_standard?.province;
-  return `${r.country}${province ? `-${province}` : ""}:${r.status}`;
+  const where = province ? `${r.country}-${province}` : r.country;
+  return `${where}:${r.status}`;
 };
 
 /** What the tax setup looks like, as a line to print; a failure to read it is a line too, never an error. */
