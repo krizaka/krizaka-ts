@@ -13,6 +13,23 @@ export interface Localized {
 export const PRODUCT_STATUS = ["design", "upcoming", "construction", "development", "paused", "devPreview"] as const;
 export type ProductStatus = (typeof PRODUCT_STATUS)[number];
 
+/**
+ * The closed set of mascot birds, the same ids as `MascotBird` in @krizaka/ui (this package never imports what renders, ADR-004,
+ * so the set is written here and a test pins it). The org JSON is the source of truth for which bird speaks for which product.
+ */
+export const MASCOT_BIRDS = [
+  "falcon",
+  "owl",
+  "duck",
+  "flamingo",
+  "pigeon",
+  "lovebird",
+  "crane",
+  "magpie",
+  "beaver",
+] as const;
+export type MascotBird = (typeof MASCOT_BIRDS)[number];
+
 export interface OrgProduct {
   id: string;
   name: string;
@@ -21,6 +38,8 @@ export interface OrgProduct {
   url: string;
   /** Its public source repository. */
   repo: string;
+  /** The product's own bird (krizaka-internal#3642): falcon is Krizaka's, never shared. */
+  mascot: MascotBird;
 }
 
 export interface OrgSite {
@@ -168,6 +187,8 @@ export interface Org {
     socialPreview: string;
     manifest: string;
   };
+  /** The company's own bird (the falcon). */
+  mascot: MascotBird;
   people: {
     /** Legacy sets by brand (`people/defaults/v1/krizaka`): kept for the readers of schema 1; new code reads `defaults`. */
     defaults: OrgAvatar[];

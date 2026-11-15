@@ -118,6 +118,7 @@ export const org: Org = {
     socialPreview: cdn("brand/krizaka/social-preview-1280x640.png"),
     manifest: cdn("brand/manifest.json"),
   },
+  mascot: "falcon",
   people: {
     defaults,
     // No banner is published on the CDN yet; the set joins here with its alts when it is.
@@ -131,6 +132,7 @@ export const org: Org = {
       status: "development",
       url: "https://www.sovkora.com",
       repo: "https://github.com/krizaka/sovkora",
+      mascot: "duck",
     },
     {
       id: "verikora",
@@ -138,6 +140,7 @@ export const org: Org = {
       status: "development",
       url: "https://www.verikora.com",
       repo: "https://github.com/krizaka/verikora",
+      mascot: "owl",
     },
     {
       id: "folioviv",
@@ -145,6 +148,7 @@ export const org: Org = {
       status: "development",
       url: "https://www.folioviv.com",
       repo: "https://github.com/krizaka/folioviv",
+      mascot: "beaver",
     },
     {
       id: "kridoc",
@@ -152,6 +156,7 @@ export const org: Org = {
       status: "development",
       url: "https://www.kridoc.com",
       repo: "https://github.com/krizaka/kridoc",
+      mascot: "crane",
     },
   ],
   sites: [

@@ -1,5 +1,5 @@
 import { CDN, org, ORG_SCHEMA_URL } from "./org";
-import { PRODUCT_STATUS } from "./org.types";
+import { MASCOT_BIRDS, PRODUCT_STATUS } from "./org.types";
 
 const localized = {
   type: "object",
@@ -82,6 +82,7 @@ export const orgSchema = {
     "updatedAt",
     "company",
     "brand",
+    "mascot",
     "people",
     "defaults",
     "products",
@@ -94,6 +95,7 @@ export const orgSchema = {
   properties: {
     $schema: { type: "string" },
     schemaVersion: { enum: [1, 2] },
+    mascot: { enum: [...MASCOT_BIRDS] },
     version: semver,
     updatedAt: date,
     company: {
@@ -186,13 +188,14 @@ export const orgSchema = {
       items: {
         type: "object",
         additionalProperties: false,
-        required: ["id", "name", "status", "url", "repo"],
+        required: ["id", "name", "status", "url", "repo", "mascot"],
         properties: {
           id: slug,
           name: { type: "string", minLength: 1 },
           status: { enum: [...PRODUCT_STATUS] },
           url: httpsUrl,
           repo: httpsUrl,
+          mascot: { enum: [...MASCOT_BIRDS] },
         },
       },
     },
