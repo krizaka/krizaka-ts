@@ -319,6 +319,7 @@ async function main() {
   const types = (opt("--types", "") || "").split(",").filter(Boolean);
   const limit = Number(opt("--limit", 25));
   const organizationHome = args.includes("--organization");
+  const consoleMode = args.includes("--console");
   let failed = 0;
   const report = (where, problems) => {
     for (const p of problems) process.stderr.write(`${`✗ ${where}: ${p}`}\n`);
@@ -365,7 +366,6 @@ async function main() {
     );
     return done(1);
   }
-  const consoleMode = args.includes("--console");
   report("/robots.txt", auditRobots(await (await get("/robots.txt")).text(), { host, index, sitemap: !consoleMode }));
   if (consoleMode) {
     const res = await get("/");

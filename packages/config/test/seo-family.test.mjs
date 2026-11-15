@@ -140,3 +140,27 @@ test("a development host that serves noindex pages with canonical and hreflang o
   );
   assert.ok(auditDevPages({ ...seen(head("")), robotsText: "User-agent: *\nAllow: /\n" }, { www }).length > 0);
 });
+
+test("the CLI in --dev-host mode exits 0 on a dev host serving noindex pages with a canonical on www, and 1 when the canonical is the dev host", async () => {
+  const { createServer } = await import("node:http");
+  const { execFile } = await import("node:child_process");
+  const { promisify } = await import("node:util");
+  const bin = new URL("../bin/krizaka-seo-family.mjs", import.meta.url).pathname;
+  let canonical = "https://www.example.com/fr";
+  const server = createServer((req, res) => {
+    res.setHeader("x-robots-tag", "noindex");
+    if (req.url === "/robots.txt") return res.end("User-agent: *\nDisallow: /\n");
+    res.end(`<html><head><link rel="canonical" href="${canonical}"/></head></html>`);
+  });
+  await new Promise((r) => server.listen(0, "127.0.0.1", r));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const run = (args) =>
+    promisify(execFile)(process.execPath, [bin, "--base", base, "--host", "https://dev.example.com", ...args]);
+  try {
+    assert.match((await run(["--index", "off", "--dev-host"])).stdout, /all good/);
+    canonical = "https://dev.example.com/fr";
+    await assert.rejects(run(["--index", "off", "--dev-host"]), (e) => e.code === 1 && /canonical/.test(e.stderr));
+  } finally {
+    server.close();
+  }
+});
