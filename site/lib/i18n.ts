@@ -26,6 +26,6 @@ export function localizedPath(locale: Locale, path: string): string {
 
 /** The language of a URL path, and the path without its language prefix. */
 export function splitLocale(pathname: string): { locale: Locale; path: string } {
-  const m = pathname.match(/^\/fr(\/.*)?$/);
+  const m = /^\/fr(\/.*)?$/.exec(pathname);
   return m ? { locale: "fr", path: m[1] ?? "/" } : { locale: "en", path: pathname || "/" };
 }

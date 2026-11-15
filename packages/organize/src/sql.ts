@@ -72,7 +72,7 @@ export function resolved(schema: OrganizeSchema) {
 }
 export type Resolved = ReturnType<typeof resolved>;
 
-const quote = (text: string) => `'${text.replace(/'/g, "''")}'`;
+const quote = (text: string) => `'${text.replaceAll("'", "''")}'`;
 
 /**
  * The SQL of version 1 of « organize » for a product's declaration (collections, tags, the default-collection invariants).

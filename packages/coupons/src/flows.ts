@@ -90,6 +90,18 @@ const ATTACH_GRACE_MINUTES = 5;
 // @fixed: the sweeper's batch
 const SWEEP_BATCH = 500;
 
+function replayOf(known: Redemption, coupon: Coupon, accountId: string): CreditRedemption {
+  if (known.couponId !== coupon.id || known.accountId !== accountId || !known.creditGrantId)
+    throw new CouponError(COUPON_ERROR.keyReused, "This idempotency key was used for another coupon or account");
+  return {
+    redemptionId: known.id,
+    grantId: known.creditGrantId,
+    credits: coupon.credits!,
+    expiresAt: addHours(known.createdAt, coupon.creditsValidDays! * 24),
+    replayed: true,
+  };
+}
+
 /** The flows of a coupon's life at checkout and at redemption (ADR-002 §4). */
 export function makeFlows(k: Kernel) {
   /** Counts one attempt with a code; refuses past the limit, before any lookup. */
@@ -406,18 +418,6 @@ export function makeFlows(k: Kernel) {
     const done = (await store.updateRedemption(redemption.id, null, { creditGrantId: grantId }))!;
     await confirmed(tx, coupon, done, (await store.usage(coupon.id, null, now)).total);
     return { redemptionId: done.id, grantId, credits: coupon.credits!, expiresAt, replayed: false };
-  }
-
-  function replayOf(known: Redemption, coupon: Coupon, accountId: string): CreditRedemption {
-    if (known.couponId !== coupon.id || known.accountId !== accountId || !known.creditGrantId)
-      throw new CouponError(COUPON_ERROR.keyReused, "This idempotency key was used for another coupon or account");
-    return {
-      redemptionId: known.id,
-      grantId: known.creditGrantId,
-      credits: coupon.credits!,
-      expiresAt: addHours(known.createdAt, coupon.creditsValidDays! * 24),
-      replayed: true,
-    };
   }
 
   async function revoke(tx: Query, actor: Actor, redemptionId: string): Promise<void> {

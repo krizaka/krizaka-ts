@@ -68,7 +68,7 @@ function packageMessages(messages, ids) {
 
 const facts = (src) => ({
   fences: [...src.matchAll(/^```(\w*)/gm)].map((m) => m[1]).join(","),
-  components: [...src.matchAll(/^<([A-Z]\w+)[^>]*>/gm)].map((m) => m[0]).join(","),
+  components: [...src.matchAll(/^<[A-Z]\w[^>]*>/gm)].map((m) => m[0]).join(","),
   links: [...src.matchAll(/\]\((\/[^)#]*)/g)]
     .map((m) => m[1])
     .sort((x, y) => x.localeCompare(y))

@@ -40,7 +40,7 @@
   "scripts": {
     "lint": "eslint . --max-warnings 0",
     "typecheck": "node --check src/index.mjs",
-    "test": "node --test",
+    "test": "mkdir -p coverage && node --test --experimental-test-coverage \"--test-coverage-include=src/**/*.mjs\" --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=coverage/lcov.info",
     "check": "pnpm run lint && pnpm run test",
     "prepublishOnly": "pnpm run check"
   },

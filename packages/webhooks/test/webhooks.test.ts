@@ -177,7 +177,7 @@ describe.runIf(enabled)("webhooks on PostgreSQL", () => {
     expect(JSON.parse(r.body)).toMatchObject({ id: "invoice:9", type: "invoice.paid", data: { number: "F-00009" } });
     const before = sent.length;
     await hooks().deliverDue(NOW, ok);
-    expect(sent.length).toBe(before);
+    expect(sent).toHaveLength(before);
     expect((await hooks().deliveries(o, endpoint.id))[0]).toMatchObject({
       status: "delivered",
       attempts: 1,

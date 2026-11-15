@@ -92,7 +92,7 @@ async function problemsOn(page, html, checks) {
 /** The failure for a fixture that must be clean and is not (none, when it is). */
 async function reported(page, name, html, checks) {
   const fine = await problemsOn(page, html, checks);
-  return fine.length ? [`the audit reports ${String(name)}: ${fine.join(" | ")}`] : [];
+  return fine.length ? [`the audit reports ${name}: ${fine.join(" | ")}`] : [];
 }
 
 /** @returns {Promise<string[]>} the failures (empty when the audit sees what it must and nothing else) */
@@ -104,7 +104,7 @@ export async function selfTest({ launch } = {}) {
     for (const [name, html, pattern, checks] of EXPECT) {
       const problems = await problemsOn(page, html, checks);
       if (!problems.some((p) => pattern.test(p)))
-        failures.push(`the audit does not see ${String(name)}: ${problems.join(" | ") || "no problem reported"}`);
+        failures.push(`the audit does not see ${name}: ${problems.join(" | ") || "no problem reported"}`);
     }
     for (const [name, html] of FINES) failures.push(...(await reported(page, name, html)));
     await page.setViewportSize({ width: 1280, height: 700 });

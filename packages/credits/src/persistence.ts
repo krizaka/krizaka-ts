@@ -2,22 +2,26 @@ import { ident, type Query } from "@krizaka/db";
 
 import { type Calendar, type CreditStore, type Entry, type Grant, type GrantState, type Hold } from "./port";
 
+/** What the driver returns for a numeric column, and for a timestamp one. */
+type Numeric = string | number;
+type Timestamp = Date | string;
+
 interface GrantRow {
   id: string;
   account_id: string;
   bucket: Grant["bucket"];
-  amount: string | number;
-  cap_per_day: string | number | null;
-  cap_per_month: string | number | null;
-  expires_at: Date | string | null;
+  amount: Numeric;
+  cap_per_day: Numeric | null;
+  cap_per_month: Numeric | null;
+  expires_at: Timestamp | null;
   on_exhausted: Grant["onExhausted"];
   source: string;
-  created_at: Date | string;
+  created_at: Timestamp;
 }
 interface StateRow extends GrantRow {
-  remaining: string | number;
-  used_today: string | number;
-  used_month: string | number;
+  remaining: Numeric;
+  used_today: Numeric;
+  used_month: Numeric;
   closed: boolean;
 }
 interface EntryRow {
@@ -25,30 +29,30 @@ interface EntryRow {
   account_id: string;
   grant_id: string | null;
   type: Entry["type"];
-  amount: string | number;
+  amount: Numeric;
   reason: string;
   operation: string;
   idempotency_key: string;
   reverses: string | null;
   hold_id: string | null;
-  at: Date | string;
+  at: Timestamp;
 }
 interface HoldRow {
   id: string;
   account_id: string;
-  amount: string | number;
-  expires_at: Date | string;
+  amount: Numeric;
+  expires_at: Timestamp;
   status: Hold["status"];
-  settled_amount: string | number | null;
-  created_at: Date | string;
-  closed_at: Date | string | null;
+  settled_amount: Numeric | null;
+  created_at: Timestamp;
+  closed_at: Timestamp | null;
   operation: string;
 }
 
-const num = (v: string | number): number => Number(v);
-const numOrNull = (v: string | number | null): number | null => (v === null ? null : Number(v));
-const date = (v: Date | string): Date => new Date(v);
-const dateOrNull = (v: Date | string | null): Date | null => (v === null ? null : new Date(v));
+const num = Number;
+const numOrNull = (v: Numeric | null): number | null => (v === null ? null : Number(v));
+const date = (v: Timestamp): Date => new Date(v);
+const dateOrNull = (v: Timestamp | null): Date | null => (v === null ? null : new Date(v));
 
 const toGrant = (r: GrantRow): Grant => ({
   id: r.id,
@@ -192,7 +196,7 @@ export function dbCreditStore(query: Query, schema = "credits"): CreditStore {
       return row ? toHold(row) : null;
     },
     async heldAmount(accountId, now, exceptHoldId) {
-      const [row] = await query<{ held: string | number }>(
+      const [row] = await query<{ held: Numeric }>(
         `SELECT COALESCE(SUM(amount), 0) AS held FROM ${hold} WHERE account_id = $1 AND status = 'active' AND expires_at > $2 AND ($3::uuid IS NULL OR id <> $3)`,
         [accountId, now, exceptHoldId ?? null],
       );

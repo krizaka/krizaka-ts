@@ -109,7 +109,8 @@ function translateRefund(id: string, o: Obj): PaymentEvent {
 }
 
 function translateSubscription(id: string, type: string, o: Obj, customerId: string | null): PaymentEvent {
-  const status = type === "customer.subscription.deleted" ? "canceled" : String(o.status ?? "");
+  const reported = typeof o.status === "string" ? o.status : "";
+  const status = type === "customer.subscription.deleted" ? "canceled" : reported;
   const item = ((o.items as { data?: { current_period_end?: number }[] } | undefined)?.data ?? [])[0];
   return {
     id,

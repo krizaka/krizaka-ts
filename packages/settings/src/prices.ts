@@ -130,7 +130,7 @@ export const publicCatalogue = (entries: readonly PriceEntry[]): PublicPrice[] =
     }));
 
 /** An amount with a currency sign or code, before or after it (French and English writing, any thousands separator). */
-const TYPED_PRICE = /\d(?:[\d\s\u00a0\u202f.,]*\d)?\s?(?:\$|CAD\b|USD\b|€)|\$\s?\d/u;
+const TYPED_PRICE = /\d\s?(?:\$|CAD\b|USD\b|€)|\$\s?\d/u;
 
 /** The paths of every message that types an amount — a product's « every price comes from the catalogue » test fails on any. */
 export function findTypedPrices(messages: unknown, path: string[] = []): string[] {

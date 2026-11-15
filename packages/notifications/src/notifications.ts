@@ -140,7 +140,7 @@ export function createNotifications(deps: NotificationDeps): Notifications {
         accountId: input.accountId,
         category: input.category,
         template: input.template,
-        payload: { variables: input.variables ?? {}, ...(input.payload ?? {}) },
+        payload: { variables: input.variables ?? {}, ...input.payload },
         dedupeKey: input.dedupeKey ?? null,
         inBell: channels.app,
         createdAt: now,

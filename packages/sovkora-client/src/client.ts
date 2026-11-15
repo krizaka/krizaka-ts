@@ -72,7 +72,7 @@ export interface SovkoraClient {
 
 const STUDIO_KEY = /^[a-z0-9][a-z0-9-]{0,79}$/i;
 const RUN_ID = /^[0-9a-f-]{36}$/i;
-const CHECK_PURPOSES: readonly string[] = ["court-records", "credit"];
+const CHECK_PURPOSES: ReadonlySet<string> = new Set(["court-records", "credit"]);
 /** A provider's opaque reference: printable, no slash, so it cannot change the path. */
 const PROVIDER_REF = /^[A-Za-z0-9._:~-]{1,120}$/;
 const IDEMPOTENCY_KEY = /^[!-~]{1,255}$/;
@@ -223,7 +223,7 @@ export function createSovkoraClient(options: SovkoraClientOptions): SovkoraClien
       return { run: parseRun(await json(res)), replayed: res.headers.get("idempotent-replayed") === "true" };
     },
     async startCheck(purpose, { subject, consented, runId }) {
-      if (!CHECK_PURPOSES.includes(purpose))
+      if (!CHECK_PURPOSES.has(purpose))
         throw new SovkoraError(SOVKORA_CODE.input, "Not a check purpose", { status: 422 });
       const res = await call(`/api/v1/checks/${purpose}`, { method: "POST", body: { ...subject, runId, consented } });
       return parseCheck(await json(res));

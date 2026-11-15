@@ -91,7 +91,7 @@ const checkResetTtl = (minutes: number): number => {
 const NAME_MAX = 80;
 const PASSWORD_MIN = 12;
 const PASSWORD_MAX = 256;
-const THEMES: readonly Theme[] = ["light", "dark", "system"];
+const THEMES: ReadonlySet<Theme> = new Set<Theme>(["light", "dark", "system"]);
 
 /** One format for every mailed link (an e-mail change, a password reset): the product's prefix, a version, 256 random bits. */
 export const linkToken = (prefix: string) => `${prefix}1.${crypto.randomBytes(32).toString("base64url")}`;
@@ -203,7 +203,7 @@ export function dbAccounts(deps: AccountDeps): AccountService {
       const name = typeof patch.name === "string" ? cleanName(patch.name) : patch.name;
       if (patch.avatarSeed && !/^[a-z0-9-]{1,40}$/.test(patch.avatarSeed))
         throw new AccountError(400, "BAD_REQUEST", "Not an avatar");
-      if (patch.theme && !THEMES.includes(patch.theme)) throw new AccountError(400, "BAD_REQUEST", "Not a theme");
+      if (patch.theme && !THEMES.has(patch.theme)) throw new AccountError(400, "BAD_REQUEST", "Not a theme");
       await query(
         `UPDATE accounts SET name = CASE WHEN $2::boolean THEN $3 ELSE name END, locale = COALESCE($4, locale),
                 avatar_seed = CASE WHEN $5::boolean THEN $6 ELSE avatar_seed END, theme = CASE WHEN $7::boolean THEN $8 ELSE theme END WHERE id = $1`,

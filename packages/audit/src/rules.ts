@@ -46,7 +46,7 @@ export function toInsert(input: AuditEntryInput, at: Date, allowedActions?: read
  */
 export const pageSize = (limit: number | undefined): number => Math.min(limit ?? PAGE.default, PAGE.max);
 
-const CURSOR = /^[1-9][0-9]{0,18}$/;
+const CURSOR = /^[1-9]\d{0,18}$/;
 /** PostgreSQL's largest `bigint`: an entry id, and so a cursor, is never above it. */
 const BIGINT_MAX = 9_223_372_036_854_775_807n;
 

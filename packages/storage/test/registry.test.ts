@@ -120,7 +120,7 @@ describe("private provider plugins", () => {
     expect(opened.kind.kind).toBe("acme-vault");
     expect(seen[0]?.endpoint).toBe("https://vault.acme.example");
     expect(defaultProviderRegistry.kind("acme-vault")).toBeUndefined();
-    expect(registry.kinds.length).toBe(defaultProviderRegistry.kinds.length + 1);
+    expect(registry.kinds).toHaveLength(defaultProviderRegistry.kinds.length + 1);
     expect(await code(() => openProvider("acme-vault", {}, {}, ctx()))).toBe("STORAGE_BAD_CONFIG");
   });
   it("refuses a duplicate name, built-in or private", () => {

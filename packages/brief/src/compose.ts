@@ -60,7 +60,7 @@ export function composeBrief<Ctx, R extends Recommendation>({
     if (refusal) vetoed.push({ item, ...refusal });
     else passed.push(item);
   }
-  const ranked = passed.sort(byPriority);
+  const ranked = [...passed].sort(byPriority);
   return { week, items: ranked.slice(0, limit), vetoed, dropped: ranked.slice(limit) };
 }
 

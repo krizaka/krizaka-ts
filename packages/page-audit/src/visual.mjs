@@ -144,7 +144,7 @@ export function defineJourneyTests({
         baseURL,
       }) => {
         const origin = base ?? baseURL;
-        const javaScript = !(journey.firstPaint === true);
+        const javaScript = journey.firstPaint !== true;
         const storageState = journey.session ? await sessionState(browser) : undefined;
         const context = await browser.newContext(
           visualContextOptions({ size: cell.size, theme: cell.theme, javaScript, storageState }),

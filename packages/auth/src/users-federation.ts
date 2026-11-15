@@ -40,14 +40,21 @@ export function parseExternalIdentity(body: unknown): ExternalIdentity {
   return { issuer, subject, email: text(o.email), emailVerified: o.email_verified === true, name: text(o.name) };
 }
 
+/** The URL without its trailing slashes, in one linear pass (a long run of slashes must not be quadratic). */
+const withoutTrailingSlashes = (url: string): string => {
+  let end = url.length;
+  while (end > 0 && url[end - 1] === "/") end -= 1;
+  return url.slice(0, end);
+};
+
 /**
  * The adapter for the users service (`auth.<product>` tenant host), which lives in krizaka/krizaka-java `krizaka-users/` since
  * ADR-021 (the federation landed as krizaka/krizaka-users#31, the old split): `start` builds the tenant's start address,
  * `complete` exchanges the one-time code (and the PKCE verifier of a native app) for the verified identity.
  */
 export function usersIdentityProvider({ baseUrl, appUrl, fetch }: UsersFederationOptions): IdentityProvider {
-  const base = baseUrl.replace(/\/+$/, "");
-  const app = appUrl.replace(/\/+$/, "");
+  const base = withoutTrailingSlashes(baseUrl);
+  const app = withoutTrailingSlashes(appUrl);
   return {
     async start(provider, returnTo, options: StartOptions = {}): Promise<StartedSignIn> {
       if (!isFederatedProvider(provider))

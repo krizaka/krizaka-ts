@@ -19,7 +19,7 @@ export const RUN_STATUS = {
   compensating: "COMPENSATING",
 } as const;
 
-const TERMINAL: readonly string[] = [RUN_STATUS.succeeded, RUN_STATUS.failed, RUN_STATUS.cancelled];
+const TERMINAL: ReadonlySet<string> = new Set([RUN_STATUS.succeeded, RUN_STATUS.failed, RUN_STATUS.cancelled]);
 
 /** A run, as the edge answers it (`GET /api/v1/studios/runs/{id}`). Only what a product reads. */
 export interface SovkoraRun {
@@ -34,7 +34,7 @@ export interface SovkoraRun {
 }
 
 /** The run is over, green or not: nothing more will change. */
-export const isTerminal = (run: Pick<SovkoraRun, "status">): boolean => TERMINAL.includes(run.status);
+export const isTerminal = (run: Pick<SovkoraRun, "status">): boolean => TERMINAL.has(run.status);
 
 /** The value of one output, or null when the run did not produce it (yet). */
 export const outputOf = (run: Pick<SovkoraRun, "outputs">, key: string): string | null =>

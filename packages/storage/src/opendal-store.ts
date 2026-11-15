@@ -111,7 +111,7 @@ export async function opendalStore(input: OpendalStoreOptions): Promise<OpendalO
   let current: { token: string | null; op: Operator } | null = null;
   const operator = async (): Promise<Operator> => {
     const token = input.accessToken ? await input.accessToken() : null;
-    if (!current || current.token !== token) {
+    if (current?.token !== token) {
       try {
         current = {
           token,

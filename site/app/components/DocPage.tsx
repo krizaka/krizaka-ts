@@ -24,19 +24,20 @@ export function metadataOf(locale: Locale, slug: string[] | undefined) {
 
 export default function DocPage({ locale, slug }: Readonly<{ locale: Locale; slug: string[] | undefined }>) {
   const page = find(locale, slug);
-  const MDX = page.data.body;
+  const Mdx = page.data.body;
   const path = pagePath(page.slugs);
   const description = page.data.description ?? "";
   return (
     <>
-      {articleJsonLd(locale, path, page.data.title, description).map((data, i) => (
-        <script key={i} type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(data) }} />
-      ))}
+      {articleJsonLd(locale, path, page.data.title, description).map((data) => {
+        const json = jsonLd(data);
+        return <script key={json} type="application/ld+json" dangerouslySetInnerHTML={{ __html: json }} />;
+      })}
       <DocsPage toc={page.data.toc} full={page.data.full}>
         <DocsTitle>{page.data.title}</DocsTitle>
         <DocsDescription>{description}</DocsDescription>
         <DocsBody>
-          <MDX components={getMdxComponents(locale)} />
+          <Mdx components={getMdxComponents(locale)} />
         </DocsBody>
       </DocsPage>
     </>

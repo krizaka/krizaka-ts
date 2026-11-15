@@ -224,7 +224,7 @@ function contract(name: string, makeStore: () => Promise<PriceStore>) {
     ])("refuses %s, and writes nothing", async (_n, key, change, at, status, code) => {
       const before = (await catalogue().history("verikora.document")).length;
       await expect(catalogue().schedule(ADMIN, key, change as never, at, T0)).rejects.toMatchObject({ status, code });
-      expect((await catalogue().history("verikora.document")).length).toBe(before);
+      expect(await catalogue().history("verikora.document")).toHaveLength(before);
     });
 
     it("an unknown version is null, never another price", async () =>

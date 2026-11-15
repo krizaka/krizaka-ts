@@ -249,9 +249,9 @@ export function createPrivacy(deps: PrivacyDeps): Privacy {
               failure: FAILURE_CODE,
             }),
           );
-        } catch (recordFailure) {
-          throw new AggregateError([error, recordFailure], "the erasure failed, and so did recording its failure", {
-            cause: recordFailure,
+        } catch (error_) {
+          throw new AggregateError([error, error_], "the erasure failed, and so did recording its failure", {
+            cause: error_,
           });
         }
         throw error;

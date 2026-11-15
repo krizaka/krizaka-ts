@@ -101,7 +101,7 @@ export function memoryOutboxStore(): OutboxStore & { rows(): readonly Readonly<R
     },
     async retryDead(id, now) {
       const r = rows.get(id);
-      if (!r || r.deadAt === null) return false;
+      if (!r?.deadAt) return false;
       r.deadAt = null;
       r.attempts = 0;
       r.availableAt = now;

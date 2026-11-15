@@ -7,9 +7,10 @@ export const generateMetadata = () => homeMetadata("en");
 export default function Page() {
   return (
     <>
-      {homeJsonLd("en").map((data, i) => (
-        <script key={i} type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(data) }} />
-      ))}
+      {homeJsonLd("en").map((data) => {
+        const json = jsonLd(data);
+        return <script key={json} type="application/ld+json" dangerouslySetInnerHTML={{ __html: json }} />;
+      })}
       <Home locale="en" />
     </>
   );

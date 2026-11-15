@@ -500,8 +500,10 @@ const PROBES = [
   measurePage,
 ];
 
+const probeSources = PROBES.map((f) => `const ${f.name} = ${f.toString()};`).join("\n");
+
 /** The expression Playwright runs in the page (`page.evaluate(auditPage)`): the probes, serialised together, then the measure. */
-export const auditPage = `(() => {\nconst ARIA_HIDDEN = ${JSON.stringify(ARIA_HIDDEN)};\n${PROBES.map((f) => `const ${f.name} = ${f.toString()};`).join("\n")}\nreturn measurePage();\n})()`;
+export const auditPage = `(() => {\nconst ARIA_HIDDEN = ${JSON.stringify(ARIA_HIDDEN)};\n${probeSources}\nreturn measurePage();\n})()`;
 
 /**
  * The problems of one page × width × theme, in words: console errors, a horizontal overflow (or elements past the edge),

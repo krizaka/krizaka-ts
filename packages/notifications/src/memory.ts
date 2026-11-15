@@ -70,7 +70,7 @@ export function memoryNotificationStore(): NotificationStore {
     },
     async revokeDevice(token, now) {
       const d = devices.get(token);
-      if (!d || d.revokedAt !== null) return false;
+      if (d?.revokedAt !== null) return false;
       d.revokedAt = now;
       return true;
     },
@@ -86,7 +86,7 @@ export function memoryNotificationStore(): NotificationStore {
     async erase(accountId) {
       let n = 0;
       for (const [id, item] of items) if (item.accountId === accountId && items.delete(id)) n += 1;
-      for (const key of [...prefs.keys()]) if (key.startsWith(`${accountId}|`) && prefs.delete(key)) n += 1;
+      for (const key of prefs.keys()) if (key.startsWith(`${accountId}|`) && prefs.delete(key)) n += 1;
       for (const [token, d] of devices) if (d.accountId === accountId && devices.delete(token)) n += 1;
       return n;
     },

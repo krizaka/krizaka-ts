@@ -23,7 +23,7 @@ export const isAllowed = (s: Pick<MailSettings, "environment" | "allowlist">, ad
   s.environment === PRODUCTION ||
   s.allowlist.some((a) => normalizeAddress(bareAddress(a)) === normalizeAddress(bareAddress(address)));
 
-const ADDRESS = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/;
+const ADDRESS = /^[^\s@<>]+@[^\s@<>.]+(?:\.[^\s@<>.]+)+$/;
 const TOKEN = /^[a-z][a-z0-9_.-]{0,39}$/;
 // @fixed: RFC 5321's longest forward path
 const MAX_ADDRESS = 254;

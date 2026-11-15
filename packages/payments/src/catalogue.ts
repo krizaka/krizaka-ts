@@ -72,7 +72,7 @@ async function ensurePrice(
 ): Promise<SetupResult["prices"][number]> {
   const existing = await call("GET", "/v1/prices", { lookup_keys: [plan.lookupKey], active: true, limit: 1 });
   const current = existing.data[0];
-  if (current && current.unit_amount === plan.amount && current.currency === plan.currency)
+  if (current?.unit_amount === plan.amount && current.currency === plan.currency)
     return { lookupKey: plan.lookupKey, status: "exists" };
   // A price is immutable at the processor: a new amount is a new price that TAKES OVER the lookup key. Subscriptions already sold keep the old price.
   const productId = current

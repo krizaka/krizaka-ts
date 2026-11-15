@@ -2,17 +2,17 @@ import { ident, type Query } from "@krizaka/db";
 
 import type { DiscountStore, EventStore } from "./port";
 
+const EVENT_TABLE = { schema: "payments", table: "event" };
+
 /**
  * The PostgreSQL record of applied notifications, `payments.event (id text primary key, type text not null, received_at timestamptz default now())`
  * (see `paymentsSchema`; it is also the shape of the `payment_events` table Verikora and Folioviv already have).
  * @param query the product's query, or the transaction's
  * @param table the schema and table, default `payments.event`
  */
-export function dbEventStore(
-  query: Query,
-  table: { schema: string; table: string } = { schema: "payments", table: "event" },
-): Required<EventStore> {
-  const name = `${ident(table.schema)}.${ident(table.table)}`;
+export function dbEventStore(query: Query, table?: { schema: string; table: string }): Required<EventStore> {
+  const target = table ?? EVENT_TABLE;
+  const name = `${ident(target.schema)}.${ident(target.table)}`;
   return {
     async markSeen(id, type, at) {
       const rows = at

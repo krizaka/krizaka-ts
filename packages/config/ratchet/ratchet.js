@@ -91,6 +91,9 @@ export function counterPatterns(allow = []) {
   };
 }
 
+/** How many times a global pattern matches a text. */
+const occurrences = (/** @type {string} */ text, /** @type {RegExp} */ pattern) => [...text.matchAll(pattern)].length;
+
 /**
  * Counts the four UI debts in one source text.
  * @param {string} source
@@ -101,7 +104,7 @@ export function countSource(source, allow = []) {
   const patterns = counterPatterns(allow);
   /** @type {Record<UiCounterName, number>} */
   const counters = { palette: 0, light: 0, arbitraryVar: 0, classNameTemplate: 0 };
-  for (const name of UI_COUNTERS) counters[name] = source.match(patterns[name])?.length ?? 0;
+  for (const name of UI_COUNTERS) counters[name] = occurrences(source, patterns[name]);
   return counters;
 }
 
@@ -117,7 +120,7 @@ export function countStackSource(source, { retire = [], maxFormFields = 1 } = {}
   if (new RegExp(USE_CLIENT_SOURCE).test(source)) {
     for (const effect of source.matchAll(new RegExp(EFFECT_CALL_SOURCE, "g"))) {
       const body = balancedArguments(source, (effect.index ?? 0) + effect[0].length - 1);
-      fetchInClientEffect += body.match(new RegExp(FETCH_CALL_SOURCE, "g"))?.length ?? 0;
+      fetchInClientEffect += occurrences(body, new RegExp(FETCH_CALL_SOURCE, "g"));
     }
   }
   // react-effects standard: every effect (client file or not — a Vite/Tauri app has no directive) is read once
@@ -141,9 +144,9 @@ export function countStackSource(source, { retire = [], maxFormFields = 1 } = {}
     fetchInClientEffect,
     asyncInEffect,
     derivedStateInEffect,
-    directTanstackImport: source.match(new RegExp(importSource([TANSTACK_SCOPE]), "g"))?.length ?? 0,
+    directTanstackImport: occurrences(source, new RegExp(importSource([TANSTACK_SCOPE]), "g")),
     localTableOrForm,
-    retiredImport: source.match(new RegExp(importSource(retire), "g"))?.length ?? 0,
+    retiredImport: occurrences(source, new RegExp(importSource(retire), "g")),
     routeStateSelection: selectionTags(source).filter(({ tag, before }) => isLocalSelection(tag, before)).length,
   };
 }
@@ -362,6 +365,54 @@ function compareCounters(current, recorded) {
 }
 
 /**
+ * The ratchet file's path: it is read and written, so it stays a .json file inside the repository root (no `../`, no absolute path elsewhere).
+ * @param {string} root
+ * @param {string} file
+ * @returns {string}
+ */
+function ratchetPath(root, file) {
+  const path = resolve(root, file);
+  const inside = relative(resolve(root), path);
+  if (!path.endsWith(".json") || inside === "" || inside.startsWith("..") || isAbsolute(inside)) {
+    throw new RatchetError(`${file}: the ratchet file must be a .json file inside ${root}.`);
+  }
+  return path;
+}
+
+/**
+ * Once the Sonar layer is recorded (`sonar`), a rule with no recorded counter is recorded at 0: a first violation fails.
+ * @param {RatchetFile | undefined} recordedFile
+ * @param {Record<string, number>} current
+ * @param {Record<string, number>} recorded changed in place
+ */
+function recordUnseenRulesAtZero(recordedFile, current, recorded) {
+  for (const [layer, prefix] of [
+    ["sonar", SONAR_PREFIX],
+    ["codeRules", CODE_PREFIX],
+  ]) {
+    if (recordedFile?.counters[layer] === undefined) continue;
+    for (const name of Object.keys(current))
+      if (name.startsWith(prefix) && recordedFile.counters[name] === undefined) recorded[name] = 0;
+  }
+}
+
+/**
+ * Each counter lowered to the current value, never raised; one counter per Sonar rule, only those still above 0 (an absent one is 0).
+ * @param {Record<string, number>} recorded
+ * @param {Record<string, number>} current
+ * @param {Record<string, unknown>} report
+ */
+function loweredCounters(recorded, current, report) {
+  const lowered = zero();
+  for (const name of COUNTERS) lowered[name] = Math.min(recorded[name], current[name]);
+  for (const name of Object.keys(report).filter(isSonarCounter)) {
+    const value = Math.min(recorded[name] ?? 0, current[name] ?? 0);
+    if (value > 0) lowered[name] = value;
+  }
+  return lowered;
+}
+
+/**
  * Runs the ratchet.
  * - `check` (default): fails when a counter is above its recorded value.
  * - `init`: creates the file with the current counters (refuses to overwrite one).
@@ -371,12 +422,7 @@ function compareCounters(current, recorded) {
  * @returns {Promise<RatchetResult>}
  */
 export async function runRatchet({ root, mode = "check", globs, file = RATCHET_FILE }) {
-  const path = resolve(root, file);
-  // the ratchet file is read and written: it stays a .json file inside the repository root (no `../`, no absolute path elsewhere)
-  const inside = relative(resolve(root), path);
-  if (!path.endsWith(".json") || inside === "" || inside.startsWith("..") || isAbsolute(inside)) {
-    throw new RatchetError(`${file}: the ratchet file must be a .json file inside ${root}.`);
-  }
+  const path = ratchetPath(root, file);
   const exists = existsSync(path);
   if (mode === "init" && exists) throw new RatchetError(`${file} already exists: use --update to lower it.`);
   if (mode !== "init" && !exists)
@@ -404,16 +450,7 @@ export async function runRatchet({ root, mode = "check", globs, file = RATCHET_F
     ? COUNTERS.filter((n) => recordedFile.counters[n] === undefined)
     : [];
   const recorded = /** @type {Counters} */ ({ ...current, ...recordedFile?.counters });
-  // once the Sonar layer is recorded (`sonar`), a rule with no recorded counter is recorded at 0: a first violation fails
-  for (const [layer, prefix] of [
-    ["sonar", SONAR_PREFIX],
-    ["codeRules", CODE_PREFIX],
-  ]) {
-    if (recordedFile?.counters[/** @type {CounterName} */ (layer)] !== undefined) {
-      for (const name of Object.keys(current))
-        if (name.startsWith(prefix) && recordedFile.counters[name] === undefined) recorded[name] = 0;
-    }
-  }
+  recordUnseenRulesAtZero(recordedFile, current, recorded);
   /** @type {string[]} */
   const unmeasured = Object.keys(recordedFile?.counters ?? {}).filter(
     (n) => !isSonarCounter(n) && !COUNTERS.includes(/** @type {CounterName} */ (n)),
@@ -426,13 +463,7 @@ export async function runRatchet({ root, mode = "check", globs, file = RATCHET_F
     writeRatchet(path, { globs: useGlobs, stackGlobs, ...(allow.length > 0 ? { allow } : {}), counters: current });
     written = true;
   } else if (mode === "update" && (decreased.length > 0 || added.length > 0) && recordedFile) {
-    const lowered = zero();
-    for (const name of COUNTERS) lowered[name] = Math.min(recorded[name], current[name]);
-    // one counter per Sonar rule, only those still above 0 (an absent one is 0)
-    for (const name of Object.keys(report).filter(isSonarCounter)) {
-      const value = Math.min(recorded[name] ?? 0, current[name] ?? 0);
-      if (value > 0) lowered[name] = value;
-    }
+    const lowered = loweredCounters(recorded, current, report);
     // a counter this version does not measure (a repository's own, or a newer preset's) is kept as recorded, never dropped
     const counters = {
       ...lowered,
