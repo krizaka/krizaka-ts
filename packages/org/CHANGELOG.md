@@ -1,5 +1,11 @@
 # @krizaka/org
 
+## 1.7.0
+
+### Minor Changes
+
+- dfb7ae5: Each product's bird lives in the org JSON: `org.mascot` (falcon, Krizaka's) and `org.products[*].mascot` (duck = Sovkora, owl = Verikora, beaver = Folioviv, crane = Kridoc), from the closed set `MASCOT_BIRDS` (the same ids as `MascotBird` in @krizaka/ui). The JSON schema requires them. Refs krizaka-internal#3642.
+
 ## 1.6.1
 
 ### Patch Changes
