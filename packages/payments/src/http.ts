@@ -5,7 +5,7 @@ export function formEncode(value: Record<string, unknown>): URLSearchParams {
     if (v === undefined || v === null) return;
     if (Array.isArray(v)) v.forEach((item, i) => walk(item, `${key}[${i}]`));
     else if (typeof v === "object") for (const [k, item] of Object.entries(v)) walk(item, key ? `${key}[${k}]` : k);
-    else out.append(key, String(v));
+    else out.append(key, `${v as string | number | boolean | bigint}`);
   };
   walk(value, "");
   return out;

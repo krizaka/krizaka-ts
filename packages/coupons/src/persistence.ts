@@ -14,7 +14,7 @@ import {
 } from "./port";
 
 type Row = Record<string, unknown>;
-const n = (v: unknown): number => Number(v);
+const n = Number;
 const nOrNull = (v: unknown): number | null => (v === null || v === undefined ? null : Number(v));
 const d = (v: unknown): Date => new Date(v as string | Date);
 const dOrNull = (v: unknown): Date | null => (v === null || v === undefined ? null : new Date(v as string | Date));

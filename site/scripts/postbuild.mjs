@@ -29,7 +29,7 @@ const plain = (body) =>
       packages.map((p) => `- ${[p.name, p.version].filter(Boolean).join(" ")}: ${SITE}/${p.id}/`).join("\n"),
     )
     .replace(/\\([{}])/g, "$1")
-    .replace(/&lt;/g, "<")
+    .replaceAll("&lt;", "<")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 

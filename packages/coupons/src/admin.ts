@@ -190,7 +190,8 @@ export function makeAdmin(k: Kernel) {
     const name = input.displayName.trim();
     const email = input.contactEmail?.trim().toLowerCase() || null;
     if (name.length < 1 || name.length > 80) throw bad("A partner has a display name of 1 to 80 characters");
-    if (email !== null && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw bad("A contact e-mail looks like a@b.c");
+    if (email !== null && !/^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/.test(email))
+      throw bad("A contact e-mail looks like a@b.c");
     const partner: Partner = {
       id: k.newId(),
       displayName: name,

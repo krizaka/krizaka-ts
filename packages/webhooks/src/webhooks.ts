@@ -102,6 +102,11 @@ const view = (r: EndpointRow): EndpointView => ({
   createdAt: r.created_at,
 });
 
+function checkUrl(url: string) {
+  const problem = endpointUrlProblem(url);
+  if (problem || url.length > 500) throw new WebhookError(WEBHOOK_CODE.url, problem ?? "TOO_LONG");
+}
+
 /** Outgoing webhooks over the product's PostgreSQL (see `webhooksMigration`): endpoints, one queued delivery per endpoint and event, signed retries, a log. */
 export function createWebhooks(deps: WebhookDeps) {
   const { query, rules } = deps;
@@ -112,10 +117,6 @@ export function createWebhooks(deps: WebhookDeps) {
   function checkEvents(events: readonly string[]) {
     if (events.length === 0 || events.some((e) => !rules.events.includes(e)))
       throw new WebhookError(WEBHOOK_CODE.events);
-  }
-  function checkUrl(url: string) {
-    const problem = endpointUrlProblem(url);
-    if (problem || url.length > 500) throw new WebhookError(WEBHOOK_CODE.url, problem ?? "TOO_LONG");
   }
   async function owned(owner: string, id: string): Promise<EndpointRow> {
     const [row] = await query<EndpointRow>("SELECT * FROM webhook_endpoints WHERE id = $1 AND owner_id = $2", [

@@ -11,7 +11,7 @@ export function memoryPrivacyStore(): PrivacyStore {
       consents.push(structuredClone(c));
     },
     async latestConsent(subject, purpose) {
-      const found = consents.filter((c) => sameSubject(c.subject, subject) && c.purpose === purpose).at(-1);
+      const found = [...consents].reverse().find((c) => sameSubject(c.subject, subject) && c.purpose === purpose);
       return found ? structuredClone(found) : null;
     },
     async consentHistory(subject) {

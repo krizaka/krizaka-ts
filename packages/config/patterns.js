@@ -82,7 +82,7 @@ export const FETCH_NAMES_SOURCE = "^(fetch|krizakaFetch)$";
 export const ASYNC_EFFECT_SOURCE = String.raw`\bawait\b|\.then\s*\(|\b(?:fetch|krizakaFetch|invoke)\s*\(|\bapi\.\w+|\b\w*Client\.\w+\s*\(`;
 
 /** A subscription to a system that pushes events: its callback may be async, the cleanup undoes it. */
-export const SUBSCRIBE_EFFECT_SOURCE = String.raw`\b(?:listen|once|on|addEventListener|subscribe|addListener|new\s+(?:WebSocket|EventSource|ResizeObserver|IntersectionObserver|MutationObserver|BroadcastChannel)|\w+\.on|\w+\.on[A-Z]\w*)\s*(?:<[^()]*>)?\s*\(`;
+export const SUBSCRIBE_EFFECT_SOURCE = String.raw`\b(?:listen|once|on|addEventListener|subscribe|addListener|new\s+(?:WebSocket|EventSource|ResizeObserver|IntersectionObserver|MutationObserver|BroadcastChannel)|\w+\.on|\w+\.on[A-Z]\w*)\s*(?:<[^()]*>\s*)?\(`;
 
 /**
  * Text with its strings, template literals and comments blanked (same length), so a keyword in a string is not read.
@@ -287,13 +287,15 @@ export function countFormFields(text) {
  */
 export function balancedArguments(source, open) {
   let depth = 0;
-  for (let i = open; i < source.length; i += 1) {
+  let i = open;
+  while (i < source.length) {
     const c = source[i];
     const skipped = skipLiteralOrComment(source, i);
     if (skipped === null) break;
     if (skipped > i) i = skipped;
     else if (c === "(") depth += 1;
     else if (c === ")" && --depth === 0) return source.slice(open + 1, i);
+    i += 1;
   }
   return source.slice(open + 1);
 }

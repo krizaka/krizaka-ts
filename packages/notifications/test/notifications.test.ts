@@ -197,7 +197,7 @@ describe("notify", () => {
       );
     expect(results.map((r) => r.capped)).toEqual([false, false, false, true, true]);
     expect(results[4]!.channels).toEqual([]);
-    expect((await h.sent()).length).toBe(6);
+    expect(await h.sent()).toHaveLength(6);
     expect(await h.notifications.unreadCount(h.tx, h.account)).toBe(5);
     h.advance(3601);
     expect(

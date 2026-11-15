@@ -27,7 +27,7 @@ export function memoryCouponStore(): CouponStore {
   };
   const page = <T>(rows: T[], limit: number, offset: number) => rows.slice(offset, offset + limit);
   const newestFirst = <T extends { createdAt: Date; id: string }>(rows: T[]) =>
-    rows.sort((a, b) => b.createdAt.valueOf() - a.createdAt.valueOf() || a.id.localeCompare(b.id));
+    [...rows].sort((a, b) => b.createdAt.valueOf() - a.createdAt.valueOf() || a.id.localeCompare(b.id));
   return {
     async insertCoupon(c) {
       if ([...coupons.values()].some((x) => x.codeKey === c.codeKey))

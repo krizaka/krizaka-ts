@@ -282,7 +282,7 @@ class BlockReader {
         `${where}: the journey « ${journey.id} » has ${journey.steps.length} steps, the manual ${written.length}: describe each one`,
       );
     const steps = written.map((s, i) => this.text(s, `${where}.steps[${i}]`));
-    if (!title || written.length !== journey.steps.length || steps.some((s) => s === null)) return null;
+    if (!title || written.length !== journey.steps.length || steps.includes(null)) return null;
     return { journey: journey.id, title, steps: steps as Text[], media: journey.media ?? [] };
   }
 

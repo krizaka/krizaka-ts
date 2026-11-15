@@ -34,14 +34,17 @@ export const settled = (page) =>
     { timeout: 10_000 },
   );
 
+/** How a page is loaded when the caller says nothing. */
+const DEFAULT_LOAD = { waitUntil: "load" };
+
 /**
  * Loads a page, then waits for the faces and for the transitions: what is read afterwards is final. Returns the response.
  * It first lets the page we are leaving finish any transition it started after the last measure (a router refresh, a
  * poll): leaving one running aborts it, and the browser reports « Transition was aborted » as a console error (#354).
  */
-export async function loadSettled(page, url, options = { waitUntil: "load" }) {
+export async function loadSettled(page, url, options) {
   if (page.url() !== "about:blank") await settled(page);
-  const response = await page.goto(url, options);
+  const response = await page.goto(url, options ?? DEFAULT_LOAD);
   await page.evaluate(() => document.fonts.ready);
   await settled(page);
   return response;

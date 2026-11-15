@@ -42,7 +42,7 @@ const START = at(-HOUR);
 
 /** A discount of 20 % for three months on a monthly plan. */
 export const discount = (over: Partial<NewCoupon> = {}): NewCoupon => ({
-  code: `PROMO${randomUUID().replace(/-/g, "").slice(0, 8)}`,
+  code: `PROMO${randomUUID().replaceAll("-", "").slice(0, 8)}`,
   kind: "discount",
   purpose: "promo",
   startsAt: START,
@@ -54,7 +54,7 @@ export const discount = (over: Partial<NewCoupon> = {}): NewCoupon => ({
 
 /** 20 free audits, at most 5 a day, valid 30 days. */
 export const credit = (over: Partial<NewCoupon> = {}): NewCoupon => ({
-  code: `DEMO${randomUUID().replace(/-/g, "").slice(0, 8)}`,
+  code: `DEMO${randomUUID().replaceAll("-", "").slice(0, 8)}`,
   kind: "credit",
   purpose: "demo",
   startsAt: START,
@@ -335,7 +335,7 @@ export function couponsContract(name: string, make: () => Promise<CouponsHarness
         currency: "cad",
       }),
     ).toBe("unknown");
-    const [row] = (await h.coupons.admin.redemptions(h.tx, { couponId: c.id, status: "confirmed" })).filter(
+    const row = (await h.coupons.admin.redemptions(h.tx, { couponId: c.id, status: "confirmed" })).find(
       (r) => r.id === r1.redemptionId,
     );
     expect(row).toMatchObject({
@@ -437,10 +437,7 @@ export function couponsContract(name: string, make: () => Promise<CouponsHarness
       maxRedemptions: 10,
     });
     expect(await code(h.coupons.admin.update(h.tx, ADMIN, c.id, { endsAt: START }))).toBe("COUPON_BAD_INPUT");
-    const entry = h
-      .audited()
-      .filter((e) => e.action === "coupon.updated")
-      .at(-1)!;
+    const entry = [...h.audited()].reverse().find((e) => e.action === "coupon.updated")!;
     expect(entry.detail).toMatchObject({
       changed: ["maxRedemptions", "endsAt"],
       before: { maxRedemptions: null, endsAt: null },

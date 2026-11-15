@@ -145,10 +145,10 @@ export const installTabs = (name) => `<InstallTabs name="${name}" />`;
 
 const cell = (text) =>
   text
-    .replace(/\\/g, "\\\\")
-    .replace(/\|/g, String.raw`\|`)
+    .replaceAll("\\", "\\\\")
+    .replaceAll("|", String.raw`\|`)
     .replace(/[{}]/g, (c) => `\\${c}`)
-    .replace(/</g, "&lt;");
+    .replaceAll("<", "&lt;");
 
 function exportsTable(items, t) {
   const rows = items.map((e) => `| \`${e.name}\` | ${t.kinds[e.kind]} | ${cell(e.summary)} |`);

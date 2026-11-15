@@ -20,7 +20,7 @@ export const DATE_FNS = ["hoursToMilliseconds", "minutesToMilliseconds", "differ
  */
 export function withDateFnsImports(source) {
   const imported = new Set();
-  const existing = source.match(/import\s*\{([^}]*)\}\s*from\s*["']date-fns["'];?/);
+  const existing = /import\s*\{([^}]*)\}\s*from\s*["']date-fns["'];?/.exec(source);
   for (const name of existing?.[1]
     .split(",")
     .map((n) => n.trim())

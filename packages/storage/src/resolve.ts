@@ -56,7 +56,7 @@ export function resolveStorage(
     return { provider: "none" };
   }
   const provider = adminProvider ?? env.provider;
-  const pick = (own: string | undefined, fallback: string | undefined) => (own ? own : (fallback ?? ""));
+  const pick = (own: string | undefined, fallback: string | undefined) => own || fallback || "";
   const http = provider === "http";
   const settings: StorageSettings = {
     provider,

@@ -1,0 +1,86 @@
+[
+  {
+    "id": "boom-bap",
+    "alt": {
+      "en": "Illustration: a rapper in a denim jacket and beanie, microphone in hand, in a rainy Montréal alley at night",
+      "fr": "Illustration : un rappeur en veste de jean et tuque, micro à la main, dans une ruelle de Montréal sous la pluie, la nuit"
+    }
+  },
+  {
+    "id": "rasta-creative",
+    "alt": {
+      "en": "A smiling man with long dreadlocks in a paint-stained denim jacket, in an artist's workshop",
+      "fr": "Un homme souriant aux longues dreadlocks, en veste de jean tachée de peinture, dans un atelier d'artiste"
+    }
+  },
+  {
+    "id": "mile-end-hipster",
+    "alt": {
+      "en": "A smiling person with round glasses and an orange beanie at a leatherworking bench, in a brick workshop",
+      "fr": "Une personne souriante à lunettes rondes et tuque orange, à son établi de cuir, dans un atelier de briques"
+    }
+  },
+  {
+    "id": "tech-architect",
+    "alt": {
+      "en": "A person in a dark hoodie typing at a keyboard, between screens of code and a server rack",
+      "fr": "Une personne en chandail à capuchon sombre qui tape au clavier, entre des écrans de code et une baie de serveurs"
+    }
+  },
+  {
+    "id": "electronic-dj",
+    "alt": {
+      "en": "A DJ with headphones behind synthesizers and a mixing desk, in a club with violet lights",
+      "fr": "Un DJ casque aux oreilles derrière des synthétiseurs et une table de mixage, dans un club aux lumières violettes"
+    }
+  },
+  {
+    "id": "visual-artist",
+    "alt": {
+      "en": "A smiling painter with violet hair and big glasses, palette in hand, in a studio full of canvases",
+      "fr": "Une peintre souriante aux cheveux violets et aux grosses lunettes, palette à la main, dans un atelier plein de toiles"
+    }
+  },
+  {
+    "id": "salon-tattoo-maker",
+    "alt": {
+      "en": "A tattoo artist with tattooed arms working on a client in a warm shop with wooden shelves",
+      "fr": "Une tatoueuse aux bras tatoués au travail sur un client, dans un salon chaleureux aux étagères de bois"
+    }
+  },
+  {
+    "id": "wise-auditor",
+    "alt": {
+      "en": "A grey-haired person with glasses at a desk of old books and a lamp, a pen over open notes",
+      "fr": "Une personne aux cheveux gris et à lunettes à un bureau de vieux livres et de lampe, un stylo sur des notes ouvertes"
+    }
+  },
+  {
+    "id": "digital-creator",
+    "alt": {
+      "en": "A laughing streamer with a microphone in a purple-lit studio under a neon « Creator Zone » sign",
+      "fr": "Une diffuseuse qui rit devant un micro, dans un studio violet sous une enseigne néon « Creator Zone »"
+    }
+  },
+  {
+    "id": "studio-maker",
+    "alt": {
+      "en": "A potter in a linen apron holding a clay bowl, in a bright ceramics studio with plants",
+      "fr": "Une potière en tablier de lin tenant un bol d'argile, dans un atelier de céramique lumineux et plein de plantes"
+    }
+  },
+  {
+    "id": "community-lead",
+    "alt": {
+      "en": "A smiling person with curly hair and a grey coat at a wooden table, a community space behind them",
+      "fr": "Une personne souriante aux cheveux bouclés et au manteau gris, à une table de bois, devant un espace communautaire"
+    }
+  },
+  {
+    "id": "ai-builder",
+    "alt": {
+      "en": "A thoughtful person with blue-tinted glasses at a desk, screens of a neural network and code behind",
+      "fr": "Une personne pensive aux lunettes teintées de bleu à son bureau, devant des écrans de réseau neuronal et de code"
+    }
+  }
+]

@@ -88,7 +88,7 @@ export function createApiKeys(deps: { store: ApiKeyStore; rules: ApiKeyRules; cl
 
   async function owned(ownerId: string, id: string): Promise<ApiKeyRecord> {
     const record = await store.get(id);
-    if (!record || record.ownerId !== ownerId) throw new ApiKeyError(API_KEY_CODE.notFound);
+    if (record?.ownerId !== ownerId) throw new ApiKeyError(API_KEY_CODE.notFound);
     return record;
   }
 

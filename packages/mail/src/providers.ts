@@ -38,7 +38,8 @@ export interface MailgunOptions {
 /** Mailgun's messages API (form-encoded, basic auth). */
 export function mailgunProvider(options: MailgunOptions): MailProvider {
   const base = withoutTrailingSlashes(options.apiUrl ?? "https://api.mailgun.net");
-  const auth = `Basic ${Buffer.from(`api:${options.apiKey}`).toString("base64")}`;
+  const credentials = Buffer.from(`api:${options.apiKey}`).toString("base64");
+  const auth = `Basic ${credentials}`;
   return {
     name: "mailgun",
     async send(mail) {

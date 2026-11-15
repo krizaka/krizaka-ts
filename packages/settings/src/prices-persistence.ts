@@ -1,7 +1,6 @@
-import { settingsMigration } from "./migration";
 import type { PriceStore, StoredPriceVersion } from "./price-catalogue";
 import type { Price } from "./prices";
-import { pricesSchema } from "./schema";
+import { pricesSchema, settingsSchema } from "./schema";
 import type { Query } from "./service";
 
 /**
@@ -9,7 +8,7 @@ import type { Query } from "./service";
  * @deprecated Use `settingsSchema` and `pricesSchema` with `emitMigration` or `adoptMigration` from `@krizaka/db`. Removed in the next major.
  */
 export function pricesMigration(): string {
-  return `${settingsMigration()}${pricesSchema.migrations[0]!.sql({ schema: "public", tables: {} })}`;
+  return `${settingsSchema.migrations[0]!.sql({ schema: "public", tables: {} })}${pricesSchema.migrations[0]!.sql({ schema: "public", tables: {} })}`;
 }
 
 interface Row {

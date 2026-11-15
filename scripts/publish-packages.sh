@@ -13,7 +13,7 @@ printf 'registry=https://registry.npmjs.org/\n//registry.npmjs.org/:_authToken=$
 for f in packages/*/package.json; do
   node -e 'process.exit(require("./"+process.argv[1]).private?1:0)' "$f" || continue
   dir=$(dirname "$f"); name=$(node -p "require('./$f').name"); ver=$(node -p "require('./$f').version")
-  if [ "$(npm view "$name@$ver" version 2>/dev/null || true)" = "$ver" ]; then echo "$name@$ver already on npm"; continue; fi
+  if [[ "$(npm view "$name@$ver" version 2>/dev/null || true)" = "$ver" ]]; then echo "$name@$ver already on npm"; continue; fi
   out="$tmp/pack-$(basename "$dir")"; mkdir -p "$out"
   pnpm --filter "$name" pack --pack-destination "$out"
   tgz=$(ls "$out"/*.tgz)
