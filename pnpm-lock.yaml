@@ -71,7 +71,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.11
-        version: 4.1.12(@types/node@22.20.5)(@vitest/coverage-v8@4.1.12)(vite@8.3.5(@types/node@22.20.5)(esbuild@0.28.2)(yaml@2.9.1))
+        version: 4.1.12(@types/node@22.20.5)(@vitest/coverage-v8@4.1.12)(vite@8.3.5(@types/node@22.20.5)(esbuild@0.27.7)(yaml@2.9.1))
 
   packages/architecture:
     dependencies:
@@ -207,7 +207,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.11
-        version: 4.1.12(@types/node@22.20.5)(@vitest/coverage-v8@4.1.12)(vite@8.3.5(@types/node@22.20.5)(esbuild@0.27.7)(yaml@2.9.1))
+        version: 4.1.12(@types/node@22.20.5)(@vitest/coverage-v8@4.1.12)(vite@8.3.5(@types/node@22.20.5)(esbuild@0.28.2)(yaml@2.9.1))
 
   packages/config:
     dependencies:
@@ -243,8 +243,8 @@ importers:
         specifier: 0.51.0
         version: 0.51.0
       '@krizaka/ui':
-        specifier: ^4.6.0
-        version: 4.6.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@4.1.12)
+        specifier: ^4.7.0
+        version: 4.7.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@4.1.12)
       '@size-limit/file':
         specifier: ^14.2.0
         version: 14.3.0(size-limit@14.3.0)
@@ -1862,17 +1862,18 @@ packages:
       react:
         optional: true
 
-  '@krizaka/tokens@4.6.0':
-    resolution: {integrity: sha512-iqtjBwfXuRCGBVFpgP5v08/Ex3g1a9hi/PRxEcJ2+kh9g1JvfpGNcYkVnofuPktIy8pOxQfQ2nyYZ1RcG8YcVQ==}
+  '@krizaka/tokens@4.7.0':
+    resolution: {integrity: sha512-/fb9JymwPEwMireieC8GL4qLC3HHzU2GEgGubNzSZnsOUhHBik7Hj5ve1K8Q5fcggxIHM2oW4rS3Qr4+rkLRMQ==}
     engines: {node: '>=22'}
 
-  '@krizaka/ui@4.6.0':
-    resolution: {integrity: sha512-pzII47JsAW5fLqvYRjzSXMGAp0Fx3YI8xk/oM+zsu1iVCWawuIDa0+ixU0O5tF2hPghS9MiZUVxDcpx5UW4nEA==}
+  '@krizaka/ui@4.7.0':
+    resolution: {integrity: sha512-Iw88+eBApZ0Hlr+RmhN3i8VGk5UfupfDJFbHKLQF+KvW+1a53dL92dDlhc+DEmKmH6/KuczaWTtP/59TcW4Rdw==}
     engines: {node: '>=22'}
     hasBin: true
     peerDependencies:
+      '@krizaka/architecture': '>=0.3.0'
       '@krizaka/query': '>=0.3.0'
-      '@krizaka/tailwind': '>=4.6.0'
+      '@krizaka/tailwind': '>=4.7.0'
       '@maplibre/maplibre-react-native': '>=11'
       '@shopify/flash-list': '>=2'
       expo-camera: '>=16'
@@ -1887,6 +1888,8 @@ packages:
       react-native-svg: '>=15'
       tailwindcss: ^4.1
     peerDependenciesMeta:
+      '@krizaka/architecture':
+        optional: true
       '@krizaka/query':
         optional: true
       '@krizaka/tailwind':
@@ -6898,15 +6901,15 @@ snapshots:
     optionalDependencies:
       react: 19.3.1
 
-  '@krizaka/tokens@4.6.0': {}
+  '@krizaka/tokens@4.7.0': {}
 
-  '@krizaka/ui@4.6.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@4.1.12)':
+  '@krizaka/ui@4.7.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@4.1.12)':
     dependencies:
       '@krizaka/icons': 0.10.0(react@19.3.1)
       '@krizaka/intl': 0.4.1
       '@krizaka/organize': 0.4.0(vitest@4.1.12)
       '@krizaka/pacer': 0.2.0(react@19.3.1)
-      '@krizaka/tokens': 4.6.0
+      '@krizaka/tokens': 4.7.0
       '@protomaps/basemaps': 5.7.2
       '@tanstack/highlight': 1.1.0
       '@tanstack/markdown': 1.0.0(react@19.3.1)
