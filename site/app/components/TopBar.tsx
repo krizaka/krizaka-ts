@@ -20,7 +20,7 @@ import { REPOSITORY_URL } from "@/lib/site";
 import { useI18n } from "./I18nProvider";
 import { useSiteTheme } from "./SiteTheme";
 
-export default function TopBar({ firstPackage }: { firstPackage: string }) {
+export default function TopBar({ firstPackage }: Readonly<{ firstPackage: string }>) {
   const { locale, t } = useI18n();
   const b = t.bar;
   const { theme, toggleTheme } = useSiteTheme();

@@ -18,8 +18,7 @@ const { coveredDomains, domainMessage, domainPattern, ruleName } = require("./co
 
 const NODE_MODULES = "(^|/)node_modules/";
 /** Files that may import a dev dependency: tests, stories, scripts and the tools' own configuration. */
-const DEV_FILES =
-  "(^|/)(tests?|__tests__|__mocks__|e2e|scripts|\\.storybook|stories)/|[.](spec|test|stories|config)[.](js|mjs|cjs|jsx|ts|mts|cts|tsx)$|(^|/)\\.[^/]+rc[.](js|cjs|mjs|ts)$|(^|/)\\.dependency-cruiser[.]cjs$";
+const DEV_FILES = String.raw`(^|/)(tests?|__tests__|__mocks__|e2e|scripts|\.storybook|stories)/|[.](spec|test|stories|config)[.](js|mjs|cjs|jsx|ts|mts|cts|tsx)$|(^|/)\.[^/]+rc[.](js|cjs|mjs|ts)$|(^|/)\.dependency-cruiser[.]cjs$`;
 
 /**
  * The preset, for an app whose own sources are everything outside node_modules.

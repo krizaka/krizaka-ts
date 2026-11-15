@@ -15,7 +15,7 @@ const coveredDomains = Object.freeze([...map.domains, ...facades.domains]);
 const MISSING_FUNCTION = "Missing function? add it to the package first.";
 
 /** @param {string} text */
-const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
 
 /**
  * The dependency-cruiser `to.path` regular expression of a refused entry. It matches the resolved file
@@ -43,9 +43,10 @@ const ruleName = (domain) => `krizaka-first-${typeof domain === "string" ? domai
 
 /** The table of the page « Use Krizaka first » (Markdown), generated from the map. */
 function coveredDomainsMarkdown() {
+  const code = (/** @type {string} */ text) => `\`${text}\``;
   const rows = coveredDomains.map(
     (domain) =>
-      `| ${domain.title} | ${domain.use} | ${domain.refused.map((entry) => `\`${entry}\``).join(", ")} | \`${ruleName(domain)}\` |`,
+      `| ${domain.title} | ${domain.use} | ${domain.refused.map(code).join(", ")} | ${code(ruleName(domain))} |`,
   );
   return ["| Domain | Use | Refused in an app | Rule |", "| :-- | :-- | :-- | :-- |", ...rows].join("\n");
 }

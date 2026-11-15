@@ -146,7 +146,7 @@ export const installTabs = (name) => `<InstallTabs name="${name}" />`;
 const cell = (text) =>
   text
     .replace(/\\/g, "\\\\")
-    .replace(/\|/g, "\\|")
+    .replace(/\|/g, String.raw`\|`)
     .replace(/[{}]/g, (c) => `\\${c}`)
     .replace(/</g, "&lt;");
 

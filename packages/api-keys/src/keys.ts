@@ -42,8 +42,11 @@ export function createApiKeys(deps: { store: ApiKeyStore; rules: ApiKeyRules; cl
 
   const isLive = (r: ApiKeyRecord, now: Date) =>
     !r.revokedAt && !(r.expiresAt && r.expiresAt <= now) && !(r.supersededAt && r.supersededAt <= now);
-  const statusOf = (r: ApiKeyRecord, now: Date): ApiKeyView["status"] =>
-    r.revokedAt ? "revoked" : r.expiresAt && r.expiresAt <= now ? "expired" : r.supersededAt ? "rotated" : "active";
+  const statusOf = (r: ApiKeyRecord, now: Date): ApiKeyView["status"] => {
+    if (r.revokedAt) return "revoked";
+    if (r.expiresAt && r.expiresAt <= now) return "expired";
+    return r.supersededAt ? "rotated" : "active";
+  };
 
   function check(input: NewKey) {
     const name = input.name.trim();

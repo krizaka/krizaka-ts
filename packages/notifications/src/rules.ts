@@ -85,7 +85,8 @@ export function viewOf(
     const chosen = new Map(rows.filter((r) => r.category === category).map((r) => [r.channel, r.enabled] as const));
     const channels = Object.fromEntries(
       CHANNELS.map((channel) => {
-        const source = def.locked ? "locked" : chosen.has(channel) ? "account" : "default";
+        const accountOrDefault = chosen.has(channel) ? "account" : "default";
+        const source = def.locked ? "locked" : accountOrDefault;
         return [
           channel,
           { enabled: def.locked ? def.defaults[channel] : (chosen.get(channel) ?? def.defaults[channel]), source },

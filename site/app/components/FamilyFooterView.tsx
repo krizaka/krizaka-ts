@@ -12,13 +12,13 @@ export function FamilyFooterView({
   ui,
   license,
   links,
-}: {
+}: Readonly<{
   locale: Locale;
   aria: string;
   ui?: string;
   license: string;
   links: { label: string; href: string }[];
-}) {
+}>) {
   return (
     <FamilyFooter
       current="ts"

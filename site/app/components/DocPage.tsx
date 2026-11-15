@@ -22,7 +22,7 @@ export function metadataOf(locale: Locale, slug: string[] | undefined) {
   return pageMetadata(locale, pagePath(page.slugs), page.data.title, page.data.description ?? "");
 }
 
-export default function DocPage({ locale, slug }: { locale: Locale; slug: string[] | undefined }) {
+export default function DocPage({ locale, slug }: Readonly<{ locale: Locale; slug: string[] | undefined }>) {
   const page = find(locale, slug);
   const MDX = page.data.body;
   const path = pagePath(page.slugs);

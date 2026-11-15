@@ -12,11 +12,11 @@ export function I18nProvider({
   locale,
   messages,
   children,
-}: {
+}: Readonly<{
   locale: Locale;
   messages: TranslationDictionary;
   children: ReactNode;
-}) {
+}>) {
   return (
     <engine.I18nProvider locale={locale} messages={messages} setLocale={() => undefined}>
       {children}

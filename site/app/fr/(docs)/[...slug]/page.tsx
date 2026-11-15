@@ -3,7 +3,7 @@ import DocPage, { metadataOf, staticParamsOf } from "@/app/components/DocPage";
 export const dynamicParams = false;
 export const generateStaticParams = () => staticParamsOf("fr");
 
-type Props = { params: Promise<{ slug?: string[] }> };
+type Props = Readonly<{ params: Promise<{ slug?: string[] }> }>;
 
 export async function generateMetadata({ params }: Props) {
   return metadataOf("fr", (await params).slug);

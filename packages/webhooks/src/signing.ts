@@ -31,14 +31,10 @@ export function verifySignature(
     return { ok: true };
   } catch (error) {
     if (!(error instanceof PaymentsError)) throw error;
-    return {
-      ok: false,
-      reason: error.message.startsWith("Missing")
-        ? "malformed"
-        : error.message.startsWith("Timestamp")
-          ? "stale"
-          : "mismatch",
-    };
+    let reason: "malformed" | "stale" | "mismatch" = "mismatch";
+    if (error.message.startsWith("Missing")) reason = "malformed";
+    else if (error.message.startsWith("Timestamp")) reason = "stale";
+    return { ok: false, reason };
   }
 }
 

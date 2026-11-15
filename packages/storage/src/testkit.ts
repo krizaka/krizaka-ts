@@ -47,7 +47,7 @@ export function objectStoreContract(name: string, make: () => ObjectStore | Prom
 
   it(`${name}: refuses a key that climbs out, is empty or has a bad segment`, async () => {
     const store = await make();
-    for (const key of ["../x.txt", "a/../b.txt", "/abs.txt", "a//b.txt", "a/b/", "", "a\\b.txt"])
+    for (const key of ["../x.txt", "a/../b.txt", "/abs.txt", "a//b.txt", "a/b/", "", String.raw`a\b.txt`])
       await expect(store.put(key, bytes(1), { contentType: "text/plain" })).rejects.toMatchObject({
         code: "STORAGE_BAD_KEY",
       });

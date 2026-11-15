@@ -39,7 +39,7 @@ const ICONS: Record<string, typeof PackIcon> = {
   brief: ClockIcon,
 };
 
-export default function Home({ locale }: { locale: Locale }) {
+export default function Home({ locale }: Readonly<{ locale: Locale }>) {
   const dict = getDictionary(locale);
   const t = dict.home;
   const path = (p: string) => localizedPath(locale, p);

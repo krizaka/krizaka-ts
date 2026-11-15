@@ -28,7 +28,7 @@ const unescapeXml = (s: string) =>
     .replaceAll("&quot;", '"')
     .replaceAll("&apos;", "'")
     .replaceAll("&amp;", "&");
-const tag = (xml: string, name: string) => new RegExp(`<${name}>([\\s\\S]*?)</${name}>`).exec(xml)?.[1];
+const tag = (xml: string, name: string) => new RegExp(String.raw`<${name}>([\s\S]*?)</${name}>`).exec(xml)?.[1];
 
 /**
  * Any S3-compatible service (Spaces, a customer's bucket, MinIO) over plain HTTP: path-style URLs and Signature V4, no SDK.

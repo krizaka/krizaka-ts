@@ -17,7 +17,7 @@ import "../globals.css";
 /* The root of one language (the two root layouts, app/(en) and app/fr, are this): the document, the Krizaka faces, the
    theme (dark by default, persisted as `kz-theme`, no flash), the bar, the page (the home, or the documentation in
    Fumadocs' layout — DocsShell, by the (docs) route group), the footer, and the motion system of @krizaka/ui. */
-export default function SiteRoot({ locale, children }: { locale: Locale; children: ReactNode }) {
+export default function SiteRoot({ locale, children }: Readonly<{ locale: Locale; children: ReactNode }>) {
   const t = getDictionary(locale);
   return (
     <html

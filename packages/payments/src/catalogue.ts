@@ -143,8 +143,11 @@ async function ensureWebhook(
   return { status: "updated" };
 }
 
-const registrationLabel = (r: Registration) =>
-  `${r.country}${r.country_options?.ca?.province_standard?.province ? `-${r.country_options.ca.province_standard.province}` : ""}:${r.status}`;
+const registrationLabel = (r: Registration) => {
+  const province = r.country_options?.ca?.province_standard?.province;
+  const where = province ? `${r.country}-${province}` : r.country;
+  return `${where}:${r.status}`;
+};
 
 /** What the tax setup looks like, as a line to print; a failure to read it is a line too, never an error. */
 async function describeTax(call: StripeCall): Promise<string> {

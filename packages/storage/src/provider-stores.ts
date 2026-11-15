@@ -18,7 +18,7 @@ export function memoryProviderStore(): ProviderStore {
     async list(scope) {
       return [...rows.values()]
         .filter((r) => scope === undefined || r.scope === scope)
-        .sort((a, b) => (a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : 0))
+        .sort((a, b) => Number(a.createdAt > b.createdAt) - Number(a.createdAt < b.createdAt))
         .map(copy);
     },
     async update(id, patch) {

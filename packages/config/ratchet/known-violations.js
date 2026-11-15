@@ -36,8 +36,10 @@ export function compare(known, current) {
 export const shrink = (known, current) => known.filter((v) => current.some((c) => keyOf(c) === keyOf(v)));
 
 /** @param {Violation} v */
-const describe = (v) =>
-  `${v.rule.name}: ${v.from} -> ${v.to}${v.cycle ? ` (cycle: ${v.cycle.map((step) => step.name).join(" -> ")})` : ""}`;
+const describe = (v) => {
+  const cycle = v.cycle ? ` (cycle: ${v.cycle.map((step) => step.name).join(" -> ")})` : "";
+  return `${v.rule.name}: ${v.from} -> ${v.to}${cycle}`;
+};
 
 /**
  * The app's own dependency-cruiser first (its version is the one `depcruise` runs), then the one this package depends on.

@@ -3,14 +3,7 @@ import { randomUUID } from "node:crypto";
 import { expect, it } from "vitest";
 
 import type { Coupons } from "./coupons";
-import {
-  type Actor,
-  COUPON_DEFAULTS,
-  type CouponSettings,
-  type CreditsPort,
-  type NewCoupon,
-  type Query,
-} from "./index";
+import { type Actor, type CouponSettings, type CreditsPort, type NewCoupon, type Query } from "./index";
 
 /** What a store (through the module) is run against: the module on that store, a clock the test moves, and fakes for its neighbours. */
 export interface CouponsHarness {
@@ -722,4 +715,4 @@ export function couponsContract(name: string, make: () => Promise<CouponsHarness
   });
 }
 
-export { COUPON_DEFAULTS };
+export { COUPON_DEFAULTS } from "./rules";

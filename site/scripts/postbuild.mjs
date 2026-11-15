@@ -15,7 +15,7 @@ const frontmatter = (src) => {
   const m = src.match(/^---\n([\s\S]*?)\n---\n/);
   const field = (k) =>
     m?.[1]
-      .match(new RegExp(`^${k}:\\s*(.+)$`, "m"))?.[1]
+      .match(new RegExp(String.raw`^${k}:\s*(.+)$`, "m"))?.[1]
       .trim()
       .replace(/^["']|["']$/g, "") ?? "";
   return { title: field("title"), description: field("description"), body: m ? src.slice(m[0].length) : src };
@@ -26,7 +26,7 @@ const plain = (body) =>
     .replace(/^<InstallTabs name="([^"]+)" \/>$/gm, (_, name) => `\`\`\`bash\nnpm install ${name}\n\`\`\``)
     .replace(
       /^<PackageTable \/>\s*$/gm,
-      packages.map((p) => `- ${p.name}${p.version ? ` ${p.version}` : ""}: ${SITE}/${p.id}/`).join("\n"),
+      packages.map((p) => `- ${[p.name, p.version].filter(Boolean).join(" ")}: ${SITE}/${p.id}/`).join("\n"),
     )
     .replace(/\\([{}])/g, "$1")
     .replace(/&lt;/g, "<")
@@ -43,12 +43,8 @@ const head = `# Krizaka TypeScript\n\n> The TypeScript backend building blocks o
 /* The way back to the family: the company, the sibling open-source projects, the products, the source. */
 const family = `## The Krizaka family\n\n- [Krizaka](https://www.krizaka.com): the company, open-source software studio in Montréal\n- [Krizaka UI](https://ui.krizaka.com): the design system (React and React Native)\n- [Krizaka Java](https://java.krizaka.com): the Spring Boot building blocks\n- [Sovkora](https://www.sovkora.com): sovereign, on-premise AI orchestration\n- [Verikora](https://dev.verikora.com): rental verification, it reads leases and screens applications\n- [Folioviv](https://dev.folioviv.com): bookkeeping and tax-return preparation for small businesses\n- [Source](https://github.com/krizaka/krizaka-ts): this repository, Apache-2.0\n\nSitemap: ${SITE}/sitemap.xml\n`;
 mkdirSync(out, { recursive: true });
-writeFileSync(
-  join(out, "llms.txt"),
-  `${head}\n## Packages\n\n${pages.map((p) => `- [${p.title}](${p.url}): ${p.description}`).join("\n")}\n\n${family}`,
-);
-writeFileSync(
-  join(out, "llms-full.txt"),
-  `${head}\n${pages.map((p) => `\n---\n\n# ${p.title}\n\nURL: ${p.url}\n\n${p.text}`).join("\n")}\n\n---\n\n${family}`,
-);
+const pageIndex = pages.map((p) => `- [${p.title}](${p.url}): ${p.description}`).join("\n");
+const pageTexts = pages.map((p) => `\n---\n\n# ${p.title}\n\nURL: ${p.url}\n\n${p.text}`).join("\n");
+writeFileSync(join(out, "llms.txt"), `${head}\n## Packages\n\n${pageIndex}\n\n${family}`);
+writeFileSync(join(out, "llms-full.txt"), `${head}\n${pageTexts}\n\n---\n\n${family}`);
 console.log(`postbuild: llms.txt, llms-full.txt (${pages.length} pages)`);

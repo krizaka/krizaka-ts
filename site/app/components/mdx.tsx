@@ -10,15 +10,13 @@ import InstallTabs from "./InstallTabs";
     button) and `<PackageTable />` (every package with what it is and its version on npm, from the generated data). */
 export function getMdxComponents(locale: Locale): MDXComponents {
   const t = getDictionary(locale);
+  const localePrefix = locale === "fr" ? "/fr" : "";
   const Anchor = defaultMdxComponents.a;
   return {
     ...defaultMdxComponents,
     // A link to another page of the documentation stays in the reader's language (/auth → /fr/auth).
     a: ({ href, ...props }: AnchorHTMLAttributes<HTMLAnchorElement>) => (
-      <Anchor
-        href={href?.startsWith("/") && !href.startsWith("//") ? `${locale === "fr" ? "/fr" : ""}${href}` : href}
-        {...props}
-      />
+      <Anchor href={href?.startsWith("/") && !href.startsWith("//") ? `${localePrefix}${href}` : href} {...props} />
     ),
     InstallTabs: ({ name }: { name: string }) => (
       <div className="not-prose" style={{ margin: "16px 0 24px" }}>
@@ -39,7 +37,7 @@ export function getMdxComponents(locale: Locale): MDXComponents {
             {packages().map((p) => (
               <tr key={p.id}>
                 <th scope="row">
-                  <a href={`${locale === "fr" ? "/fr" : ""}/${p.id}/`}>
+                  <a href={`${localePrefix}/${p.id}/`}>
                     <code>{p.name}</code>
                   </a>
                 </th>

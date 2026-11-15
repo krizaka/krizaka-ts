@@ -250,9 +250,10 @@ export function createOrganize(deps: OrganizeDeps) {
       if (!description) throw new OrganizeError(ORGANIZE_CODE.badRequest, "A description is at most 500 characters");
       const extra = Object.entries(input.extra ?? {});
       const columns = ["owner_id", "name", "description", ...extra.map(([k]) => ident(k))];
+      const placeholders = columns.map((_, i) => "$" + (i + 1)).join(", ");
       const [row] = await unique(() =>
         query<{ id: string }>(
-          `INSERT INTO ${r.collections} (${columns.join(", ")}) VALUES (${columns.map((_, i) => `$${i + 1}`).join(", ")}) RETURNING id`,
+          `INSERT INTO ${r.collections} (${columns.join(", ")}) VALUES (${placeholders}) RETURNING id`,
           [owner, name(input.name), description.value, ...extra.map(([, v]) => v)],
         ),
       );

@@ -46,7 +46,7 @@ export function identityProviderContract(name: string, make: () => ProviderHarne
       "https://evil.example/",
       "//evil.example",
       "javascript:alert(1)",
-      "/ok\\evil",
+      String.raw`/ok\evil`,
       "relative",
       "/a\nb",
     ]) {

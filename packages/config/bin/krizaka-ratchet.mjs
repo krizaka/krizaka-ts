@@ -55,6 +55,16 @@ try {
 }
 
 const { values, positionals } = args;
+/** @param {{ init?: boolean, update?: boolean }} v */
+const modeOf = (v) => {
+  if (v.init) return "init";
+  return v.update ? "update" : "check";
+};
+/** @param {number} delta */
+const markOf = (delta) => {
+  if (delta > 0) return "✗";
+  return delta < 0 ? "↓" : "=";
+};
 if (values.help) {
   console.log(USAGE);
   process.exit(0);
@@ -67,7 +77,7 @@ if (values.init && values.update) {
 try {
   const result = await runRatchet({
     root: values.root ?? process.cwd(),
-    mode: values.init ? "init" : values.update ? "update" : "check",
+    mode: modeOf(values),
     globs: positionals,
     file: values.file,
   });
@@ -82,7 +92,7 @@ try {
     ];
     for (const name of lines) {
       const { recorded, current, delta } = result.counters[name];
-      const mark = delta > 0 ? "✗" : delta < 0 ? "↓" : "=";
+      const mark = markOf(delta);
       const sign = delta > 0 ? `+${delta}` : `${delta}`;
       console.log(
         `  ${mark} ${(LABELS[name] ?? name).padEnd(28)} ${String(current).padStart(6)}  (recorded ${recorded}, ${sign})`,

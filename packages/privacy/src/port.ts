@@ -27,7 +27,7 @@ export interface ConsentInput {
   version: string;
   granted: boolean;
   /** How they said it (`checkbox`, `link`, `verbal`, `erasure`). */
-  means?: string | undefined;
+  means?: string;
 }
 
 /** A consent as written. It is never edited: a withdrawal is a new row. */

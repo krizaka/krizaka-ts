@@ -61,9 +61,9 @@ export interface DeliveryEntry {
   locale: string;
   to: string;
   status: DeliveryStatus;
-  messageId?: string | undefined;
-  idempotencyKey?: string | undefined;
-  detail?: string | undefined;
+  messageId?: string;
+  idempotencyKey?: string;
+  detail?: string;
 }
 
 /** A line to write: the instant is a `Date`. */

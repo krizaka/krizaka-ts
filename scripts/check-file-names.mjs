@@ -67,9 +67,8 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const root = join(fileURLToPath(new URL(".", import.meta.url)), "..");
   const bad = technologyNamedFiles(root);
   if (bad.length) {
-    console.error(
-      `check-file-names: name these files by what they do, not by their technology:\n${bad.map((f) => `  ${f}`).join("\n")}`,
-    );
+    const listed = bad.map((f) => `  ${f}`).join("\n");
+    console.error(`check-file-names: name these files by what they do, not by their technology:\n${listed}`);
     process.exit(1);
   }
   console.log("check-file-names: ok");

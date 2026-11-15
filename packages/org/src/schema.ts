@@ -21,8 +21,8 @@ const themed = {
   required: ["dark", "light"],
   properties: { dark: mark, light: mark },
 } as const;
-const date = { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$" } as const;
-const semver = { type: "string", pattern: "^\\d+\\.\\d+\\.\\d+$" } as const;
+const date = { type: "string", pattern: String.raw`^\d{4}-\d{2}-\d{2}$` } as const;
+const semver = { type: "string", pattern: String.raw`^\d+\.\d+\.\d+$` } as const;
 
 const footerSite = {
   type: "object",
@@ -59,7 +59,7 @@ const defaultItems = {
           webp: {
             type: "object",
             minProperties: 1,
-            propertyNames: { pattern: "^\\d+$" },
+            propertyNames: { pattern: String.raw`^\d+$` },
             additionalProperties: httpsUrl,
           },
         },
@@ -105,7 +105,7 @@ export const orgSchema = {
       properties: {
         legalName: { type: "string", minLength: 1 },
         tradeName: { type: "string", minLength: 1 },
-        neq: { type: "string", pattern: "^\\d{10}$" },
+        neq: { type: "string", pattern: String.raw`^\d{10}$` },
         city: { type: "string", minLength: 1 },
         region: { type: "string", minLength: 1 },
         country: { type: "string", pattern: "^[A-Z]{2}$" },
@@ -164,7 +164,7 @@ export const orgSchema = {
       additionalProperties: false,
       required: ["version", "base", "rule", "kinds"],
       properties: {
-        version: { type: "string", pattern: "^v\\d+$" },
+        version: { type: "string", pattern: String.raw`^v\d+$` },
         base: httpsUrl,
         rule: {
           type: "object",
@@ -222,7 +222,7 @@ export const orgSchema = {
           short: { type: "string", minLength: 1 },
           group: { enum: ["krizaka", "products", "open-source", "github"] },
           status: { enum: ["released", "development"] },
-          releasedAt: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$" },
+          releasedAt: { type: "string", pattern: String.raw`^\d{4}-\d{2}-\d{2}$` },
           url: httpsUrl,
           repo: { anyOf: [httpsUrl, { type: "null" }] },
         },
