@@ -21,7 +21,8 @@ export class ContractError extends Error {
 
   constructor(label: string, issues: readonly ContractIssue[], status?: number) {
     const where = status === undefined ? "" : ` (HTTP ${status})`;
-    super(`${label}${where}: ${issues.map((i) => `${i.path || "(body)"} ${i.message}`).join("; ")}`);
+    const listed = issues.map((i) => `${i.path || "(body)"} ${i.message}`).join("; ");
+    super(`${label}${where}: ${listed}`);
     this.name = "ContractError";
     this.issues = issues;
     this.status = status;

@@ -80,7 +80,7 @@ function pageProblems(src, file) {
   const errors = [];
   const head = /^---\n([\s\S]*?)\n---\n/.exec(src)?.[1] ?? "";
   for (const key of ["title", "description"])
-    if (!new RegExp(`^${key}:\\s*\\S`, "m").test(head)) errors.push(`${file}: no ${key} in the front matter`);
+    if (!new RegExp(String.raw`^${key}:\s*\S`, "m").test(head)) errors.push(`${file}: no ${key} in the front matter`);
   if (src.includes("```mermaid")) errors.push(`${file}: Mermaid is not used on this site`);
   return errors;
 }

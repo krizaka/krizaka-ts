@@ -435,12 +435,9 @@ export function createCredits(deps: CreditsDeps): Credits {
     },
 
     async refund(tx, input) {
-      const original =
-        input.consumed !== undefined
-          ? `consume.${checkKey(input.consumed)}`
-          : input.settledHold !== undefined
-            ? `settle.${input.settledHold}`
-            : null;
+      let original: string | null = null;
+      if (input.consumed !== undefined) original = `consume.${checkKey(input.consumed)}`;
+      else if (input.settledHold !== undefined) original = `settle.${input.settledHold}`;
       if (!original)
         throw new CreditsError(CREDITS_CODE.badKey, "Name what to refund: a consumed key or a settled hold");
       if (!input.reason || input.reason.length > MAX_REASON)

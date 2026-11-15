@@ -77,7 +77,7 @@ export const isLocalReturn = (returnTo: string): boolean =>
   returnTo.startsWith("/") &&
   !returnTo.startsWith("//") &&
   !returnTo.includes("\\") &&
-  [...returnTo].every((c) => c.charCodeAt(0) > 31);
+  [...returnTo].every((c) => (c.codePointAt(0) ?? 0) > 31);
 
 /** An in-memory provider: the tests' adapter, and the reference the contract is written against. */
 export function memoryIdentityProvider(): IdentityProvider & {

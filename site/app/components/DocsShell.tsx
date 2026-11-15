@@ -5,7 +5,7 @@ import { treeOf } from "@/lib/source";
 
 /* The documentation's frame: Fumadocs' layout (the sidebar of content/docs, the table of contents) under the bar. The home
    (app/(en)/page.tsx) is outside it: a landing page has no sidebar. Both languages' (docs) layouts are this. */
-export default function DocsShell({ locale, children }: { locale: Locale; children: ReactNode }) {
+export default function DocsShell({ locale, children }: Readonly<{ locale: Locale; children: ReactNode }>) {
   const t = getDictionary(locale);
   return (
     <DocsLayout

@@ -104,7 +104,8 @@ export async function opendalStore(input: OpendalStoreOptions): Promise<OpendalO
   }
   const { Operator: OperatorClass } = await loadOpendal();
   const prefix = trimSlashes(input.prefix ?? "");
-  const pathOf = (key: string) => `${prefix === "" ? "" : `${prefix}/`}${assertKey(key)}`;
+  const folder = prefix === "" ? "" : `${prefix}/`;
+  const pathOf = (key: string) => `${folder}${assertKey(key)}`;
   const auth = service.auth;
 
   let current: { token: string | null; op: Operator } | null = null;
@@ -168,7 +169,7 @@ export async function opendalStore(input: OpendalStoreOptions): Promise<OpendalO
         const key = entry.path().replace(/^\//, "").slice(root.length);
         if (meta.isFile() && key.startsWith(under)) out.push({ key, size: Number(meta.contentLength ?? 0n) });
       }
-      return out.sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+      return out.sort((a, b) => Number(a.key > b.key) - Number(a.key < b.key));
     },
     async signedUrl(key, ttlSeconds) {
       const path = pathOf(key);

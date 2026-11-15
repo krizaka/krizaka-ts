@@ -24,6 +24,11 @@ const positive = (n: number | undefined, what: string): void => {
     throw fail(400, `${what} is a positive integer of minor units, got ${n}`, PAYMENTS_CODE.badMoney);
 };
 
+const accountState = (chargesEnabled: boolean, detailsSubmitted: boolean): ConnectAccountStatus["state"] => {
+  if (chargesEnabled) return "active";
+  return detailsSubmitted ? "restricted" : "pending";
+};
+
 /** The merchant's account, read as the domain's status. */
 export function accountStatusOf(a: Json): ConnectAccountStatus {
   const chargesEnabled = a.charges_enabled === true;
@@ -33,7 +38,7 @@ export function accountStatusOf(a: Json): ConnectAccountStatus {
     chargesEnabled,
     detailsSubmitted,
     payoutsEnabled: a.payouts_enabled === true,
-    state: chargesEnabled ? "active" : detailsSubmitted ? "restricted" : "pending",
+    state: accountState(chargesEnabled, detailsSubmitted),
   };
 }
 
@@ -69,8 +74,9 @@ export function connectAdapter(config: ConnectAdapterConfig): ConnectPort {
     if (ok) return json;
     const error = json.error as { type?: string; message?: string } | undefined;
     const declined = status === 402 || error?.type === "card_error";
+    const failureStatus = status >= 500 ? 502 : 422;
     throw fail(
-      declined ? 402 : status >= 500 ? 502 : 422,
+      declined ? 402 : failureStatus,
       error?.message ?? `The processor answered ${status}`,
       declined ? PAYMENTS_CODE.declined : PAYMENTS_CODE.processor,
     );

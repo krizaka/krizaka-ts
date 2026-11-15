@@ -211,10 +211,12 @@ export function dbCouponStore(query: Query, schema = "coupons"): CouponStore {
     },
     async updateCoupon(id, patch, at) {
       const set = setClause(patch, COUPON_COLUMNS, 3);
-      const [row] = await query<Row>(
-        `UPDATE ${coupon} SET ${set.sql ? `${set.sql}, ` : ""}updated_at = $2 WHERE id = $1 RETURNING *`,
-        [id, at, ...set.values],
-      );
+      const assignments = set.sql ? `${set.sql}, ` : "";
+      const [row] = await query<Row>(`UPDATE ${coupon} SET ${assignments}updated_at = $2 WHERE id = $1 RETURNING *`, [
+        id,
+        at,
+        ...set.values,
+      ]);
       return row ? toCoupon(row) : null;
     },
     async listCoupons(f) {

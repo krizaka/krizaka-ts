@@ -6,7 +6,7 @@ import { useI18n } from "./I18nProvider";
 
 /* Fumadocs' providers: the static search ("/" or ⌘K opens it) and its interface texts from the site's messages. The theme
    stays the site's (ThemeProvider, html.light), so Fumadocs' own is off. */
-export function DocsProviders({ children }: { children: ReactNode }) {
+export function DocsProviders({ children }: Readonly<{ children: ReactNode }>) {
   const { locale, t } = useI18n();
   const c = t.chrome;
   const translations: Record<string, string> = {

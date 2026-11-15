@@ -126,8 +126,10 @@ export const functionNames = (clause) => {
   if (text.startsWith("type ") || text.startsWith("type{")) return [];
   const open = text.indexOf("{");
   const close = open < 0 ? -1 : text.indexOf("}", open);
-  const names = open < 0 ? [] : bracedNames(text.slice(open + 1, close < 0 ? text.length : close));
-  const head = defaultImportName(open < 0 ? text : `${text.slice(0, open)} ${close < 0 ? "" : text.slice(close + 1)}`);
+  const braceEnd = close < 0 ? text.length : close;
+  const afterBraces = close < 0 ? "" : text.slice(close + 1);
+  const names = open < 0 ? [] : bracedNames(text.slice(open + 1, braceEnd));
+  const head = defaultImportName(open < 0 ? text : `${text.slice(0, open)} ${afterBraces}`);
   if (head) names.push(head);
   return names;
 };

@@ -1,7 +1,6 @@
 import Home from "@/app/components/Home";
-import { homeMetadata } from "@/lib/seo";
 import { jsonLd } from "@/lib/json-ld";
-import { homeJsonLd } from "@/lib/seo";
+import { homeJsonLd, homeMetadata } from "@/lib/seo";
 
 export const generateMetadata = () => homeMetadata("fr");
 

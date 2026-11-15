@@ -1,9 +1,9 @@
 /** How a deployment tells the client's address: the header its edge sets, and how many proxies append to `X-Forwarded-For`. */
 export interface ClientIpRules {
   /** A header the edge sets and overwrites with the client's address (`do-connecting-ip` on DigitalOcean App Platform, `cf-connecting-ip` behind Cloudflare). Read first when present. */
-  header?: string | undefined;
+  header?: string;
   /** How many trusted proxies append to `X-Forwarded-For`: 1 (the default) to 10. */
-  trustedProxyHops?: number | undefined;
+  trustedProxyHops?: number;
 }
 
 const IPV4 = /^(?:\d{1,3}\.){3}\d{1,3}$/;

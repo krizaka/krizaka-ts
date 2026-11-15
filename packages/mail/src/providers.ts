@@ -1,4 +1,4 @@
-import { MAIL_CODE, MailError, type MailProvider, type MailSettings, type OutgoingMail } from "./port";
+import { MAIL_CODE, MailError, type MailProvider, type MailSettings } from "./port";
 import { bareAddress } from "./rules";
 
 /** The part of `fetch` the providers use: inject the global one (`fetch`), or a fake in a test. */
@@ -190,4 +190,4 @@ export function providerFor(
   });
 }
 
-export type { OutgoingMail };
+export type { OutgoingMail } from "./port";

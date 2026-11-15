@@ -54,9 +54,9 @@ export type LimitsSource =
 /** The keys one check counts. The limiter receives keys, never a request: extract the address with `clientIp` of `@krizaka/auth`. */
 export interface LimitKeys {
   /** The client's address; null (unknown) is counted under `unknown`, like the copies did. */
-  ip?: string | null | undefined;
+  ip?: string | null;
   /** The subject: an address, an account. Compared in lower case. Counted only when the action has a `perSubject` limit. */
-  subject?: string | null | undefined;
+  subject?: string | null;
 }
 
 /** A hit allowed, or refused with when to come back. */

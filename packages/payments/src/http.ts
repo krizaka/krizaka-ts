@@ -30,7 +30,8 @@ export async function rawCall(
   const doFetch = config.fetch ?? fetch;
   const base = (config.apiBase ?? "https://api.stripe.com").replace(/\/$/, "");
   const form = formEncode(params);
-  const res = await doFetch(`${base}${path}${method === "GET" && form.size ? `?${form}` : ""}`, {
+  const query = method === "GET" && form.size ? `?${form}` : "";
+  const res = await doFetch(`${base}${path}${query}`, {
     method,
     headers: {
       authorization: `Bearer ${config.secretKey}`,

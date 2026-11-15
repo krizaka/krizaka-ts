@@ -80,12 +80,12 @@ export interface Incident {
 export interface IncidentInput {
   scope: string;
   kind: IncidentKind;
-  awareAt?: Date | undefined;
-  occurredAt?: Date | undefined;
+  awareAt?: Date;
+  occurredAt?: Date;
   description: string;
   information: readonly string[];
-  personsConcerned?: number | undefined;
-  drill?: boolean | undefined;
+  personsConcerned?: number;
+  drill?: boolean;
 }
 
 export interface AssessmentInput {
@@ -142,7 +142,7 @@ export interface IncidentRegister {
     scope: string,
     id: string,
     target: NoticeTarget,
-    notice: { channel: string; reference?: string | undefined },
+    notice: { channel: string; reference?: string },
     actor: IncidentActor,
   ): Promise<Incident>;
   /** Marks the incident as a drill (or not). */
@@ -202,8 +202,8 @@ export function retainUntil(awareAt: Date): Date {
 }
 
 const FORMULA = /^[=+\-@\t\r]/;
-const cell = (value: unknown): string => {
-  const text = value === null || value === undefined ? "" : value instanceof Date ? value.toISOString() : String(value);
+const cell = (value: string | number | boolean | Date | null | undefined): string => {
+  const text = value instanceof Date ? value.toISOString() : String(value ?? "");
   const safe = FORMULA.test(text) ? `'${text}` : text;
   return /[",\n\r]/.test(safe) ? `"${safe.replaceAll('"', '""')}"` : safe;
 };

@@ -12,13 +12,13 @@ export const auditSchema = defineModule({
     {
       version: 1,
       name: "entries",
-      sql: (c) => `
+      sql: (c) => String.raw`
 CREATE TABLE ${c.schema}.entry (
   id          bigserial PRIMARY KEY,
   at          timestamptz NOT NULL,
   actor_id    uuid REFERENCES ${c.tables.owner}(id) ON DELETE SET NULL,
   actor_label text NOT NULL CHECK (char_length(actor_label) BETWEEN 1 AND 120),
-  action      text NOT NULL CHECK (action ~ '^[a-z][a-z0-9_]*(\\.[a-z0-9_]+)*$' AND char_length(action) <= 80),
+  action      text NOT NULL CHECK (action ~ '^[a-z][a-z0-9_]*(\.[a-z0-9_]+)*$' AND char_length(action) <= 80),
   target_type text CHECK (target_type IS NULL OR char_length(target_type) <= 40),
   target_id   text CHECK (target_id IS NULL OR char_length(target_id) <= 200),
   detail      jsonb NOT NULL DEFAULT '{}'::jsonb,

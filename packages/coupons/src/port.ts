@@ -4,9 +4,9 @@
  * network. The provider is `@krizaka/payments`' port (this module hands it immutable DiscountTerms); credits are
  * `@krizaka/credits`' ledger; the audit trail, the outbox and the limiter are structural ports, so this package depends on none of them.
  */
-import type { Clock, Query } from "@krizaka/db";
+import type { Query } from "@krizaka/db";
 
-export type { Clock, Query };
+export type { Clock, Query } from "@krizaka/db";
 
 export const KIND = { discount: "discount", credit: "credit" } as const;
 export type Kind = (typeof KIND)[keyof typeof KIND];
@@ -263,7 +263,7 @@ export interface OutboxPort {
 export interface RateLimitPort {
   check(
     action: string,
-    keys: { ip?: string | null | undefined; subject?: string | null | undefined },
+    keys: { ip?: string | null; subject?: string | null },
   ): Promise<{ ok: true } | { ok: false; retryAfterSeconds: number }>;
 }
 

@@ -5,7 +5,7 @@ import { FamilyFooterView } from "./FamilyFooterView";
 
 /* The footer (NAV-SYS) is @krizaka/ui's SiteFooter: this site's own column (where the packages and the code are), the
    Krizaka family in columns, the signature, the Krizaka UI release it was built with. */
-export default function SiteFooter({ locale }: { locale: Locale }) {
+export default function SiteFooter({ locale }: Readonly<{ locale: Locale }>) {
   const t = getDictionary(locale).footer;
   return (
     <FamilyFooterView

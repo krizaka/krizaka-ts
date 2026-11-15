@@ -1,7 +1,6 @@
 import { flag, integer, type Registry } from "@krizaka/settings";
 
-import { CHANNELS, type NotificationConfig } from "./port";
-import { type Channel, NOTIFICATION_CODE, NotificationError } from "./port";
+import { type Channel, CHANNELS, NOTIFICATION_CODE, type NotificationConfig, NotificationError } from "./port";
 import { CATEGORY_NAME, NOTIFICATION_BOUNDS, NOTIFICATION_DEFAULTS } from "./rules";
 
 /** What a product declares for a category; the admin tunes the values (except `locked`, which is code). */

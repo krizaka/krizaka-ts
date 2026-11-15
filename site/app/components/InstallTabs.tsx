@@ -4,7 +4,7 @@ import { getDictionary, type Locale } from "@/lib/i18n";
 
 /* The install command in each package manager, as @krizaka/ui's tabs of copyable code blocks (the Maven · Gradle tabs of
    Krizaka Java's site, for npm). `names` is one package or several, separated by spaces. */
-export default function InstallTabs({ names, locale }: { names: string; locale: Locale }) {
+export default function InstallTabs({ names, locale }: Readonly<{ names: string; locale: Locale }>) {
   const t = getDictionary(locale).install;
   return (
     <CodeTabs

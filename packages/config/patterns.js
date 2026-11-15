@@ -46,14 +46,14 @@ export const COLOR_UTILITIES = Object.freeze([
 export function paletteSource(allow = []) {
   const families = PALETTE_FAMILIES.filter((family) => !allow.includes(family));
   if (families.length === 0) return "(?!)"; // everything allowed: matches nothing
-  return `\\b(${COLOR_UTILITIES.join("|")})-(${families.join("|")})-[0-9]`;
+  return String.raw`\b(${COLOR_UTILITIES.join("|")})-(${families.join("|")})-[0-9]`;
 }
 
 /** `light:bg-white` — a theme is a set of tokens, never a variant. */
-export const LIGHT_VARIANT_SOURCE = "\\blight:";
+export const LIGHT_VARIANT_SOURCE = String.raw`\blight:`;
 
 /** `bg-[var(--surface-1)]` — the variable has a utility in @krizaka/tailwind. */
-export const ARBITRARY_VAR_SOURCE = "\\[var\\(--";
+export const ARBITRARY_VAR_SOURCE = String.raw`\[var\(--`;
 
 /** `className={`…${x}`}` — the ratchet's text approximation of the TemplateLiteral rule. */
 export const CLASSNAME_TEMPLATE_SOURCE = "className=\\{\\s*`";
@@ -231,7 +231,7 @@ export const TANSTACK_SCOPE = "@tanstack/";
  */
 export function importSource(specifiers) {
   if (specifiers.length === 0) return "(?!)"; // nothing listed: matches nothing
-  const escape = (/** @type {string} */ s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const escape = (/** @type {string} */ s) => s.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
   const names = specifiers.map((s) => (s.endsWith("/") ? `${escape(s)}[^"']+` : `${escape(s)}(?:/[^"']*)?`));
   return String.raw`(?:\bfrom|\bimport|\brequire)\s*(?:\(\s*)?["'](?:${names.join("|")})["']`;
 }
@@ -352,8 +352,8 @@ export const EPHEMERAL_SOURCE = String.raw`@ephemeral:\s*\S`;
 export function selectionTags(/** @type {string} */ source) {
   /** @type {{ tag: string, before: string }[]} */
   const found = [];
-  const names = SELECTION_COMPONENTS.map((n) => n.replace(".", "\\.")).join("|");
-  for (const open of source.matchAll(new RegExp(`<(?:${names})(?![\\w.])`, "g"))) {
+  const names = SELECTION_COMPONENTS.map((n) => n.replace(".", String.raw`\.`)).join("|");
+  for (const open of source.matchAll(new RegExp(String.raw`<(?:${names})(?![\w.])`, "g"))) {
     let depth = 0;
     let end = open.index;
     for (; end < source.length; end += 1) {
@@ -380,8 +380,8 @@ export function isLocalSelection(tag, before = "") {
   if (!name || !SELECTION_COMPONENTS.includes(name)) return false;
   // A radio group is a form field unless it is drawn as a segmented switch (`variant="segmented"`): that one is a view's selection.
   if (name === "RadioGroup.Root" && !/\bvariant\s*=\s*["']segmented["']/.test(tag)) return false;
-  const hasProp = (/** @type {string} */ prop) => new RegExp(`\\b${prop}\\s*(=|\\{|\\s|/?>)`).test(tag);
+  const hasProp = (/** @type {string} */ prop) => new RegExp(String.raw`\b${prop}\s*(=|\{|\s|/?>)`).test(tag);
   if (hasProp(ROUTE_KEY_PROP)) return false;
   if (new RegExp(EPHEMERAL_SOURCE).test(tag) || new RegExp(EPHEMERAL_SOURCE).test(before)) return false;
-  return LOCAL_SELECTION_PROPS.some((prop) => new RegExp(`\\b${prop}\\s*=`).test(tag));
+  return LOCAL_SELECTION_PROPS.some((prop) => new RegExp(String.raw`\b${prop}\s*=`).test(tag));
 }

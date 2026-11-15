@@ -29,9 +29,10 @@ export function plan(dist) {
   return sources.flatMap((name) => {
     const body = readFileSync(join(dist, name));
     const hash = createHash("sha256").update(body).digest("hex").slice(0, 10);
+    const hashed = name.replace(/\.json$/, `.${hash}.json`);
     return [
       { path: `${ROOT}/${name}`, body },
-      { path: `${ROOT}/${name.replace(/\.json$/, `.${hash}.json`)}`, body },
+      { path: `${ROOT}/${hashed}`, body },
     ];
   });
 }

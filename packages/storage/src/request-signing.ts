@@ -16,7 +16,7 @@ export interface Credentials {
 
 const stamp = (now: Date) => now.toISOString().replace(/[:-]|\.\d{3}/g, "");
 const encode = (s: string) =>
-  encodeURIComponent(s).replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
+  encodeURIComponent(s).replace(/[!'()*]/g, (c) => `%${(c.codePointAt(0) ?? 0).toString(16).toUpperCase()}`);
 const canonicalPath = (url: URL) =>
   url.pathname
     .split("/")
@@ -47,7 +47,7 @@ function signature(
 ) {
   const names = Object.keys(headers)
     .map((h) => h.toLowerCase())
-    .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)); // code-unit order, as the signature requires
+    .sort((a, b) => Number(a > b) - Number(a < b)); // code-unit order, as the signature requires
   const lower = Object.fromEntries(
     Object.entries(headers).map(([k, v]) => [k.toLowerCase(), v.trim().replace(/\s+/g, " ")]),
   );

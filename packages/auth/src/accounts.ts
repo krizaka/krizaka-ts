@@ -96,7 +96,7 @@ const THEMES: readonly Theme[] = ["light", "dark", "system"];
 /** One format for every mailed link (an e-mail change, a password reset): the product's prefix, a version, 256 random bits. */
 export const linkToken = (prefix: string) => `${prefix}1.${crypto.randomBytes(32).toString("base64url")}`;
 export const isLinkToken = (prefix: string, value: string | undefined | null): value is string =>
-  !!value && new RegExp(`^${prefix}1\\.[A-Za-z0-9_-]{43}$`).test(value);
+  !!value && new RegExp(String.raw`^${prefix}1\.[A-Za-z0-9_-]{43}$`).test(value);
 export const emailChangeToken = linkToken;
 export const isEmailChangeToken = isLinkToken;
 
@@ -200,7 +200,7 @@ export function dbAccounts(deps: AccountDeps): AccountService {
     profile: profileOf,
 
     async updateProfile(id, patch: ProfilePatch) {
-      const name = patch.name === undefined ? undefined : patch.name === null ? null : cleanName(patch.name);
+      const name = typeof patch.name === "string" ? cleanName(patch.name) : patch.name;
       if (patch.avatarSeed && !/^[a-z0-9-]{1,40}$/.test(patch.avatarSeed))
         throw new AccountError(400, "BAD_REQUEST", "Not an avatar");
       if (patch.theme && !THEMES.includes(patch.theme)) throw new AccountError(400, "BAD_REQUEST", "Not a theme");

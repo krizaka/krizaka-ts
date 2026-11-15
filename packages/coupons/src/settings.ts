@@ -1,7 +1,7 @@
 import { flag, integer, type Registry } from "@krizaka/settings";
 
 import type { CouponSettings } from "./port";
-import { COUPON_ATTEMPT_ACTION, COUPON_BOUNDS, COUPON_DEFAULTS } from "./rules";
+import { COUPON_BOUNDS, COUPON_DEFAULTS } from "./rules";
 
 const int = <K extends keyof typeof COUPON_BOUNDS>(key: K, unit: string) =>
   integer("coupons", COUPON_DEFAULTS[key], { min: COUPON_BOUNDS[key][0], max: COUPON_BOUNDS[key][1], unit });
@@ -52,7 +52,7 @@ export async function readCouponSettings(read: Reader): Promise<CouponSettings> 
 }
 
 /** The limit the settings give the attempts action (hourly, per address and per account): `limits: (action) => action === COUPON_ATTEMPT_ACTION ? couponAttemptLimit(settings) : …`. */
-export { COUPON_ATTEMPT_ACTION };
+export { COUPON_ATTEMPT_ACTION } from "./rules";
 export const couponAttemptLimit = (s: Pick<CouponSettings, "attemptsPerAccountPerHour" | "attemptsPerIpPerHour">) => ({
   perIp: s.attemptsPerIpPerHour,
   perSubject: s.attemptsPerAccountPerHour,

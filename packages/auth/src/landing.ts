@@ -35,7 +35,7 @@ export interface LandingRule {
 // Linear on any input (a loop, not a `/\/+$/` regular expression: CodeQL js/polynomial-redos on the request path).
 const trimmed = (path: string) => {
   let end = path.length;
-  while (end > 1 && path.charCodeAt(end - 1) === 47) end--;
+  while (end > 1 && path.codePointAt(end - 1) === 47) end--;
   return path.slice(0, end);
 };
 

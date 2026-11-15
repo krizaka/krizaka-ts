@@ -1,5 +1,3 @@
-import type { Clock } from "@krizaka/db";
-
 /**
  * The API-KEY ports (ADR-0011). Generic on purpose — no import from this app (no env, no database client, no clock of its own),
  * so the folder moves as it is into `@krizaka/api-keys` (Krizaka TypeScript, krizaka/.github#183) and Folioviv uses the same code.
@@ -63,7 +61,7 @@ export interface ApiKeyStore {
 }
 
 /** The clock, injected: `@krizaka/db`'s `Clock`, re-exported so nothing breaks. */
-export type { Clock };
+export type { Clock } from "@krizaka/db";
 
 export const API_KEY_CODE = {
   missing: "API_KEY_MISSING",

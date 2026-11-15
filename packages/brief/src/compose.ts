@@ -36,7 +36,9 @@ export interface ComposeInput<Ctx, R extends Recommendation> {
 /** Urgency, then impact (larger first), then id: a total order, so the same data always gives the same brief. */
 export function byPriority(a: Recommendation, b: Recommendation): number {
   return (
-    URGENCY[a.urgency] - URGENCY[b.urgency] || b.impactCents - a.impactCents || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
+    URGENCY[a.urgency] - URGENCY[b.urgency] ||
+    b.impactCents - a.impactCents ||
+    Number(a.id > b.id) - Number(a.id < b.id)
   );
 }
 

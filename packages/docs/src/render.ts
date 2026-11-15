@@ -61,7 +61,7 @@ const cell = (s: string) =>
     .split("\n")
     .map((line) => line.trim())
     .join(" ")
-    .replaceAll("|", "\\|");
+    .replaceAll("|", String.raw`\|`);
 
 function entriesTable(entries: readonly ManualEntry[], locale: ManualLocale): string[] {
   return ["| | |", "| --- | --- |", ...entries.map((e) => `| \`${e.key}\` | ${cell(e.text[locale])} |`)];

@@ -1,6 +1,6 @@
 const startsWith = (bytes: Uint8Array, signature: readonly number[], offset = 0) =>
   signature.every((b, i) => bytes[offset + i] === b);
-const ascii = (bytes: Uint8Array, from: number, to: number) => String.fromCharCode(...bytes.subarray(from, to));
+const ascii = (bytes: Uint8Array, from: number, to: number) => String.fromCodePoint(...bytes.subarray(from, to));
 
 /**
  * The content type the BYTES say they are, by magic number, never by the file name: png, jpeg, gif, webp, pdf, mp4, webm and svg.

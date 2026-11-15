@@ -30,8 +30,10 @@ export function verifySignature(
 }
 
 /** A signed header — for tests and a setup self-check. */
-export const signPayload = (rawBody: string, secret: string, t: number) =>
-  `t=${t},v1=${crypto.createHmac("sha256", secret).update(`${t}.${rawBody}`).digest("hex")}`;
+export const signPayload = (rawBody: string, secret: string, t: number) => {
+  const signed = `${t}.${rawBody}`;
+  return `t=${t},v1=${crypto.createHmac("sha256", secret).update(signed).digest("hex")}`;
+};
 
 const LIVE: ReadonlySet<string> = new Set(["active", "trialing"]);
 

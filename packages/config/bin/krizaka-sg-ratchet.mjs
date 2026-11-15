@@ -74,7 +74,8 @@ function run() {
   const bin = localBin(root);
   const scan = spawnSync(bin, ["scan", "--json=stream"], { cwd: root, encoding: "utf8", maxBuffer: 256 * 1024 * 1024 });
   if (scan.error || (scan.status !== 0 && scan.status !== 1)) {
-    console.error(`sg-ratchet: ast-grep failed (${scan.error?.message ?? `exit ${scan.status}`})\n${scan.stderr}`);
+    const reason = scan.error?.message ?? `exit ${scan.status}`;
+    console.error(`sg-ratchet: ast-grep failed (${reason})\n${scan.stderr}`);
     process.exit(2);
   }
   const found = countStream(scan.stdout);

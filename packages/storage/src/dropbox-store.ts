@@ -25,7 +25,10 @@ const fail = (what: string, status: number) =>
 const encode = (json: unknown) => new TextEncoder().encode(JSON.stringify(json));
 // Dropbox puts the JSON of a content call in a header: non-ASCII must be escaped.
 const argHeader = (json: unknown) =>
-  JSON.stringify(json).replace(/[\u007f-￿]/g, (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, "0")}`);
+  JSON.stringify(json).replace(
+    /[\u007f-￿]/g,
+    (c) => String.raw`\u${(c.codePointAt(0) ?? 0).toString(16).padStart(4, "0")}`,
+  );
 
 /**
  * A person's Dropbox as an `ObjectStore`, App-folder access only. Dropbox's temporary links live 4 hours, longer than our 900 seconds, so
@@ -34,7 +37,8 @@ const argHeader = (json: unknown) =>
  */
 export function dropboxStore(options: DropboxStoreOptions): ObjectStore {
   const prefix = trimSlashes(options.prefix ?? "");
-  const pathOf = (key: string) => `/${prefix === "" ? "" : `${prefix}/`}${assertKey(key)}`;
+  const folder = prefix === "" ? "" : `${prefix}/`;
+  const pathOf = (key: string) => `/${folder}${assertKey(key)}`;
   let access: { token: string; until: number } | null = null;
   const bearer = async () => {
     const now = options.clock.now().getTime();

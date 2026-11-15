@@ -2,8 +2,6 @@
  * The ports of the workspace layer (ADR-003): the store the service reads and writes through, the audit trail and the events it
  * writes to, and the record types. Nothing here knows a database client, the wall clock or a product.
  */
-import type { Clock } from "@krizaka/db";
-
 import type { KindConfig, Marker } from "./config";
 import type { Query } from "./port";
 import type { ViewFilters } from "./views";
@@ -150,4 +148,4 @@ export interface WorkspaceEvents {
 export type Transaction = <T>(work: (tx: Query) => Promise<T>) => Promise<T>;
 
 /** The clock, injected: `@krizaka/db`'s `Clock`; the layer never reads the wall clock. */
-export type { Clock };
+export type { Clock } from "@krizaka/db";
