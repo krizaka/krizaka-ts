@@ -86,111 +86,73 @@ const family: FamilyEntry[] = FAMILY_ROWS.map(([id, name, short, group, status, 
  * Every public site, one id each (krizaka-internal#3785). A product site points at its product: same bird, same url (a test pins it).
  * Every bird is `own`: it wears its own palette, never the host accent.
  */
-type SiteRow = [OrgSite["id"], string, string, OrgSite["kind"], MascotBird, string, string, string?];
+type SiteRow = [OrgSite["id"], string, string, OrgSite["kind"], MascotBird, string?];
 
-/** The sites as data: id, name, url, kind, bird, French line, English line, the old id kept as an alias. */
+/** The sites as data: id, name, url, kind, bird, the old id kept as an alias. Every bird is `own`. The words are in `SITE_WORDS`. */
 const SITE_ROWS: SiteRow[] = [
-  [
-    "krizaka",
-    "krizaka.com",
-    "https://www.krizaka.com",
-    "company",
-    "falcon",
-    "Technologies Krizaka : des logiciels pour les entreprises d'ici, construits à la vue de tous.",
-    "Technologies Krizaka: software for local businesses, built in the open.",
-    "www",
-  ],
-  [
-    "blog",
-    "Blog",
-    "https://blog.krizaka.com",
-    "company",
-    "falcon",
-    "Le blogue de Krizaka : ce que nous construisons et ce que nous en apprenons.",
-    "The Krizaka blog: what we build and what we learn from it.",
-  ],
-  [
-    "ui",
-    "Krizaka UI",
-    "https://ui.krizaka.com",
-    "docs",
-    "magpie",
-    "Composants React, variables de design et blocs de pages partagés par chaque produit Krizaka.",
-    "React components, design variables and page blocks shared by every Krizaka product.",
-  ],
-  [
-    "java",
-    "Krizaka Java",
-    "https://java.krizaka.com",
-    "docs",
-    "pigeon",
-    "Briques Spring Boot des services Krizaka. Pas encore de registre public : le code et les versions sont sur GitHub.",
-    "Spring Boot building blocks for Krizaka services. No public registry yet: the source and the releases are on GitHub.",
-  ],
-  [
-    "ts",
-    "Krizaka TypeScript",
-    "https://ts.krizaka.com",
-    "docs",
-    "lovebird",
-    "Briques TypeScript pour le serveur et le client, publiées sur npm sous @krizaka/.",
-    "TypeScript building blocks for server and client, published on npm under @krizaka/.",
-  ],
-  [
-    "lab",
-    "Krizaka Lab",
-    "https://lab.krizaka.com",
-    "lab",
-    "flamingo",
-    "Le laboratoire du mouvement : des essais de 3D et d'animation, montrés avant d'entrer dans les produits.",
-    "The motion lab: 3D and animation experiments, shown before they reach the products.",
-    "motion",
-  ],
-  [
-    "sovkora",
-    "Sovkora",
-    "https://www.sovkora.com",
-    "product",
-    "duck",
-    "Sovkora : des vidéos et des médias produits par l'IA, du scénario au rendu.",
-    "Sovkora: AI-made video and media, from script to render.",
-  ],
-  [
-    "verikora",
-    "Verikora",
-    "https://www.verikora.com",
-    "product",
-    "owl",
-    "Verikora : lire un document et en vérifier les faits, les chiffres et les données personnelles.",
-    "Verikora: read a document and check its facts, figures and personal data.",
-  ],
-  [
-    "folioviv",
-    "Folioviv",
-    "https://www.folioviv.com",
-    "product",
-    "beaver",
-    "Folioviv : réservations, vitrine et heures d'ouverture des commerces locaux.",
-    "Folioviv: bookings, storefront and opening hours for local businesses.",
-  ],
-  [
-    "kridoc",
-    "Kridoc",
-    "https://www.kridoc.com",
-    "product",
-    "crane",
-    "Kridoc : vos documents, classés et retrouvables, au même endroit.",
-    "Kridoc: your documents, filed and findable, in one place.",
-  ],
+  ["krizaka", "krizaka.com", "https://www.krizaka.com", "company", "falcon", "www"],
+  ["blog", "Blog", "https://blog.krizaka.com", "company", "falcon"],
+  ["ui", "Krizaka UI", "https://ui.krizaka.com", "docs", "magpie"],
+  ["java", "Krizaka Java", "https://java.krizaka.com", "docs", "pigeon"],
+  ["ts", "Krizaka TypeScript", "https://ts.krizaka.com", "docs", "lovebird"],
+  ["lab", "Krizaka Lab", "https://lab.krizaka.com", "lab", "flamingo", "motion"],
+  ["sovkora", "Sovkora", "https://www.sovkora.com", "product", "duck"],
+  ["verikora", "Verikora", "https://www.verikora.com", "product", "owl"],
+  ["folioviv", "Folioviv", "https://www.folioviv.com", "product", "beaver"],
+  ["kridoc", "Kridoc", "https://www.kridoc.com", "product", "crane"],
 ];
 
-const SITES: OrgSite[] = SITE_ROWS.map(([id, name, url, kind, bird, fr, en, alias]) => ({
+/** The one-line description of each site, in both languages, by site id. */
+const SITE_WORDS: Record<string, Localized> = {
+  krizaka: {
+    fr: "Technologies Krizaka : des logiciels pour les entreprises d'ici, construits à la vue de tous.",
+    en: "Technologies Krizaka: software for local businesses, built in the open.",
+  },
+  blog: {
+    fr: "Le blogue de Krizaka : ce que nous construisons et ce que nous en apprenons.",
+    en: "The Krizaka blog: what we build and what we learn from it.",
+  },
+  ui: {
+    fr: "Composants React, variables de design et blocs de pages partagés par chaque produit Krizaka.",
+    en: "React components, design variables and page blocks shared by every Krizaka product.",
+  },
+  java: {
+    fr: "Briques Spring Boot des services Krizaka. Pas encore de registre public : le code et les versions sont sur GitHub.",
+    en: "Spring Boot building blocks for Krizaka services. No public registry yet: the source and the releases are on GitHub.",
+  },
+  ts: {
+    fr: "Briques TypeScript pour le serveur et le client, publiées sur npm sous @krizaka/.",
+    en: "TypeScript building blocks for server and client, published on npm under @krizaka/.",
+  },
+  lab: {
+    fr: "Le laboratoire du mouvement : des essais de 3D et d'animation, montrés avant d'entrer dans les produits.",
+    en: "The motion lab: 3D and animation experiments, shown before they reach the products.",
+  },
+  sovkora: {
+    fr: "Sovkora : des vidéos et des médias produits par l'IA, du scénario au rendu.",
+    en: "Sovkora: AI-made video and media, from script to render.",
+  },
+  verikora: {
+    fr: "Verikora : lire un document et en vérifier les faits, les chiffres et les données personnelles.",
+    en: "Verikora: read a document and check its facts, figures and personal data.",
+  },
+  folioviv: {
+    fr: "Folioviv : réservations, vitrine et heures d'ouverture des commerces locaux.",
+    en: "Folioviv: bookings, storefront and opening hours for local businesses.",
+  },
+  kridoc: {
+    fr: "Kridoc : vos documents, classés et retrouvables, au même endroit.",
+    en: "Kridoc: your documents, filed and findable, in one place.",
+  },
+};
+
+const SITES: OrgSite[] = SITE_ROWS.map(([id, name, url, kind, bird, alias]) => ({
   id,
   name,
   url,
   kind,
   mascot: { bird, tone: "own" },
-  description: { fr, en },
+  description: SITE_WORDS[id]!,
   ...(alias ? { aliases: [alias] } : {}),
 }));
 
