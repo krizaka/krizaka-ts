@@ -1,5 +1,11 @@
 # @krizaka/brief
 
+## 0.1.2
+
+### Patch Changes
+
+- 79a6d53: SonarCloud smells cleared (second batch), behaviour unchanged: readonly sets, linear regular expressions, `replaceAll`, optional chains. The coverage reports now include the package's own `.js` / `.mjs` sources, and `@krizaka/org` keeps its default pictures and demo cast as JSON files. A contact e-mail address with an empty domain label (`a@b..c`) is no longer accepted by `@krizaka/coupons` and `@krizaka/mail`.
+
 ## 0.1.1
 
 ### Patch Changes

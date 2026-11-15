@@ -1,5 +1,13 @@
 # @krizaka/outbox
 
+## 0.1.6
+
+### Patch Changes
+
+- 79a6d53: SonarCloud smells cleared (second batch), behaviour unchanged: readonly sets, linear regular expressions, `replaceAll`, optional chains. The coverage reports now include the package's own `.js` / `.mjs` sources, and `@krizaka/org` keeps its default pictures and demo cast as JSON files. A contact e-mail address with an empty domain label (`a@b..c`) is no longer accepted by `@krizaka/coupons` and `@krizaka/mail`.
+- Updated dependencies [79a6d53]
+  - @krizaka/settings@0.7.1
+
 ## 0.1.5
 
 ### Patch Changes
