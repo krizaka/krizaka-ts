@@ -4,6 +4,7 @@ import { test } from "vitest";
 
 import {
   AI_CRAWLERS,
+  auditDevPages,
   auditDevRedirect,
   auditHeaders,
   auditHtml,
@@ -11,6 +12,7 @@ import {
   auditRobots,
   auditSitemap,
   ORG_ID,
+  wwwOf,
 } from "../bin/krizaka-seo-family.mjs";
 
 const HOST = "https://dev.example.com";
@@ -101,4 +103,40 @@ test("a development host that sends its pages to www", () => {
   assert.deepEqual(auditDevRedirect(ok, { www }), []);
   assert.ok(auditDevRedirect({ ...ok, rootStatus: 200 }, { www }).length > 0);
   assert.ok(auditDevRedirect({ ...ok, rootHeaders: new Headers() }, { www }).length > 0);
+});
+
+test("a development host that serves noindex pages with canonical and hreflang on www passes; without noindex or with itself as canonical it fails", () => {
+  const www = wwwOf("https://dev.example.com");
+  assert.equal(www, "https://www.example.com");
+  const head = (extra) =>
+    `<html><head><meta name="robots" content="noindex, nofollow"/><link rel="canonical" href="${www}/fr"/><link rel="alternate" hreflang="en" href="${www}/en"/>${extra}</head></html>`;
+  const seen = (html, pageHeaders = new Headers()) => ({
+    robotsText: "User-agent: *\nDisallow: /\n",
+    robotsHeaders: new Headers({ "x-robots-tag": "noindex" }),
+    pageHeaders,
+    html,
+  });
+  assert.deepEqual(auditDevPages(seen(head("")), { www }), []);
+  assert.deepEqual(
+    auditDevPages(
+      seen(
+        '<html><head><link rel="canonical" href="https://www.example.com/"/></head></html>',
+        new Headers({ "x-robots-tag": "noindex" }),
+      ),
+      { www },
+    ),
+    [],
+  );
+  assert.ok(auditDevPages(seen(head("").replace(/<meta[^>]*>/, "")), { www }).some((p) => /noindex/.test(p)));
+  assert.ok(
+    auditDevPages(seen(head("").replace(`${www}/fr`, "https://dev.example.com/fr")), { www }).some((p) =>
+      /canonical/.test(p),
+    ),
+  );
+  assert.ok(
+    auditDevPages(seen(head(`<link rel="alternate" hreflang="fr" href="https://dev.example.com/fr"/>`)), { www }).some(
+      (p) => /hreflang/.test(p),
+    ),
+  );
+  assert.ok(auditDevPages({ ...seen(head("")), robotsText: "User-agent: *\nAllow: /\n" }, { www }).length > 0);
 });
