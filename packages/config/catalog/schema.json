@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ts.krizaka.com/schemas/krizaka-catalog/v1.json",
+  "title": "krizaka-catalog/v1",
+  "description": "The catalogue a Krizaka library ships inside its published artifact: one entry per exported item, with how to import it, its signature or props, its examples and its rules. Read by the krizaka-docs MCP and the documentation sites (krizaka-internal#3947).",
+  "type": "object",
+  "required": ["schema", "library", "version", "language", "entries"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": { "const": "krizaka-catalog/v1" },
+    "library": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The published name: `@krizaka/ui`, `com.krizaka:krizaka-web-starter`, `krizaka-scope`."
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The version of the artifact the catalogue was built from."
+    },
+    "language": { "enum": ["typescript", "java", "rust"] },
+    "summary": { "type": "string" },
+    "homepage": { "type": "string" },
+    "entries": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/entry" } }
+  },
+  "$defs": {
+    "entry": {
+      "type": "object",
+      "required": ["name", "kind", "module", "import", "summary", "status", "examples"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The exported name (`Button`, `formatDate`, `ScopeStore`)."
+        },
+        "kind": {
+          "enum": ["component", "hook", "function", "type", "constant", "spring-starter", "spring-bean", "rust-item"]
+        },
+        "module": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Where it comes from: the import specifier (`@krizaka/ui/button`), the Maven coordinate or the crate path."
+        },
+        "import": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The line to copy: `import { Button } from \"@krizaka/ui/button\";`, a `<dependency>` block, a `use` line."
+        },
+        "title": { "type": "string" },
+        "summary": { "type": "string", "minLength": 1 },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "signature": { "type": "string" },
+        "props": { "type": "array", "items": { "$ref": "#/$defs/prop" } },
+        "examples": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/example" } },
+        "rules": { "$ref": "#/$defs/rules" },
+        "status": { "enum": ["experimental", "beta", "stable", "deprecated"] },
+        "since": { "type": "string" },
+        "deprecated": { "$ref": "#/$defs/deprecation" },
+        "platforms": { "type": "array", "items": { "enum": ["web", "native", "desktop", "server"] } },
+        "related": { "type": "array", "items": { "type": "string" } },
+        "docs": { "type": "string" }
+      }
+    },
+    "prop": {
+      "type": "object",
+      "required": ["name", "type", "required"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "type": { "type": "string" },
+        "required": { "type": "boolean" },
+        "default": { "type": "string" },
+        "description": { "type": "string" }
+      }
+    },
+    "example": {
+      "type": "object",
+      "required": ["title", "code"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "title": { "type": "string", "minLength": 1 },
+        "description": { "type": "string" },
+        "language": { "type": "string" },
+        "code": { "type": "string", "minLength": 1 }
+      }
+    },
+    "rules": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "do": { "type": "array", "items": { "type": "string" } },
+        "dont": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["when"],
+            "additionalProperties": false,
+            "properties": { "when": { "type": "string", "minLength": 1 }, "use": { "type": "string" } }
+          }
+        }
+      }
+    },
+    "deprecation": {
+      "type": "object",
+      "required": ["since", "reason"],
+      "additionalProperties": false,
+      "properties": {
+        "since": { "type": "string" },
+        "removedIn": { "type": "string" },
+        "use": { "type": "string" },
+        "reason": { "type": "string" }
+      }
+    }
+  }
+}
