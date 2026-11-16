@@ -20,6 +20,17 @@ export interface WorkspaceKindDecl {
   textColumns?: readonly string[];
   /** The column the `collection` filter reads. */
   collectionColumn?: string;
+  /**
+   * Another kind of the declaration whose tag list this kind uses: one list per scope, the same names, markers and uniqueness
+   * (`lower(name)`), so a tag « Rosemont » sits on a collection, a folder and a document. The kind keeps its own link table
+   * (`<kind>_tag`); its tags are stored under the other kind. That kind must keep its own list (no chain). Default: its own list.
+   */
+  tagList?: string;
+  /**
+   * The kind of the container named by `collectionColumn` (a document's collection). With it, `filterSql(…, { inherit: true })`
+   * also matches the tags the container wears. It must be a kind of the declaration that uses the same tag list as this one.
+   */
+  containerKind?: string;
   /** A derived set: the SQL expression of an entity's state on `e`, so the `status` filter can read it. */
   stateSql?: string;
 }
@@ -38,14 +49,40 @@ export interface WorkspaceDecl {
 /** A table of the layer's schema, both names checked. */
 const qualified = (schema: string, table: string) => `${schema}.${ident(table)}`;
 
+/** The kind whose tag list `kind` uses: itself, or the one it declares with `tagList`. */
+export function tagListOf(decl: Pick<WorkspaceDecl, "kinds">, kind: string): string {
+  return decl.kinds[kind]?.tagList ?? kind;
+}
+
+function checkSharing(decl: WorkspaceDecl) {
+  for (const [kind, k] of Object.entries(decl.kinds)) {
+    if (k.tagList !== undefined) {
+      const owner = decl.kinds[k.tagList];
+      if (k.tagList === kind || !owner) throw new Error(`kind ${kind}: tagList names another kind of the declaration`);
+      if (owner.tagList !== undefined)
+        throw new Error(`kind ${kind}: tagList ${k.tagList} shares a list itself (no chain)`);
+    }
+    if (k.containerKind !== undefined) {
+      if (!decl.kinds[k.containerKind] || k.containerKind === kind)
+        throw new Error(`kind ${kind}: containerKind names another kind of the declaration`);
+      if (k.collectionColumn === undefined) throw new Error(`kind ${kind}: containerKind needs collectionColumn`);
+      if (tagListOf(decl, k.containerKind) !== tagListOf(decl, kind))
+        throw new Error(`kind ${kind}: its container does not use the same tag list`);
+    }
+  }
+}
+
 export function resolveWorkspace(decl: WorkspaceDecl) {
   const schema = ident(decl.schema ?? "organize");
+  checkSharing(decl);
   const kinds = Object.fromEntries(
     Object.entries(decl.kinds).map(([kind, k]) => {
       const scopeColumn = ident(k.scopeColumn ?? "scope_id");
       return [
         ident(kind),
         {
+          tagList: ident(k.tagList ?? kind),
+          containerTagTable: k.containerKind === undefined ? null : qualified(schema, `${k.containerKind}_tag`),
           table: ident(k.table),
           inScope: k.inScope ?? `e.${scopeColumn} = $1`,
           dateColumn: k.dateColumn === undefined ? null : ident(k.dateColumn),
@@ -117,7 +154,7 @@ CREATE INDEX view_shared ON ${r.views} (scope_id, kind) WHERE shared;`,
 CREATE TABLE ${k.tagTable} (
   entity_id uuid NOT NULL REFERENCES ${k.table}(id) ON DELETE CASCADE,
   tag_id    uuid NOT NULL,
-  kind      text NOT NULL DEFAULT '${kind}' CHECK (kind = '${kind}'),
+  kind      text NOT NULL DEFAULT '${k.tagList}' CHECK (kind = '${k.tagList}'),
   PRIMARY KEY (entity_id, tag_id),
   FOREIGN KEY (tag_id, kind) REFERENCES ${r.tags} (id, kind) ON DELETE CASCADE
 );

@@ -52,6 +52,8 @@ export function dbWorkspaceStore(query: Query, decl: WorkspaceDecl): WorkspaceSt
     (() => {
       throw new OrganizeError(ORGANIZE_CODE.badRequest, `unknown kind ${kind}`);
     })();
+  /** The kind whose list holds the tags of `kind`. */
+  const listOf = (kind: string) => kindOf(kind).tagList;
   const pairs = (list: readonly { entityId: string; tagId: string }[]) => [
     list.map((p) => p.entityId),
     list.map((p) => p.tagId),
@@ -92,13 +94,13 @@ export function dbWorkspaceStore(query: Query, decl: WorkspaceDecl): WorkspaceSt
     tags: (scope, kind) =>
       query<WorkspaceTag>(`SELECT ${TAG} FROM ${r.tags} WHERE scope_id = $1 AND kind = $2 ORDER BY lower(name)`, [
         scope,
-        kind,
+        listOf(kind),
       ]),
     async addTag(scope, kind, tag, at) {
       const [row] = await unique(() =>
         query<WorkspaceTag>(
           `INSERT INTO ${r.tags} (scope_id, kind, name, marker, origin, created_at) VALUES ($1, $2, $3, $4, $5, $6) RETURNING ${TAG}`,
-          [scope, kind, tag.name, tag.marker, tag.origin, at],
+          [scope, listOf(kind), tag.name, tag.marker, tag.origin, at],
         ),
       );
       return row!;
@@ -107,7 +109,7 @@ export function dbWorkspaceStore(query: Query, decl: WorkspaceDecl): WorkspaceSt
       const [row] = await unique(() =>
         query<WorkspaceTag>(
           `UPDATE ${r.tags} SET name = COALESCE($4, name), marker = COALESCE($5, marker) WHERE scope_id = $1 AND kind = $2 AND id = $3 RETURNING ${TAG}`,
-          [scope, kind, id, patch.name ?? null, patch.marker ?? null],
+          [scope, listOf(kind), id, patch.name ?? null, patch.marker ?? null],
         ),
       );
       return row ?? null;
@@ -117,7 +119,7 @@ export function dbWorkspaceStore(query: Query, decl: WorkspaceDecl): WorkspaceSt
         (
           await query(`DELETE FROM ${r.tags} WHERE scope_id = $1 AND kind = $2 AND id = $3 RETURNING id`, [
             scope,
-            kind,
+            listOf(kind),
             id,
           ])
         ).length > 0
@@ -131,6 +133,17 @@ export function dbWorkspaceStore(query: Query, decl: WorkspaceDecl): WorkspaceSt
         [[...entityIds]],
       );
       for (const row of rows) out.set(row.entity_id, [...(out.get(row.entity_id) ?? []), row.tag_id]);
+      return out;
+    },
+    async counts(scope) {
+      const used = Object.entries(r.kinds).map(
+        ([kind, k]) =>
+          `SELECT l.tag_id, '${kind}'::text AS kind, count(*)::int AS n FROM ${k.tagTable} l JOIN ${r.tags} t ON t.id = l.tag_id WHERE t.scope_id = $1 GROUP BY l.tag_id`,
+      );
+      const out = new Map<string, Record<string, number>>();
+      if (used.length === 0) return out;
+      for (const row of await query<{ tag_id: string; kind: string; n: number }>(used.join(" UNION ALL "), [scope]))
+        out.set(row.tag_id, { ...out.get(row.tag_id), [row.kind]: row.n });
       return out;
     },
     async link(kind, list) {
@@ -216,14 +229,15 @@ export function dbWorkspaceStore(query: Query, decl: WorkspaceDecl): WorkspaceSt
  * @param decl the product's declaration
  * @param kind the kind listed
  * @param filters the view's filters (from `parseView` or a saved view)
- * @param options `from`: the number of the first parameter; `status`: the kind's set (its initial state counts for entities nobody moved)
+ * @param options `from`: the number of the first parameter; `status`: the kind's set (its initial state counts for entities nobody moved);
+ * `inherit`: an entity also matches a tag worn by its container (the kind's `containerKind`, read through `collectionColumn`), for a kind that declares it
  * @returns the SQL and its parameters, to append to the query's own
  */
 export function filterSql(
   decl: WorkspaceDecl,
   kind: string,
   filters: ViewFilters,
-  options: { from: number; status?: StatusSet | null },
+  options: { from: number; status?: StatusSet | null; inherit?: boolean },
 ): { sql: string; params: unknown[] } {
   const r = resolveWorkspace(decl);
   const k = r.kinds[kind];
@@ -231,10 +245,15 @@ export function filterSql(
   const parts: string[] = [];
   const params: unknown[] = [];
   const add = (value: unknown) => `$${options.from + params.push(value) - 1}`;
-  if (filters.tags?.length)
+  if (filters.tags?.length) {
+    const viaContainer =
+      options.inherit && k.containerTagTable && k.collectionColumn
+        ? ` OR EXISTS (SELECT 1 FROM ${k.containerTagTable} c WHERE c.entity_id = e.${k.collectionColumn} AND c.tag_id = want.id)`
+        : "";
     parts.push(
-      `NOT EXISTS (SELECT 1 FROM unnest(${add(filters.tags)}::uuid[]) want(id) WHERE NOT EXISTS (SELECT 1 FROM ${k.tagTable} t WHERE t.entity_id = e.id AND t.tag_id = want.id))`,
+      `NOT EXISTS (SELECT 1 FROM unnest(${add(filters.tags)}::uuid[]) want(id) WHERE NOT (EXISTS (SELECT 1 FROM ${k.tagTable} t WHERE t.entity_id = e.id AND t.tag_id = want.id)${viaContainer}))`,
     );
+  }
   const set = options.status ?? null;
   if (filters.status?.length && set) {
     if (set.mode === STATUS_MODE.editable)

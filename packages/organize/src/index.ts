@@ -29,6 +29,7 @@ export { STATUS_CHANGED_EVENT, TAG_ORIGIN } from "./workspace-port";
 export {
   type ResolvedWorkspace,
   resolveWorkspace,
+  tagListOf,
   type WorkspaceDecl,
   type WorkspaceKindDecl,
   workspaceMigration,

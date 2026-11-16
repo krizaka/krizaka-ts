@@ -233,6 +233,8 @@ export function createWorkspace(deps: WorkspaceDeps) {
 
   const tags = {
     list: (scope: string, kind: string): Promise<WorkspaceTag[]> => run((_tx, store) => store.tags(scope, kind)),
+    /** Per tag of the scope, how many entities of each kind wear it (tag id → kind → count; a tag nobody wears is absent). */
+    counts: (scope: string): Promise<Map<string, Record<string, number>>> => run((_tx, store) => store.counts(scope)),
     /** The admin's presets of a variant, copied into the scope once (a name it has already is left alone). */
     seed: (scope: string, kind: string, variant = "default"): Promise<WorkspaceTag[]> =>
       run(async (_tx, store) => {

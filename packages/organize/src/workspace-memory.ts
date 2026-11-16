@@ -14,9 +14,14 @@ interface Kept<T> {
 
 /**
  * @param entities the product's entities: kind → entity id → its scope (mutable: a test adds to it)
+ * @param options `tagLists`: kind → the kind whose tag list it uses (the declaration's `tagList`)
  * @returns a store that passes `workspaceStoreContract`
  */
-export function memoryWorkspaceStore(entities: Map<string, Map<string, string>> = new Map()): WorkspaceStore {
+export function memoryWorkspaceStore(
+  entities: Map<string, Map<string, string>> = new Map(),
+  options: { tagLists?: Readonly<Record<string, string>> } = {},
+): WorkspaceStore {
+  const listOf = (kind: string) => options.tagLists?.[kind] ?? kind;
   const configs = new Map<string, StoredConfig>();
   const tags: Kept<WorkspaceTag>[] = [];
   const links = new Map<string, Set<string>>(); // `${kind}:${entity}` → tag ids
@@ -55,17 +60,19 @@ export function memoryWorkspaceStore(entities: Map<string, Map<string, string>> 
     },
     async tags(scope, kind) {
       return tags
-        .filter((t) => t.scope === scope && t.row.kind === kind)
+        .filter((t) => t.scope === scope && t.row.kind === listOf(kind))
         .map((t) => copy(t.row))
         .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
     },
-    async addTag(scope, kind, tag) {
+    async addTag(scope, tagKind, tag) {
+      const kind = listOf(tagKind);
       taken(tags.some((t) => t.scope === scope && t.row.kind === kind && sameName(t.row.name, tag.name)));
       const row: WorkspaceTag = { id: crypto.randomUUID(), kind, ...tag };
       tags.push({ scope, row });
       return copy(row);
     },
-    async updateTag(scope, kind, id, patch) {
+    async updateTag(scope, tagKind, id, patch) {
+      const kind = listOf(tagKind);
       const found = tagOf(scope, kind, id);
       if (!found) return null;
       if (patch.name !== undefined)
@@ -82,7 +89,7 @@ export function memoryWorkspaceStore(entities: Map<string, Map<string, string>> 
       return copy(found.row);
     },
     async removeTag(scope, kind, id) {
-      const found = tagOf(scope, kind, id);
+      const found = tagOf(scope, listOf(kind), id);
       if (!found) return false;
       tags.splice(tags.indexOf(found), 1);
       forgetTag(id);
@@ -95,10 +102,19 @@ export function memoryWorkspaceStore(entities: Map<string, Map<string, string>> 
         ),
       );
     },
+    async counts(scope) {
+      const mine = new Set(tags.filter((t) => t.scope === scope).map((t) => t.row.id));
+      const out = new Map<string, Record<string, number>>();
+      for (const [k, set] of links) {
+        const kind = k.slice(0, k.indexOf(":"));
+        for (const id of set) if (mine.has(id)) out.set(id, { ...out.get(id), [kind]: (out.get(id)?.[kind] ?? 0) + 1 });
+      }
+      return out;
+    },
     async link(kind, pairs) {
       for (const p of pairs) {
-        if (!tags.some((t) => t.row.id === p.tagId && t.row.kind === kind))
-          throw new Error("foreign key: the tag is not of this kind");
+        if (!tags.some((t) => t.row.id === p.tagId && t.row.kind === listOf(kind)))
+          throw new Error("foreign key: the tag is not of this kind's list");
         links.set(key(kind, p.entityId), (links.get(key(kind, p.entityId)) ?? new Set()).add(p.tagId));
       }
     },
