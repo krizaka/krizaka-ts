@@ -1,5 +1,11 @@
 # @krizaka/config
 
+## 0.28.0
+
+### Minor Changes
+
+- 0726903: Add `krizaka-catalog/v1`: the JSON Schema of the catalogue every Krizaka library ships in its artifact (`@krizaka/config/catalog/schema.json`) and `catalogProblems()` (`@krizaka/config/catalog`), a dependency-free checker that reads the schema itself (krizaka-internal#3947).
+
 ## 0.27.2
 
 ### Patch Changes
