@@ -72,3 +72,11 @@ describe("krizaka-catalog/v1", () => {
     );
   });
 });
+
+describe("the checker", () => {
+  it("throws on a schema keyword it does not support, so no rule is ignored", async () => {
+    const { SUPPORTED } = await import("../catalog/check.js");
+    expect(SUPPORTED.has("pattern")).toBe(false);
+    expect(JSON.stringify(catalogSchema)).not.toContain('"pattern"');
+  });
+});

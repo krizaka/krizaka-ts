@@ -27,51 +27,65 @@ export const SUPPORTED = new Set([
 const ANNOTATIONS = new Set(["$schema", "$id", "$defs", "title", "description"]);
 
 /** @param {unknown} value */
-const typeOf = (value) => (Array.isArray(value) ? "array" : value === null ? "null" : typeof value);
+function typeOf(value) {
+  if (Array.isArray(value)) return "array";
+  if (value === null) return "null";
+  return typeof value;
+}
 
-/**
- * @param {Schema} schema
- * @param {unknown} value
- * @param {string} at
- * @param {string[]} problems
- */
-function validate(schema, value, at, problems) {
-  for (const key of Object.keys(schema)) {
-    if (!SUPPORTED.has(key) && !ANNOTATIONS.has(key))
-      throw new Error(`catalog/check.js: unsupported schema keyword « ${key} » at ${at}`);
-  }
-  if (typeof schema.$ref === "string") {
-    const name = schema.$ref.replace(/^#\/\$defs\//, "");
-    const target = /** @type {Record<string, Schema>} */ (catalogSchema.$defs)[name];
-    if (!target) throw new Error(`catalog/check.js: unknown $ref ${schema.$ref}`);
-    validate(target, value, at, problems);
-    return;
-  }
+/** @typedef {(schema: Schema, value: unknown, at: string, problems: string[]) => void} Check */
+
+/** @param {Schema} schema */
+function resolved(schema) {
+  if (typeof schema.$ref !== "string") return schema;
+  const target = /** @type {Record<string, Schema>} */ (catalogSchema.$defs)[schema.$ref.replace(/^#\/\$defs\//, "")];
+  if (!target) throw new Error(`catalog/check.js: unknown $ref ${schema.$ref}`);
+  return target;
+}
+
+/** @type {Check} */
+const checkValue = (schema, value, at, problems) => {
   if ("const" in schema && value !== schema.const) problems.push(`${at}: must be ${JSON.stringify(schema.const)}`);
   if (Array.isArray(schema.enum) && !schema.enum.includes(value))
     problems.push(`${at}: must be one of ${schema.enum.join(", ")}`);
-  if (typeof schema.type === "string" && typeOf(value) !== schema.type) {
-    problems.push(`${at}: must be ${schema.type === "array" || schema.type === "object" ? "an" : "a"} ${schema.type}`);
-    return;
-  }
   if (typeof value === "string" && typeof schema.minLength === "number" && value.trim().length < schema.minLength)
     problems.push(`${at}: must not be empty`);
-  if (Array.isArray(value)) {
-    if (typeof schema.minItems === "number" && value.length < schema.minItems)
-      problems.push(`${at}: needs at least ${schema.minItems} item(s)`);
-    if (schema.items)
-      value.forEach((item, index) => validate(/** @type {Schema} */ (schema.items), item, `${at}[${index}]`, problems));
+};
+
+/** @type {Check} */
+const checkArray = (schema, value, at, problems) => {
+  if (!Array.isArray(value)) return;
+  if (typeof schema.minItems === "number" && value.length < schema.minItems)
+    problems.push(`${at}: needs at least ${schema.minItems} item(s)`);
+  const items = /** @type {Schema | undefined} */ (schema.items);
+  if (items) value.forEach((item, index) => validate(items, item, `${at}[${index}]`, problems));
+};
+
+/** @type {Check} */
+const checkObject = (schema, value, at, problems) => {
+  if (typeOf(value) !== "object") return;
+  const object = /** @type {Record<string, unknown>} */ (value);
+  const properties = /** @type {Record<string, Schema>} */ (schema.properties ?? {});
+  for (const key of /** @type {string[]} */ (schema.required ?? []))
+    if (!(key in object)) problems.push(`${at}: misses « ${key} »`);
+  for (const [key, item] of Object.entries(object)) {
+    if (properties[key]) validate(properties[key], item, `${at}.${key}`, problems);
+    else if (schema.additionalProperties === false) problems.push(`${at}: unknown field « ${key} »`);
   }
-  if (typeOf(value) === "object") {
-    const object = /** @type {Record<string, unknown>} */ (value);
-    const properties = /** @type {Record<string, Schema>} */ (schema.properties ?? {});
-    for (const key of /** @type {string[]} */ (schema.required ?? []))
-      if (!(key in object)) problems.push(`${at}: misses « ${key} »`);
-    for (const [key, item] of Object.entries(object)) {
-      if (properties[key]) validate(properties[key], item, `${at}.${key}`, problems);
-      else if (schema.additionalProperties === false) problems.push(`${at}: unknown field « ${key} »`);
-    }
+};
+
+/** @type {Check} */
+function validate(raw, value, at, problems) {
+  const unknown = Object.keys(raw).find((key) => !SUPPORTED.has(key) && !ANNOTATIONS.has(key));
+  if (unknown) throw new Error(`catalog/check.js: unsupported schema keyword « ${unknown} » at ${at}`);
+  const schema = resolved(raw);
+  checkValue(schema, value, at, problems);
+  if (typeof schema.type === "string" && typeOf(value) !== schema.type) {
+    problems.push(`${at}: must be ${["array", "object"].includes(schema.type) ? "an" : "a"} ${schema.type}`);
+    return;
   }
+  checkArray(schema, value, at, problems);
+  checkObject(schema, value, at, problems);
 }
 
 /**
