@@ -3,7 +3,7 @@ import crypto from "node:crypto";
 import { describe, expect, it } from "vitest";
 
 import { memoryWorkspaceStore } from "../src";
-import { workspaceStoreContract } from "../src/testkit";
+import { sharedTagListContract, workspaceStoreContract } from "../src/testkit";
 
 describe("the memory store", () => {
   workspaceStoreContract("memory", "file", async () => {
@@ -15,6 +15,22 @@ describe("the memory store", () => {
       entity: async (scope) => {
         const id = crypto.randomUUID();
         files.set(id, scope);
+        return id;
+      },
+    };
+  });
+
+  sharedTagListContract("memory", { owner: "document", sharer: "folder" }, async () => {
+    const entities = new Map([
+      ["document", new Map<string, string>()],
+      ["folder", new Map<string, string>()],
+    ]);
+    return {
+      store: memoryWorkspaceStore(entities, { tagLists: { folder: "document" } }),
+      scope: async () => crypto.randomUUID(),
+      entity: async (scope, kind) => {
+        const id = crypto.randomUUID();
+        entities.get(kind)!.set(id, scope);
         return id;
       },
     };

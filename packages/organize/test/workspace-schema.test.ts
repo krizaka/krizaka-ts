@@ -105,3 +105,53 @@ describe("the contract entry", () => {
     ]);
   });
 });
+
+describe("a tag list shared by several kinds", () => {
+  const shared: WorkspaceDecl = {
+    scope: "accounts",
+    users: "people",
+    kinds: {
+      document: { table: "documents", collectionColumn: "collection_id", containerKind: "collection" },
+      collection: { table: "collections", tagList: "document" },
+    },
+  };
+
+  it("gives the sharing kind its own link table, pointing at the other kind's list", () => {
+    const sql = workspaceMigration(shared);
+    expect(sql).toContain("CREATE TABLE organize.collection_tag");
+    expect(sql).toMatch(/CREATE TABLE organize\.collection_tag[^;]*DEFAULT 'document' CHECK \(kind = 'document'\)/);
+    expect(sql).toMatch(/CREATE TABLE organize\.document_tag[^;]*DEFAULT 'document' CHECK \(kind = 'document'\)/);
+  });
+
+  it("refuses a list that is not another kind's, a chain, and a container on another list", () => {
+    const kinds = { document: { table: "documents" }, collection: { table: "collections" } };
+    const bad = (k: WorkspaceDecl["kinds"]) => () => workspaceMigration({ ...shared, kinds: k });
+    expect(bad({ ...kinds, collection: { table: "collections", tagList: "collection" } })).toThrow(/another kind/);
+    expect(bad({ ...kinds, collection: { table: "collections", tagList: "nope" } })).toThrow(/another kind/);
+    expect(
+      bad({
+        ...kinds,
+        folder: { table: "folders", tagList: "collection" },
+        collection: { table: "collections", tagList: "document" },
+      }),
+    ).toThrow(/no chain/);
+    expect(bad({ ...shared.kinds, collection: { table: "collections" } })).toThrow(/same tag list/);
+    expect(bad({ ...kinds, document: { table: "documents", containerKind: "collection" } })).toThrow(
+      /collectionColumn/,
+    );
+  });
+
+  it("filters through the container only when asked, and only for a kind that declares one", () => {
+    const tag = "11111111-1111-4111-8111-111111111111";
+    const plain = filterSql(shared, "document", { tags: [tag] }, { from: 1 });
+    const inherited = filterSql(shared, "document", { tags: [tag] }, { from: 1, inherit: true });
+    expect(plain.sql).not.toContain("collection_tag");
+    expect(inherited.sql).toContain(
+      "organize.collection_tag c WHERE c.entity_id = e.collection_id AND c.tag_id = want.id",
+    );
+    expect(inherited.params).toEqual(plain.params);
+    expect(filterSql(shared, "collection", { tags: [tag] }, { from: 1, inherit: true }).sql).not.toContain(
+      "c.entity_id",
+    );
+  });
+});

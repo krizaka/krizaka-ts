@@ -88,6 +88,15 @@ describe("the configuration", () => {
 });
 
 describe("tags", () => {
+  it("counts, per tag, the entities of each kind that wear it", async () => {
+    const { ws, scope, entities } = await setup();
+    const tag = await ws.tags.create(scope, OWNER, "file", { name: "Urgent", marker: "red" });
+    const id = crypto.randomUUID();
+    entities.get("file")!.set(id, scope);
+    await ws.tags.set(scope, OWNER, "file", id, [tag.id]);
+    expect((await ws.tags.counts(scope)).get(tag.id)).toEqual({ file: 1 });
+  });
+
   it("presets are copied into a scope once, by variant", async () => {
     const { ws, scope } = await setup();
     await ws.tags.seed(scope, "file");

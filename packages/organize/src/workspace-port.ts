@@ -16,7 +16,7 @@ export interface Actor {
 export const TAG_ORIGIN = { preset: "preset", user: "user" } as const;
 export type TagOrigin = (typeof TAG_ORIGIN)[keyof typeof TAG_ORIGIN];
 
-/** A tag of a scope, for one kind. */
+/** A tag of a scope. `kind` is the kind that owns the list, which a kind declaring `tagList` shares. */
 export interface WorkspaceTag {
   id: string;
   kind: string;
@@ -77,6 +77,7 @@ export interface WorkspaceStore {
   inScope(scope: string, kind: string, ids: readonly string[], options?: { lock?: boolean }): Promise<string[]>;
   /** Locks the scope's row until the transaction ends: a count and the insert it allows never race. */
   lockScope(scope: string): Promise<void>;
+  /** The kind's tag list: for a kind that declares `tagList`, the other kind's list (every tag method below works on it). */
   tags(scope: string, kind: string): Promise<WorkspaceTag[]>;
   /** Throws OrganizeError `NAME_TAKEN` when the scope has that name for that kind (case ignored). */
   addTag(
@@ -93,6 +94,11 @@ export interface WorkspaceStore {
     patch: { name?: string; marker?: Marker },
   ): Promise<WorkspaceTag | null>;
   removeTag(scope: string, kind: string, id: string): Promise<boolean>;
+  /**
+   * How many entities of each kind wear each tag of the scope: tag id → kind → count. A kind that shares a list counts under its own
+   * name; a tag nobody wears is absent (read it as zero). One grouped read, bounded by the tags of the scope times the kinds.
+   */
+  counts(scope: string): Promise<Map<string, Record<string, number>>>;
   /** The tag ids each entity wears, in no order. */
   tagsOf(kind: string, entityIds: readonly string[]): Promise<Map<string, string[]>>;
   link(kind: string, pairs: readonly { entityId: string; tagId: string }[]): Promise<void>;

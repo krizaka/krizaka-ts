@@ -9,7 +9,11 @@ import { createOrganize, organizeSchema } from "@krizaka/organize";
 
 const schema = { defaultName: { fr: "Mes boutiques", en: "My shops" }, kinds: { shop: { table: "shops" } } };
 emitMigration(organizeSchema(schema), 1, { tables: {} }); // commit the SQL once, in your migrations
-const organize = createOrganize({ query: (sql, params) => pool.query(sql, params).then((r) => r.rows), schema, images });
+const organize = createOrganize({
+  query: (sql, params) => pool.query(sql, params).then((r) => r.rows),
+  schema,
+  images,
+});
 
 await organize.collections.create(owner, { name: "Quartier Est" });
 await organize.profile("shop").rename(owner, shopId, "Salon Cèdre");
@@ -17,6 +21,7 @@ await organize.tags.assign(owner, "shop", shopId, [tagId]);
 ```
 
 **Schema.** The tables are a `@krizaka/db` module (`organize`), version 1 byte-identical to the SQL this package shipped before, so a product that has them adopts with no DDL change: `adoptMigration(organizeSchema(schema), 1, context)` writes the marker only, `emitMigration(…)` writes the SQL for a database that lacks them. The old migration function stays, `@deprecated`, for one minor. The workspace layer is the module `organize_workspace` (`workspaceSchema(declaration)`), in its own Postgres schema.
+
 - The invariants are the database's: one default collection per owner (exclusion constraint + deferred trigger), never deleted while its owner
   exists, created with the owner in its language, and every entity given no collection falls into it.
 - Refusals are `OrganizeError` with a stable `code` and `status` (`DEFAULT_COLLECTION`, `NAME_TAKEN`, `AVATAR_NOT_ALLOWED`…): a product maps them to its own answers.
@@ -28,22 +33,33 @@ Tags with a colour marker, **status sets as data**, **saved views** and **bulk a
 declares (an account, a shop), configured by the admin in the database, audited. Decision: ADR-003.
 
 ```ts
-import { createWorkspace, dbWorkspaceStore, filterSql, parseView, workspaceSchema, type WorkspaceDecl } from "@krizaka/organize";
+import {
+  createWorkspace,
+  dbWorkspaceStore,
+  filterSql,
+  parseView,
+  workspaceSchema,
+  type WorkspaceDecl,
+} from "@krizaka/organize";
 
-const decl: WorkspaceDecl = { scope: "shops", users: "accounts", kinds: { client: { table: "clients", scopeColumn: "shop_id", textColumns: ["name"] } } };
+const decl: WorkspaceDecl = {
+  scope: "shops",
+  users: "accounts",
+  kinds: { client: { table: "clients", scopeColumn: "shop_id", textColumns: ["name"] } },
+};
 emitMigration(workspaceSchema(decl), 1, { tables: {} }); // committed in your own sequence, with a drift test
 
 const workspace = createWorkspace({
-  transaction: (work) => db.transaction(work),          // every change runs in one
+  transaction: (work) => db.transaction(work), // every change runs in one
   storeFor: (tx) => dbWorkspaceStore(tx, decl),
   clock,
-  audit,                                                // `createAudit(…)` of @krizaka/audit: one line per entity changed
+  audit, // `createAudit(…)` of @krizaka/audit: one line per entity changed
   events: { append: (tx, event) => outbox.append(tx, event) }, // evt.organize.status.changed.v1
-  onMoved: (tx, moves) => closeFiles(tx, moves),        // the product's consequence, in the same transaction
+  onMoved: (tx, moves) => closeFiles(tx, moves), // the product's consequence, in the same transaction
 });
 
-await workspace.config.seed(defaults);                  // once; the admin's editor changes it after (config.put, versioned)
-await workspace.tags.apply(shopId, actor, "client", { ids, add: [tagId] });         // bulk: ≤ 200, any foreign id → 404
+await workspace.config.seed(defaults); // once; the admin's editor changes it after (config.put, versioned)
+await workspace.tags.apply(shopId, actor, "client", { ids, add: [tagId] }); // bulk: ≤ 200, any foreign id → 404
 await workspace.status.move(shopId, actor, "file", { ids: [id], to: "retenu", expect: "a_decider" }); // { moved, skipped }
 const where = filterSql(decl, "client", parseView(searchParams).filters, { from: 2, status: config.status });
 ```
@@ -51,10 +67,20 @@ const where = filterSql(decl, "client", parseView(searchParams).filters, { from:
 - **Configuration per kind, in the database** (`KindConfig`): the roles that write tags, whether users add their own, the max,
   the presets by variant (a trade); the status set; the system views. `config.seed` writes the product's defaults once,
   `config.put` is the admin's change (`CONFLICT` when stale, `STATE_IN_USE` when it drops a state entities hold).
+- **One tag list for several kinds** (additive; a kind declares it in the product's `WorkspaceDecl`): `collection: { table: "collections", tagList: "document" }`
+  makes a collection use the document list: same names, markers and `lower(name)` uniqueness, `NAME_TAKEN` across kinds, a rename or
+  a recolour seen by both, a delete unlinking both. The kind keeps its own link table (`organize.collection_tag`), generated by
+  `workspaceSchema` / `workspaceMigration`, whose `kind` column points at the list's kind. No chain: the named kind keeps its own
+  list. Memory store: `memoryWorkspaceStore(entities, { tagLists: { collection: "document" } })`.
+- **`workspace.tags.counts(scope)`**: per tag, the entities of each kind wearing it (`Map<tagId, { [kind]: n }>`; a tag nobody wears is
+  absent, read zero), one grouped read, for the home filters and the tag manager.
+- **Filter through the container**: a kind declares `containerKind` (with its `collectionColumn`, the container on the same tag list);
+  `filterSql(decl, kind, filters, { from, inherit: true })` then matches an entity that wears a tag **or** whose container wears it,
+  for every tag asked. Without `inherit`, or without `containerKind`, the filter is what it was.
 - **Markers** are names of a closed palette (`MARKERS`); `@krizaka/tokens` maps them to `--kz-tag-<name>`. Never a hex.
 - **Status sets**: ordered states (tone, FR/EN labels, `final`), transitions with the roles that may make them, `confirm`,
   `reasons` as a list (never free text); `derived` sets are computed by the product and never moved (`STATUS_DERIVED`).
   `movesFrom`, `checkMove`, `undoOf` (never out of a final state), `statusOrder` (a column's order is the set's).
 - **Saved views**: `parseView` / `viewSearch` / `viewHref` (the URL is the state), `checkViewFilters`; system · workspace · mine.
 - **`@krizaka/organize/contract`** is browser-safe (web, Expo, Tauri): the types, the codes, the palette, the status and view rules.
-- **`@krizaka/organize/testkit`**: `workspaceStoreContract`, run by the memory and PostgreSQL stores and by any other adapter.
+- **`@krizaka/organize/testkit`**: `workspaceStoreContract` and `sharedTagListContract` (the shared list), run by the memory and PostgreSQL stores and by any other adapter.

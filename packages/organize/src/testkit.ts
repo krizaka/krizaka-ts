@@ -152,3 +152,101 @@ export function workspaceStoreContract(name: string, kind: string, make: () => P
     expect(await f.store.view(scope, mine.id)).toBeNull();
   });
 }
+
+export interface SharedListFixture {
+  store: WorkspaceStore;
+  /** A new scope (a shop, an account). */
+  scope(): Promise<string>;
+  /** A new entity of `kind` in a scope. */
+  entity(scope: string, kind: string): Promise<string>;
+}
+
+/**
+ * What an adapter does for kinds that share one tag list (`tagList`): one list, links per kind, counts per tag and kind.
+ * @param name the adapter's name, shown in the test titles
+ * @param kinds `owner`: the kind that keeps the list; `sharer`: a kind declared with `tagList: owner`
+ * @param make builds a fixture (one per case)
+ */
+export function sharedTagListContract(
+  name: string,
+  kinds: { owner: string; sharer: string },
+  make: () => Promise<SharedListFixture>,
+) {
+  sharedListNames(name, kinds, make);
+  sharedListLinks(name, kinds, make);
+}
+
+const SHARED_AT = new Date("2026-11-16T09:00:00Z");
+type SharedKinds = { owner: string; sharer: string };
+
+function sharedListNames(name: string, { owner, sharer }: SharedKinds, make: () => Promise<SharedListFixture>) {
+  const at = SHARED_AT;
+
+  it(`${name}: a list shared by two kinds is one list: created on one, seen, renamed and recoloured on the other`, async () => {
+    const f = await make();
+    const scope = await f.scope();
+    const tag = await f.store.addTag(scope, owner, { name: "Rosemont", marker: "red", origin: "user" }, at);
+    expect(await f.store.tags(scope, sharer)).toEqual([tag]);
+    const renamed = await f.store.updateTag(scope, sharer, tag.id, { name: "Rosemont Est", marker: "blue" });
+    expect(renamed).toMatchObject({ id: tag.id, name: "Rosemont Est", marker: "blue" });
+    expect(await f.store.tags(scope, owner)).toEqual([renamed]);
+    expect(await f.store.updateTag(scope, owner, tag.id, { marker: "green" })).toMatchObject({ marker: "green" });
+    expect((await f.store.tags(scope, sharer))[0]).toMatchObject({ name: "Rosemont Est", marker: "green" });
+  });
+
+  it(`${name}: a name is taken across the kinds that share the list, case ignored`, async () => {
+    const f = await make();
+    const scope = await f.scope();
+    await f.store.addTag(scope, owner, { name: "Rosemont", marker: "red", origin: "user" }, at);
+    await expect(
+      f.store.addTag(scope, sharer, { name: "rosemont", marker: "blue", origin: "user" }, at),
+    ).rejects.toMatchObject({ code: ORGANIZE_CODE.nameTaken });
+    const other = await f.store.addTag(scope, sharer, { name: "Villeray", marker: "blue", origin: "user" }, at);
+    await expect(f.store.updateTag(scope, owner, other.id, { name: "ROSEMONT" })).rejects.toMatchObject({
+      code: ORGANIZE_CODE.nameTaken,
+    });
+    expect((await f.store.tags(scope, owner)).map((t) => t.name)).toEqual(["Rosemont", "Villeray"]);
+  });
+}
+
+function sharedListLinks(name: string, { owner, sharer }: SharedKinds, make: () => Promise<SharedListFixture>) {
+  const at = SHARED_AT;
+
+  it(`${name}: one tag is linked on both kinds, and deleting it unlinks both`, async () => {
+    const f = await make();
+    const scope = await f.scope();
+    const [a, b] = [await f.entity(scope, owner), await f.entity(scope, sharer)];
+    const tag = await f.store.addTag(scope, owner, { name: "Rosemont", marker: "red", origin: "user" }, at);
+    await f.store.link(owner, [{ entityId: a, tagId: tag.id }]);
+    await f.store.link(sharer, [{ entityId: b, tagId: tag.id }]);
+    expect((await f.store.tagsOf(owner, [a])).get(a)).toEqual([tag.id]);
+    expect((await f.store.tagsOf(sharer, [b])).get(b)).toEqual([tag.id]);
+    expect(await f.store.removeTag(scope, sharer, tag.id)).toBe(true);
+    expect((await f.store.tagsOf(owner, [a])).get(a) ?? []).toEqual([]);
+    expect((await f.store.tagsOf(sharer, [b])).get(b) ?? []).toEqual([]);
+    expect(await f.store.tags(scope, owner)).toEqual([]);
+  });
+
+  it(`${name}: counts say, per tag, how many entities of each kind wear it; another scope's tags are left out`, async () => {
+    const f = await make();
+    const [scope, other] = [await f.scope(), await f.scope()];
+    const rosemont = await f.store.addTag(scope, owner, { name: "Rosemont", marker: "red", origin: "user" }, at);
+    const unused = await f.store.addTag(scope, sharer, { name: "Inutilisée", marker: "gray", origin: "user" }, at);
+    const foreign = await f.store.addTag(other, owner, { name: "Ailleurs", marker: "blue", origin: "user" }, at);
+    const owners = [await f.entity(scope, owner), await f.entity(scope, owner), await f.entity(scope, owner)];
+    const sharers = [await f.entity(scope, sharer), await f.entity(scope, sharer)];
+    await f.store.link(
+      owner,
+      owners.map((entityId) => ({ entityId, tagId: rosemont.id })),
+    );
+    await f.store.link(
+      sharer,
+      sharers.map((entityId) => ({ entityId, tagId: rosemont.id })),
+    );
+    await f.store.link(owner, [{ entityId: await f.entity(other, owner), tagId: foreign.id }]);
+    const counts = await f.store.counts(scope);
+    expect(counts.get(rosemont.id)).toEqual({ [owner]: 3, [sharer]: 2 });
+    expect(counts.has(unused.id)).toBe(false);
+    expect(counts.has(foreign.id)).toBe(false);
+  });
+}
