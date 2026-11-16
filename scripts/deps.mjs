@@ -37,6 +37,7 @@ export const PACKAGES = Object.freeze(
       "payments",
       "privacy",
       "rate-limit",
+      "resilience",
       "settings",
       "storage",
       "time",

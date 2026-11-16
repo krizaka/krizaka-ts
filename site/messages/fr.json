@@ -61,6 +61,9 @@
     "api-keys": {
       "hook": "Des clés d’API créées, renouvelées, révoquées et authentifiées ; montrées une fois, seul un hash est gardé."
     },
+    "resilience": {
+      "hook": "Un seul délai maximal, une seule reprise avec gigue qui respecte Retry-After et un seul coupe-circuit pour tous les clients des produits."
+    },
     "sovkora-client": {
       "hook": "Un seul client Sovkora pour les produits TypeScript : lancer un run, lire son statut et ses résultats, des erreurs typées, un délai maximal et un coupe-circuit."
     },

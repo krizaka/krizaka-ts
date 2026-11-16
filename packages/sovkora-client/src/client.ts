@@ -1,3 +1,4 @@
+import { type Circuit, type CircuitOptions, type Clock, createCircuit } from "@krizaka/resilience";
 import { addMilliseconds, isAfter } from "date-fns";
 
 import {
@@ -7,7 +8,6 @@ import {
   parseCheck,
   type StartCheckInput,
 } from "./checks";
-import { type Circuit, type CircuitOptions, type Clock, createCircuit } from "./circuit";
 import { SOVKORA_CODE, SovkoraError, sovkoraRefusal } from "./errors";
 import { isTerminal, parseInstallations, parseRun, type SovkoraRun } from "./run";
 
@@ -89,6 +89,12 @@ const BUSY_DEFAULT_SECONDS = 15;
 /** Never served from a framework's fetch cache: a run's status changes. (`cache` is a runtime option the Node typings do not list.) */
 const NO_STORE = { cache: "no-store" } as RequestInit;
 
+const circuitOpen = (retryAfterSeconds: number) =>
+  new SovkoraError(SOVKORA_CODE.circuitOpen, "Sovkora failed several times in a row: not calling it for a moment", {
+    retryAfterSeconds,
+    status: 502,
+  });
+
 const sleepFor = (milliseconds: number) => new Promise<void>((resolve) => setTimeout(resolve, milliseconds));
 
 interface Call {
@@ -137,7 +143,10 @@ export function createSovkoraClient(options: SovkoraClientOptions): SovkoraClien
   const doFetch = options.fetch ?? fetch;
   const base = withoutTrailingSlashes(options.baseUrl);
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-  const circuit = options.circuit === false ? null : createCircuit(options.circuit ?? DEFAULT_CIRCUIT, options.clock);
+  const circuit =
+    options.circuit === false
+      ? null
+      : createCircuit(options.circuit ?? DEFAULT_CIRCUIT, options.clock, { refuse: circuitOpen });
   const sleep = options.sleep ?? sleepFor;
   const installed = new Set<string>();
 
