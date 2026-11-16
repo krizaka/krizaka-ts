@@ -1,5 +1,11 @@
 # @krizaka/org
 
+## 1.11.0
+
+### Minor Changes
+
+- d2bf825: `footer.sites` now covers every site of the org: `blog`, `sovkora`, `verikora`, `folioviv` and `kridoc` join `krizaka`, `ui`, `lab`, `java` and `ts`, so `footerFor(id)` answers for the coming-soon pages and Kridoc with the same family columns, legal line and socials (krizaka-internal#4008).
+
 ## 1.10.0
 
 ### Minor Changes
