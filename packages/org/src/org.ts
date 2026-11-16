@@ -1,11 +1,27 @@
 import pkg from "../package.json" with { type: "json" };
 import { defaults as centralDefaults } from "./defaults";
-import type { FooterSite, Localized, MascotBird, Org, OrgAvatar, OrgMark, OrgSite } from "./org.types";
+import { family as familyTable } from "./family";
+import type {
+  FamilyGroup,
+  FooterSite,
+  Localized,
+  MemberKind,
+  Org,
+  OrgAvatar,
+  OrgMark,
+  OrgProduct,
+  OrgSite,
+  ProductStatus,
+  SiteKind,
+} from "./org.types";
+import { MEMBER, PRODUCT_STATUS } from "./org.types";
 
 /** The pull zone that serves the brand files and this JSON. */
 export const CDN = "https://krizaka-assets.b-cdn.net";
 export const ORG_URL = `${CDN}/org/v1/org.json`;
 export const ORG_SCHEMA_URL = `${CDN}/org/v1/org.schema.json`;
+
+const GROUPS: readonly FamilyGroup[] = ["krizaka", "products", "open-source", "github"];
 
 const cdn = (path: string) => `${CDN}/${path}`;
 
@@ -42,119 +58,70 @@ const defaults: OrgAvatar[] = (["person", "plain"] as const).flatMap((kind) =>
   })),
 );
 
-/** The public facts about Krizaka. Reviewed by pull request; changing a fact is one PR here and a release. */
 type FamilyEntry = NonNullable<Org["family"]>[number];
-type FamilyRow = [
-  FamilyEntry["id"],
-  string,
-  string,
-  FamilyEntry["group"],
-  FamilyEntry["status"],
-  string,
-  string | null,
-];
 
 const GITHUB = "https://github.com/krizaka";
 const gh = (repo: string) => `${GITHUB}/${repo}`;
 
-/** The family list as data: one row per entry (id, name, short, group, status, url, repo). */
-const FAMILY_ROWS: FamilyRow[] = [
-  ["krizaka", "Krizaka", "Krizaka", "krizaka", "released", "https://www.krizaka.com", gh("krizaka-com")],
-  ["blog", "Blog", "Blog", "krizaka", "released", "https://blog.krizaka.com", gh("krizaka-blog")],
-  ["sovkora", "Sovkora", "Sovkora", "products", "development", "https://www.sovkora.com", gh("sovkora")],
-  ["verikora", "Verikora", "Verikora", "products", "development", "https://www.verikora.com", gh("verikora")],
-  ["folioviv", "Folioviv", "Folioviv", "products", "development", "https://www.folioviv.com", gh("folioviv")],
-  ["kridoc", "Kridoc", "Kridoc", "products", "development", "https://www.kridoc.com", gh("kridoc")],
-  ["ui", "Krizaka UI", "UI", "open-source", "development", "https://ui.krizaka.com", gh("krizaka-ui")],
-  ["java", "Krizaka Java", "Java", "open-source", "development", "https://java.krizaka.com", gh("krizaka-java")],
-  ["ts", "Krizaka TypeScript", "TypeScript", "open-source", "development", "https://ts.krizaka.com", gh("krizaka-ts")],
-  ["lab", "Krizaka Lab", "Lab", "open-source", "development", "https://lab.krizaka.com", gh("krizaka-lab")],
-  ["github", "GitHub", "GitHub", "github", "released", GITHUB, null],
-];
+/** The public rows: a private member is in no view and never in `org.json`. */
+const publicMembers = [...familyTable]
+  .filter((m) => m.visibility === "public")
+  .sort((a, b) => GROUPS.indexOf(a.group) - GROUPS.indexOf(b.group) || a.order - b.order);
 
-const family: FamilyEntry[] = FAMILY_ROWS.map(([id, name, short, group, status, url, repo]) => ({
-  id,
-  name,
-  short,
-  group,
-  status,
-  url,
-  repo,
-}));
-
-/**
- * Every public site, one id each (krizaka-internal#3785). A product site points at its product: same bird, same url (a test pins it).
- * Every bird is `own`: it wears its own palette, never the host accent.
- */
-type SiteRow = [OrgSite["id"], string, string, OrgSite["kind"], MascotBird, string?];
-
-/** The sites as data: id, name, url, kind, bird, the old id kept as an alias. Every bird is `own`. The words are in `SITE_WORDS`. */
-const SITE_ROWS: SiteRow[] = [
-  ["krizaka", "krizaka.com", "https://www.krizaka.com", "company", "falcon", "www"],
-  ["blog", "Blog", "https://blog.krizaka.com", "company", "falcon"],
-  ["ui", "Krizaka UI", "https://ui.krizaka.com", "docs", "magpie"],
-  ["java", "Krizaka Java", "https://java.krizaka.com", "docs", "pigeon"],
-  ["ts", "Krizaka TypeScript", "https://ts.krizaka.com", "docs", "lovebird"],
-  ["lab", "Krizaka Lab", "https://lab.krizaka.com", "lab", "flamingo", "motion"],
-  ["sovkora", "Sovkora", "https://www.sovkora.com", "product", "duck"],
-  ["verikora", "Verikora", "https://www.verikora.com", "product", "owl"],
-  ["folioviv", "Folioviv", "https://www.folioviv.com", "product", "beaver"],
-  ["kridoc", "Kridoc", "https://www.kridoc.com", "product", "crane"],
-];
-
-/** The one-line description of each site, in both languages, by site id. */
-const SITE_WORDS: Record<string, Localized> = {
-  krizaka: {
-    fr: "Technologies Krizaka : des logiciels pour les entreprises d'ici, construits à la vue de tous.",
-    en: "Technologies Krizaka: software for local businesses, built in the open.",
-  },
-  blog: {
-    fr: "Le blogue de Krizaka : ce que nous construisons et ce que nous en apprenons.",
-    en: "The Krizaka blog: what we build and what we learn from it.",
-  },
-  ui: {
-    fr: "Composants React, variables de design et blocs de pages partagés par chaque produit Krizaka.",
-    en: "React components, design variables and page blocks shared by every Krizaka product.",
-  },
-  java: {
-    fr: "Briques Spring Boot des services Krizaka. Pas encore de registre public : le code et les versions sont sur GitHub.",
-    en: "Spring Boot building blocks for Krizaka services. No public registry yet: the source and the releases are on GitHub.",
-  },
-  ts: {
-    fr: "Briques TypeScript pour le serveur et le client, publiées sur npm sous @krizaka/.",
-    en: "TypeScript building blocks for server and client, published on npm under @krizaka/.",
-  },
-  lab: {
-    fr: "Le laboratoire du mouvement : des essais de 3D et d'animation, montrés avant d'entrer dans les produits.",
-    en: "The motion lab: 3D and animation experiments, shown before they reach the products.",
-  },
-  sovkora: {
-    fr: "Sovkora : des vidéos et des médias produits par l'IA, du scénario au rendu.",
-    en: "Sovkora: AI-made video and media, from script to render.",
-  },
-  verikora: {
-    fr: "Verikora : lire un document et en vérifier les faits, les chiffres et les données personnelles.",
-    en: "Verikora: read a document and check its facts, figures and personal data.",
-  },
-  folioviv: {
-    fr: "Folioviv : réservations, vitrine et heures d'ouverture des commerces locaux.",
-    en: "Folioviv: bookings, storefront and opening hours for local businesses.",
-  },
-  kridoc: {
-    fr: "Kridoc : vos documents, classés et retrouvables, au même endroit.",
-    en: "Kridoc: your documents, filed and findable, in one place.",
-  },
+const PRODUCT_STATUSES: readonly string[] = PRODUCT_STATUS;
+const SITE_KIND: Record<MemberKind, SiteKind | null> = {
+  company: "company",
+  blog: "company",
+  product: "product",
+  library: "docs",
+  lab: "lab",
+  github: null,
 };
 
-const SITES: OrgSite[] = SITE_ROWS.map(([id, name, url, kind, bird, alias]) => ({
-  id,
-  name,
-  url,
-  kind,
-  mascot: { bird, tone: "own" },
-  description: SITE_WORDS[id]!,
-  ...(alias ? { aliases: [alias] } : {}),
+const need = <T>(value: T | undefined, what: string): T => {
+  if (value === undefined) throw new Error(`Family table: ${what}.`);
+  return value;
+};
+
+/** `products`: the public products, computed from the table. */
+const products: OrgProduct[] = publicMembers
+  .filter((m) => m.kind === MEMBER.product)
+  .map((m) => {
+    if (!PRODUCT_STATUSES.includes(m.status)) throw new Error(`Family table: product "${m.id}" is ${m.status}.`);
+    return {
+      id: m.id,
+      name: m.name,
+      status: m.status as ProductStatus,
+      url: need(m.urls.site ?? undefined, `product "${m.id}" has no site`),
+      repo: need(m.urls.repo ?? undefined, `product "${m.id}" has no repository`),
+      mascot: need(m.mascot, `product "${m.id}" has no bird`).bird,
+    };
+  });
+
+/** The family groups (the bar, the switcher and every footer): a member is linked at its live site, else at its repository. */
+const groups: FamilyEntry[] = publicMembers.map((m) => ({
+  id: m.id,
+  name: m.name,
+  short: m.short,
+  group: m.group,
+  status: m.status === MEMBER.released ? MEMBER.released : "development",
+  ...(m.releasedAt ? { releasedAt: m.releasedAt } : {}),
+  url: need((m.urls.siteLive ? m.urls.site : null) ?? m.urls.repo ?? undefined, `member "${m.id}" has no link`),
+  repo: m.urls.repo,
 }));
+
+/** `sites`: the members whose site answers and that carry a bird. */
+const SITES: OrgSite[] = publicMembers
+  .filter((m) => m.urls.siteLive && m.urls.site && m.mascot && SITE_KIND[m.kind])
+  .map((m) => ({
+    id: m.id,
+    name: m.siteName ?? m.name,
+    url: m.urls.site as string,
+    kind: SITE_KIND[m.kind] as SiteKind,
+    mascot: m.mascot as OrgSite["mascot"],
+    description: m.words.line,
+    ...(m.aliases ? { aliases: m.aliases } : {}),
+  }));
 
 const SOCIAL = ["instagram", "youtube", "linkedin"];
 
@@ -199,42 +166,10 @@ export const org: Org = {
     banners: [],
   },
   defaults: centralDefaults,
-  products: [
-    {
-      id: "sovkora",
-      name: "Sovkora",
-      status: "development",
-      url: "https://www.sovkora.com",
-      repo: "https://github.com/krizaka/sovkora",
-      mascot: "duck",
-    },
-    {
-      id: "verikora",
-      name: "Verikora",
-      status: "development",
-      url: "https://www.verikora.com",
-      repo: "https://github.com/krizaka/verikora",
-      mascot: "owl",
-    },
-    {
-      id: "folioviv",
-      name: "Folioviv",
-      status: "development",
-      url: "https://www.folioviv.com",
-      repo: "https://github.com/krizaka/folioviv",
-      mascot: "beaver",
-    },
-    {
-      id: "kridoc",
-      name: "Kridoc",
-      status: "development",
-      url: "https://www.kridoc.com",
-      repo: "https://github.com/krizaka/kridoc",
-      mascot: "crane",
-    },
-  ],
+  products,
   sites: SITES,
-  family,
+  family: groups,
+  members: publicMembers,
   contact: {
     page: { fr: "https://www.krizaka.com/fr/contact", en: "https://www.krizaka.com/en/contact" },
     email: null,

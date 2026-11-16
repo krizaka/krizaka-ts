@@ -95,6 +95,56 @@ export interface FamilyEntry {
   repo: string | null;
 }
 
+/** The member values the views filter on, named once (a view never compares a magic string). */
+export const MEMBER = { product: "product", released: "released" } as const;
+
+/** What a member of the family is (krizaka-internal#3913). */
+export type MemberKind = "company" | "blog" | "product" | "library" | "lab" | "github";
+
+/** One status set for everything the family shows: the product statuses, plus `released` and `retired`. */
+export type MemberStatus = ProductStatus | "released" | "retired";
+
+/**
+ * One row of the family table (`family` in `@krizaka/org`, krizaka-internal#3913): the only place a member is written.
+ * `products`, `sites`, `family` (the groups) and `brands` are filters of it.
+ */
+export interface FamilyMember {
+  /** The one id, in every file, every site, every ticket label (`kridoc`, `rust`). */
+  id: string;
+  name: string;
+  /** The short name, under the « Open source » heading. */
+  short: string;
+  kind: MemberKind;
+  group: FamilyGroup;
+  /** Position inside its group. */
+  order: number;
+  status: MemberStatus;
+  /** Required when `status` is `released`. */
+  releasedAt?: string;
+  /** A private member is in no public view and never in `org.json`. */
+  visibility: "public" | "private";
+  urls: {
+    /** The public home; `null` while none exists. */
+    site: string | null;
+    /** Set by the data: a site that does not answer is never linked. */
+    siteLive: boolean;
+    /** Its public source repository; `null` when private or none. */
+    repo: string | null;
+    dev?: string;
+    app?: string;
+    shop?: string;
+  };
+  /** The name of its site when it differs from `name` (`krizaka.com`). */
+  siteName?: string;
+  /** The ids its site used to go by. */
+  aliases?: string[];
+  /** The bird; required for a member whose site is live. */
+  mascot?: { bird: MascotBird; tone: SiteTone };
+  /** CDN paths without the version: `brand/<id>/mark-<theme>.svg`. */
+  mark: { light: string; dark: string };
+  words: { line: Localized };
+}
+
 export interface OrgAvatar {
   id: string;
   /** `person` is a silhouette, `plain` a plain disc. */
@@ -221,6 +271,8 @@ export interface Org {
   sites: OrgSite[];
   /** Every name of the family, in reading order (group, then order inside it): the bar, the switcher and every footer read it. */
   family: FamilyEntry[];
+  /** The public rows of the family table (`family` in the package): the one source the lists above are filters of. */
+  members: FamilyMember[];
   contact: {
     page: Localized;
     /** The public support address; `null` while none is public. */

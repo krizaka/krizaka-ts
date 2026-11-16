@@ -15,17 +15,21 @@ export {
 export type { CastPersona, CastProduct, CastRole } from "./cast";
 export { CAST, CAST_VERSION, castMedia, castOf, persona, personaByRole, seedFingerprint } from "./cast";
 export { DEFAULT_KINDS, defaultFor, defaults, defaultUrl, fetchDefaults, listDefaults, seedHash } from "./defaults";
+export { family } from "./family";
 export { CDN, org, ORG_SCHEMA_URL, ORG_URL } from "./org";
 export type {
   AppConfig,
   AppEnvironment,
   FamilyEntry,
   FamilyGroup,
+  FamilyMember,
   FamilyStatus,
   FooterSite,
   LegalId,
   Localized,
   MascotBird,
+  MemberKind,
+  MemberStatus,
   Org,
   OrgAvatar,
   OrgBanner,
