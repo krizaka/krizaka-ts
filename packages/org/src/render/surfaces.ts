@@ -64,10 +64,11 @@ const section = (group: "products" | "open-source", lang: Lang, level: string): 
 const block = (lines: string[]): string => [START, ...lines, END].join("\n");
 
 const names = (group: FamilyGroup): string[] => publicMembers(group).map((m) => m.name);
-const list = (items: string[], lang: Lang): string =>
-  items.length < 2
-    ? (items[0] ?? "")
-    : `${items.slice(0, -1).join(", ")} ${lang === "fr" ? "et" : "and"} ${items.at(-1)}`;
+const AND: Localized = { en: "and", fr: "et" };
+const list = (items: string[], lang: Lang): string => {
+  if (items.length < 2) return items[0] ?? "";
+  return `${items.slice(0, -1).join(", ")} ${AND[lang]} ${items.at(-1)}`;
+};
 
 const bio = (lang: Lang): string =>
   lang === "fr"
