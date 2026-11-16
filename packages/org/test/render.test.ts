@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { checkSurface, family, renderSurface, SURFACES } from "../src";
+import { checkSurface, family, findCodeNames, renderSurface, SURFACES } from "../src";
 
 const START = "<!-- krizaka:family:start -->";
 const END = "<!-- krizaka:family:end -->";
@@ -38,7 +38,7 @@ describe("krizaka-family render", () => {
     expect(out.match(/In development\./g)).toHaveLength(4);
     expect(out).toContain("(https://github.com/krizaka/krizaka-rust)");
     expect(out).not.toContain("agents");
-    expect(out).not.toMatch(/orazaka|yomizaka|akinaza|kachizaka/i);
+    expect(findCodeNames(out)).toEqual([]);
     for (const m of family.filter((x) => x.visibility === "private")) expect(out).not.toContain(m.name);
   });
 
