@@ -363,6 +363,22 @@ expect(problems).toEqual([]);
 
 It reports `missing` (read, neither declared nor justified), `stale` (justified but gone from the schema, or declared after all), `undeclaredWithoutReason`, and `plainSecrets` (a `type: SECRET` whose value is not the `__KEY__` placeholder). Tests: `test/env-spec.test.ts`.
 
+## The library catalogue (`@krizaka/config/catalog`, krizaka-internal#3947)
+
+Every Krizaka library ships a catalogue of what it exports inside its published artifact (`catalog.json` of an npm
+package, `META-INF/krizaka-catalog.json` of a jar, the crate's docs): one entry per exported item with its import, its
+signature or props, at least one example, its rules (do / don't) and its status. The `krizaka-docs` MCP reads them for the
+coding agents. `catalog/schema.json` is the JSON Schema (`krizaka-catalog/v1`); `catalogProblems(catalog)` returns the
+problems of a document (empty when valid), with no dependency: it reads the schema itself and throws on a keyword it does
+not know, so a rule is never ignored.
+
+```js
+import { catalogProblems } from "@krizaka/config/catalog";
+
+const problems = catalogProblems(JSON.parse(readFileSync("catalog.json", "utf8")));
+if (problems.length > 0) throw new Error(problems.join("\n"));
+```
+
 ## License
 
 [Apache-2.0](https://github.com/krizaka/krizaka-ts/blob/main/LICENSE)
