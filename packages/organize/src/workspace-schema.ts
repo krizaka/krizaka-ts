@@ -54,21 +54,25 @@ export function tagListOf(decl: Pick<WorkspaceDecl, "kinds">, kind: string): str
   return decl.kinds[kind]?.tagList ?? kind;
 }
 
+function checkTagList(decl: WorkspaceDecl, kind: string, list: string) {
+  const owner = decl.kinds[list];
+  if (list === kind || !owner) throw new Error(`kind ${kind}: tagList names another kind of the declaration`);
+  if (owner.tagList !== undefined) throw new Error(`kind ${kind}: tagList ${list} shares a list itself (no chain)`);
+}
+
+function checkContainer(decl: WorkspaceDecl, kind: string, container: string) {
+  if (!decl.kinds[container] || container === kind)
+    throw new Error(`kind ${kind}: containerKind names another kind of the declaration`);
+  if (decl.kinds[kind]?.collectionColumn === undefined)
+    throw new Error(`kind ${kind}: containerKind needs collectionColumn`);
+  if (tagListOf(decl, container) !== tagListOf(decl, kind))
+    throw new Error(`kind ${kind}: its container does not use the same tag list`);
+}
+
 function checkSharing(decl: WorkspaceDecl) {
   for (const [kind, k] of Object.entries(decl.kinds)) {
-    if (k.tagList !== undefined) {
-      const owner = decl.kinds[k.tagList];
-      if (k.tagList === kind || !owner) throw new Error(`kind ${kind}: tagList names another kind of the declaration`);
-      if (owner.tagList !== undefined)
-        throw new Error(`kind ${kind}: tagList ${k.tagList} shares a list itself (no chain)`);
-    }
-    if (k.containerKind !== undefined) {
-      if (!decl.kinds[k.containerKind] || k.containerKind === kind)
-        throw new Error(`kind ${kind}: containerKind names another kind of the declaration`);
-      if (k.collectionColumn === undefined) throw new Error(`kind ${kind}: containerKind needs collectionColumn`);
-      if (tagListOf(decl, k.containerKind) !== tagListOf(decl, kind))
-        throw new Error(`kind ${kind}: its container does not use the same tag list`);
-    }
+    if (k.tagList !== undefined) checkTagList(decl, kind, k.tagList);
+    if (k.containerKind !== undefined) checkContainer(decl, kind, k.containerKind);
   }
 }
 
