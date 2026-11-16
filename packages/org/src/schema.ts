@@ -24,12 +24,21 @@ const themed = {
 const date = { type: "string", pattern: String.raw`^\d{4}-\d{2}-\d{2}$` } as const;
 const semver = { type: "string", pattern: String.raw`^\d+\.\d+\.\d+$` } as const;
 
+const mascotWear = {
+  type: "object",
+  additionalProperties: false,
+  required: ["bird", "tone"],
+  properties: { bird: { enum: [...MASCOT_BIRDS] }, tone: { enum: ["own", "brand"] } },
+} as const;
+const familyGroup = { enum: ["krizaka", "products", "open-source", "github"] } as const;
+const nullableUrl = { anyOf: [httpsUrl, { type: "null" }] } as const;
+
 const footerSite = {
   type: "object",
   additionalProperties: false,
   required: ["families", "social", "source", "license", "legal", "version"],
   properties: {
-    families: { type: "array", uniqueItems: true, items: { enum: ["krizaka", "products", "open-source", "github"] } },
+    families: { type: "array", uniqueItems: true, items: familyGroup },
     social: { type: "array", uniqueItems: true, items: { enum: org.links.social.map((s) => s.id) } },
     source: { anyOf: [httpsUrl, { type: "null" }] },
     license: { type: "boolean" },
@@ -212,12 +221,7 @@ export const orgSchema = {
           name: { type: "string", minLength: 1 },
           url: httpsUrl,
           kind: { enum: ["company", "product", "docs", "lab"] },
-          mascot: {
-            type: "object",
-            additionalProperties: false,
-            required: ["bird", "tone"],
-            properties: { bird: { enum: [...MASCOT_BIRDS] }, tone: { enum: ["own", "brand"] } },
-          },
+          mascot: mascotWear,
           description: localized,
           aliases: { type: "array", items: slug, uniqueItems: true },
         },
@@ -234,11 +238,11 @@ export const orgSchema = {
           id: slug,
           name: { type: "string", minLength: 1 },
           short: { type: "string", minLength: 1 },
-          group: { enum: ["krizaka", "products", "open-source", "github"] },
+          group: familyGroup,
           status: { enum: ["released", "development"] },
           releasedAt: { type: "string", pattern: String.raw`^\d{4}-\d{2}-\d{2}$` },
           url: httpsUrl,
-          repo: { anyOf: [httpsUrl, { type: "null" }] },
+          repo: nullableUrl,
         },
       },
     },
@@ -255,7 +259,7 @@ export const orgSchema = {
           name: { type: "string", minLength: 1 },
           short: { type: "string", minLength: 1 },
           kind: { enum: ["company", "blog", "product", "library", "lab", "github"] },
-          group: { enum: ["krizaka", "products", "open-source", "github"] },
+          group: familyGroup,
           order: { type: "integer", minimum: 1 },
           status: { enum: [...PRODUCT_STATUS, "released", "retired"] },
           releasedAt: date,
@@ -265,9 +269,9 @@ export const orgSchema = {
             additionalProperties: false,
             required: ["site", "siteLive", "repo"],
             properties: {
-              site: { anyOf: [httpsUrl, { type: "null" }] },
+              site: nullableUrl,
               siteLive: { type: "boolean" },
-              repo: { anyOf: [httpsUrl, { type: "null" }] },
+              repo: nullableUrl,
               dev: httpsUrl,
               app: httpsUrl,
               shop: httpsUrl,
@@ -275,12 +279,7 @@ export const orgSchema = {
           },
           siteName: { type: "string", minLength: 1 },
           aliases: { type: "array", items: slug, uniqueItems: true },
-          mascot: {
-            type: "object",
-            additionalProperties: false,
-            required: ["bird", "tone"],
-            properties: { bird: { enum: [...MASCOT_BIRDS] }, tone: { enum: ["own", "brand"] } },
-          },
+          mascot: mascotWear,
           mark: {
             type: "object",
             additionalProperties: false,
