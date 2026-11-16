@@ -71,7 +71,7 @@ describe("krizaka-family check", () => {
 
   it("reads a bio as the whole file", () => {
     expect(checkSurface("founder-bio", `${renderSurface("founder-bio", "fr")}\n`, "fr").ok).toBe(true);
-    expect(checkSurface("founder-bio", "Yomizaka", "fr").ok).toBe(false);
+    expect(checkSurface("founder-bio", "Founder of nothing", "fr").ok).toBe(false);
   });
 
   it("reports a missing block", () => {
