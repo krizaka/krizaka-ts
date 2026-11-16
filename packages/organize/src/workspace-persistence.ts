@@ -244,33 +244,48 @@ export function filterSql(
   if (!k) throw new OrganizeError(ORGANIZE_CODE.badRequest, `unknown kind ${kind}`);
   const parts: string[] = [];
   const params: unknown[] = [];
-  const add = (value: unknown) => `$${options.from + params.push(value) - 1}`;
-  if (filters.tags?.length) {
-    const viaContainer =
-      options.inherit && k.containerTagTable && k.collectionColumn
-        ? ` OR EXISTS (SELECT 1 FROM ${k.containerTagTable} c WHERE c.entity_id = e.${k.collectionColumn} AND c.tag_id = want.id)`
-        : "";
-    parts.push(
-      `NOT EXISTS (SELECT 1 FROM unnest(${add(filters.tags)}::uuid[]) want(id) WHERE NOT (EXISTS (SELECT 1 FROM ${k.tagTable} t WHERE t.entity_id = e.id AND t.tag_id = want.id)${viaContainer}))`,
-    );
-  }
-  const set = options.status ?? null;
-  if (filters.status?.length && set) {
-    if (set.mode === STATUS_MODE.editable)
-      parts.push(
-        `COALESCE((SELECT s.state FROM ${k.statusTable} s WHERE s.entity_id = e.id), ${add(set.initial)}) = ANY(${add(filters.status)}::text[])`,
-      );
-    else if (k.stateSql) parts.push(`(${k.stateSql}) = ANY(${add(filters.status)}::text[])`);
-  }
+  const add: AddParam = (value) => `$${options.from + params.push(value) - 1}`;
+  // The order of the parts is the order of the parameters: tags, status, collection, dates, text.
+  const tags = tagsPart(k, filters, add, options.inherit === true);
+  if (tags) parts.push(tags);
+  const status = statusPart(k, filters, add, options.status ?? null);
+  if (status) parts.push(status);
   if (filters.collection && k.collectionColumn)
     parts.push(`e.${k.collectionColumn} = ${add(filters.collection)}::uuid`);
   if (filters.from && k.dateColumn) parts.push(`e.${k.dateColumn} >= ${add(filters.from)}::date`);
   if (filters.to && k.dateColumn) parts.push(`e.${k.dateColumn} < ${add(filters.to)}::date + 1`);
-  if (filters.q && k.textColumns.length) {
-    const escaped = filters.q.replace(/[\\%_]/g, (c) => `\\${c}`);
-    const like = add(`%${escaped}%`);
-    const columns = k.textColumns.map((c) => `e.${c} ILIKE ${like}`);
-    parts.push(`(${columns.join(" OR ")})`);
-  }
+  const text = textPart(k, filters, add);
+  if (text) parts.push(text);
   return { sql: parts.map((p) => ` AND ${p}`).join(""), params };
+}
+
+/** Binds one value as the next numbered parameter and returns its placeholder (`$n`). */
+type AddParam = (value: unknown) => string;
+type ResolvedKind = ReturnType<typeof resolveWorkspace>["kinds"][string];
+
+/** Every asked tag is worn by the entity, or (with `inherit`) by its container; null when no tag is asked. */
+function tagsPart(k: ResolvedKind, filters: ViewFilters, add: AddParam, inherit: boolean): string | null {
+  if (!filters.tags?.length) return null;
+  const viaContainer =
+    inherit && k.containerTagTable && k.collectionColumn
+      ? ` OR EXISTS (SELECT 1 FROM ${k.containerTagTable} c WHERE c.entity_id = e.${k.collectionColumn} AND c.tag_id = want.id)`
+      : "";
+  return `NOT EXISTS (SELECT 1 FROM unnest(${add(filters.tags)}::uuid[]) want(id) WHERE NOT (EXISTS (SELECT 1 FROM ${k.tagTable} t WHERE t.entity_id = e.id AND t.tag_id = want.id)${viaContainer}))`;
+}
+
+/** The entity's state is one of the asked states (its set's initial state for an entity nobody moved); null when not filterable. */
+function statusPart(k: ResolvedKind, filters: ViewFilters, add: AddParam, set: StatusSet | null): string | null {
+  if (!filters.status?.length || !set) return null;
+  if (set.mode === STATUS_MODE.editable)
+    return `COALESCE((SELECT s.state FROM ${k.statusTable} s WHERE s.entity_id = e.id), ${add(set.initial)}) = ANY(${add(filters.status)}::text[])`;
+  return k.stateSql ? `(${k.stateSql}) = ANY(${add(filters.status)}::text[])` : null;
+}
+
+/** One of the kind's text columns contains the query (LIKE wildcards escaped); null without a query or text columns. */
+function textPart(k: ResolvedKind, filters: ViewFilters, add: AddParam): string | null {
+  if (!filters.q || !k.textColumns.length) return null;
+  const escaped = filters.q.replace(/[\\%_]/g, (c) => `\\${c}`);
+  const like = add(`%${escaped}%`);
+  const columns = k.textColumns.map((c) => `e.${c} ILIKE ${like}`);
+  return `(${columns.join(" OR ")})`;
 }
