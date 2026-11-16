@@ -12,7 +12,18 @@ const withSite = (patch: Record<string, unknown>) => {
 
 describe("footerFor", () => {
   it("resolves every site entry of the org JSON", () => {
-    expect(Object.keys(org.footer.sites).sort()).toEqual(["java", "krizaka", "lab", "ts", "ui"]);
+    expect(Object.keys(org.footer.sites).sort()).toEqual([
+      "blog",
+      "folioviv",
+      "java",
+      "kridoc",
+      "krizaka",
+      "lab",
+      "sovkora",
+      "ts",
+      "ui",
+      "verikora",
+    ]);
     for (const id of Object.keys(org.footer.sites)) {
       const footer = footerFor(id);
       expect(footer.id).toBe(id);
@@ -32,6 +43,18 @@ describe("footerFor", () => {
     }
     const company = footerFor("krizaka");
     expect([company.source, company.license, company.version]).toEqual([null, null, false]);
+  });
+
+  it("gives every site of the org the same family columns, socials and legal links", () => {
+    const first = footerFor("krizaka");
+    for (const site of org.sites) {
+      const footer = footerFor(site.id);
+      expect(footer.groups, site.id).toEqual(first.groups);
+      expect(footer.social, site.id).toEqual(first.social);
+      expect(footer.legal, site.id).toEqual(first.legal);
+      expect(footer.line, site.id).toEqual(first.line);
+    }
+    expect(footerFor("kridoc").groups.flatMap((g) => g.entries.map((e) => e.id))).toContain("kridoc");
   });
 
   it("gives Java a source link and no Maven Central link", () => {

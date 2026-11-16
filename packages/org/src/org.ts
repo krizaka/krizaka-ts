@@ -126,6 +126,15 @@ const SITES: OrgSite[] = publicMembers
 const SOCIAL = ["instagram", "youtube", "linkedin"];
 
 /** The shared selection of the developer sites: the whole family, every social account, the source, the licence, both legal links and the version line (founder target, krizaka-internal#754). */
+/** A site that is not a developer site (the company, the blog, the products): the same family, legal line and socials; no source, licence or version. */
+const companyFooter: FooterSite = {
+  families: ["krizaka", "products", "open-source", "github"],
+  social: SOCIAL,
+  source: null,
+  license: false,
+  legal: ["privacy", "terms"],
+  version: false,
+};
 const developerFooter = (source: string | null): FooterSite => ({
   families: ["krizaka", "products", "open-source", "github"],
   social: SOCIAL,
@@ -199,7 +208,13 @@ export const org: Org = {
       },
     ],
     sites: {
-      krizaka: { ...developerFooter(null), license: false, version: false },
+      krizaka: companyFooter,
+      blog: companyFooter,
+      // The product sites (the coming-soon pages included): the family, the legal line and the socials, no source, no version.
+      sovkora: companyFooter,
+      verikora: companyFooter,
+      folioviv: companyFooter,
+      kridoc: companyFooter,
       ui: developerFooter(gh("krizaka-ui")),
       lab: developerFooter(gh("krizaka-lab")),
       // Java is no longer published on Maven Central (founder, 2026-11-14): the source link only.
