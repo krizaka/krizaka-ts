@@ -13,7 +13,6 @@ export {
   parseCheck,
   type StartCheckInput,
 } from "./checks";
-export { type Circuit, type CircuitOptions, type Clock, createCircuit } from "./circuit";
 export {
   createSovkoraClient,
   type SovkoraClient,
@@ -24,3 +23,4 @@ export {
 } from "./client";
 export { SOVKORA_CODE, type SovkoraCode, SovkoraError, sovkoraRefusal } from "./errors";
 export { isTerminal, outputOf, parseInstallations, parseRun, RUN_STATUS, type RunOutput, type SovkoraRun } from "./run";
+export type { Circuit, CircuitOptions, Clock } from "@krizaka/resilience";

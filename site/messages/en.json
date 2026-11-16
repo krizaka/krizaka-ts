@@ -61,6 +61,9 @@
     "api-keys": {
       "hook": "API keys created, rotated, revoked and authenticated; shown once, only a hash kept."
     },
+    "resilience": {
+      "hook": "One timeout, one jittered retry that honours Retry-After, and one circuit breaker for every product client."
+    },
     "sovkora-client": {
       "hook": "One Sovkora client for the TypeScript products: start a run, read its status and outputs, typed errors, a time limit and a circuit breaker."
     },
