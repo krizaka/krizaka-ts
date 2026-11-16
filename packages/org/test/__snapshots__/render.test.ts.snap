@@ -1,0 +1,169 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`krizaka-family render > founder-bio in en 1`] = `"Founder of Krizaka, Montréal. Building Sovkora, Verikora, Folioviv and Kridoc."`;
+
+exports[`krizaka-family render > founder-bio in fr 1`] = `"Fondateur de Krizaka, Montréal. Je construis Sovkora, Verikora, Folioviv et Kridoc."`;
+
+exports[`krizaka-family render > founder-profile in en 1`] = `
+"<!-- krizaka:family:start -->
+### What Krizaka builds
+
+- **[Sovkora](https://www.sovkora.com)** · AI-made video and media, from script to render. In development.
+- **[Verikora](https://www.verikora.com)** · read a document and check its facts, figures and personal data. In development.
+- **[Folioviv](https://www.folioviv.com)** · bookings, storefront and opening hours for local businesses. In development.
+- **[Kridoc](https://www.kridoc.com)** · your documents, filed and findable, in one place. In development.
+
+### Open source
+
+- **[Krizaka UI](https://ui.krizaka.com)** · React components, design variables and page blocks shared by every Krizaka product.
+- **[Krizaka Java](https://java.krizaka.com)** · Spring Boot building blocks for Krizaka services. No public registry yet: the source and the releases are on GitHub.
+- **[Krizaka TypeScript](https://ts.krizaka.com)** · TypeScript building blocks for server and client, published on npm under @krizaka/.
+- **[Krizaka Lab](https://lab.krizaka.com)** · The motion lab: 3D and animation experiments, shown before they reach the products.
+- **[Krizaka Rust](https://github.com/krizaka/krizaka-rust)** · Rust building blocks for the Krizaka desktop apps: the rules in a pure crate, the Tauri glue apart.
+<!-- krizaka:family:end -->"
+`;
+
+exports[`krizaka-family render > founder-profile in fr 1`] = `
+"<!-- krizaka:family:start -->
+### Ce que Krizaka construit
+
+- **[Sovkora](https://www.sovkora.com)** · des vidéos et des médias produits par l'IA, du scénario au rendu. En développement.
+- **[Verikora](https://www.verikora.com)** · lire un document et en vérifier les faits, les chiffres et les données personnelles. En développement.
+- **[Folioviv](https://www.folioviv.com)** · réservations, vitrine et heures d'ouverture des commerces locaux. En développement.
+- **[Kridoc](https://www.kridoc.com)** · vos documents, classés et retrouvables, au même endroit. En développement.
+
+### Libre
+
+- **[Krizaka UI](https://ui.krizaka.com)** · Composants React, variables de design et blocs de pages partagés par chaque produit Krizaka.
+- **[Krizaka Java](https://java.krizaka.com)** · Briques Spring Boot des services Krizaka. Pas encore de registre public : le code et les versions sont sur GitHub.
+- **[Krizaka TypeScript](https://ts.krizaka.com)** · Briques TypeScript pour le serveur et le client, publiées sur npm sous @krizaka/.
+- **[Krizaka Lab](https://lab.krizaka.com)** · Le laboratoire du mouvement : des essais de 3D et d'animation, montrés avant d'entrer dans les produits.
+- **[Krizaka Rust](https://github.com/krizaka/krizaka-rust)** · Briques Rust des applications de bureau Krizaka : les règles dans un crate pur, la colle Tauri à part.
+<!-- krizaka:family:end -->"
+`;
+
+exports[`krizaka-family render > member-readme in en 1`] = `
+"<!-- krizaka:family:start -->
+### What Krizaka builds
+
+- **[Sovkora](https://www.sovkora.com)** · AI-made video and media, from script to render. In development.
+- **[Verikora](https://www.verikora.com)** · read a document and check its facts, figures and personal data. In development.
+- **[Folioviv](https://www.folioviv.com)** · bookings, storefront and opening hours for local businesses. In development.
+- **[Kridoc](https://www.kridoc.com)** · your documents, filed and findable, in one place. In development.
+<!-- krizaka:family:end -->"
+`;
+
+exports[`krizaka-family render > member-readme in fr 1`] = `
+"<!-- krizaka:family:start -->
+### Ce que Krizaka construit
+
+- **[Sovkora](https://www.sovkora.com)** · des vidéos et des médias produits par l'IA, du scénario au rendu. En développement.
+- **[Verikora](https://www.verikora.com)** · lire un document et en vérifier les faits, les chiffres et les données personnelles. En développement.
+- **[Folioviv](https://www.folioviv.com)** · réservations, vitrine et heures d'ouverture des commerces locaux. En développement.
+- **[Kridoc](https://www.kridoc.com)** · vos documents, classés et retrouvables, au même endroit. En développement.
+<!-- krizaka:family:end -->"
+`;
+
+exports[`krizaka-family render > org-profile in en 1`] = `
+"<!-- krizaka:family:start -->
+### What Krizaka builds
+
+- **[Sovkora](https://www.sovkora.com)** · AI-made video and media, from script to render. In development.
+- **[Verikora](https://www.verikora.com)** · read a document and check its facts, figures and personal data. In development.
+- **[Folioviv](https://www.folioviv.com)** · bookings, storefront and opening hours for local businesses. In development.
+- **[Kridoc](https://www.kridoc.com)** · your documents, filed and findable, in one place. In development.
+
+### Open source
+
+- **[Krizaka UI](https://ui.krizaka.com)** · React components, design variables and page blocks shared by every Krizaka product.
+- **[Krizaka Java](https://java.krizaka.com)** · Spring Boot building blocks for Krizaka services. No public registry yet: the source and the releases are on GitHub.
+- **[Krizaka TypeScript](https://ts.krizaka.com)** · TypeScript building blocks for server and client, published on npm under @krizaka/.
+- **[Krizaka Lab](https://lab.krizaka.com)** · The motion lab: 3D and animation experiments, shown before they reach the products.
+- **[Krizaka Rust](https://github.com/krizaka/krizaka-rust)** · Rust building blocks for the Krizaka desktop apps: the rules in a pure crate, the Tauri glue apart.
+<!-- krizaka:family:end -->"
+`;
+
+exports[`krizaka-family render > org-profile in fr 1`] = `
+"<!-- krizaka:family:start -->
+### Ce que Krizaka construit
+
+- **[Sovkora](https://www.sovkora.com)** · des vidéos et des médias produits par l'IA, du scénario au rendu. En développement.
+- **[Verikora](https://www.verikora.com)** · lire un document et en vérifier les faits, les chiffres et les données personnelles. En développement.
+- **[Folioviv](https://www.folioviv.com)** · réservations, vitrine et heures d'ouverture des commerces locaux. En développement.
+- **[Kridoc](https://www.kridoc.com)** · vos documents, classés et retrouvables, au même endroit. En développement.
+
+### Libre
+
+- **[Krizaka UI](https://ui.krizaka.com)** · Composants React, variables de design et blocs de pages partagés par chaque produit Krizaka.
+- **[Krizaka Java](https://java.krizaka.com)** · Briques Spring Boot des services Krizaka. Pas encore de registre public : le code et les versions sont sur GitHub.
+- **[Krizaka TypeScript](https://ts.krizaka.com)** · Briques TypeScript pour le serveur et le client, publiées sur npm sous @krizaka/.
+- **[Krizaka Lab](https://lab.krizaka.com)** · Le laboratoire du mouvement : des essais de 3D et d'animation, montrés avant d'entrer dans les produits.
+- **[Krizaka Rust](https://github.com/krizaka/krizaka-rust)** · Briques Rust des applications de bureau Krizaka : les règles dans un crate pur, la colle Tauri à part.
+<!-- krizaka:family:end -->"
+`;
+
+exports[`krizaka-family render > repo-readme in en 1`] = `
+"<!-- krizaka:family:start -->
+#### What Krizaka builds
+
+- **[Sovkora](https://www.sovkora.com)** · AI-made video and media, from script to render. In development.
+- **[Verikora](https://www.verikora.com)** · read a document and check its facts, figures and personal data. In development.
+- **[Folioviv](https://www.folioviv.com)** · bookings, storefront and opening hours for local businesses. In development.
+- **[Kridoc](https://www.kridoc.com)** · your documents, filed and findable, in one place. In development.
+
+#### Open source
+
+- **[Krizaka UI](https://ui.krizaka.com)** · React components, design variables and page blocks shared by every Krizaka product.
+- **[Krizaka Java](https://java.krizaka.com)** · Spring Boot building blocks for Krizaka services. No public registry yet: the source and the releases are on GitHub.
+- **[Krizaka TypeScript](https://ts.krizaka.com)** · TypeScript building blocks for server and client, published on npm under @krizaka/.
+- **[Krizaka Lab](https://lab.krizaka.com)** · The motion lab: 3D and animation experiments, shown before they reach the products.
+- **[Krizaka Rust](https://github.com/krizaka/krizaka-rust)** · Rust building blocks for the Krizaka desktop apps: the rules in a pure crate, the Tauri glue apart.
+<!-- krizaka:family:end -->"
+`;
+
+exports[`krizaka-family render > repo-readme in fr 1`] = `
+"<!-- krizaka:family:start -->
+#### Ce que Krizaka construit
+
+- **[Sovkora](https://www.sovkora.com)** · des vidéos et des médias produits par l'IA, du scénario au rendu. En développement.
+- **[Verikora](https://www.verikora.com)** · lire un document et en vérifier les faits, les chiffres et les données personnelles. En développement.
+- **[Folioviv](https://www.folioviv.com)** · réservations, vitrine et heures d'ouverture des commerces locaux. En développement.
+- **[Kridoc](https://www.kridoc.com)** · vos documents, classés et retrouvables, au même endroit. En développement.
+
+#### Libre
+
+- **[Krizaka UI](https://ui.krizaka.com)** · Composants React, variables de design et blocs de pages partagés par chaque produit Krizaka.
+- **[Krizaka Java](https://java.krizaka.com)** · Briques Spring Boot des services Krizaka. Pas encore de registre public : le code et les versions sont sur GitHub.
+- **[Krizaka TypeScript](https://ts.krizaka.com)** · Briques TypeScript pour le serveur et le client, publiées sur npm sous @krizaka/.
+- **[Krizaka Lab](https://lab.krizaka.com)** · Le laboratoire du mouvement : des essais de 3D et d'animation, montrés avant d'entrer dans les produits.
+- **[Krizaka Rust](https://github.com/krizaka/krizaka-rust)** · Briques Rust des applications de bureau Krizaka : les règles dans un crate pur, la colle Tauri à part.
+<!-- krizaka:family:end -->"
+`;
+
+exports[`krizaka-family render > social-bios in en 1`] = `
+"## instagram (150)
+Krizaka, Montréal: Sovkora, Verikora, Folioviv, Kridoc. krizaka.com
+
+## x (160)
+Krizaka, Montréal: Sovkora, Verikora, Folioviv, Kridoc. krizaka.com
+
+## github (160)
+Krizaka, Montréal: Sovkora, Verikora, Folioviv, Kridoc. krizaka.com
+
+## linkedin (120)
+Krizaka, Montréal: Sovkora, Verikora, Folioviv, Kridoc. krizaka.com"
+`;
+
+exports[`krizaka-family render > social-bios in fr 1`] = `
+"## instagram (150)
+Krizaka, Montréal : Sovkora, Verikora, Folioviv, Kridoc. krizaka.com
+
+## x (160)
+Krizaka, Montréal : Sovkora, Verikora, Folioviv, Kridoc. krizaka.com
+
+## github (160)
+Krizaka, Montréal : Sovkora, Verikora, Folioviv, Kridoc. krizaka.com
+
+## linkedin (120)
+Krizaka, Montréal : Sovkora, Verikora, Folioviv, Kridoc. krizaka.com"
+`;

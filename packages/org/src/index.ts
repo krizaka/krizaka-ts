@@ -46,6 +46,8 @@ export type {
   SiteTone,
 } from "./org.types";
 export { MASCOT_BIRDS, PRODUCT_STATUS } from "./org.types";
+export type { CheckResult, Lang, Surface } from "./render/surfaces";
+export { checkSurface, renderSurface, SURFACES } from "./render/surfaces";
 export { appSchema, orgSchema } from "./schema";
 
 import { org } from "./org";

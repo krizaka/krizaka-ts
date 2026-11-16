@@ -33,7 +33,8 @@
     "./package.json": "./package.json"
   },
   "bin": {
-    "krizaka-code-names": "./bin/krizaka-code-names.mjs"
+    "krizaka-code-names": "./bin/krizaka-code-names.mjs",
+    "krizaka-family": "./bin/krizaka-family.mjs"
   },
   "files": [
     "dist",
