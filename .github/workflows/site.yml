@@ -1,13 +1,13 @@
-# The documentation site (site/, ts.krizaka.com): lint, tests and the static build on every change to what it documents or to
-# the site. The deployment is DigitalOcean App Platform's (.do/app.yaml): it rebuilds and publishes on every push to main.
+# The documentation site (site/, ts.krizaka.com): lint, tests, the static build and its browser checks on every pull request and in the
+# merge queue; on main the same build is published to GitHub Pages by the shared workflow (krizaka-internal#4149). The DNS still points
+# at DigitalOcean (.do/app.yaml) until the cut-over; post-deploy.yml checks the Pages copy meanwhile.
 name: Docs site
 
 on:
   push:
     branches: [main]
-    paths: ["site/**", "packages/**", "README.md", ".github/workflows/site.yml"]
   pull_request:
-    paths: ["site/**", "packages/**", "README.md", ".github/workflows/site.yml"]
+  merge_group:
   workflow_dispatch:
   schedule:
     - cron: "23 5 * * 1" # the site reads npm: build it weekly too, so a broken read is seen before a release needs it
@@ -17,45 +17,54 @@ permissions:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   site:
     name: Static site
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    defaults:
-      run:
-        working-directory: site
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: site/package-lock.json
-      - run: npm ci --ignore-scripts
-      - run: npm run gen
-      - run: npm run lint
-      - run: npm test
-      - run: npm run build
-      - name: Every package has its page in out/
-        run: |
-          for p in start auth settings api-keys webhooks organize brief; do
-            test -f out/$p/index.html && test -f out/fr/$p/index.html
-          done
-          test -f out/index.html && test -f out/fr/index.html && test -f out/llms.txt && test -f out/sitemap.xml
-      - name: SEO family contract (robots, AI crawlers, sitemap, llms.txt, canonical, JSON-LD back to Krizaka)
-        run: |
-          python3 -m http.server 3000 --directory out >/dev/null 2>&1 &
-          sleep 2
-          node ../packages/config/bin/krizaka-seo-family.mjs --base http://localhost:3000 --host https://ts.krizaka.com --types WebSite,SoftwareSourceCode --limit 60
-      - name: No horizontal overflow (360 to 1440 px, both languages, both themes)
-        run: |
-          npm install --ignore-scripts --no-save --no-audit --no-fund playwright@1.64.1
-          node_modules/.bin/playwright install --with-deps chromium
-          python3 -m http.server 3100 --directory out >/dev/null 2>&1 &
-          sleep 2
-          node scripts/check-overflow.mjs --base http://localhost:3100
+    uses: krizaka/.github/.github/workflows/pages-site.yml@c28e80f733eba2416ecf31eede654f94a8cc7376 # main
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    with:
+      working-directory: site
+      output-dir: site/out
+      cname: ts.krizaka.com
+      timeout-minutes: 25
+      test-command: |
+        npm run lint
+        npm test
+      # The build, then the checks that need the built site: the SEO family contract, and no horizontal overflow
+      # (360 to 1440 px, both languages, both themes; it also measures the home's hero).
+      build-command: |
+        npm run build
+        python3 -m http.server 3000 --directory out >/dev/null 2>&1 &
+        seo=$!
+        python3 -m http.server 3100 --directory out >/dev/null 2>&1 &
+        overflow=$!
+        trap 'kill "$seo" "$overflow" 2>/dev/null || true' EXIT
+        sleep 2
+        node ../packages/config/bin/krizaka-seo-family.mjs --base http://localhost:3000 --host https://ts.krizaka.com --types WebSite,SoftwareSourceCode --limit 60
+        npm install --ignore-scripts --no-save --no-audit --no-fund playwright@1.64.1
+        node_modules/.bin/playwright install --with-deps chromium
+        node scripts/check-overflow.mjs --base http://localhost:3100
+      expect-files: |
+        index.html
+        fr/index.html
+        llms.txt
+        sitemap.xml
+        start/index.html
+        fr/start/index.html
+        auth/index.html
+        fr/auth/index.html
+        settings/index.html
+        fr/settings/index.html
+        api-keys/index.html
+        fr/api-keys/index.html
+        webhooks/index.html
+        fr/webhooks/index.html
+        organize/index.html
+        fr/organize/index.html
+        brief/index.html
+        fr/brief/index.html
