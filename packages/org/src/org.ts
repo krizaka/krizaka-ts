@@ -123,7 +123,7 @@ const SITES: OrgSite[] = publicMembers
     ...(m.aliases ? { aliases: m.aliases } : {}),
   }));
 
-const SOCIAL = ["instagram", "youtube", "linkedin"];
+const SOCIAL = ["instagram", "facebook", "youtube", "linkedin"];
 
 /** The shared selection of the developer sites: the whole family, every social account, the source, the licence, both legal links and the version line (founder target, krizaka-internal#754). */
 /** A site that is not a developer site (the company, the blog, the products): the same family, legal line and socials; no source, licence or version. */
@@ -186,6 +186,8 @@ export const org: Org = {
   links: {
     social: [
       { id: "instagram", label: "Instagram", url: "https://www.instagram.com/krizakahq/" },
+      // The Page's own address as Meta's Graph API returns it (field `link`, read 2026-11-17): the Page has no username.
+      { id: "facebook", label: "Facebook", url: "https://www.facebook.com/1482481631608218" },
       { id: "youtube", label: "YouTube", url: "https://www.youtube.com/@krizakahq" },
       { id: "linkedin", label: "LinkedIn", url: "https://www.linkedin.com/company/krizaka-technologies-inc" },
     ],
