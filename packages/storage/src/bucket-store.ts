@@ -54,7 +54,8 @@ export function bucketStore(options: BucketStoreOptions): ObjectStore {
       payloadHash: hashPayload(body ?? new Uint8Array()),
       now: options.clock.now(),
     });
-    return options.fetch(url, { method, headers, ...(body ? { body } : {}) });
+    // A redirect is never followed: the bucket must not point our server at another address (a 3xx is a refusal below).
+    return options.fetch(url, { method, headers, redirect: "manual", ...(body ? { body } : {}) });
   };
   const list = async (p: string): Promise<ObjectInfo[]> => {
     const out: ObjectInfo[] = [];

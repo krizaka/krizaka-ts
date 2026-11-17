@@ -7,6 +7,7 @@ import { type ManagedContext, openManaged } from "./managed";
 import { type OpendalService, opendalStore } from "./opendal-store";
 import { type Clock, type FetchLike, type ObjectStore, STORAGE_CODE, StorageError } from "./port";
 import { type FieldSchema, PROVIDER_KINDS, type ProviderKind, type ProviderRuntime } from "./providers";
+import { publicOnlyFetch } from "./public-fetch";
 import { type ResidencyLabel, residencyLabel } from "./regions";
 import { remoteStore } from "./remote-store";
 
@@ -14,6 +15,11 @@ export interface OpenContext {
   runtime: ProviderRuntime;
   environment: "dev" | "prod";
   fetch: FetchLike;
+  /**
+   * The fetch for an endpoint someone typed (the `s3` kind) outside `dev`: it must connect only to an address checked at connect time.
+   * Defaults to `publicOnlyFetch()`; `dev` uses `fetch` (MinIO on the Mac).
+   */
+  endpointFetch?: FetchLike;
   clock: Clock;
   /** A cloud that rotates the refresh token on a refresh hands the new one here, to be sealed again. */
   onRotate?: (refreshToken: string) => Promise<void>;
@@ -247,7 +253,7 @@ export const BUILT_IN_ADAPTERS: Readonly<Record<string, ProviderAdapter>> = {
       accessKeyId: credentials.accessKeyId!,
       secretAccessKey: credentials.secretAccessKey!,
       ...optional("prefix", coordinates.prefix),
-      fetch: ctx.fetch,
+      fetch: ctx.runtime === "dev" ? ctx.fetch : (ctx.endpointFetch ?? publicOnlyFetch()),
       clock: ctx.clock,
     }),
     residency: residencyLabel({ provider: "s3", endpoint: coordinates.endpoint!, region: coordinates.region! }),

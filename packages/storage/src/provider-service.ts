@@ -10,6 +10,7 @@ import {
   type ProviderStatus,
   type ProviderStore,
 } from "./provider-records";
+import { publicOnlyFetch } from "./public-fetch";
 import { type ResidencyLabel } from "./regions";
 import { type Keyring, localKeyring, type LocalKeys, openWith, rewrapWith, sealWith } from "./vault";
 
@@ -39,7 +40,7 @@ export interface ProviderServiceDeps {
   clock: Clock;
   newId: () => string;
   audit: (note: AuditNote) => Promise<void>;
-  /** Opening a store: the runtime, the environment, `fetch` and the clock. */
+  /** Opening a store: the runtime, the environment, `fetch` (and `endpointFetch` for a typed endpoint) and the clock. */
   open: OpenContext;
   probeId: () => string;
   /** How many objects the product still holds at this provider (it owns the objects table). */
@@ -80,6 +81,11 @@ const fail = (code: (typeof STORAGE_CODE)[keyof typeof STORAGE_CODE], message: s
 export function createProviderService(deps: ProviderServiceDeps) {
   const keyring: Keyring = "wrap" in deps.vault ? deps.vault : localKeyring(deps.vault);
   const registry = deps.registry ?? defaultProviderRegistry;
+  // A typed endpoint connects through the same resolver that judged it, at connect time (a name may resolve elsewhere later).
+  const openCtx: OpenContext =
+    deps.resolve && !deps.open.endpointFetch
+      ? { ...deps.open, endpointFetch: publicOnlyFetch({ resolve: deps.resolve }) }
+      : deps.open;
   const providerKind = registry.kind;
   const credentialsOf = async (record: ProviderRecord): Promise<Record<string, string>> =>
     JSON.parse(await openWith(keyring, record.sealedCredentials)) as Record<string, string>;
@@ -156,7 +162,7 @@ export function createProviderService(deps: ProviderServiceDeps) {
           ...(deps.resolve ? { resolve: deps.resolve } : {}),
         });
       const opened = await registry.open(record.kind, record.coordinates, credentials, {
-        ...deps.open,
+        ...openCtx,
         onRotate: reseal(record),
       });
       const store = credentials.encryptionKey
@@ -296,7 +302,7 @@ export function createProviderService(deps: ProviderServiceDeps) {
         throw fail(STORAGE_CODE.notVerified, "This provider is not usable");
       const credentials = await credentialsOf(record);
       const opened = await registry.open(record.kind, record.coordinates, credentials, {
-        ...deps.open,
+        ...openCtx,
         onRotate: reseal(record),
       });
       return credentials.encryptionKey
