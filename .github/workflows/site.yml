@@ -22,7 +22,7 @@ concurrency:
 jobs:
   site:
     name: Static site
-    uses: krizaka/.github/.github/workflows/pages-site.yml@c28e80f733eba2416ecf31eede654f94a8cc7376 # main
+    uses: krizaka/.github/.github/workflows/pages-site.yml@43f6462ceec04599ff2ef2c2967bf7202b6dacc5 # main
     permissions:
       contents: read
       pages: write

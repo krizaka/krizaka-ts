@@ -12,6 +12,6 @@ jobs:
   release:
     permissions:
       contents: write
-    uses: krizaka/.github/.github/workflows/release-notes.yml@cf350d9958db51a9d1ce29b2b3eab57c10ddc7a4 # main
+    uses: krizaka/.github/.github/workflows/release-notes.yml@43f6462ceec04599ff2ef2c2967bf7202b6dacc5 # main
     secrets:
       RELEASE_APP_PRIVATE_KEY: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
