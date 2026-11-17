@@ -1,5 +1,16 @@
 # @krizaka/orazaka-client
 
+## 1.1.0
+
+### Minor Changes
+
+- 2bf7686: The circuit breaker now comes from `@krizaka/resilience`; behaviour and `SOVKORA_*` codes are unchanged. `createCircuit` is no longer exported from here: import it from `@krizaka/resilience` (the `Circuit`, `CircuitOptions` and `Clock` types are still re-exported).
+
+### Patch Changes
+
+- Updated dependencies [2bf7686]
+  - @krizaka/resilience@0.1.0
+
 ## 1.0.1
 
 ### Patch Changes
