@@ -160,6 +160,7 @@ describe("the org JSON", () => {
   it("publishes Krizaka's own social accounts (krizaka-internal#365, krizaka-internal#3141)", () => {
     expect(org.links.social).toEqual([
       { id: "instagram", label: "Instagram", url: "https://www.instagram.com/krizakahq/" },
+      { id: "facebook", label: "Facebook", url: "https://www.facebook.com/1482481631608218" },
       { id: "youtube", label: "YouTube", url: "https://www.youtube.com/@krizakahq" },
       { id: "linkedin", label: "LinkedIn", url: "https://www.linkedin.com/company/krizaka-technologies-inc" },
     ]);

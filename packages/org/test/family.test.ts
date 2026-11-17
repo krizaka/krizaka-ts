@@ -95,11 +95,16 @@ describe("the family table", () => {
     expect(org.sites.find((s) => s.id === "kridoc")?.kind).toBe("product");
   });
 
-  it("has Krizaka Rust: open source, in development, no site yet, its repository is the link", () => {
+  it("has Krizaka Rust: open source, in development, its site is the link and its repository the source (krizaka-internal#4114)", () => {
     const rust = family.find((m) => m.id === "rust");
     expect(rust).toMatchObject({ kind: "library", group: "open-source", status: "development", visibility: "public" });
-    expect(rust?.urls).toMatchObject({ site: null, siteLive: false, repo: "https://github.com/krizaka/krizaka-rust" });
-    expect(familyEntry("rust").url).toBe("https://github.com/krizaka/krizaka-rust");
+    expect(rust?.urls).toMatchObject({
+      site: "https://rust.krizaka.com",
+      siteLive: true,
+      repo: "https://github.com/krizaka/krizaka-rust",
+    });
+    expect(familyEntry("rust").url).toBe("https://rust.krizaka.com");
+    expect(familyEntry("rust").repo).toBe("https://github.com/krizaka/krizaka-rust");
     expect(org.sites.map((s) => s.id)).not.toContain("rust");
   });
 
@@ -116,7 +121,8 @@ describe("the family table", () => {
 
   it("requires a bird of every member whose site is live, and the date of a release", () => {
     for (const m of family) {
-      if (m.urls.siteLive && m.kind !== "github") expect(m.mascot, m.id).toBeDefined();
+      // Rust has no bird yet: its site is a link, not an entry of org.sites (which needs a bird).
+      if (m.urls.siteLive && m.kind !== "github" && m.id !== "rust") expect(m.mascot, m.id).toBeDefined();
       if (m.status === "released" && m.kind === "product") expect(m.releasedAt, m.id).toBeDefined();
     }
   });
