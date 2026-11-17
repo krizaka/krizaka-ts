@@ -42,6 +42,7 @@ export const PACKAGES = Object.freeze(
       "storage",
       "time",
       "video",
+      "visits",
       "webhooks",
     ].map((name) => [`packages/${name}`, ["src"]]),
   ),
