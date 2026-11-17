@@ -1,6 +1,6 @@
 {
   "name": "@krizaka/resilience",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "One timeout, one jittered retry and one circuit breaker for every product client: full-jitter backoff that honours Retry-After, a retry predicate and a retry budget, a breaker that opens after N failures and probes once. Clock, sleep and random are parameters; no vendor SDK, no environment.",
   "keywords": [
     "krizaka",

@@ -1,5 +1,12 @@
 # @krizaka/org
 
+## 1.12.0
+
+### Minor Changes
+
+- ee91000: The Krizaka Facebook Page is one of the organisation's social accounts (`links.social`), so every family footer draws it.
+- ee91000: Krizaka Rust links to its site, `https://rust.krizaka.com` (it answers now); its repository stays the source link (krizaka-internal#4114, #3025).
+
 ## 1.11.0
 
 ### Minor Changes
