@@ -7,7 +7,8 @@ export type { Clock } from "@krizaka/db";
 /** The part of `fetch` the adapters use: inject the global one (`fetch`), or a fake in a test. */
 export type FetchLike = (
   url: string,
-  init: { method: string; headers: Record<string, string>; body?: Uint8Array },
+  /** `redirect: "manual"`: a redirect is answered as it is (a 3xx), never followed. */
+  init: { method: string; headers: Record<string, string>; body?: Uint8Array; redirect?: "manual" },
 ) => Promise<{
   ok: boolean;
   status: number;

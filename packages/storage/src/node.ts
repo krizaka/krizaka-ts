@@ -58,6 +58,7 @@ export {
   type ProviderRegistry,
 } from "./open-provider";
 export { isPrivateAddress } from "./private-address";
+export { publicOnlyFetch } from "./public-fetch";
 export { remoteStore, type RemoteStoreOptions } from "./remote-store";
 export { createStorage, type Storage, type StorageDeps, type StorageLimits, type UploadInput } from "./storage";
 export {
