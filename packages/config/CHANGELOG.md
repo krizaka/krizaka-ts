@@ -1,5 +1,11 @@
 # @krizaka/config
 
+## 0.28.3
+
+### Patch Changes
+
+- f282b66: `no-local-lib-copy` knows `publicOnlyFetch` of `@krizaka/storage/node`.
+
 ## 0.28.2
 
 ### Patch Changes
