@@ -1,0 +1,69 @@
+{
+  "name": "@krizaka/visits",
+  "version": "0.0.0",
+  "description": "A cookieless visit count for Krizaka's public sites: one row per site, page, day and referrer domain with a count. Pure path and referrer normalisation, a bot filter, a daily row cap, a fail-closed recorder and a weekly read. No cookie, no identifier, no address, no user agent is ever stored.",
+  "keywords": [
+    "krizaka",
+    "visits",
+    "analytics",
+    "privacy"
+  ],
+  "homepage": "https://github.com/krizaka/krizaka-ts/tree/main/packages/visits",
+  "bugs": "https://github.com/krizaka/krizaka-ts/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/krizaka/krizaka-ts.git",
+    "directory": "packages/visits"
+  },
+  "license": "Apache-2.0",
+  "author": "Krizaka (https://www.krizaka.com)",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./schema": {
+      "types": "./dist/schema.d.ts",
+      "import": "./dist/schema.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsup",
+    "lint": "eslint . --max-warnings 0 && tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --coverage --coverage.provider=v8 --coverage.reporter=lcov --coverage.reporter=text-summary \"--coverage.include=src/**/*.ts\"",
+    "check": "pnpm run lint && pnpm run test && pnpm run build",
+    "prepublishOnly": "pnpm run build"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "@krizaka/config": "workspace:^",
+    "@krizaka/db": "workspace:^",
+    "@types/node": "^22.10.0",
+    "eslint": "^9.39.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.11"
+  },
+  "peerDependencies": {
+    "@krizaka/db": ">=0"
+  },
+  "peerDependenciesMeta": {
+    "@krizaka/db": {
+      "optional": true
+    }
+  }
+}

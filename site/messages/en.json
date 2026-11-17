@@ -121,6 +121,9 @@
     "rate-limit": {
       "hook": "Limits per action: fixed windows per address and subject, set by the admin, counted exactly under concurrency."
     },
+    "visits": {
+      "hook": "A cookieless visit count: one row per page, day and referrer domain, bots refused, a daily cap, never a person."
+    },
     "contract": {
       "hook": "One response schema (zod) asserted by route tests, journeys, monitors and fetch wrappers: a 204, a missing field or an undefined count fails with the field’s path."
     },
