@@ -137,6 +137,13 @@ describe("publicOnlyFetch", () => {
     );
   });
 
+  it("refuses a name that does not resolve, or that the resolver cannot answer", async () => {
+    for (const resolve of [async () => [], () => Promise.reject(new Error("ENOTFOUND"))] satisfies Resolver[])
+      await expect(
+        publicOnlyFetch({ resolve })("https://bucket.example.com/x", { method: "GET", headers: {} }),
+      ).rejects.toThrow(/does not resolve/);
+  });
+
   it("refuses a URL that is a private address literal", async () => {
     await expect(publicOnlyFetch()(`https://${privateAddress}/x`, { method: "GET", headers: {} })).rejects.toThrow(
       /private address/,
@@ -151,6 +158,7 @@ describe("publicOnlyFetch", () => {
       req.on("data", (c: Buffer) => (body += c.toString()));
       req.on("end", () => {
         if (req.url === "/moved") return void res.writeHead(302, { location: "/elsewhere" }).end();
+        res.setHeader("set-cookie", ["a=1", "b=2"]);
         res.writeHead(200, { "content-type": "text/plain", "x-echo": req.headers["x-echo"] ?? "" }).end(`got ${body}`);
       });
     });
@@ -163,6 +171,8 @@ describe("publicOnlyFetch", () => {
       body: new TextEncoder().encode("bytes"),
     });
     expect([ok.ok, ok.status, ok.headers.get("x-echo"), await ok.text()]).toEqual([true, 200, "yes", "got bytes"]);
+    expect([ok.headers.get("Set-Cookie"), ok.headers.get("x-absent")]).toEqual(["a=1, b=2", null]);
+    expect(new TextDecoder().decode(await ok.arrayBuffer())).toBe("got bytes");
 
     const moved = await call("https://bucket.example.com/moved", { method: "GET", headers: {} });
     expect([moved.ok, moved.status]).toEqual([false, 302]);
@@ -173,6 +183,7 @@ describe("publicOnlyFetch", () => {
     const answer = (o: object) =>
       new Promise((done) => (seen.lookup as Lookup)("bucket.example.com", o, (e, a) => done(e ?? a)));
     expect(await answer({ all: true })).toEqual([{ address: publicAddress, family: 4 }]);
+    expect(await answer({})).toBe(publicAddress);
     const refusing = publicOnlyFetch({ resolve: async () => [privateAddress], request: throughLocal(origin, seen) });
     await refusing("https://bucket.example.com/a", { method: "GET", headers: {} }).catch(() => undefined);
     expect(String(await answer({}))).toMatch(/private address/);
