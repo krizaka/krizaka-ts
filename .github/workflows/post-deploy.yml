@@ -1,0 +1,38 @@
+# On every push to main (the Docs site workflow publishes it), after the docs site is published to GitHub Pages (krizaka-internal#4149): wait until the Pages copy serves this commit (/build.json).
+# ts.krizaka.com still points at DigitalOcean, so the request is sent to GitHub's servers with the site's Host header
+# (curl --connect-to, plain HTTP: no certificate exists for the custom domain until the DNS moves). It keeps working after the cut-over.
+name: Post-deploy check
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # run it from main: it waits for the latest commit of main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: post-deploy
+  cancel-in-progress: true
+
+jobs:
+  post-deploy:
+    name: Pages serves the commit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      EXPECT: ${{ github.sha }}
+    steps:
+      - name: /build.json on Pages equals the commit
+        run: |
+          for i in $(seq 1 40); do
+            body=$(curl -fsS --max-time 20 --connect-to ts.krizaka.com:80:krizaka.github.io:80 http://ts.krizaka.com/build.json || true)
+            if printf '%s' "$body" | grep -q "\"commit\":\"$EXPECT\""; then
+              echo "Pages serves $EXPECT"
+              exit 0
+            fi
+            echo "attempt $i: not yet ($body)"
+            sleep $((i < 10 ? 10 : 20))
+          done
+          echo "::error::Pages never served $EXPECT"
+          exit 1

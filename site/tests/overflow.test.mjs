@@ -14,5 +14,9 @@ test("the check covers 360 to 1440 px, both themes, and the home in both languag
 test("CI builds the site, then runs the overflow check on it", () => {
   const ci = readFileSync(new URL("../../.github/workflows/site.yml", import.meta.url), "utf8");
   assert.ok(ci.indexOf("npm run build") < ci.indexOf("scripts/check-overflow.mjs"));
-  assert.match(ci, /for p in start auth/);
+  for (const p of ["start", "auth", "settings", "api-keys", "webhooks", "organize", "brief"])
+    assert.ok(
+      ci.includes(`${p}/index.html`) && ci.includes(`fr/${p}/index.html`),
+      `site.yml expects the ${p} page in both languages`,
+    );
 });

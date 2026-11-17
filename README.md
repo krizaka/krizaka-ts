@@ -63,7 +63,7 @@ What runs in the Actions tab of this repository.
 - **Release** (`release.yml`): Versions and publishes the packages (Changesets). Runs on push, on demand.
 - **Scorecard** (`scorecard.yml`): OpenSSF Scorecard of the repository. Runs when branch rules change, on a schedule, on demand.
 - **Security scan** (`security.yml`): Secret scan (gitleaks) and workflow scan (zizmor); both are required checks. Runs on every pull request, in the merge queue, on push.
-- **Docs site** (`site.yml`): Lints, tests and builds the documentation site. Runs on push, on every pull request, on demand, on a schedule.
+- **Docs site** (`site.yml`): Lints, tests and builds the documentation site through the shared `pages-site.yml` (krizaka/.github), and publishes it to GitHub Pages from main (`/build.json` = the commit, checked by `post-deploy.yml`). Runs on push, on every pull request and in the merge queue, on demand, on a schedule. `ts.krizaka.com` still points at DigitalOcean until the DNS moves.
 
 <!-- krizaka:workflows:end -->
 
