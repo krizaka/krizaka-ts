@@ -79,9 +79,9 @@ export function publicOnlyFetch(
       if (target.protocol !== "https:") return fail(refused("must be https"));
       const literal = target.hostname.replace(/^\[|\]$/g, "");
       if (net.isIP(literal) && isPrivateAddress(literal)) return fail(refused("must not be a private address"));
-      const req = request(target, { method: init.method, headers: init.headers, timeout: timeoutMs, lookup }, (res) =>
-        readResponse(res).then(done, fail),
-      );
+      const req = request(target, { method: init.method, headers: init.headers, timeout: timeoutMs, lookup }, (res) => {
+        readResponse(res).then(done, fail);
+      });
       req.on("timeout", () => req.destroy(refused("did not answer in time")));
       req.on("error", fail);
       req.end(init.body ? Buffer.from(init.body) : undefined);
