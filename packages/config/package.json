@@ -130,7 +130,7 @@
     "@types/node": "^22.15.0",
     "eslint": "^9.39.0",
     "eslint-config-next": "^16.4.0",
-    "next": "^16.4.1",
+    "next": "^16.4.5",
     "prettier": "^3.9.9",
     "publint": "^0.3.25",
     "size-limit": "^14.2.0",
