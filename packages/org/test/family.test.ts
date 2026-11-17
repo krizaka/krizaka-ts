@@ -98,7 +98,11 @@ describe("the family table", () => {
   it("has Krizaka Rust: open source, in development, its site is the link and its repository the source (krizaka-internal#4114)", () => {
     const rust = family.find((m) => m.id === "rust");
     expect(rust).toMatchObject({ kind: "library", group: "open-source", status: "development", visibility: "public" });
-    expect(rust?.urls).toMatchObject({ site: "https://rust.krizaka.com", siteLive: true, repo: "https://github.com/krizaka/krizaka-rust" });
+    expect(rust?.urls).toMatchObject({
+      site: "https://rust.krizaka.com",
+      siteLive: true,
+      repo: "https://github.com/krizaka/krizaka-rust",
+    });
     expect(familyEntry("rust").url).toBe("https://rust.krizaka.com");
     expect(familyEntry("rust").repo).toBe("https://github.com/krizaka/krizaka-rust");
     expect(org.sites.map((s) => s.id)).not.toContain("rust");
