@@ -36,14 +36,15 @@ describe("krizaka-family render", () => {
       expect(out).toContain(`**[${name}](`);
     }
     expect(out.match(/In development\./g)).toHaveLength(4);
-    expect(out).toContain("(https://github.com/krizaka/krizaka-rust)");
+    expect(out).toContain("(https://rust.krizaka.com)");
+    expect(out).not.toContain("(https://github.com/krizaka/krizaka-rust)");
     expect(out).not.toContain("agents");
     expect(findCodeNames(out)).toEqual([]);
     for (const m of family.filter((x) => x.visibility === "private")) expect(out).not.toContain(m.name);
   });
 
-  it("links a site only while it answers", () => {
-    expect(renderSurface("repo-readme", "en")).not.toContain("rust.krizaka.com");
+  it("links a site only while it answers: Rust's answers, so the readme links it", () => {
+    expect(renderSurface("repo-readme", "en")).toContain("(https://rust.krizaka.com)");
   });
 
   it("keeps every social bio inside its limit", () => {

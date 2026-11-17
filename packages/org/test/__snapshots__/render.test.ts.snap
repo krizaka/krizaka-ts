@@ -19,7 +19,7 @@ exports[`krizaka-family render > founder-profile in en 1`] = `
 - **[Krizaka Java](https://java.krizaka.com)** · Spring Boot building blocks for Krizaka services. No public registry yet: the source and the releases are on GitHub.
 - **[Krizaka TypeScript](https://ts.krizaka.com)** · TypeScript building blocks for server and client, published on npm under @krizaka/.
 - **[Krizaka Lab](https://lab.krizaka.com)** · The motion lab: 3D and animation experiments, shown before they reach the products.
-- **[Krizaka Rust](https://github.com/krizaka/krizaka-rust)** · Rust building blocks for the Krizaka desktop apps: the rules in a pure crate, the Tauri glue apart.
+- **[Krizaka Rust](https://rust.krizaka.com)** · Rust building blocks for the Krizaka desktop apps: the rules in a pure crate, the Tauri glue apart.
 <!-- krizaka:family:end -->"
 `;
 
@@ -38,7 +38,7 @@ exports[`krizaka-family render > founder-profile in fr 1`] = `
 - **[Krizaka Java](https://java.krizaka.com)** · Briques Spring Boot des services Krizaka. Pas encore de registre public : le code et les versions sont sur GitHub.
 - **[Krizaka TypeScript](https://ts.krizaka.com)** · Briques TypeScript pour le serveur et le client, publiées sur npm sous @krizaka/.
 - **[Krizaka Lab](https://lab.krizaka.com)** · Le laboratoire du mouvement : des essais de 3D et d'animation, montrés avant d'entrer dans les produits.
-- **[Krizaka Rust](https://github.com/krizaka/krizaka-rust)** · Briques Rust des applications de bureau Krizaka : les règles dans un crate pur, la colle Tauri à part.
+- **[Krizaka Rust](https://rust.krizaka.com)** · Briques Rust des applications de bureau Krizaka : les règles dans un crate pur, la colle Tauri à part.
 <!-- krizaka:family:end -->"
 `;
 
@@ -79,7 +79,7 @@ exports[`krizaka-family render > org-profile in en 1`] = `
 - **[Krizaka Java](https://java.krizaka.com)** · Spring Boot building blocks for Krizaka services. No public registry yet: the source and the releases are on GitHub.
 - **[Krizaka TypeScript](https://ts.krizaka.com)** · TypeScript building blocks for server and client, published on npm under @krizaka/.
 - **[Krizaka Lab](https://lab.krizaka.com)** · The motion lab: 3D and animation experiments, shown before they reach the products.
-- **[Krizaka Rust](https://github.com/krizaka/krizaka-rust)** · Rust building blocks for the Krizaka desktop apps: the rules in a pure crate, the Tauri glue apart.
+- **[Krizaka Rust](https://rust.krizaka.com)** · Rust building blocks for the Krizaka desktop apps: the rules in a pure crate, the Tauri glue apart.
 <!-- krizaka:family:end -->"
 `;
 
@@ -98,7 +98,7 @@ exports[`krizaka-family render > org-profile in fr 1`] = `
 - **[Krizaka Java](https://java.krizaka.com)** · Briques Spring Boot des services Krizaka. Pas encore de registre public : le code et les versions sont sur GitHub.
 - **[Krizaka TypeScript](https://ts.krizaka.com)** · Briques TypeScript pour le serveur et le client, publiées sur npm sous @krizaka/.
 - **[Krizaka Lab](https://lab.krizaka.com)** · Le laboratoire du mouvement : des essais de 3D et d'animation, montrés avant d'entrer dans les produits.
-- **[Krizaka Rust](https://github.com/krizaka/krizaka-rust)** · Briques Rust des applications de bureau Krizaka : les règles dans un crate pur, la colle Tauri à part.
+- **[Krizaka Rust](https://rust.krizaka.com)** · Briques Rust des applications de bureau Krizaka : les règles dans un crate pur, la colle Tauri à part.
 <!-- krizaka:family:end -->"
 `;
 
@@ -117,7 +117,7 @@ exports[`krizaka-family render > repo-readme in en 1`] = `
 - **[Krizaka Java](https://java.krizaka.com)** · Spring Boot building blocks for Krizaka services. No public registry yet: the source and the releases are on GitHub.
 - **[Krizaka TypeScript](https://ts.krizaka.com)** · TypeScript building blocks for server and client, published on npm under @krizaka/.
 - **[Krizaka Lab](https://lab.krizaka.com)** · The motion lab: 3D and animation experiments, shown before they reach the products.
-- **[Krizaka Rust](https://github.com/krizaka/krizaka-rust)** · Rust building blocks for the Krizaka desktop apps: the rules in a pure crate, the Tauri glue apart.
+- **[Krizaka Rust](https://rust.krizaka.com)** · Rust building blocks for the Krizaka desktop apps: the rules in a pure crate, the Tauri glue apart.
 <!-- krizaka:family:end -->"
 `;
 
@@ -136,7 +136,7 @@ exports[`krizaka-family render > repo-readme in fr 1`] = `
 - **[Krizaka Java](https://java.krizaka.com)** · Briques Spring Boot des services Krizaka. Pas encore de registre public : le code et les versions sont sur GitHub.
 - **[Krizaka TypeScript](https://ts.krizaka.com)** · Briques TypeScript pour le serveur et le client, publiées sur npm sous @krizaka/.
 - **[Krizaka Lab](https://lab.krizaka.com)** · Le laboratoire du mouvement : des essais de 3D et d'animation, montrés avant d'entrer dans les produits.
-- **[Krizaka Rust](https://github.com/krizaka/krizaka-rust)** · Briques Rust des applications de bureau Krizaka : les règles dans un crate pur, la colle Tauri à part.
+- **[Krizaka Rust](https://rust.krizaka.com)** · Briques Rust des applications de bureau Krizaka : les règles dans un crate pur, la colle Tauri à part.
 <!-- krizaka:family:end -->"
 `;
 

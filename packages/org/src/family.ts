@@ -39,8 +39,8 @@ const ROWS: Row[] = [
     "lovebird",
   ],
   ["lab", "Krizaka Lab", "Lab", "lab", "open-source", "https://lab.krizaka.com", "krizaka-lab", "flamingo"],
-  // No site answers yet (rust.krizaka.com): its public repository is the link. No bird yet either.
-  ["rust", "Krizaka Rust", "Rust", "library", "open-source", null, "krizaka-rust", null],
+  // rust.krizaka.com answers (krizaka-internal#4114): the site is the link, the repository stays the source link. No bird yet.
+  ["rust", "Krizaka Rust", "Rust", "library", "open-source", "https://rust.krizaka.com", "krizaka-rust", null],
   ["github", "GitHub", "GitHub", "github", "github", GITHUB, null, null],
 ];
 
