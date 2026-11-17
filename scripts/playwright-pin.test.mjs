@@ -14,7 +14,10 @@ describe("workflows that install Playwright", () => {
   const pins = readdirSync(dir)
     .filter((f) => f.endsWith(".yml"))
     .flatMap((f) =>
-      [...readFileSync(new URL(f, dir), "utf8").matchAll(/playwright(?:-core)?@(\d+\.\d+\.\d+)/g)].map((m) => ({ file: f, version: m[1] })),
+      [...readFileSync(new URL(f, dir), "utf8").matchAll(/playwright(?:-core)?@(\d+\.\d+\.\d+)/g)].map((m) => ({
+        file: f,
+        version: m[1],
+      })),
     );
 
   it("pin a release that supports Ubuntu 26.04 (1.61.0 or later)", () => {
