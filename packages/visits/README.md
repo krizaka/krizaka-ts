@@ -5,7 +5,8 @@ A cookieless visit count for Krizaka's public sites. One row per **site, page, U
 **Never stored:** a cookie, an identifier, an address, a user agent, a query string, a full referrer. The agent is read to refuse bots and thrown away.
 
 ```ts
-import { dbVisitStore, recordVisit, weeklyVisits, visitsSchema } from "@krizaka/visits";
+import { dbVisitStore, recordVisit, weeklyVisits } from "@krizaka/visits";
+import { visitsSchema } from "@krizaka/visits/schema"; // emitMigration(visitsSchema, 1, …) once, in the migrations
 
 const store = dbVisitStore(query); // table visits.visit_counts (visitsSchema)
 // in a request hook; never awaited on the page's critical path, never throws:

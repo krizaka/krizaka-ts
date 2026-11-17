@@ -26,6 +26,10 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./schema": {
+      "types": "./dist/schema.d.ts",
+      "import": "./dist/schema.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -47,13 +51,19 @@
   },
   "devDependencies": {
     "@krizaka/config": "workspace:^",
+    "@krizaka/db": "workspace:^",
     "@types/node": "^22.10.0",
     "eslint": "^9.39.0",
     "tsup": "^8.5.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.11"
   },
-  "dependencies": {
-    "@krizaka/db": "workspace:^"
+  "peerDependencies": {
+    "@krizaka/db": ">=0"
+  },
+  "peerDependenciesMeta": {
+    "@krizaka/db": {
+      "optional": true
+    }
   }
 }

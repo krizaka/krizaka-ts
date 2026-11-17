@@ -1,4 +1,13 @@
-import { ident, type Query } from "@krizaka/db";
+/** A parameterised query returning rows (`Query` of `@krizaka/db`, structurally: this entry point imports nothing, so a function can ship it as one file). */
+export type Query = <T = Record<string, unknown>>(sql: string, params?: unknown[]) => Promise<T[]>;
+
+const IDENTIFIER = /^[a-z_][a-z0-9_]{0,62}$/;
+function ident(name: string): string {
+  if (!IDENTIFIER.test(name)) {
+    throw new RangeError(`VISITS_UNSAFE_IDENTIFIER: « ${name} » is not a plain lower-case SQL identifier`);
+  }
+  return name;
+}
 
 /** One counted key: a page of a site, on a UTC day, from a referrer domain ("" when none). */
 export interface VisitRow {
