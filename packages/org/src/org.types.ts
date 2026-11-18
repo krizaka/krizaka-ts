@@ -117,8 +117,10 @@ export const ACTION_KINDS = ["contact", "install", "guide", "post", "read"] as c
 export type ActionKind = (typeof ACTION_KINDS)[number];
 
 /** The longest audience line, in characters: one reader in one situation. */
+// @fixed: the design's contract (§ 4), checked by the schema, not a business parameter
 export const AUDIENCE_MAX = 120;
 /** The most steps a home shows. */
+// @fixed: the design's contract (§ 4), checked by the schema, not a business parameter
 export const STEPS_MAX = 3;
 
 export interface HomeStep {
