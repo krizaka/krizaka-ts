@@ -24,12 +24,6 @@
     "preferences": "Préférences",
     "home": "Krizaka TypeScript"
   },
-  "footer": {
-    "aria": "Pied de page",
-    "license": "Apache-2.0",
-    "npm": "npm",
-    "source": "Code source"
-  },
   "notFound": {
     "title": "Page introuvable",
     "body": "Cette page n’existe pas dans la documentation de Krizaka TypeScript.",

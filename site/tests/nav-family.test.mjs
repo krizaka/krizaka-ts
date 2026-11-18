@@ -5,7 +5,7 @@ import { familyLabels, siteById } from "@krizaka/ui/sites";
 
 const read = (f) => readFileSync(new URL(`../${f}`, import.meta.url), "utf8");
 
-test("the bar has no family switcher and no hand-made links to other sites; the footer is ts's", () => {
+test("the bar has no family switcher and no hand-made links to other sites; the footer is the family one", () => {
   const bar = read("app/components/TopBar.tsx");
   assert.doesNotMatch(bar, /NavBar\.Family/, "no family switcher: krizaka.com is the only way back (krizaka-ui#485)");
   assert.match(bar, /<NavBar\.Repo /);
@@ -18,7 +18,7 @@ test("the bar has no family switcher and no hand-made links to other sites; the 
     "the bar-level language switch is hidden on a phone",
   );
   assert.doesNotMatch(bar, /KRIZAKA_URL|UI_URL|JAVA_URL/);
-  assert.match(read("app/components/FamilyFooterView.tsx"), /current="ts"/);
+  assert.match(read("app/components/SiteRoot.tsx"), /current="ts"/);
 });
 
 test("the family data knows this site and both languages", () => {
