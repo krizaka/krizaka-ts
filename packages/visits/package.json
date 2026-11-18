@@ -1,6 +1,6 @@
 {
   "name": "@krizaka/visits",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A cookieless visit count for Krizaka's public sites: one row per site, page, day and referrer domain with a count. Pure path and referrer normalisation, a bot filter, a daily row cap, a fail-closed recorder and a weekly read. No cookie, no identifier, no address, no user agent is ever stored.",
   "keywords": [
     "krizaka",
