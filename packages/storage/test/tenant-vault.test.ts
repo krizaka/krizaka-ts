@@ -299,3 +299,72 @@ describe("crypto-shredding", () => {
     await expect(s.get("f.txt")).rejects.toMatchObject({ code: "STORAGE_TENANT_SHREDDED" });
   });
 });
+
+describe("one master key, a sealed data key per tenant (krizaka-internal#4195)", () => {
+  /** The local adapter with its KMS calls counted. */
+  function counted() {
+    const inner = memoryKeyService({ name: "local" });
+    const calls = { wrap: 0, unwrap: 0 };
+    const kms: ReturnType<typeof memoryKeyService> = {
+      ...inner,
+      wrap: async (p, c) => {
+        calls.wrap += 1;
+        return inner.wrap(p, c);
+      },
+      unwrap: async (w, c) => {
+        calls.unwrap += 1;
+        return inner.unwrap(w, c);
+      },
+    };
+    return { kms, calls };
+  }
+
+  it("another tenant's data key cannot open an object, even with its wrapped key swapped in", async () => {
+    const { vault } = setup();
+    const sealedA = await vault.seal("a", "t/a/doc", text("A only"));
+    await vault.seal("b", "t/b/doc", text("B")); // B has a data key of its own
+    await expect(vault.open("b", "t/a/doc", sealedA)).rejects.toMatchObject({ code: "STORAGE_UNREADABLE" });
+    await expect(vault.open("b", "t/b/doc", sealedA)).rejects.toMatchObject({ code: "STORAGE_UNREADABLE" });
+    expect(new TextDecoder().decode(await vault.open("a", "t/a/doc", sealedA))).toBe("A only");
+  });
+
+  it("rotating the master key re-wraps the data keys and leaves every stored object byte for byte", async () => {
+    const { kms, vault, bucket, store } = setup();
+    for (const t of ["a", "b"]) await store(t).put("f.txt", text(`doc ${t}`), { contentType: "text/plain" });
+    const before = await Promise.all(
+      ["a", "b"].map(async (t) => Buffer.from((await bucket.get(`t/${t}/f.txt`))!.bytes)),
+    );
+    const old = await kms.currentKeyId();
+    await kms.rotate();
+    expect(await vault.rewrapRoot()).toEqual({ tenants: 2, rewrapped: 2 });
+    kms.destroy(old);
+    const after = await Promise.all(
+      ["a", "b"].map(async (t) => Buffer.from((await bucket.get(`t/${t}/f.txt`))!.bytes)),
+    );
+    expect(after[0]!.equals(before[0]!)).toBe(true);
+    expect(after[1]!.equals(before[1]!)).toBe(true);
+    expect(new TextDecoder().decode((await store("b").get("f.txt"))!.bytes)).toBe("doc b");
+  });
+
+  it("KMS calls are bounded by the data-key cache, not by the number of documents", async () => {
+    const { kms, calls } = counted();
+    const bucket = memoryObjectStore();
+    const vault = tenantVault({ kms, keys: memoryTenantKeyStore(), clock, audit: async () => {}, cacheSeconds: 300 });
+    const s = tenantStore(bucket, vault, "a");
+    const docs = 50;
+    for (let i = 0; i < docs; i += 1) await s.put(`d${i}.txt`, text(`n${i}`), { contentType: "text/plain" });
+    for (let i = 0; i < docs; i += 1) await s.get(`d${i}.txt`);
+    // One wrap (the tenant's key, once) and no unwrap at all: 100 operations, 1 KMS call.
+    expect(calls.wrap).toBe(1);
+    expect(calls.unwrap).toBeLessThanOrEqual(1);
+    expect(calls.wrap + calls.unwrap).toBeLessThanOrEqual(2);
+  });
+
+  it("without the cache every operation asks the KMS (the cache is what bounds it)", async () => {
+    const { kms, calls } = counted();
+    const vault = tenantVault({ kms, keys: memoryTenantKeyStore(), clock, audit: async () => {}, cacheSeconds: 0 });
+    const s = tenantStore(memoryObjectStore(), vault, "a");
+    for (let i = 0; i < 5; i += 1) await s.put(`d${i}.txt`, text("x"), { contentType: "text/plain" });
+    expect(calls.unwrap).toBeGreaterThanOrEqual(5);
+  });
+});
