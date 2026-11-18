@@ -155,7 +155,9 @@ describe.runIf(process.env.STORAGE_S3_IT === "1")("opendalStore on an S3-compati
   };
   let bucket = 0;
   beforeAll(async () => {
-    server = await new GenericContainer("chrislusf/seaweedfs:3.97@sha256:bb05d66d2963b1cc48073190781c3dd29e2c4c88a2ae2986bf58e38c86d89c6e")
+    server = await new GenericContainer(
+      "chrislusf/seaweedfs:3.97@sha256:bb05d66d2963b1cc48073190781c3dd29e2c4c88a2ae2986bf58e38c86d89c6e",
+    )
       .withCopyContentToContainer([{ content: JSON.stringify(identities), target: "/etc/s3.json" }])
       .withCommand(["server", "-dir=/data", "-s3", "-s3.port=8333", "-s3.config=/etc/s3.json"])
       .withExposedPorts(8333)

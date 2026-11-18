@@ -12,7 +12,9 @@ describe.runIf(process.env.STORAGE_SCAN_IT === "1")("the scanner on clamd", () =
   let address = { host: "127.0.0.1", port: 3310 };
 
   beforeAll(async () => {
-    server = await new GenericContainer("clamav/clamav:1.4@sha256:4cc4350d3fded380caf1799e76c0d1c93f3fa40af99c0cb2862ec0c9b117718a")
+    server = await new GenericContainer(
+      "clamav/clamav:1.4@sha256:4cc4350d3fded380caf1799e76c0d1c93f3fa40af99c0cb2862ec0c9b117718a",
+    )
       .withPlatform("linux/amd64") // the image has no arm64 build (a Mac runs it emulated)
       .withExposedPorts(3310)
       // clamd answers only once the signatures are loaded (a minute or two)
