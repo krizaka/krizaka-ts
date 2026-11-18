@@ -18,6 +18,7 @@ export { DEFAULT_KINDS, defaultFor, defaults, defaultUrl, fetchDefaults, listDef
 export { family } from "./family";
 export { CDN, org, ORG_SCHEMA_URL, ORG_URL } from "./org";
 export type {
+  ActionKind,
   AppConfig,
   AppEnvironment,
   FamilyEntry,
@@ -25,9 +26,13 @@ export type {
   FamilyMember,
   FamilyStatus,
   FooterSite,
+  HomeAction,
+  HomeProof,
+  HomeStep,
   LegalId,
   Localized,
   MascotBird,
+  MemberHome,
   MemberKind,
   MemberStatus,
   Org,
@@ -41,11 +46,21 @@ export type {
   OrgSite,
   OrgSocialLink,
   ProductStatus,
+  ProofKind,
   ResolvedFooter,
   SiteKind,
   SiteTone,
+  StepState,
 } from "./org.types";
-export { MASCOT_BIRDS, PRODUCT_STATUS } from "./org.types";
+export {
+  ACTION_KINDS,
+  AUDIENCE_MAX,
+  MASCOT_BIRDS,
+  PRODUCT_STATUS,
+  PROOF_KINDS,
+  STEP_STATES,
+  STEPS_MAX,
+} from "./org.types";
 export type { CheckResult, Lang, Surface } from "./render/surfaces";
 export { checkSurface, renderSurface, SURFACES } from "./render/surfaces";
 export { appSchema, orgSchema } from "./schema";
