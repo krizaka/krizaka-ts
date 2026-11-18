@@ -4,9 +4,9 @@ import { SOVKORA_CODE, SovkoraError } from "./errors";
 export const PAGE_KIND = { pdfScan: "pdf-scan", screenshot: "screenshot", photo: "photo" } as const;
 export type PageKind = (typeof PAGE_KIND)[keyof typeof PAGE_KIND];
 
-/** At most this many pages in one `readPages` call. */
+/** @fixed: the door's own bound (sovkora `DocumentReadsRequest.MAX_PAGES`): at most this many pages in one `readPages` call. */
 export const MAX_PAGES = 12;
-/** One page is at most this many bytes (the reader worker's bound). */
+/** @fixed: the reader worker's bound on one page (sovkora `DocumentPage.MAX_IMAGE_BYTES`), in bytes. */
 export const MAX_PAGE_BYTES = 2 * 1024 * 1024;
 
 /** One page to read: its image bytes and its kind. There is no reader to choose: Sovkora's routing does. */
