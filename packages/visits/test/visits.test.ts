@@ -6,6 +6,7 @@ import {
   normalisePath,
   recordVisit,
   referrerDomain,
+  utmValue,
   type VisitRow,
   visitRowOf,
   type VisitStore,
@@ -56,6 +57,31 @@ describe("referrerDomain", () => {
   });
 });
 
+describe("utmValue", () => {
+  it("keeps a short lower-case tag", () => {
+    expect(utmValue("LinkedIn")).toBe("linkedin");
+    expect(utmValue("x_2026-11.a")).toBe("x_2026-11.a");
+    expect(utmValue("a".repeat(64))).toBe("a".repeat(64));
+  });
+  it("is empty for none, too long, or outside [a-z0-9_.-]: it is rejected, never truncated", () => {
+    for (const v of [
+      undefined,
+      null,
+      "",
+      "a".repeat(65),
+      "a b",
+      "a@b.c",
+      "https://x.com/?e=a@b.c",
+      "é",
+      "a/b",
+      "a;b",
+      "a=1",
+    ]) {
+      expect(utmValue(v)).toBe("");
+    }
+  });
+});
+
 describe("isBot", () => {
   it("refuses known bots, tools and an empty agent, keeps browsers", () => {
     for (const ua of [
@@ -84,14 +110,29 @@ describe("visitRowOf", () => {
       page: "/fr",
       day: "2026-11-17",
       referrerDomain: "duckduckgo.com",
+      utmSource: "",
+      utmCampaign: "",
     });
   });
-  it("stores nothing personal: the row has exactly four keys, none holding the agent, the query or the full referrer", () => {
+  it("keeps utm_source and utm_campaign in the row, lower-cased", () => {
+    const row = visitRowOf(
+      { site: "www", path: "/fr", userAgent: CHROME, utmSource: "LinkedIn", utmCampaign: "Post_2026-11.Launch" },
+      NOW,
+    )!;
+    expect(row.utmSource).toBe("linkedin");
+    expect(row.utmCampaign).toBe("post_2026-11.launch");
+  });
+  it("two campaigns are two keys", () => {
+    const a = visitRowOf({ site: "www", path: "/", userAgent: CHROME, utmCampaign: "a" }, NOW)!;
+    const b = visitRowOf({ site: "www", path: "/", userAgent: CHROME, utmCampaign: "b" }, NOW)!;
+    expect(JSON.stringify(a)).not.toBe(JSON.stringify(b));
+  });
+  it("stores nothing personal: the row has exactly six keys, none holding the agent, the query or the full referrer", () => {
     const row = visitRowOf(
       { site: "www", path: "/fr?token=SECRET", referer: "https://x.com/u/secret?q=1", userAgent: CHROME },
       NOW,
     )!;
-    expect(Object.keys(row).sort()).toEqual(["day", "page", "referrerDomain", "site"]);
+    expect(Object.keys(row).sort()).toEqual(["day", "page", "referrerDomain", "site", "utmCampaign", "utmSource"]);
     expect(JSON.stringify(row)).not.toMatch(/SECRET|Mozilla|secret|q=1/);
   });
   it("is null for a bot or a non-page", () => {
