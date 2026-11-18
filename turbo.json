@@ -14,7 +14,7 @@
     "test": {
       "dependsOn": ["^build"],
       "outputs": ["coverage/**"],
-      "passThroughEnv": ["DATABASE_URL", "ORGANIZE_DB_IT", "STORAGE_DB_IT", "STORAGE_S3_IT"]
+      "passThroughEnv": ["DATABASE_URL", "ORGANIZE_DB_IT", "STORAGE_DB_IT", "STORAGE_S3_IT", "STORAGE_SCAN_IT"]
     },
     "check": {
       "dependsOn": ["^build", "^check"],

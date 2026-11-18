@@ -43,3 +43,10 @@ const { key, url } = await storage.upload({
 ```
 
 Apache-2.0.
+
+## Malware scan, object events and bounded direct upload
+
+- `MalwareScanner.scan(ref)` answers `clean`, `infected(name)` or `error`; an `error` (scanner down, timeout, object unreadable) is never « clean ». `scanDaemon({ store, transport })` is the ClamAV (`clamd`) adapter, `tcpScanTransport` (in `@krizaka/storage/node`) its TCP transport, `memoryMalwareScanner` the test adapter.
+- `EventSource` delivers `object.created` and `scan.result` events at least once; wrap a handler with `idempotent(handler, ledger)` so a redelivery of the same object version is handled once. `memoryEventSource` is the test adapter.
+- `store.presignUpload(key, maxBytes, contentTypes, ttlSeconds)` returns an S3 POST policy with `content-length-range` 1..`maxBytes` (the provider refuses anything bigger), or `null` when the store cannot bound the upload. Several content types must share one family (`image/…`).
+- The AWS SDK is imported nowhere but `src/adapters/s3/` and `src/adapters/aws-kms/`: `node scripts/check-aws-sdk.mjs` (in `pnpm lint`) fails otherwise.

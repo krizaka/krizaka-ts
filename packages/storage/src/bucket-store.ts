@@ -1,6 +1,7 @@
+import type { DirectUpload } from "./direct-upload";
 import { assertKey, trimSlashes, typeOfName } from "./keys";
 import { type Clock, type FetchLike, type ObjectInfo, type ObjectStore, STORAGE_CODE, StorageError } from "./port";
-import { type Credentials, hashPayload, presignGet, signRequest } from "./request-signing";
+import { type Credentials, hashPayload, presignGet, presignPost, signRequest } from "./request-signing";
 
 export interface BucketStoreOptions {
   /** The provider's origin: `https://tor1.digitaloceanspaces.com`, `https://s3.example.com`, `http://localhost:9000`. */
@@ -28,13 +29,25 @@ const unescapeXml = (s: string) =>
     .replaceAll("&quot;", '"')
     .replaceAll("&apos;", "'")
     .replaceAll("&amp;", "&");
+/** One type is exact; several must share a `type/` family (a POST policy cannot say « png or pdf »). */
+function contentTypeRule(types: readonly string[]): { exact: string } | { prefix: string } {
+  const bad = (why: string) => new StorageError(STORAGE_CODE.badType, why);
+  const unique = [...new Set(types)];
+  const [first] = unique;
+  if (first === undefined) throw bad("an upload needs at least one content type");
+  if (unique.some((t) => !/^[a-z]+\/[a-z0-9][a-z0-9.+-]*$/i.test(t))) throw bad("a content type is `type/subtype`");
+  if (unique.length === 1) return { exact: first };
+  const family = first.slice(0, first.indexOf("/") + 1);
+  if (!unique.every((t) => t.startsWith(family))) throw bad("an upload policy bounds one type or one family (image/…)");
+  return { prefix: family };
+}
 const tag = (xml: string, name: string) => new RegExp(String.raw`<${name}>([\s\S]*?)</${name}>`).exec(xml)?.[1];
 
 /**
  * Any S3-compatible service (Spaces, a customer's bucket, MinIO) over plain HTTP: path-style URLs and Signature V4, no SDK.
- * `signedUrl` is a presigned GET.
+ * `signedUrl` is a presigned GET; `presignUpload` a POST policy the provider enforces (size and type).
  */
-export function bucketStore(options: BucketStoreOptions): ObjectStore {
+export function bucketStore(options: BucketStoreOptions): ObjectStore & DirectUpload {
   const creds: Credentials = {
     accessKeyId: options.accessKeyId,
     secretAccessKey: options.secretAccessKey,
@@ -109,6 +122,23 @@ export function bucketStore(options: BucketStoreOptions): ObjectStore {
     list,
     async signedUrl(key, ttlSeconds) {
       return presignGet(creds, urlOf(key), ttlSeconds, options.clock.now());
+    },
+    async presignUpload(key, maxBytes, contentTypes, ttlSeconds) {
+      if (!Number.isSafeInteger(maxBytes) || maxBytes < 1)
+        throw new StorageError(STORAGE_CODE.tooBig, "maxBytes is a whole number of bytes, at least 1");
+      if (!Number.isSafeInteger(ttlSeconds) || ttlSeconds < 1 || ttlSeconds > 604_800)
+        throw new StorageError(STORAGE_CODE.badConfig, "an upload link lives 1 second to 7 days");
+      const contentType = contentTypeRule(contentTypes);
+      const fields = presignPost(creds, {
+        bucket: options.bucket,
+        key: inBucket(assertKey(key)),
+        maxBytes,
+        contentType,
+        extra: options.serverSideEncryption ? { "x-amz-server-side-encryption": "AES256" } : {},
+        ttlSeconds,
+        now: options.clock.now(),
+      });
+      return { url: `${origin}/${options.bucket}`, fields, maxBytes };
     },
     publicUrl: (key) =>
       options.publicBaseUrl ? `${trimSlashes(options.publicBaseUrl, "end")}/${assertKey(key)}` : null,
