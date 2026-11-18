@@ -60,6 +60,7 @@ export {
 export { isPrivateAddress } from "./private-address";
 export { publicOnlyFetch } from "./public-fetch";
 export { remoteStore, type RemoteStoreOptions } from "./remote-store";
+export { tcpScanTransport } from "./scan-transport";
 export { createStorage, type Storage, type StorageDeps, type StorageLimits, type UploadInput } from "./storage";
 export {
   dbTenantKeyStore,

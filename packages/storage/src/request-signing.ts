@@ -111,3 +111,57 @@ export function presignGet(c: Credentials, url: string, ttlSeconds: number, now:
   u.searchParams.set("X-Amz-Signature", s.value);
   return u.toString();
 }
+
+/**
+ * A browser POST upload bounded by a policy: the form fields to send (the policy, its signature, and `extra` fields the policy pins)
+ * for one exact `key`, a size of 1 to `maxBytes`, and `contentTypes` (exact when one, `starts-with` a shared `type/` otherwise).
+ * The provider checks `content-length-range` itself: an object over `maxBytes` is refused (HTTP 400, EntityTooLarge).
+ */
+export function presignPost(
+  c: Credentials,
+  req: {
+    bucket: string;
+    key: string;
+    maxBytes: number;
+    contentType: { exact: string } | { prefix: string };
+    extra?: Record<string, string>;
+    ttlSeconds: number;
+    now: Date;
+  },
+): Record<string, string> {
+  const amzDate = stamp(req.now);
+  const credential = `${c.accessKeyId}/${amzDate.slice(0, 8)}/${c.region}/${c.service}/aws4_request`;
+  const expires = new Date(req.now);
+  expires.setUTCSeconds(expires.getUTCSeconds() + req.ttlSeconds);
+  const extra = req.extra ?? {};
+  const signed = {
+    "x-amz-algorithm": "AWS4-HMAC-SHA256",
+    "x-amz-credential": credential,
+    "x-amz-date": amzDate,
+  };
+  const policy = {
+    expiration: expires.toISOString(),
+    conditions: [
+      { bucket: req.bucket },
+      { key: req.key },
+      ["content-length-range", 1, req.maxBytes],
+      "exact" in req.contentType
+        ? { "Content-Type": req.contentType.exact }
+        : ["starts-with", "$Content-Type", req.contentType.prefix],
+      ...Object.entries({ ...signed, ...extra }).map(([k, v]) => ({ [k]: v })),
+    ],
+  };
+  const encoded = Buffer.from(JSON.stringify(policy)).toString("base64");
+  const fields: Record<string, string> = {
+    key: req.key,
+    ...("exact" in req.contentType ? { "Content-Type": req.contentType.exact } : {}),
+    ...extra,
+    ...signed,
+    policy: encoded,
+    "x-amz-signature": crypto
+      .createHmac("sha256", signingKey(c, amzDate.slice(0, 8)))
+      .update(encoded)
+      .digest("hex"),
+  };
+  return fields;
+}

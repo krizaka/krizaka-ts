@@ -4,9 +4,25 @@
  * Everything that hashes, signs, encrypts or touches the disk is in `@krizaka/storage/node` (the `node` condition of `.` too).
  */
 export { testConnection, type TestStep } from "./connection-test";
+export { type DirectUpload, type PresignedUpload } from "./direct-upload";
 export { checkEndpoint } from "./endpoint";
 export { assertKey, defineLayout, type Layout, trimSlashes, typeOfName } from "./keys";
+export {
+  DEFAULT_SCAN_TIMEOUT_MS,
+  type MalwareScanner,
+  memoryMalwareScanner,
+  type ObjectRef,
+  type ScanResult,
+} from "./malware-scanner";
 export { memoryObjectStore } from "./memory-store";
+export {
+  eventId,
+  type EventSource,
+  idempotent,
+  memoryEventSource,
+  type ObjectEvent,
+  type ObjectEventHandler,
+} from "./object-events";
 export * from "./port";
 export {
   type FieldSchema,
@@ -33,6 +49,7 @@ export {
   residencyOf,
   residencyOfConfig,
 } from "./regions";
+export { instreamRequest, parseVerdict, scanDaemon, type ScanTransport } from "./scan-daemon";
 export { sniffType } from "./sniff";
 export { type SweepOptions, sweepOrphans, type SweepResult } from "./sweep";
 export {

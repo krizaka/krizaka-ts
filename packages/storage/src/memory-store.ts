@@ -1,8 +1,9 @@
+import type { DirectUpload } from "./direct-upload";
 import { assertKey, trimSlashes, typeOfName } from "./keys";
 import type { ObjectStore } from "./port";
 
 /** An in-memory store, for unit tests and demos: the behaviour of the others (the contract kit runs on all). */
-export function memoryObjectStore(options: { publicBaseUrl?: string } = {}): ObjectStore {
+export function memoryObjectStore(options: { publicBaseUrl?: string } = {}): ObjectStore & DirectUpload {
   const files = new Map<string, { bytes: Uint8Array; contentType: string }>();
   return {
     async put(key, bytes, meta) {
@@ -26,6 +27,10 @@ export function memoryObjectStore(options: { publicBaseUrl?: string } = {}): Obj
         .sort((a, b) => a.key.localeCompare(b.key));
     },
     async signedUrl() {
+      return null;
+    },
+    // Nothing here bounds a client's upload: the caller goes through the server.
+    async presignUpload() {
       return null;
     },
     publicUrl: (key) =>
