@@ -5,27 +5,37 @@ import { bucketStore } from "../src/bucket-store";
 import { EMPTY_SHA256, signRequest } from "../src/request-signing";
 import { objectStoreContract } from "../src/testkit";
 
-/**
- * The S3 adapter against a real MinIO (CI sets STORAGE_S3_IT=1; locally with Docker running). Test credentials only.
- * MinIO's own images left Docker Hub and Quay: the image is a parameter (`STORAGE_MINIO_IMAGE`), a pinned community build by default.
- */
-const IMAGE = process.env.STORAGE_MINIO_IMAGE ?? "insectai/minio:RELEASE.2026-09-16T00-00-00Z";
+/** The S3 adapter against a real S3 server, SeaweedFS (CI sets STORAGE_S3_IT=1; locally with Docker running). Test credentials only. */
+const IMAGE = "chrislusf/seaweedfs:3.97@sha256:bb05d66d2963b1cc48073190781c3dd29e2c4c88a2ae2986bf58e38c86d89c6e";
 
-describe.runIf(process.env.STORAGE_S3_IT === "1")("the bucket store on MinIO", () => {
+describe.runIf(process.env.STORAGE_S3_IT === "1")("the bucket store on SeaweedFS", () => {
   let server: StartedTestContainer;
   let endpoint = "";
-  const keys = { accessKeyId: "minio-ci", secretAccessKey: "minio-ci-only-demo" };
+  const keys = { accessKeyId: "kz-ci", secretAccessKey: "kz-ci-only-demo" };
   const clock = { now: () => new Date() };
   let n = 0;
 
   beforeAll(async () => {
     server = await new GenericContainer(IMAGE)
-      .withEnvironment({ MINIO_ROOT_USER: keys.accessKeyId, MINIO_ROOT_PASSWORD: keys.secretAccessKey })
-      .withCommand(["server", "/data"])
-      .withExposedPorts(9000)
-      .withWaitStrategy(Wait.forHttp("/minio/health/ready", 9000))
+      .withCopyContentToContainer([
+        {
+          content: JSON.stringify({
+            identities: [
+              {
+                name: "ci",
+                credentials: [{ accessKey: keys.accessKeyId, secretKey: keys.secretAccessKey }],
+                actions: ["Admin", "Read", "Write", "List", "Tagging"],
+              },
+            ],
+          }),
+          target: "/etc/s3.json",
+        },
+      ])
+      .withCommand(["server", "-dir=/data", "-s3", "-s3.port=8333", "-s3.config=/etc/s3.json"])
+      .withExposedPorts(8333)
+      .withWaitStrategy(Wait.forLogMessage(/Start Seaweed S3 API Server/))
       .start();
-    endpoint = `http://${server.getHost()}:${server.getMappedPort(9000)}`;
+    endpoint = `http://${server.getHost()}:${server.getMappedPort(8333)}`;
   }, 300_000);
   afterAll(async () => {
     await server?.stop();
@@ -44,7 +54,7 @@ describe.runIf(process.env.STORAGE_S3_IT === "1")("the bucket store on MinIO", (
   };
   const storeOn = (bucket: string) => bucketStore({ endpoint, region: "us-east-1", bucket, ...keys, fetch, clock });
 
-  objectStoreContract("bucket store (MinIO)", async () => storeOn(await newBucket()));
+  objectStoreContract("bucket store (SeaweedFS)", async () => storeOn(await newBucket()));
 
   const post = (up: { url: string; fields: Record<string, string> }, body: Uint8Array, type: string) => {
     const form = new FormData();
@@ -74,9 +84,12 @@ describe.runIf(process.env.STORAGE_S3_IT === "1")("the bucket store on MinIO", (
   it("refuses another content type, another key and an expired link", async () => {
     const store = storeOn(await newBucket());
     const up = (await store.presignUpload("in/t.png", 100, ["image/png"], 300))!;
-    expect((await post(up, new Uint8Array(5), "text/html")).status).toBe(403);
+    const refused = async (res: Response) => {
+      expect([400, 403]).toContain(res.status); // the servers differ on the code, not on the refusal
+    };
+    await refused(await post(up, new Uint8Array(5), "text/html"));
     const moved = { ...up, fields: { ...up.fields, key: "in/other.png" } };
-    expect((await post(moved, new Uint8Array(5), "image/png")).status).toBe(403);
+    await refused(await post(moved, new Uint8Array(5), "image/png"));
     const past = bucketStore({
       endpoint,
       region: "us-east-1",
@@ -86,6 +99,6 @@ describe.runIf(process.env.STORAGE_S3_IT === "1")("the bucket store on MinIO", (
       clock: { now: () => new Date(Date.now() - 3_600_000) },
     });
     const old = (await past.presignUpload("in/old.png", 100, ["image/png"], 60))!;
-    expect((await post(old, new Uint8Array(5), "image/png")).status).toBe(403);
+    await refused(await post(old, new Uint8Array(5), "image/png"));
   });
 });
