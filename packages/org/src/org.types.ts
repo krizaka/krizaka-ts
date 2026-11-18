@@ -104,6 +104,56 @@ export type MemberKind = "company" | "blog" | "product" | "library" | "lab" | "g
 /** One status set for everything the family shows: the product statuses, plus `released` and `retired`. */
 export type MemberStatus = ProductStatus | "released" | "retired";
 
+/** How far a step of « how it works » is: shown as a word, never by colour alone. */
+export const STEP_STATES = ["built", "building", "planned"] as const;
+export type StepState = (typeof STEP_STATES)[number];
+
+/** What a proof points at; the label comes from the generic catalogue, never from the member. */
+export const PROOF_KINDS = ["source", "release", "licence", "library", "install", "image"] as const;
+export type ProofKind = (typeof PROOF_KINDS)[number];
+
+/** The one primary action of a home; the kind picks the generic label. */
+export const ACTION_KINDS = ["contact", "install", "guide", "post", "read"] as const;
+export type ActionKind = (typeof ACTION_KINDS)[number];
+
+/** The longest audience line, in characters: one reader in one situation. */
+// @fixed: the design's contract (§ 4), checked by the schema, not a business parameter
+export const AUDIENCE_MAX = 120;
+/** The most steps a home shows. */
+// @fixed: the design's contract (§ 4), checked by the schema, not a business parameter
+export const STEPS_MAX = 3;
+
+export interface HomeStep {
+  text: Localized;
+  state: StepState;
+}
+
+export interface HomeProof {
+  kind: ProofKind;
+  /** A URL, a member id or a CDN path. */
+  ref: string;
+}
+
+export interface HomeAction {
+  kind: ActionKind;
+  href?: string;
+  /** The install line; required when `kind` is `install`. */
+  install?: string;
+}
+
+/**
+ * What a site's home says about its member (krizaka-internal#4214, design 2026-11-18-sites-home-footer § 4). Every text is
+ * in both languages. The promise is `words.line`, never repeated here.
+ */
+export interface MemberHome {
+  /** One reader in one situation, no list (at most `AUDIENCE_MAX` characters). */
+  audience: Localized;
+  /** At most `STEPS_MAX`; required for a product and for the agents. */
+  steps?: HomeStep[];
+  proofs?: HomeProof[];
+  action: HomeAction;
+}
+
 /**
  * One row of the family table (`family` in `@krizaka/org`, krizaka-internal#3913): the only place a member is written.
  * `products`, `sites`, `family` (the groups) and `brands` are filters of it.
@@ -143,6 +193,8 @@ export interface FamilyMember {
   /** CDN paths without the version: `brand/<id>/mark-<theme>.svg`. */
   mark: { light: string; dark: string };
   words: { line: Localized };
+  /** What the home says; optional until the founder approves the words. */
+  home?: MemberHome;
 }
 
 export interface OrgAvatar {

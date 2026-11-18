@@ -136,3 +136,71 @@ describe("the family table", () => {
     expect(validate({ ...org, members: [...org.members, agents] })).toBe(false);
   });
 });
+
+describe("the home of a member (krizaka-internal#4214)", () => {
+  const validate = new Ajv2020({ allErrors: true, strict: false }).compile(orgSchema);
+  const t = (s: string) => ({ fr: `${s} (fr)`, en: s });
+  const step = (state: string) => ({ text: t("step"), state });
+  const home = { audience: t("A reader"), steps: [step("built")], action: { kind: "contact" } };
+  const withHome = (id: string, h: unknown) =>
+    ({ ...org, members: org.members.map((m) => (m.id === id ? { ...m, home: h } : m)) }) as unknown;
+
+  it("stays optional: the data carries none yet, and still validates", () => {
+    expect(org.members.some((m) => "home" in m)).toBe(false);
+    expect(validate(org)).toBe(true);
+  });
+
+  it("accepts a complete home on a product and a library", () => {
+    expect(validate(withHome("verikora", home)), JSON.stringify(validate.errors)).toBe(true);
+    expect(
+      validate(withHome("ui", { audience: t("x"), action: { kind: "install", install: "pnpm add @krizaka/ui" } })),
+    ).toBe(true);
+    expect(
+      validate(withHome("ui", { ...home, proofs: [{ kind: "source", ref: "https://github.com/krizaka/krizaka-ui" }] })),
+    ).toBe(true);
+  });
+
+  it("needs both languages in every text", () => {
+    expect(validate(withHome("verikora", { ...home, audience: { fr: "x" } }))).toBe(false);
+    expect(validate(withHome("verikora", { ...home, audience: { fr: "x", en: "" } }))).toBe(false);
+    expect(validate(withHome("verikora", { ...home, steps: [{ text: { en: "x" }, state: "built" }] }))).toBe(false);
+  });
+
+  it("caps the audience at 120 characters, in each language", () => {
+    const ok = "a".repeat(120);
+    expect(validate(withHome("verikora", { ...home, audience: { fr: ok, en: ok } }))).toBe(true);
+    expect(validate(withHome("verikora", { ...home, audience: { fr: ok + "a", en: ok } }))).toBe(false);
+    expect(validate(withHome("verikora", { ...home, audience: { fr: ok, en: ok + "a" } }))).toBe(false);
+  });
+
+  it("allows at most 3 steps, each in a known state", () => {
+    const steps = (n: number) => Array.from({ length: n }, () => step("planned"));
+    expect(validate(withHome("verikora", { ...home, steps: steps(3) }))).toBe(true);
+    expect(validate(withHome("verikora", { ...home, steps: steps(4) }))).toBe(false);
+    for (const state of ["built", "building", "planned"])
+      expect(validate(withHome("verikora", { ...home, steps: [step(state)] })), state).toBe(true);
+    expect(validate(withHome("verikora", { ...home, steps: [step("done")] }))).toBe(false);
+  });
+
+  it("requires steps for a product, not for a library", () => {
+    const { steps: _steps, ...bare } = home;
+    for (const id of ["sovkora", "verikora", "folioviv", "kridoc"])
+      expect(validate(withHome(id, bare)), id).toBe(false);
+    expect(validate(withHome("ts", bare))).toBe(true);
+  });
+
+  it("requires install on an install action, and only knows the five kinds", () => {
+    expect(validate(withHome("ts", { ...home, action: { kind: "install" } }))).toBe(false);
+    expect(validate(withHome("ts", { ...home, action: { kind: "install", install: "pnpm add x" } }))).toBe(true);
+    for (const kind of ["contact", "guide", "post", "read"])
+      expect(validate(withHome("ts", { ...home, action: { kind } })), kind).toBe(true);
+    expect(validate(withHome("ts", { ...home, action: { kind: "signup" } }))).toBe(false);
+  });
+
+  it("needs an audience and an action, knows only its proof kinds, and no stray field", () => {
+    expect(validate(withHome("ts", { action: home.action }))).toBe(false);
+    expect(validate(withHome("ts", { audience: home.audience }))).toBe(false);
+    expect(validate(withHome("ts", { ...home, proofs: [{ kind: "badge", ref: "x" }] }))).toBe(false);
+    expect(validate(withHome("ts", { ...home, price: "free" }))).toBe(false);
+  });
+});

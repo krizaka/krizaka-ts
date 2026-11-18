@@ -1,5 +1,13 @@
 import { CDN, org, ORG_SCHEMA_URL } from "./org";
-import { MASCOT_BIRDS, PRODUCT_STATUS } from "./org.types";
+import {
+  ACTION_KINDS,
+  AUDIENCE_MAX,
+  MASCOT_BIRDS,
+  PRODUCT_STATUS,
+  PROOF_KINDS,
+  STEP_STATES,
+  STEPS_MAX,
+} from "./org.types";
 
 const localized = {
   type: "object",
@@ -44,6 +52,56 @@ const footerSite = {
     license: { type: "boolean" },
     legal: { type: "array", uniqueItems: true, items: { enum: ["privacy", "terms"] } },
     version: { type: "boolean" },
+  },
+} as const;
+
+/** The home of a member (krizaka-internal#4214): both languages everywhere, the rules of the design § 4. */
+const home = {
+  type: "object",
+  additionalProperties: false,
+  required: ["audience", "action"],
+  properties: {
+    audience: {
+      type: "object",
+      additionalProperties: false,
+      required: ["fr", "en"],
+      properties: {
+        fr: { type: "string", minLength: 1, maxLength: AUDIENCE_MAX },
+        en: { type: "string", minLength: 1, maxLength: AUDIENCE_MAX },
+      },
+    },
+    steps: {
+      type: "array",
+      maxItems: STEPS_MAX,
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["text", "state"],
+        properties: { text: localized, state: { enum: [...STEP_STATES] } },
+      },
+    },
+    proofs: {
+      type: "array",
+      uniqueItems: true,
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["kind", "ref"],
+        properties: { kind: { enum: [...PROOF_KINDS] }, ref: { type: "string", minLength: 1 } },
+      },
+    },
+    action: {
+      type: "object",
+      additionalProperties: false,
+      required: ["kind"],
+      properties: {
+        kind: { enum: [...ACTION_KINDS] },
+        href: { type: "string", minLength: 1 },
+        install: { type: "string", minLength: 1 },
+      },
+      if: { properties: { kind: { const: "install" } }, required: ["kind"] },
+      then: { required: ["install"] },
+    },
   },
 } as const;
 
@@ -292,7 +350,11 @@ export const orgSchema = {
             required: ["line"],
             properties: { line: localized },
           },
+          home,
         },
+        // A product (the agents included) that carries a home says how it works.
+        if: { properties: { kind: { const: "product" } }, required: ["kind", "home"] },
+        then: { properties: { home: { required: ["steps"] } } },
       },
     },
     contact: {
