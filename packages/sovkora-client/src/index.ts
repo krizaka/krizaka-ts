@@ -22,5 +22,16 @@ export {
   type WaitOptions,
 } from "./client";
 export { SOVKORA_CODE, type SovkoraCode, SovkoraError, sovkoraRefusal } from "./errors";
+export {
+  type DocumentReading,
+  MAX_PAGE_BYTES,
+  MAX_PAGES,
+  PAGE_KIND,
+  type PageKind,
+  parseReadings,
+  type ReadBox,
+  type ReadLine,
+  type ReadPageInput,
+} from "./reads";
 export { isTerminal, outputOf, parseInstallations, parseRun, RUN_STATUS, type RunOutput, type SovkoraRun } from "./run";
 export type { Circuit, CircuitOptions, Clock } from "@krizaka/resilience";

@@ -8,7 +8,7 @@ export const SOVKORA_CODE = {
   credits: "SOVKORA_CREDITS",
   /** 409: the Studio is locked (to buy, or already installed). */
   locked: "SOVKORA_LOCKED",
-  /** 400/422: the inputs are not what the Studio asks for. */
+  /** 400/413/422: the inputs are not what the Studio (or the document reader) asks for. */
   input: "SOVKORA_INPUT",
   /** 404: no such Studio or run (or not the caller's). */
   notFound: "SOVKORA_NOT_FOUND",
@@ -38,7 +38,7 @@ export function sovkoraRefusal(status: number): { status: number; code: SovkoraC
   if (status === 401 || status === 403) return { status: 502, code: SOVKORA_CODE.key };
   if (status === 402) return { status: 502, code: SOVKORA_CODE.credits };
   if (status === 409) return { status: 502, code: SOVKORA_CODE.locked };
-  if (status === 400 || status === 422) return { status: 422, code: SOVKORA_CODE.input };
+  if (status === 400 || status === 413 || status === 422) return { status: 422, code: SOVKORA_CODE.input };
   if (status === 404) return { status: 502, code: SOVKORA_CODE.notFound };
   if (status === 429) return { status: 429, code: SOVKORA_CODE.busy };
   if (status === 451) return { status: 502, code: SOVKORA_CODE.consent };
