@@ -85,10 +85,11 @@ describe("the org JSON", () => {
   it("uses one id per site across sites, family and footer.sites; old ids are aliases only", () => {
     const ids = org.sites.map((s) => s.id);
     expect(new Set(ids).size).toBe(ids.length);
-    for (const id of Object.keys(org.footer.sites)) expect(ids, `footer.sites.${id}`).toContain(id);
+    // rust has no bird yet and agents is private: both resolve a footer without being in `sites`.
+    for (const id of Object.keys(org.footer.sites))
+      if (!["rust", "agents"].includes(id)) expect(ids, `footer.sites.${id}`).toContain(id);
     for (const e of org.family.filter((f) => f.group !== "github" && f.id !== "rust"))
       expect(ids, `family.${e.id}`).toContain(e.id);
-    expect(org.footer.sites).not.toHaveProperty("rust");
     const aliases = org.sites.flatMap((s) => (s.aliases ?? []).map((a) => [a, s.id]));
     expect(Object.fromEntries(aliases)).toEqual({ www: "krizaka", motion: "lab" });
     for (const [alias] of aliases) expect(ids).not.toContain(alias);

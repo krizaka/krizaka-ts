@@ -285,7 +285,7 @@ export interface Org {
   footer: {
     line: Localized;
     legal: { id: LegalId; label: Localized; url: Localized }[];
-    /** What each site shows, keyed by site id (`krizaka`, `ui`, `lab`, `java`, `ts`; every key is a site id): a site reads it with `footerFor`. */
+    /** What each site shows, keyed by site id (the 12 sites: `krizaka`, `blog`, `ui`, `java`, `ts`, `rust`, `lab`, `agents`, `sovkora`, `verikora`, `folioviv`, `kridoc`): a site reads it with `footerFor`. */
     sites: Record<string, FooterSite>;
   };
 }

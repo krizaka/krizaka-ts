@@ -116,7 +116,9 @@ describe("the family table", () => {
     expect(org.sites.map((s) => s.id)).not.toContain("agents");
     expect(org.family.map((e) => e.id)).not.toContain("agents");
     expect(brands.map((b) => b.id)).not.toContain("agents");
-    expect(JSON.stringify(org)).not.toMatch(/agents/i);
+    // Its footer selection (`footer.sites.agents`, krizaka-internal#3563) is the one key it may have: a selection, not a view.
+    const { sites: _selections, ...footer } = org.footer;
+    expect(JSON.stringify({ ...org, footer })).not.toMatch(/agents/i);
   });
 
   it("requires a bird of every member whose site is live, and the date of a release", () => {
