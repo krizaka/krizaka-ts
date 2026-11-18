@@ -2,6 +2,7 @@ import { isBot } from "./bots";
 import { normalisePath } from "./path";
 import { referrerDomain } from "./referrer";
 import { DEFAULT_DAILY_ROW_CAP, type VisitRow, type VisitStore } from "./store";
+import { utmValue } from "./utm";
 
 /** What a request offers. The agent and the referer are read here and never kept; there is no address in this shape. */
 export interface VisitInput {
@@ -10,6 +11,10 @@ export interface VisitInput {
   path: string | null | undefined;
   referer?: string | null;
   userAgent?: string | null;
+  /** The `utm_source` query value, read by the caller; kept only as a short slug (see `utmValue`), never the URL. */
+  utmSource?: string | null;
+  /** The `utm_campaign` query value, same rule: the publisher's tag a post's links carry. */
+  utmCampaign?: string | null;
 }
 
 export interface RecordOptions {
@@ -30,6 +35,8 @@ export function visitRowOf(input: VisitInput, now: Date, ownHosts: readonly stri
     page,
     day: now.toISOString().slice(0, 10),
     referrerDomain: referrerDomain(input.referer, ownHosts),
+    utmSource: utmValue(input.utmSource),
+    utmCampaign: utmValue(input.utmCampaign),
   };
 }
 
