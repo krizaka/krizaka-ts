@@ -1,0 +1,18 @@
+{
+  "readings": [
+    {
+      "text": "TOTAL 1234.56",
+      "lines": [
+        { "text": "TOTAL 1234.56", "box": { "left": 0.1, "top": 0.4, "right": 0.5, "bottom": 0.5 }, "confidence": 0.97 }
+      ],
+      "reader": "tesseract",
+      "version": "tesseract-5.5.0",
+      "generative": false,
+      "pageHash": "3f1a4c3b5d2e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a",
+      "key": "3f1a4c3b5d2e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a:tesseract:tesseract-5.5.0",
+      "costMicros": 0,
+      "latencyMs": 412,
+      "fallbackFrom": "paddleocr"
+    }
+  ]
+}

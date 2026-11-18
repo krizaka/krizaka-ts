@@ -25,4 +25,14 @@ if (done.status === "SUCCEEDED") use(outputOf(done, "report"));
 - **A time limit and a circuit breaker**, as options: `timeoutMs` (20 s by default) on every call; five failures in a row (no answer, timeout, 5xx) open the circuit for 30 s — it refuses at once, then lets one call probe. A refusal (401, 402, 404, 429…) is an answer and never opens it. `circuit: false` turns it off.
 - **Contract-tested** against the edge's answers kept as fixtures (`test/fixtures`): when the edge changes a shape, the fixture changes first.
 
+Reading document pages goes through the same client: `readPages` sends 1 to 12 pages (their bytes and their kind) to
+Sovkora's document readers and answers one reading per page, in order, each with the reader that read it and its cost and
+latency. Which reader reads which kind of page is Sovkora's routing setting: a product never chooses it, and a change of
+reader needs no product deploy.
+
+```ts
+const [reading] = await sovkora.readPages([{ image: pngBytes, kind: PAGE_KIND.photo }]);
+use(reading.text, reading.lines); // reading.reader, reading.costMicros, reading.latencyMs
+```
+
 Run events as a stream (Server-Sent Events, `GET /api/v1/studios/runs/{id}/events`) come in a later minor; `waitForRun` polls until then.

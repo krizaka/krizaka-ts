@@ -9,6 +9,7 @@ import {
   type StartCheckInput,
 } from "./checks";
 import { SOVKORA_CODE, SovkoraError, sovkoraRefusal } from "./errors";
+import { type DocumentReading, parseReadings, readBody, type ReadPageInput } from "./reads";
 import { isTerminal, parseInstallations, parseRun, type SovkoraRun } from "./run";
 
 type Fetch = typeof fetch;
@@ -64,6 +65,12 @@ export interface SovkoraClient {
   startCheck(purpose: CheckPurposeKey, input: StartCheckInput): Promise<CheckResult>;
   /** Collects a `PENDING` check by its provider reference (`GET /api/v1/checks/{providerRef}`); `PENDING` again while the provider works. */
   collectCheck(providerRef: string, input: CollectCheckInput): Promise<CheckResult>;
+  /**
+   * Reads document pages (`POST /api/v1/document-reads`): one reading per page, in order, each saying which reader read
+   * it and what it cost and took. The reader is Sovkora's routing, never the product's. 1 to 12 pages of 2 MB at most,
+   * checked before any call (`SOVKORA_INPUT`); a page the reader refuses is `SOVKORA_INPUT` too. Waits up to 50 seconds.
+   */
+  readPages(pages: readonly ReadPageInput[]): Promise<DocumentReading[]>;
   /** The Studios this key has installed — also the cheapest call that proves the key and the connection. */
   studios(): Promise<string[]>;
   /** The circuit breaker, for diagnostics. */
@@ -79,6 +86,8 @@ const IDEMPOTENCY_KEY = /^[!-~]{1,255}$/;
 /** The stable code the edge answers (HTTP 422) when an idempotency key already started a different request. */
 const KEY_REUSED = "idempotency_key_reused";
 const DEFAULT_TIMEOUT_MS = 20_000;
+/** A read of up to twelve pages: under the edge's 50-second response timeout, so its coded answer arrives first. */
+const READ_TIMEOUT_MS = 50_000;
 const DEFAULT_CIRCUIT: CircuitOptions = { failureThreshold: 5, openSeconds: 30 };
 const DEFAULT_WAIT_INTERVAL_MS = 2000;
 const DEFAULT_WAIT_TIMEOUT_MS = 120_000;
@@ -101,6 +110,8 @@ interface Call {
   method?: "GET" | "POST";
   body?: unknown;
   headers?: Record<string, string>;
+  /** This call's time limit, when it is not the client's. */
+  timeoutMs?: number;
 }
 
 /** The URL without its trailing slashes, in one linear pass (CodeQL js/polynomial-redos). */
@@ -166,7 +177,7 @@ export function createSovkoraClient(options: SovkoraClientOptions): SovkoraClien
           ...init.headers,
         },
         body: init.body === undefined ? undefined : JSON.stringify(init.body),
-        signal: AbortSignal.timeout(timeoutMs),
+        signal: AbortSignal.timeout(init.timeoutMs ?? timeoutMs),
         ...NO_STORE,
       });
     } catch (cause) {
@@ -242,6 +253,11 @@ export function createSovkoraClient(options: SovkoraClientOptions): SovkoraClien
         throw new SovkoraError(SOVKORA_CODE.input, "Not a provider reference", { status: 422 });
       const query = new URLSearchParams({ subjectId, consented: String(consented) });
       return parseCheck(await json(await call(`/api/v1/checks/${providerRef}?${query}`)));
+    },
+    async readPages(pages) {
+      const body = readBody(pages);
+      const res = await call("/api/v1/document-reads", { method: "POST", body, timeoutMs: READ_TIMEOUT_MS });
+      return parseReadings(await json(res), pages.length);
     },
     async waitForRun(
       runId,
