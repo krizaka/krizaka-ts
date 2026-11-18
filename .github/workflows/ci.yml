@@ -18,7 +18,7 @@ jobs:
   # The pipeline is the org's (krizaka/.github docs/standards/ci-and-deploy.md): the changes gate, the pnpm cache, parallel legs, the
   # timeouts and the gate that always reports live there. This file says only what is Krizaka TS's.
   ci:
-    uses: krizaka/.github/.github/workflows/node-ci.yml@43f6462ceec04599ff2ef2c2967bf7202b6dacc5 # main (fix-needs-guard, light Sonar scan)
+    uses: krizaka/.github/.github/workflows/node-ci.yml@10140f24680f66980862a3d90978c016942f74e8 # main (after v1.5.2: df -h at setup and after tests, free-disk-space)
     permissions:
       contents: read
     with:
@@ -27,6 +27,7 @@ jobs:
       package-manager: pnpm
       sonar: true # CI analysis: the merge queue's branch (gh-readonly-queue/...) is analysed too; automatic analysis never does
       parallel: true
+      free-disk-space: true # the runner is short of disk: remove android/dotnet/ghc/CodeQL, df -h shown at setup and after tests
       typecheck-script: typecheck
       postgres-image: postgres:16
       postgres-name: organize_db
