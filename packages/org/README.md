@@ -60,7 +60,7 @@ the host's accent. A product site carries its product's bird; a documentation si
 (tests pin both).
 
 **Deprecated in 1.8.0, removed in 1.9.0:** the old site ids `www` and `motion` are only listed as `aliases` of `krizaka` and
-`lab`. 
+`lab`.
 
 ## Reading your footer
 
