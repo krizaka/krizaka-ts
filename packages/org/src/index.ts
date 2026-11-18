@@ -80,9 +80,14 @@ export const footerFor = (siteId: string): ResolvedFooter => {
       if (!found) throw new Error(`Footer of "${siteId}": unknown id "${id}".`);
       return found;
     });
+  // A member that is not public and live is in no column and no link: the org drives it, no site filters by hand.
+  const live = new Set(org.members.filter((m) => m.visibility === "public" && m.urls.siteLive).map((m) => m.id));
   return {
     id: siteId,
-    groups: sel.families.map((group) => ({ group, entries: org.family.filter((e) => e.group === group) })),
+    groups: sel.families.map((group) => ({
+      group,
+      entries: org.family.filter((e) => e.group === group && live.has(e.id)),
+    })),
     social: pick(org.links.social, sel.social),
     source: sel.source,
     license: sel.license ? org.company.license : null,

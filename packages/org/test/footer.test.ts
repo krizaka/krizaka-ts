@@ -10,15 +10,61 @@ const withSite = (patch: Record<string, unknown>) => {
   return copy;
 };
 
+const TWELVE = [
+  "krizaka",
+  "blog",
+  "ui",
+  "java",
+  "ts",
+  "rust",
+  "lab",
+  "agents",
+  "sovkora",
+  "verikora",
+  "folioviv",
+  "kridoc",
+];
+
+describe("footerFor, the 12 sites (krizaka-internal#3563)", () => {
+  it("resolves every one of the 12 sites", () => {
+    for (const id of TWELVE) expect(footerFor(id).id).toBe(id);
+  });
+
+  it("carries the four socials, the same on every site", () => {
+    for (const id of TWELVE)
+      expect(
+        footerFor(id).social.map((s) => s.id),
+        id,
+      ).toEqual(["instagram", "facebook", "youtube", "linkedin"]);
+  });
+
+  it("gives Rust a developer footer with its repository and Agents the company footer", () => {
+    expect(footerFor("rust").source).toBe("https://github.com/krizaka/krizaka-rust");
+    expect(footerFor("rust").version).toBe(true);
+    expect([footerFor("agents").source, footerFor("agents").version]).toEqual([null, false]);
+  });
+
+  it("never lists a member that is not public and live in any column", () => {
+    const live = new Set(org.members.filter((m) => m.visibility === "public" && m.urls.siteLive).map((m) => m.id));
+    for (const id of TWELVE)
+      for (const g of footerFor(id).groups)
+        for (const e of g.entries) expect(live.has(e.id), `${id}/${e.id}`).toBe(true);
+    const ids = footerFor("krizaka").groups.flatMap((g) => g.entries.map((e) => e.id));
+    expect(ids).not.toContain("agents");
+  });
+});
+
 describe("footerFor", () => {
   it("resolves every site entry of the org JSON", () => {
     expect(Object.keys(org.footer.sites).sort()).toEqual([
+      "agents",
       "blog",
       "folioviv",
       "java",
       "kridoc",
       "krizaka",
       "lab",
+      "rust",
       "sovkora",
       "ts",
       "ui",

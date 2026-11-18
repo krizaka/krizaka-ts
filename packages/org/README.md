@@ -60,7 +60,7 @@ the host's accent. A product site carries its product's bird; a documentation si
 (tests pin both).
 
 **Deprecated in 1.8.0, removed in 1.9.0:** the old site ids `www` and `motion` are only listed as `aliases` of `krizaka` and
-`lab`. `footer.sites.rust` is gone: no such site exists.
+`lab`.
 
 ## Reading your footer
 
@@ -70,9 +70,9 @@ hand: it asks `footerFor(siteId)` and renders the result.
 ```ts
 import { footerFor } from "@krizaka/org";
 
-const footer = footerFor("ts"); // krizaka, ui, lab, java or ts; an unknown id throws
-footer.groups; // [{ group, entries }] the family groups to list, in order
-footer.social; // the social accounts to show
+const footer = footerFor("ts"); // any of the 12 sites (krizaka, blog, ui, java, ts, rust, lab, agents, sovkora, verikora, folioviv, kridoc); an unknown id throws
+footer.groups; // [{ group, entries }] the family groups to list, in order; a member that is not public and live (Agents today) is never in them
+footer.social; // the four social accounts, the same on every site
 footer.source; // the site's source-code link, or null
 footer.license; // « Apache-2.0 », or null
 footer.legal; // the legal links (label and url in fr and en)

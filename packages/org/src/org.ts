@@ -222,6 +222,9 @@ export const org: Org = {
       // Java is no longer published on Maven Central (founder, 2026-11-14): the source link only.
       java: developerFooter(gh("krizaka-java")),
       ts: developerFooter(gh("krizaka-ts")),
+      rust: developerFooter(gh("krizaka-rust")),
+      // Private until its site answers: it resolves its own footer, and appears in no column until it is public and live.
+      agents: companyFooter,
     },
   },
 };
