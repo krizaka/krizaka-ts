@@ -127,7 +127,7 @@
   },
   "devDependencies": {
     "@ast-grep/cli": "0.51.0",
-    "@krizaka/ui": "^4.17.0",
+    "@krizaka/ui": "^4.17.1",
     "@size-limit/file": "^14.2.0",
     "@types/estree": "^1.0.8",
     "@types/node": "^22.15.0",

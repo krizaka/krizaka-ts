@@ -243,8 +243,8 @@ importers:
         specifier: 0.51.0
         version: 0.51.0
       '@krizaka/ui':
-        specifier: ^4.17.0
-        version: 4.17.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@4.1.12)
+        specifier: ^4.17.1
+        version: 4.17.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@4.1.12)
       '@size-limit/file':
         specifier: ^14.2.0
         version: 14.3.0(size-limit@14.3.0)
@@ -1914,8 +1914,8 @@ packages:
       vitest:
         optional: true
 
-  '@krizaka/pacer@0.2.1':
-    resolution: {integrity: sha512-j9e/LG2chxf+bk2I6xCJ2f7OFaifw598ejJ2DdRsPsC8vtQmhG2gr+VA9AgNr7s8Z1wlCAC31ZsPuP4CUoqihQ==}
+  '@krizaka/pacer@0.2.2':
+    resolution: {integrity: sha512-C5LtsqEWktnDB6EeUPiUuSnxX0jBFpBKOo1FTvbwETxeSpRe+6pUEWtO1z04p0VGHbRInoKL/CiWtTpQObvwrg==}
     engines: {node: '>=22'}
     peerDependencies:
       react: '>=18'
@@ -1923,18 +1923,18 @@ packages:
       react:
         optional: true
 
-  '@krizaka/tokens@4.17.0':
-    resolution: {integrity: sha512-H2jyRAax5Ss91kRrA/wUoi7MT0z7biOSfl5Y5bp5Jmi42HlgHeQcXC/n//qDVV1lCz694vZC8htaIGyRGfiF+w==}
+  '@krizaka/tokens@4.17.1':
+    resolution: {integrity: sha512-FiiPRxqHyYWvrtmkzZwjLkL/ItgOApsLDqx2mCkx2fZzECFGrAT5TPu8a+IKrc+jAPECUiE1Kzs+h5zhj9kvAA==}
     engines: {node: '>=22'}
 
-  '@krizaka/ui@4.17.0':
-    resolution: {integrity: sha512-k2YrOHdgXAD1nepZQ7PduhvNEeBpVLBVIQ7GAUP2I+JK6DurPyLB2NfJmtnBoWkxAgknylWD9pXGXGvt6kkMXQ==}
+  '@krizaka/ui@4.17.1':
+    resolution: {integrity: sha512-YhWAtYEojefk7hFFNiGM32Rp3u3A04jmPnAzGwLfavmaAM158A2iG0UIpxe9ldN1PWUF7YmL9N3JydviLt9oQw==}
     engines: {node: '>=22'}
     hasBin: true
     peerDependencies:
       '@krizaka/architecture': '>=0.3.0'
       '@krizaka/query': '>=0.3.1'
-      '@krizaka/tailwind': '>=4.17.0'
+      '@krizaka/tailwind': '>=4.17.1'
       '@maplibre/maplibre-react-native': '>=11'
       '@shopify/flash-list': '>=2'
       expo-camera: '>=16'
@@ -6992,21 +6992,21 @@ snapshots:
     optionalDependencies:
       vitest: 4.1.12(@types/node@22.20.5)(@vitest/coverage-v8@4.1.12)(vite@8.3.5(@types/node@22.20.5)(esbuild@0.28.2)(yaml@2.8.3))
 
-  '@krizaka/pacer@0.2.1(react@19.3.1)':
+  '@krizaka/pacer@0.2.2(react@19.3.1)':
     dependencies:
       '@tanstack/pacer': 0.23.1
     optionalDependencies:
       react: 19.3.1
 
-  '@krizaka/tokens@4.17.0': {}
+  '@krizaka/tokens@4.17.1': {}
 
-  '@krizaka/ui@4.17.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@4.1.12)':
+  '@krizaka/ui@4.17.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@4.1.12)':
     dependencies:
       '@krizaka/icons': 0.11.0(react@19.3.1)
       '@krizaka/intl': 0.4.1
       '@krizaka/organize': 0.4.0(vitest@4.1.12)
-      '@krizaka/pacer': 0.2.1(react@19.3.1)
-      '@krizaka/tokens': 4.17.0
+      '@krizaka/pacer': 0.2.2(react@19.3.1)
+      '@krizaka/tokens': 4.17.1
       '@protomaps/basemaps': 5.7.2
       '@tanstack/highlight': 1.1.0
       '@tanstack/markdown': 1.0.0(react@19.3.1)
