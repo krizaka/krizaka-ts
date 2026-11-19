@@ -25,8 +25,8 @@ jobs:
     uses: krizaka/.github/.github/workflows/pages-site.yml@93402d11fa137c4344a6f15dce921f02b48e238e # main
     permissions:
       contents: read
-      pages: write
-      id-token: write
+      pages: write # deploys to GitHub Pages
+      id-token: write # OIDC token the deployment or publish needs
     with:
       working-directory: site
       output-dir: site/out
