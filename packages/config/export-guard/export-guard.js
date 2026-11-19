@@ -23,12 +23,27 @@ const SOON = /\bBientôt\b|\bSoon\b/i;
 const CURRENCY = /[$€£]|CAD|USD|EUR/g;
 const AMOUNT_CHARS = new Set("0123456789 .,\u00a0\u202f");
 const LICENCES = new Set([
-  "MIT", "Apache-2.0", "AGPL-3.0", "GPL-2.0", "GPL-3.0", "LGPL-2.1", "LGPL-3.0", "BUSL-1.1", "BSL-1.1", "MPL-2.0", "ISC",
-  "BSD-2-Clause", "BSD-3-Clause",
+  "MIT",
+  "Apache-2.0",
+  "AGPL-3.0",
+  "GPL-2.0",
+  "GPL-3.0",
+  "LGPL-2.1",
+  "LGPL-3.0",
+  "BUSL-1.1",
+  "BSL-1.1",
+  "MPL-2.0",
+  "ISC",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
 ]);
 
 /** @param {string} s */
-const squash = (s) => s.replace(/[\s\u00a0\u202f]+/g, "").replace(/,/g, ".").replace(/\.+$/, "");
+const squash = (s) =>
+  s
+    .replace(/[\s\u00a0\u202f]+/g, "")
+    .replace(/,/g, ".")
+    .replace(/\.+$/, "");
 
 /** @param {string} path @param {readonly string[]} segments */
 const inPath = (path, segments) => path.split(/[/\\.]/).some((part) => segments.includes(part.toLowerCase()));
@@ -143,7 +158,16 @@ const status = (line, _file, policy) => {
 
 const LINE_RULES = [signIn, devHost, codeName, email, amount, soon, licence, status];
 
-export const RULES = Object.freeze(["sign-in", "dev-host", "code-name", "email", "amount", "soon", "licence", "status"]);
+export const RULES = Object.freeze([
+  "sign-in",
+  "dev-host",
+  "code-name",
+  "email",
+  "amount",
+  "soon",
+  "licence",
+  "status",
+]);
 
 /**
  * The findings of an export, in file then line order.
@@ -155,9 +179,11 @@ export function checkExport(files, policy) {
   return [...files]
     .sort((a, b) => a.path.localeCompare(b.path))
     .flatMap((f) =>
-      f.content.split(/\r?\n/).flatMap((line, i) =>
-        LINE_RULES.flatMap((rule) => rule(line, f.path, policy)).map((r) => ({ file: f.path, line: i + 1, ...r })),
-      ),
+      f.content
+        .split(/\r?\n/)
+        .flatMap((line, i) =>
+          LINE_RULES.flatMap((rule) => rule(line, f.path, policy)).map((r) => ({ file: f.path, line: i + 1, ...r })),
+        ),
     );
 }
 
