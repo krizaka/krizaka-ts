@@ -91,17 +91,20 @@ async function layout(args, stdout) {
   return 0;
 }
 
+/** The value of a JSON text; null when it is not JSON (`check` then says the file is not a layout). */
+function jsonOrNull(text) {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
 function check(args, stdout, stderr) {
   const input = inputOf(args);
   const model = filesOf(args, "model");
   if (!model.length) throw new UsageError();
-  let data;
-  try {
-    data = JSON.parse(fileOf(input).text);
-  } catch (error) {
-    if (error instanceof UsageError) throw error;
-    data = null;
-  }
+  const data = jsonOrNull(fileOf(input).text);
   const base = filesOf(args, "base");
   const problems = staleSources(data, {
     model,
@@ -109,7 +112,8 @@ function check(args, stdout, stderr) {
     translations: translationsOf(args) ?? undefined,
   });
   if (problems.length) {
-    stderr.write(`${problems.map((p) => `${input}: ${p.message}`).join("\n")}\n`);
+    const lines = problems.map((p) => input + ": " + p.message);
+    stderr.write(lines.join("\n") + "\n");
     return 1;
   }
   stdout.write(`${input} matches ${[...model, ...base].map((f) => f.path).join(", ")} and its translations\n`);

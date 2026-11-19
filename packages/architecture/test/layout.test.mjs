@@ -376,6 +376,8 @@ describe("krizaka-architecture layout", () => {
     assert.equal(stale.status, 1);
     assert.match(stale.stderr, /agents\.fr\.json/);
     assert.equal(check(at("views.json")).status, 2);
+    writeFileSync(at("broken.json"), "not json");
+    assert.equal(check(at("broken.json"), "--model", at("agents.c4")).status, 1);
     assert.equal(run(at("agents.c4"), "--translations", "fr").status, 2);
   });
 });
