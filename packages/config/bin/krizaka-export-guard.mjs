@@ -6,7 +6,7 @@
 // --status the product's own @krizaka/org (resolved from the working directory) is the source.
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { createRequire } from "node:module";
-import { isAbsolute, join, relative, resolve } from "node:path";
+import { join, relative } from "node:path";
 import { parseArgs } from "node:util";
 
 import { checkExport, formatFinding } from "../export-guard/export-guard.js";
@@ -63,10 +63,21 @@ if (!status) {
   process.exit(2);
 }
 
-const root = resolve(process.cwd(), dir);
-const inside = relative(process.cwd(), root);
-if (inside.startsWith("..") || isAbsolute(inside)) {
-  console.error("krizaka-export-guard: the export folder must be inside the working directory.");
+/** The folder, rebuilt one segment at a time from the directory listings under the working directory: never outside it. */
+/** @param {string} base @param {string} wanted */
+function folderInside(base, wanted) {
+  let current = base;
+  for (const segment of wanted.split(/[\\/]/).filter((part) => part !== "" && part !== ".")) {
+    const entry = readdirSync(current).find((name) => name === segment);
+    if (entry === undefined) return undefined;
+    current = join(current, entry);
+  }
+  return current;
+}
+
+const root = folderInside(process.cwd(), dir);
+if (root === undefined || !statSync(root).isDirectory()) {
+  console.error("krizaka-export-guard: the export folder must be an existing folder inside the working directory.");
   process.exit(2);
 }
 
