@@ -11,7 +11,7 @@ import { checkExport, formatFinding } from "../export-guard/export-guard.js";
 
 const BIN = fileURLToPath(new URL("../bin/krizaka-export-guard.mjs", import.meta.url));
 const policy = {
-  codeNames: ["yomizaka", "akinaza"],
+  codeNames: ["formername", "olderalias"],
   allowedAmounts: ["49 $"],
   licence: "FSL-1.1-ALv2",
   status: "development",
@@ -29,7 +29,7 @@ describe("export guard", () => {
     assert.deepEqual(rules("index.html", '<a href="https://dev.verikora.com/fr">x</a>'), ["dev-host"]);
   });
   it("refuses a retired code name, any case", () => {
-    assert.deepEqual(rules("index.html", "<p>Welcome to Yomizaka</p>"), ["code-name"]);
+    assert.deepEqual(rules("index.html", "<p>Welcome to Formername</p>"), ["code-name"]);
   });
   it("refuses an e-mail outside /privacy, accepts it on /privacy", () => {
     assert.deepEqual(rules("fr/contact/index.html", "<p>a@b.com</p>"), ["email"]);
@@ -74,7 +74,7 @@ describe("krizaka-export-guard CLI", () => {
     writeFileSync(join(dir, "fr/index.html"), html);
     return spawnSync(
       "node",
-      [BIN, dir, "--product", "verikora", "--status", "development", "--code-name", "yomizaka", ...extra],
+      [BIN, dir, "--product", "verikora", "--status", "development", "--code-name", "formername", ...extra],
       {
         encoding: "utf8",
       },
