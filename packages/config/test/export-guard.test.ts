@@ -88,7 +88,10 @@ describe("krizaka-export-guard CLI", () => {
   });
   it("exits 2 on a folder outside the working directory", () => {
     const dir = mkdtempSync(join(tmpdir(), "export-"));
-    const r = spawnSync("node", [BIN, "..", "--product", "p", "--status", "development", "--code-name", "x"], { encoding: "utf8", cwd: dir });
+    const r = spawnSync("node", [BIN, "..", "--product", "p", "--status", "development", "--code-name", "x"], {
+      encoding: "utf8",
+      cwd: dir,
+    });
     assert.equal(r.status, 2);
   });
   it("exits 2 without a directory", () => {
