@@ -53,6 +53,24 @@ npx krizaka-architecture layout ../my-repo --out views.json     # a directory: i
 
 Exit 0 when laid out, 1 with the rule when the model is refused, 2 on a bad call.
 
+### In another language, and proving a committed layout is current
+
+`translations: { fr: { path, text } }` lays the views out once and returns them in each language too
+(`translations.fr = { path, sha256, views }`): the same geometry, every title, technology, description and edge label replaced
+by its words from a JSON object. A string the views draw without its translation, or a translation no view draws, is refused
+(rule `translations`), so the words follow the model.
+
+A site that commits its layout proves it current with `staleSources(layout, { model, base, translations })`: the list of files
+whose sha256 differs from the one the layout was made from, that it was not made from, or that it was made from and are not
+passed (empty: current). No parser, no network: a check in CI needs only the files.
+
+```bash
+npx krizaka-architecture layout agents.c4 --out lib/architecture.json --base specification.c4 --base org.c4 --system agents \
+  --translations fr=agents.fr.json
+npx krizaka-architecture check lib/architecture.json --model agents.c4 --base specification.c4 --base org.c4 \
+  --translations fr=agents.fr.json      # 0 current, 1 stale (names the file), 2 a bad call
+```
+
 ## The units and their versions (`unitsOf`)
 
 A unit is what a manifest declares, each with `path`, `manifest`, `ecosystem`, `language`, `name`, `version`, `published` (an org

@@ -6,7 +6,7 @@ import { dirname, join } from "node:path";
 import { after, describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { ArchitectureModelError, buildC4, layoutViews } from "../src/index.mjs";
+import { ArchitectureModelError, buildC4, layoutViews, staleSources } from "../src/index.mjs";
 
 const cli = join(dirname(fileURLToPath(import.meta.url)), "../src/cli.mjs");
 const dirs = [];
@@ -201,6 +201,109 @@ describe("the check refuses", () => {
   });
 });
 
+/** The strings a model's views draw, read from the refusal of an empty translation (every one is missing). */
+async function drawnStrings() {
+  const error = await layout({ ...options, translations: { fr: { path: "agents.fr.json", text: "{}" } } }).catch(
+    (e) => e,
+  );
+  assert.ok(error instanceof ArchitectureModelError);
+  assert.equal(error.rule, "translations");
+  return error.problems.map((p) => p.message.match(/« (.*) »/s)[1]);
+}
+const frenchOf = async () => JSON.stringify(Object.fromEntries((await drawnStrings()).map((s) => [s, `FR ${s}`])));
+
+describe("layoutViews with translations", () => {
+  it("returns each language's views: the same geometry, every string translated", async () => {
+    const text = await frenchOf();
+    const out = await layout({ ...options, translations: { fr: { path: "agents.fr.json", text } } });
+    const fr = out.translations.fr;
+    assert.equal(fr.path, "agents.fr.json");
+    assert.match(fr.sha256, /^[0-9a-f]{64}$/);
+    assert.deepEqual(
+      fr.views.map((v) => v.title),
+      out.views.map((v) => `FR ${v.title}`),
+    );
+    const life = fr.views.find((v) => v.id === "life");
+    assert.deepEqual(
+      life.edges.map((e) => [e.step, e.label]),
+      [
+        [1, "FR writes the brief"],
+        [2, "FR launches"],
+        [3, "FR builds"],
+        [4, "FR reports"],
+      ],
+    );
+    const cto = fr.views.find((v) => v.id === "containers").nodes.find((n) => n.id === "platform.tooling.cto");
+    assert.equal(cto.technology, "FR Claude Code");
+    assert.deepEqual(
+      fr.views.map((v) => v.nodes.map(({ x, y, width, height }) => [x, y, width, height])),
+      out.views.map((v) => v.nodes.map(({ x, y, width, height }) => [x, y, width, height])),
+    );
+  });
+
+  it("refuses a string with no translation, naming it once", async () => {
+    const strings = await drawnStrings();
+    assert.ok(strings.includes("writes the brief"));
+    assert.ok(strings.includes("Talks to the founder. Splits the work."));
+    assert.equal(new Set(strings).size, strings.length);
+  });
+
+  it("refuses a translation no view draws, and a file that is not an object of strings", async () => {
+    const words = { ...JSON.parse(await frenchOf()), "a retired label": "une étiquette retirée" };
+    const unused = await layout({
+      ...options,
+      translations: { fr: { path: "agents.fr.json", text: JSON.stringify(words) } },
+    }).catch((e) => e);
+    assert.equal(unused.rule, "translations");
+    assert.deepEqual(
+      unused.problems.map((p) => [p.path, p.message]),
+      [["agents.fr.json", "« a retired label » is translated but no view draws it"]],
+    );
+    const broken = await layout({ ...options, translations: { fr: { path: "agents.fr.json", text: "[1]" } } }).catch(
+      (e) => e,
+    );
+    assert.equal(broken.rule, "translations");
+    assert.match(broken.problems[0].message, /an object of strings/);
+  });
+});
+
+describe("staleSources", () => {
+  const files = async () => ({
+    model: [{ path: "agents.c4", text: MODEL }],
+    base: BASE,
+    translations: { fr: { path: "agents.fr.json", text: await frenchOf() } },
+  });
+  const made = async (sources) => layoutViews(sources.model, { ...options, translations: sources.translations });
+
+  it("finds nothing when the layout was made from the files as they are", async () => {
+    const sources = await files();
+    assert.deepEqual(staleSources(await made(sources), sources), []);
+  });
+
+  it("names every source that changed or is missing since the layout was made", async () => {
+    const sources = await files();
+    const data = await made(sources);
+    const now = {
+      model: [{ path: "agents.c4", text: `${MODEL}\n// edited` }],
+      base: [BASE[0], { path: "org.c4", text: `${BASE[1].text}// edited\n` }],
+      translations: { fr: { path: "agents.fr.json", text: "{}" }, de: { path: "agents.de.json", text: "{}" } },
+    };
+    assert.deepEqual(
+      staleSources(data, now).map((p) => p.path),
+      ["agents.c4", "org.c4", "agents.fr.json", "agents.de.json"],
+    );
+    assert.match(staleSources(data, now)[0].message, /another agents\.c4/);
+    assert.deepEqual(
+      staleSources(data, { model: [] }).map((p) => p.message),
+      ["the layout was made from agents.c4 too: pass it"],
+    );
+  });
+
+  it("refuses a file that is not a layout", () => {
+    assert.match(staleSources({}, { model: [] })[0].message, /not a krizaka\.layout\/1/);
+  });
+});
+
 describe("krizaka-architecture layout", () => {
   const run = (...args) => spawnSync("node", [cli, "layout", ...args], { encoding: "utf8" });
 
@@ -245,5 +348,36 @@ describe("krizaka-architecture layout", () => {
     assert.equal(r.status, 1);
     assert.match(r.stderr, /\[model\]/);
     assert.equal(run().status, 2);
+  });
+
+  it("writes the translations, and `check` proves the layout matches its files until one changes", async () => {
+    const dir = scratch();
+    const at = (name) => join(dir, name);
+    writeFileSync(at("agents.c4"), MODEL);
+    writeFileSync(at("agents.fr.json"), await frenchOf());
+    for (const f of BASE) writeFileSync(at(f.path), f.text);
+    const sources = [
+      "--base",
+      at("specification.c4"),
+      "--base",
+      at("org.c4"),
+      "--translations",
+      `fr=${at("agents.fr.json")}`,
+    ];
+    const laid = run(at("agents.c4"), "--out", at("views.json"), "--system", "platform.tooling", ...sources);
+    assert.equal(laid.status, 0, laid.stderr);
+    assert.equal(JSON.parse(readFileSync(at("views.json"), "utf8")).translations.fr.views.length, 3);
+    const check = (...args) => spawnSync("node", [cli, "check", ...args], { encoding: "utf8" });
+    const fresh = check(at("views.json"), "--model", at("agents.c4"), ...sources);
+    assert.equal(fresh.status, 0, fresh.stderr);
+    assert.match(fresh.stdout, /matches/);
+    writeFileSync(at("agents.fr.json"), "{}");
+    const stale = check(at("views.json"), "--model", at("agents.c4"), ...sources);
+    assert.equal(stale.status, 1);
+    assert.match(stale.stderr, /agents\.fr\.json/);
+    assert.equal(check(at("views.json")).status, 2);
+    writeFileSync(at("broken.json"), "not json");
+    assert.equal(check(at("broken.json"), "--model", at("agents.c4")).status, 1);
+    assert.equal(run(at("agents.c4"), "--translations", "fr").status, 2);
   });
 });

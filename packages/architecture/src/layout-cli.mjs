@@ -1,13 +1,24 @@
 // krizaka-architecture layout <model.c4 | repo-path> [--out views.json] [--base file.c4]... [--system id] [--view id]...
-// A .c4 file is checked and laid out; a directory is read with buildC4 and its containers view is laid out.
+//                                                    [--translations <locale>=file.json]...
+// krizaka-architecture check <views.json> --model file.c4... [--base file.c4]... [--translations <locale>=file.json]...
+// A .c4 file is checked and laid out; a directory is read with buildC4 and its containers view is laid out. `check` proves a
+// committed layout was made from these files as they are now.
 import { readFileSync, statSync, writeFileSync } from "node:fs";
 import { basename, resolve } from "node:path";
 
 import { buildC4 } from "./c4.mjs";
+import { staleSources } from "./freshness.mjs";
 import { ArchitectureModelError, layoutViews } from "./layout.mjs";
 
-const USAGE =
-  "usage: krizaka-architecture layout <model.c4 | repo-path> [--out views.json] [--base file.c4]... [--system id] [--view id]...";
+const USAGE = [
+  "usage: krizaka-architecture layout <model.c4 | repo-path> [--out views.json] [--base file.c4]... [--system id] [--view id]...",
+  "                                   [--translations <locale>=file.json]...",
+  "       krizaka-architecture check <views.json> --model file.c4... [--base file.c4]... [--translations <locale>=file.json]...",
+].join("\n");
+const FLAGS = ["out", "base", "system", "view", "translations", "model"];
+
+/** A bad call: the usage on stderr, exit 2. */
+class UsageError extends Error {}
 
 /** Every value of a repeatable flag (`--base a --base b`), a single one for the others. */
 function valuesOf(args, name) {
@@ -18,40 +29,115 @@ function valuesOf(args, name) {
   return out;
 }
 
-/** Runs the subcommand; returns the exit code. */
-export async function runLayout(args, { stdout = process.stdout, stderr = process.stderr } = {}) {
-  const flagValues = new Set(["out", "base", "system", "view"].flatMap((n) => valuesOf(args, n)));
+/** The first argument that is neither a flag nor a flag's value. */
+function inputOf(args) {
+  const flagValues = new Set(FLAGS.flatMap((n) => valuesOf(args, n)));
   const input = args.find((a) => !a.startsWith("--") && !flagValues.has(a));
-  if (!input) {
-    stderr.write(`${USAGE}\n`);
-    return 2;
-  }
-  const path = resolve(input);
-  let model;
+  if (!input) throw new UsageError();
+  return input;
+}
+
+/** A file as the API takes it: its name (what the layout records and `check` compares) and its text. */
+function fileOf(path) {
   try {
-    model = statSync(path).isDirectory() ? buildC4(path) : [{ path: basename(path), text: readFileSync(path, "utf8") }];
+    return { path: basename(path), text: readFileSync(resolve(path), "utf8") };
   } catch {
-    stderr.write(`${USAGE}\n`);
-    return 2;
+    throw new UsageError();
   }
-  const base = valuesOf(args, "base").map((f) => ({ path: basename(f), text: readFileSync(resolve(f), "utf8") }));
-  const views = valuesOf(args, "view");
+}
+
+const filesOf = (args, name) => valuesOf(args, name).map(fileOf);
+
+/** `--translations fr=words.fr.json` → `{ fr: { path, text } }`; null when none is passed. */
+function translationsOf(args) {
+  const pairs = valuesOf(args, "translations");
+  if (!pairs.length) return null;
+  return Object.fromEntries(
+    pairs.map((pair) => {
+      const [, locale, path] = pair.match(/^([a-z]{2}(?:-[A-Z]{2})?)=(.+)$/) ?? [];
+      if (!locale) throw new UsageError();
+      return [locale, fileOf(path)];
+    }),
+  );
+}
+
+function modelOf(input) {
+  const path = resolve(input);
   try {
-    const layout = await layoutViews(model, {
-      base,
-      system: valuesOf(args, "system")[0],
-      views: views.length ? views : undefined,
-    });
-    const json = `${JSON.stringify(layout, null, 2)}\n`;
-    const [out] = valuesOf(args, "out");
-    if (out) {
-      writeFileSync(resolve(out), json);
-      stdout.write(`${layout.views.length} view(s), check ${layout.check.status} -> ${out}\n`);
-    } else stdout.write(json);
+    return statSync(path).isDirectory() ? buildC4(path) : [fileOf(path)];
+  } catch {
+    throw new UsageError();
+  }
+}
+
+async function layout(args, stdout) {
+  const views = valuesOf(args, "view");
+  const result = await layoutViews(modelOf(inputOf(args)), {
+    base: filesOf(args, "base"),
+    system: valuesOf(args, "system")[0],
+    views: views.length ? views : undefined,
+    translations: translationsOf(args) ?? undefined,
+  });
+  const json = `${JSON.stringify(result, null, 2)}\n`;
+  const [out] = valuesOf(args, "out");
+  if (!out) {
+    stdout.write(json);
     return 0;
+  }
+  writeFileSync(resolve(out), json);
+  const languages = Object.keys(result.translations ?? {});
+  const said = languages.length ? `, translated to ${languages.join(", ")}` : "";
+  stdout.write(`${result.views.length} view(s), check ${result.check.status}${said} -> ${out}\n`);
+  return 0;
+}
+
+/** The value of a JSON text; null when it is not JSON (`check` then says the file is not a layout). */
+function jsonOrNull(text) {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+function check(args, stdout, stderr) {
+  const input = inputOf(args);
+  const model = filesOf(args, "model");
+  if (!model.length) throw new UsageError();
+  const data = jsonOrNull(fileOf(input).text);
+  const base = filesOf(args, "base");
+  const problems = staleSources(data, {
+    model,
+    base: base.length ? base : undefined,
+    translations: translationsOf(args) ?? undefined,
+  });
+  if (problems.length) {
+    const lines = problems.map((p) => input + ": " + p.message);
+    stderr.write(lines.join("\n") + "\n");
+    return 1;
+  }
+  stdout.write(`${input} matches ${[...model, ...base].map((f) => f.path).join(", ")} and its translations\n`);
+  return 0;
+}
+
+async function guarded(run, stderr) {
+  try {
+    return await run();
   } catch (error) {
+    if (error instanceof UsageError) {
+      stderr.write(`${USAGE}\n`);
+      return 2;
+    }
     if (!(error instanceof ArchitectureModelError)) throw error;
     stderr.write(`${error.message}\n`);
     return 1;
   }
 }
+
+/** Runs `layout`; returns the exit code (0 laid out, 1 refused, 2 a bad call). */
+export const runLayout = (args, { stdout = process.stdout, stderr = process.stderr } = {}) =>
+  guarded(() => layout(args, stdout), stderr);
+
+/** Runs `check`; returns the exit code (0 current, 1 stale, 2 a bad call). */
+export const runCheck = (args, { stdout = process.stdout, stderr = process.stderr } = {}) =>
+  guarded(() => check(args, stdout, stderr), stderr);

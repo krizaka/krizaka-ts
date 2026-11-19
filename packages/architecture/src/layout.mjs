@@ -6,6 +6,7 @@ import { createHash } from "node:crypto";
 import { fromSources } from "@likec4/language-services/node";
 
 import { CONTAINERS_VIEW, isC4, modelOfC4 } from "./model.mjs";
+import { translateViews } from "./translations.mjs";
 
 export const LAYOUT_SCHEMA = "krizaka.layout/1";
 
@@ -15,6 +16,7 @@ export const RULES = Object.freeze({
   specification: "no-specification",
   home: "home",
   views: "views",
+  translations: "translations",
 });
 
 const describe = (p) => "  " + p.path + ":" + p.line + " [" + p.rule + "] " + p.message;
@@ -111,7 +113,9 @@ function sourcesOf(model) {
  * @param model a LikeC4 text, `[{ path, text }]`, or the C4 `buildC4` returns (its containers view is drawn)
  * @param options `base`: the org's files the model is written against (`specification.c4`, `org.c4`), a model then writes
  *   no specification of its own; `system`: the id of the system a model may only extend (every element it adds lives inside);
- *   `views`: the view ids to return, in this order (each must exist), default all but LikeC4's implicit `index`
+ *   `views`: the view ids to return, in this order (each must exist), default all but LikeC4's implicit `index`;
+ *   `translations`: `{ <locale>: { path, text } }`, each a JSON object from every string the returned views draw to its words
+ *   in that language (none missing, none unused); the result then holds `translations: { <locale>: { path, sha256, views } }`
  * @throws {ArchitectureModelError} when a rule fails; `rule` and `problems` say which
  */
 export async function layoutViews(model, options = {}) {
@@ -169,6 +173,8 @@ export async function layoutViews(model, options = {}) {
   if (!problems.length && absent.length)
     problems.push(problemOf(RULES.views, files[0]?.path ?? "", 1, `the model has no view ${absent.join(", ")}`));
   if (problems.length) throw new ArchitectureModelError(problems);
+  const returned = wanted ? wanted.map((id) => laid.find((v) => v.id === id)) : laid;
+  const translations = options.translations ? translated(returned, options.translations) : null;
 
   const likec4Version = (await import("@likec4/language-services/package.json", { with: { type: "json" } })).default
     .version;
@@ -180,8 +186,23 @@ export async function layoutViews(model, options = {}) {
       base: base.map(({ path, sha256: hash }) => ({ path, sha256: hash })),
     },
     check: { status: "ok", system, errors: [], elements },
-    views: wanted ? wanted.map((id) => laid.find((v) => v.id === id)) : laid,
+    views: returned,
+    ...(translations ? { translations } : {}),
   };
+}
+
+/** Every language's views, with the hash of its file; throws with every string a translation lacks or has too many. */
+function translated(views, files) {
+  const problem = (path, message) => problemOf(RULES.translations, path, 1, message);
+  const out = {};
+  const problems = [];
+  for (const [locale, file] of Object.entries(files)) {
+    const result = translateViews(views, file, problem);
+    problems.push(...result.problems);
+    out[locale] = { path: file.path, sha256: sha256(file.text), views: result.views };
+  }
+  if (problems.length) throw new ArchitectureModelError(problems);
+  return out;
 }
 
 async function elementIds(base) {
