@@ -70,14 +70,12 @@ describe("export guard", () => {
 describe("krizaka-export-guard CLI", () => {
   const run = (html: string, extra: string[] = []) => {
     const dir = mkdtempSync(join(tmpdir(), "export-"));
-    mkdirSync(dirname(join(dir, "fr/index.html")), { recursive: true });
-    writeFileSync(join(dir, "fr/index.html"), html);
+    mkdirSync(dirname(join(dir, "out/fr/index.html")), { recursive: true });
+    writeFileSync(join(dir, "out/fr/index.html"), html);
     return spawnSync(
       "node",
-      [BIN, dir, "--product", "verikora", "--status", "development", "--code-name", "formername", ...extra],
-      {
-        encoding: "utf8",
-      },
+      [BIN, "out", "--product", "verikora", "--status", "development", "--code-name", "formername", ...extra],
+      { encoding: "utf8", cwd: dir },
     );
   };
   it("exits 1 with readable findings", () => {
@@ -87,6 +85,11 @@ describe("krizaka-export-guard CLI", () => {
   });
   it("exits 0 on a clean export", () => {
     assert.equal(run("<h1>Verikora</h1>").status, 0);
+  });
+  it("exits 2 on a folder outside the working directory", () => {
+    const dir = mkdtempSync(join(tmpdir(), "export-"));
+    const r = spawnSync("node", [BIN, "..", "--product", "p", "--status", "development", "--code-name", "x"], { encoding: "utf8", cwd: dir });
+    assert.equal(r.status, 2);
   });
   it("exits 2 without a directory", () => {
     assert.equal(spawnSync("node", [BIN], { encoding: "utf8" }).status, 2);

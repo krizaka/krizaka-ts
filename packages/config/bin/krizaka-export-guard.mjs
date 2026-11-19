@@ -6,7 +6,7 @@
 // --status the product's own @krizaka/org (resolved from the working directory) is the source.
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { createRequire } from "node:module";
-import { join, relative } from "node:path";
+import { isAbsolute, join, relative, resolve } from "node:path";
 import { parseArgs } from "node:util";
 
 import { checkExport, formatFinding } from "../export-guard/export-guard.js";
@@ -63,7 +63,14 @@ if (!status) {
   process.exit(2);
 }
 
-const findings = checkExport(readTree(dir), {
+const root = resolve(process.cwd(), dir);
+const inside = relative(process.cwd(), root);
+if (inside.startsWith("..") || isAbsolute(inside)) {
+  console.error("krizaka-export-guard: the export folder must be inside the working directory.");
+  process.exit(2);
+}
+
+const findings = checkExport(readTree(root), {
   codeNames,
   allowedAmounts: values["allow-amount"] ?? [],
   licence: values.licence ?? "FSL-1.1-ALv2",
