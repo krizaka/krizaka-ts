@@ -80,6 +80,7 @@ describe("package surface", () => {
       "krizaka-edit-check": "./bin/krizaka-edit-check.mjs",
       "krizaka-workspace-guard": "./bin/krizaka-workspace-guard.mjs",
       "krizaka-hooks": "./bin/krizaka-hooks.mjs",
+      "krizaka-export-guard": "./bin/krizaka-export-guard.mjs",
     });
     expect(pkg.peerDependencies).toMatchObject({ eslint: "^9 || ^10", typescript: "^5 || ^6" });
   });
