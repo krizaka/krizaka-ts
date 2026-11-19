@@ -144,7 +144,7 @@ export interface HashedFile {
   sha256: string;
 }
 
-export type ModelRule = "model" | "no-specification" | "home" | "views";
+export type ModelRule = "model" | "no-specification" | "home" | "views" | "translations";
 
 export interface ModelProblem {
   rule: ModelRule;
@@ -160,6 +160,17 @@ export interface LayoutOptions {
   system?: string;
   /** The view ids to return, in this order; each must exist. Default: every view LikeC4 does not add by itself (not the implicit `index`), the containers view for a C4. */
   views?: string[];
+  /**
+   * Each language's words, by locale (`{ fr: { path, text } }`): a JSON object from every string the returned views draw (titles,
+   * technologies, descriptions, edge labels) to its translation. A string without one, or a translation no view draws, is
+   * refused (rule `translations`). The layout then holds `translations`.
+   */
+  translations?: Record<string, ModelFile>;
+}
+
+/** The views in one language: the layout's geometry, every string translated, and the hash of the file it came from. */
+export interface TranslatedViews extends HashedFile {
+  views: ArchView[];
 }
 
 export interface Layout {
@@ -170,10 +181,12 @@ export interface Layout {
   /** The check's verdict: `ok` (a refused model throws), the system it was checked against, the elements the model adds. */
   check: { status: "ok"; system: string | null; errors: []; elements: string[] };
   views: ArchView[];
+  /** Present when `translations` were passed: each language's views, keyed by locale. */
+  translations?: Record<string, TranslatedViews>;
 }
 
 export const LAYOUT_SCHEMA: "krizaka.layout/1";
-export const RULES: Readonly<Record<"model" | "specification" | "home" | "views", ModelRule>>;
+export const RULES: Readonly<Record<"model" | "specification" | "home" | "views" | "translations", ModelRule>>;
 
 /** A model the check refuses. `rule` is the first rule that failed; `problems` lists every one. */
 export class ArchitectureModelError extends Error {
@@ -190,3 +203,19 @@ export class ArchitectureModelError extends Error {
 export function layoutViews(model: string | ModelFile[] | C4, options?: LayoutOptions): Promise<Layout>;
 /** The LikeC4 files of a C4's containers level (a specification, the containers, their relations, a `containers` view). */
 export function modelOfC4(c4: C4): ModelFile[];
+
+/** One reason a committed layout is not made from the files given now. */
+export interface StaleSource {
+  path: string;
+  message: string;
+}
+
+/**
+ * What makes a committed layout stale: a model, base or translation file whose sha256 differs from the one it was made from, one
+ * it was not made from, or one it was made from that is not passed. `base` and `translations` are compared only when passed.
+ * An empty list: the layout was made from exactly these files. Reads no parser and no network.
+ */
+export function staleSources(
+  layout: unknown,
+  sources: { model: ModelFile[]; base?: ModelFile[]; translations?: Record<string, ModelFile> },
+): StaleSource[];
