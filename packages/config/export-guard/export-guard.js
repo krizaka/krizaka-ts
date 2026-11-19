@@ -38,12 +38,15 @@ const LICENCES = new Set([
   "BSD-3-Clause",
 ]);
 
+/** @param {string} s @param {string} chars */
+function trimEnd(s, chars) {
+  let end = s.length;
+  while (end > 0 && chars.includes(s.charAt(end - 1))) end--;
+  return s.slice(0, end);
+}
+
 /** @param {string} s */
-const squash = (s) =>
-  s
-    .replace(/[\s\u00a0\u202f]+/g, "")
-    .replace(/,/g, ".")
-    .replace(/\.+$/, "");
+const squash = (s) => trimEnd(s.replace(/[\s\u00a0\u202f]+/g, "").replace(/,/g, "."), ".");
 
 /** @param {string} path @param {readonly string[]} segments */
 const inPath = (path, segments) => path.split(/[/\\.]/).some((part) => segments.includes(part.toLowerCase()));
@@ -75,7 +78,7 @@ function emailsOf(line) {
     while (start > 0 && /[\w.+-]/.test(line.charAt(start - 1))) start--;
     let end = at + 1;
     while (end < line.length && isHostChar(line.charAt(end))) end++;
-    const domain = line.slice(at + 1, end).replace(/\.+$/, "");
+    const domain = trimEnd(line.slice(at + 1, end), ".");
     if (start < at && domain.includes(".")) found.push(line.slice(start, at + 1 + domain.length));
   }
   return found;
@@ -138,7 +141,7 @@ const soon = (line, file, policy) =>
 /** @type {LineRule} */
 const licence = (line, _file, policy) =>
   (line.match(/[\w.-]+/g) ?? [])
-    .map((token) => token.replace(/[.-]+$/, ""))
+    .map((token) => trimEnd(token, ".-"))
     .filter((token) => token !== policy.licence && (LICENCES.has(token) || token.startsWith("FSL-")))
     .map((token) => ({ rule: "licence", message: `licence name "${token}": the one licence is ${policy.licence}` }));
 
