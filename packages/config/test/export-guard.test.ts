@@ -72,9 +72,13 @@ describe("krizaka-export-guard CLI", () => {
     const dir = mkdtempSync(join(tmpdir(), "export-"));
     mkdirSync(dirname(join(dir, "fr/index.html")), { recursive: true });
     writeFileSync(join(dir, "fr/index.html"), html);
-    return spawnSync("node", [BIN, dir, "--product", "verikora", "--status", "development", "--code-name", "yomizaka", ...extra], {
-      encoding: "utf8",
-    });
+    return spawnSync(
+      "node",
+      [BIN, dir, "--product", "verikora", "--status", "development", "--code-name", "yomizaka", ...extra],
+      {
+        encoding: "utf8",
+      },
+    );
   };
   it("exits 1 with readable findings", () => {
     const r = run("<a href='/fr/sign-in'>x</a>");

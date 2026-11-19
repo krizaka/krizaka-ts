@@ -40,7 +40,9 @@ const { values, positionals } = parseArgs({
 });
 const [dir] = positionals;
 if (!dir || !values.product) {
-  console.error("usage: krizaka-export-guard <dir> --product <id> [--status s] [--licence id] [--allow-amount a]... [--code-name n]...");
+  console.error(
+    "usage: krizaka-export-guard <dir> --product <id> [--status s] [--licence id] [--allow-amount a]... [--code-name n]...",
+  );
   process.exit(2);
 }
 
