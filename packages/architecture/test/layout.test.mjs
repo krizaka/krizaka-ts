@@ -203,7 +203,9 @@ describe("the check refuses", () => {
 
 /** The strings a model's views draw, read from the refusal of an empty translation (every one is missing). */
 async function drawnStrings() {
-  const error = await layout({ ...options, translations: { fr: { path: "agents.fr.json", text: "{}" } } }).catch((e) => e);
+  const error = await layout({ ...options, translations: { fr: { path: "agents.fr.json", text: "{}" } } }).catch(
+    (e) => e,
+  );
   assert.ok(error instanceof ArchitectureModelError);
   assert.equal(error.rule, "translations");
   return error.problems.map((p) => p.message.match(/« (.*) »/s)[1]);
@@ -271,8 +273,7 @@ describe("staleSources", () => {
     base: BASE,
     translations: { fr: { path: "agents.fr.json", text: await frenchOf() } },
   });
-  const made = async (sources) =>
-    layoutViews(sources.model, { ...options, translations: sources.translations });
+  const made = async (sources) => layoutViews(sources.model, { ...options, translations: sources.translations });
 
   it("finds nothing when the layout was made from the files as they are", async () => {
     const sources = await files();
@@ -355,7 +356,14 @@ describe("krizaka-architecture layout", () => {
     writeFileSync(at("agents.c4"), MODEL);
     writeFileSync(at("agents.fr.json"), await frenchOf());
     for (const f of BASE) writeFileSync(at(f.path), f.text);
-    const sources = ["--base", at("specification.c4"), "--base", at("org.c4"), "--translations", `fr=${at("agents.fr.json")}`];
+    const sources = [
+      "--base",
+      at("specification.c4"),
+      "--base",
+      at("org.c4"),
+      "--translations",
+      `fr=${at("agents.fr.json")}`,
+    ];
     const laid = run(at("agents.c4"), "--out", at("views.json"), "--system", "platform.tooling", ...sources);
     assert.equal(laid.status, 0, laid.stderr);
     assert.equal(JSON.parse(readFileSync(at("views.json"), "utf8")).translations.fr.views.length, 3);
