@@ -1,4 +1,4 @@
-import { addDays, isAfter } from "date-fns";
+import { addHours, isAfter } from "@krizaka/time";
 
 import type { Documents } from "./documents";
 import { DOCUMENT_CODE, DocumentError } from "./errors";
@@ -53,7 +53,7 @@ export function createSharing(deps: SharingDeps) {
         documentId: input.documentId,
         tokenHash: hashToken(token),
         access: input.access,
-        expiresAt: addDays(now, days),
+        expiresAt: addHours(now, days * 24),
         maxOpens,
         opens: 0,
         revokedAt: null,

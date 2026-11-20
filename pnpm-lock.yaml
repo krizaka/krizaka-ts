@@ -454,9 +454,9 @@ importers:
 
   packages/documents:
     dependencies:
-      date-fns:
-        specifier: ^4.4.0
-        version: 4.4.0
+      '@krizaka/time':
+        specifier: workspace:^
+        version: link:../time
     devDependencies:
       '@krizaka/config':
         specifier: workspace:^
