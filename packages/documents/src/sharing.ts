@@ -1,3 +1,5 @@
+import { addDays, isAfter } from "date-fns";
+
 import type { Documents } from "./documents";
 import { DOCUMENT_CODE, DocumentError } from "./errors";
 import type { Clock } from "./port";
@@ -22,8 +24,6 @@ export interface SharingDeps {
   hashToken: (token: string) => string;
 }
 
-const DAY_MS = 86_400_000;
-
 /**
  * Expiring, revocable share links to a document: they always expire, may cap their opens, and say view or download.
  * @param deps the stores, the clock, the limits and the token functions
@@ -39,7 +39,7 @@ export function createSharing(deps: SharingDeps) {
       input: { documentId: string; access: LinkAccess; expiresInDays?: number; maxOpens?: number },
     ): Promise<{ link: ShareLink; token: string }> {
       const days = input.expiresInDays ?? limits.defaultExpiryDays;
-      if (!(days > 0) || days > limits.maxExpiryDays)
+      if (!Number.isInteger(days) || days < 1 || days > limits.maxExpiryDays)
         throw new DocumentError(DOCUMENT_CODE.InvalidLink, `a link lives 1 to ${limits.maxExpiryDays} days`);
       const maxOpens = input.maxOpens ?? null;
       if (maxOpens !== null && (!Number.isSafeInteger(maxOpens) || maxOpens < 1 || maxOpens > limits.maxOpensCeiling))
@@ -53,7 +53,7 @@ export function createSharing(deps: SharingDeps) {
         documentId: input.documentId,
         tokenHash: hashToken(token),
         access: input.access,
-        expiresAt: new Date(now.getTime() + days * DAY_MS),
+        expiresAt: addDays(now, days),
         maxOpens,
         opens: 0,
         revokedAt: null,
@@ -71,7 +71,7 @@ export function createSharing(deps: SharingDeps) {
     /** Opens a link by its token: counts the open and returns what the BFF may stream. Every refusal is the same error. */
     async openLink(token: string): Promise<{ tenantId: string; documentId: string; access: LinkAccess }> {
       const link = await links.byTokenHash(hashToken(token));
-      if (!link || link.revokedAt !== null || link.expiresAt.getTime() <= clock.now().getTime())
+      if (!link || link.revokedAt !== null || !isAfter(link.expiresAt, clock.now()))
         throw refuse("link refused");
       if (!(await links.countOpen(link.tenantId, link.id))) throw refuse("link refused");
       return { tenantId: link.tenantId, documentId: link.documentId, access: link.access };
