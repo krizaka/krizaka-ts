@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { createDocuments, createSharing, DOCUMENT_CODE, DocumentError, memoryDocumentStore, memoryLinkStore } from "../src";
+import {
+  createDocuments,
+  createSharing,
+  DOCUMENT_CODE,
+  DocumentError,
+  memoryDocumentStore,
+  memoryLinkStore,
+} from "../src";
 
 const DAY = 86_400_000;
 
@@ -19,11 +26,18 @@ async function setup() {
     hashToken: (t) => `h(${t})`,
   });
   const folder = await documents.createFolder("t1", { name: "F", parentId: null });
-  const doc = await documents.createDocument("t1", { folderId: folder.id, name: "a.pdf", content: { ref: "r", size: 1 } });
+  const doc = await documents.createDocument("t1", {
+    folderId: folder.id,
+    name: "a.pdf",
+    content: { ref: "r", size: 1 },
+  });
   return { sharing, doc, advance: (ms: number) => (now += ms) };
 }
 const code = async (p: Promise<unknown>) => {
-  const e = await p.then(() => null, (x: unknown) => x);
+  const e = await p.then(
+    () => null,
+    (x: unknown) => x,
+  );
   return e instanceof DocumentError ? e.code : null;
 };
 
@@ -42,7 +56,9 @@ describe("share links", () => {
     expect(link.expiresAt.getTime() - link.createdAt.getTime()).toBe(7 * DAY);
     advance(7 * DAY);
     expect(await code(sharing.openLink(token))).toBe(DOCUMENT_CODE.LinkRefused);
-    expect(await code(sharing.createLink("t1", { documentId: doc.id, access: "view", expiresInDays: 31 }))).toBe(DOCUMENT_CODE.InvalidLink);
+    expect(await code(sharing.createLink("t1", { documentId: doc.id, access: "view", expiresInDays: 31 }))).toBe(
+      DOCUMENT_CODE.InvalidLink,
+    );
   });
   it("caps the opens", async () => {
     const { sharing, doc } = await setup();
@@ -50,11 +66,15 @@ describe("share links", () => {
     await sharing.openLink(token);
     await sharing.openLink(token);
     expect(await code(sharing.openLink(token))).toBe(DOCUMENT_CODE.LinkRefused);
-    expect(await code(sharing.createLink("t1", { documentId: doc.id, access: "view", maxOpens: 101 }))).toBe(DOCUMENT_CODE.InvalidLink);
+    expect(await code(sharing.createLink("t1", { documentId: doc.id, access: "view", maxOpens: 101 }))).toBe(
+      DOCUMENT_CODE.InvalidLink,
+    );
   });
   it("refuses a document of another tenant and an unknown token", async () => {
     const { sharing, doc } = await setup();
-    expect(await code(sharing.createLink("t2", { documentId: doc.id, access: "view" }))).toBe(DOCUMENT_CODE.DocumentNotFound);
+    expect(await code(sharing.createLink("t2", { documentId: doc.id, access: "view" }))).toBe(
+      DOCUMENT_CODE.DocumentNotFound,
+    );
     expect(await code(sharing.openLink("nope"))).toBe(DOCUMENT_CODE.LinkRefused);
     expect(await code(sharing.revokeLink("t2", "link-x"))).toBe(DOCUMENT_CODE.LinkRefused);
   });
