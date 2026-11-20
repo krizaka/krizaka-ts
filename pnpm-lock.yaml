@@ -65,13 +65,13 @@ importers:
         version: 8.23.1
       tsup:
         specifier: ^8.5.0
-        version: 8.5.1(postcss@8.5.33)(typescript@5.9.3)(yaml@2.9.1)
+        version: 8.5.1(typescript@5.9.3)(yaml@2.9.1)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
       vitest:
         specifier: ^4.1.11
-        version: 4.1.12(@types/node@22.20.5)(@vitest/coverage-v8@4.1.12)(vite@8.3.5(@types/node@22.20.5)(esbuild@0.27.7)(yaml@2.9.1))
+        version: 4.1.12(@types/node@22.20.5)(@vitest/coverage-v8@4.1.12)(vite@8.3.5(@types/node@22.20.5)(esbuild@0.28.2)(yaml@2.9.1))
 
   packages/architecture:
     dependencies:
@@ -127,7 +127,7 @@ importers:
         version: 8.23.1
       tsup:
         specifier: ^8.5.0
-        version: 8.5.1(postcss@8.5.33)(typescript@5.9.3)(yaml@2.9.1)
+        version: 8.5.1(typescript@5.9.3)(yaml@2.9.1)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -170,7 +170,7 @@ importers:
         version: 8.23.1
       tsup:
         specifier: ^8.5.0
-        version: 8.5.1(postcss@8.5.33)(typescript@5.9.3)(yaml@2.9.1)
+        version: 8.5.1(typescript@5.9.3)(yaml@2.9.1)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -201,7 +201,7 @@ importers:
         version: 9.39.5
       tsup:
         specifier: ^8.5.0
-        version: 8.5.1(postcss@8.5.33)(typescript@5.9.3)(yaml@2.9.1)
+        version: 8.5.1(typescript@5.9.3)(yaml@2.9.1)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -292,7 +292,7 @@ importers:
         version: 9.39.5
       tsup:
         specifier: ^8.5.0
-        version: 8.5.1(postcss@8.5.33)(typescript@5.9.3)(yaml@2.9.1)
+        version: 8.5.1(typescript@5.9.3)(yaml@2.9.1)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -347,7 +347,7 @@ importers:
         version: 8.23.1
       tsup:
         specifier: ^8.5.0
-        version: 8.5.1(postcss@8.5.33)(typescript@5.9.3)(yaml@2.9.1)
+        version: 8.5.1(typescript@5.9.3)(yaml@2.9.1)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -390,7 +390,7 @@ importers:
         version: 8.23.1
       tsup:
         specifier: ^8.5.0
-        version: 8.5.1(postcss@8.5.33)(typescript@5.9.3)(yaml@2.9.1)
+        version: 8.5.1(typescript@5.9.3)(yaml@2.9.1)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -420,7 +420,7 @@ importers:
         version: 8.23.1
       tsup:
         specifier: ^8.5.0
-        version: 8.5.1(postcss@8.5.33)(typescript@5.9.3)(yaml@2.9.1)
+        version: 8.5.1(typescript@5.9.3)(yaml@2.9.1)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -441,7 +441,7 @@ importers:
         version: 9.39.5
       tsup:
         specifier: ^8.5.0
-        version: 8.5.1(postcss@8.5.33)(typescript@5.9.3)(yaml@2.9.1)
+        version: 8.5.1(typescript@5.9.3)(yaml@2.9.1)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -451,6 +451,27 @@ importers:
       zod:
         specifier: ^4.6.7
         version: 4.6.7
+
+  packages/documents:
+    devDependencies:
+      '@krizaka/config':
+        specifier: workspace:^
+        version: link:../config
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.5
+      eslint:
+        specifier: ^9.39.0
+        version: 9.39.5
+      tsup:
+        specifier: ^8.5.0
+        version: 8.5.1(typescript@5.9.3)(yaml@2.9.1)
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.11
+        version: 4.1.12(@types/node@22.20.5)(@vitest/coverage-v8@4.1.12)(vite@8.3.5(@types/node@22.20.5)(esbuild@0.27.7)(yaml@2.9.1))
 
   packages/email-verification:
     dependencies:
@@ -469,7 +490,7 @@ importers:
         version: 9.39.5
       tsup:
         specifier: ^8.5.0
-        version: 8.5.1(postcss@8.5.33)(typescript@5.9.3)(yaml@2.9.1)
+        version: 8.5.1(typescript@5.9.3)(yaml@2.9.1)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -509,7 +530,7 @@ importers:
         version: 8.23.1
       tsup:
         specifier: ^8.5.0
-        version: 8.5.1(postcss@8.5.33)(typescript@5.9.3)(yaml@2.9.1)
+        version: 8.5.1(typescript@5.9.3)(yaml@2.9.1)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -552,7 +573,7 @@ importers:
         version: 8.23.1
       tsup:
         specifier: ^8.5.0
-        version: 8.5.1(postcss@8.5.33)(typescript@5.9.3)(yaml@2.9.1)
+        version: 8.5.1(typescript@5.9.3)(yaml@2.9.1)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -579,7 +600,7 @@ importers:
         version: 9.39.5
       tsup:
         specifier: ^8.5.0
-        version: 8.5.1(postcss@8.5.33)(typescript@5.9.3)(yaml@2.9.1)
+        version: 8.5.1(typescript@5.9.3)(yaml@2.9.1)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -610,7 +631,7 @@ importers:
         version: 8.23.1
       tsup:
         specifier: ^8.5.0
-        version: 8.5.1(postcss@8.5.33)(typescript@5.9.3)(yaml@2.9.1)
+        version: 8.5.1(typescript@5.9.3)(yaml@2.9.1)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -647,7 +668,7 @@ importers:
         version: 8.23.1
       tsup:
         specifier: ^8.5.0
-        version: 8.5.1(postcss@8.5.33)(typescript@5.9.3)(yaml@2.9.1)
+        version: 8.5.1(typescript@5.9.3)(yaml@2.9.1)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -711,7 +732,7 @@ importers:
         version: 8.23.1
       tsup:
         specifier: ^8.5.0
-        version: 8.5.1(postcss@8.5.33)(typescript@5.9.3)(yaml@2.9.1)
+        version: 8.5.1(typescript@5.9.3)(yaml@2.9.1)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -751,7 +772,7 @@ importers:
         version: 8.23.1
       tsup:
         specifier: ^8.5.0
-        version: 8.5.1(postcss@8.5.33)(typescript@5.9.3)(yaml@2.9.1)
+        version: 8.5.1(typescript@5.9.3)(yaml@2.9.1)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -791,7 +812,7 @@ importers:
         version: 8.23.1
       tsup:
         specifier: ^8.5.0
-        version: 8.5.1(postcss@8.5.33)(typescript@5.9.3)(yaml@2.9.1)
+        version: 8.5.1(typescript@5.9.3)(yaml@2.9.1)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -819,7 +840,7 @@ importers:
         version: 9.39.5
       tsup:
         specifier: ^8.5.0
-        version: 8.5.1(postcss@8.5.33)(typescript@5.9.3)(yaml@2.9.1)
+        version: 8.5.1(typescript@5.9.3)(yaml@2.9.1)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -853,7 +874,7 @@ importers:
         version: 8.23.1
       tsup:
         specifier: ^8.5.0
-        version: 8.5.1(postcss@8.5.33)(typescript@5.9.3)(yaml@2.9.1)
+        version: 8.5.1(typescript@5.9.3)(yaml@2.9.1)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -884,7 +905,7 @@ importers:
         version: 9.39.5
       tsup:
         specifier: ^8.5.0
-        version: 8.5.1(postcss@8.5.33)(typescript@5.9.3)(yaml@2.9.1)
+        version: 8.5.1(typescript@5.9.3)(yaml@2.9.1)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -930,7 +951,7 @@ importers:
         version: 12.2.1
       tsup:
         specifier: ^8.5.0
-        version: 8.5.1(postcss@8.5.33)(typescript@5.9.3)(yaml@2.9.1)
+        version: 8.5.1(typescript@5.9.3)(yaml@2.9.1)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -958,7 +979,7 @@ importers:
         version: 9.39.5
       tsup:
         specifier: ^8.5.0
-        version: 8.5.1(postcss@8.5.33)(typescript@5.9.3)(yaml@2.9.1)
+        version: 8.5.1(typescript@5.9.3)(yaml@2.9.1)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -983,7 +1004,7 @@ importers:
         version: 9.39.5
       tsup:
         specifier: ^8.5.0
-        version: 8.5.1(postcss@8.5.33)(typescript@5.9.3)(yaml@2.9.1)
+        version: 8.5.1(typescript@5.9.3)(yaml@2.9.1)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -1007,7 +1028,7 @@ importers:
         version: 9.39.5
       tsup:
         specifier: ^8.5.0
-        version: 8.5.1(postcss@8.5.33)(typescript@5.9.3)(yaml@2.9.1)
+        version: 8.5.1(typescript@5.9.3)(yaml@2.9.1)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -1044,7 +1065,7 @@ importers:
         version: 8.23.1
       tsup:
         specifier: ^8.5.0
-        version: 8.5.1(postcss@8.5.33)(typescript@5.9.3)(yaml@2.9.1)
+        version: 8.5.1(typescript@5.9.3)(yaml@2.9.1)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -10350,11 +10371,10 @@ snapshots:
 
   possible-typed-array-names@1.1.0: {}
 
-  postcss-load-config@6.0.1(postcss@8.5.33)(yaml@2.9.1):
+  postcss-load-config@6.0.1(yaml@2.9.1):
     dependencies:
       lilconfig: 3.1.4
     optionalDependencies:
-      postcss: 8.5.33
       yaml: 2.9.1
 
   postcss@8.5.23:
@@ -11148,7 +11168,7 @@ snapshots:
 
   tslib@2.9.1: {}
 
-  tsup@8.5.1(postcss@8.5.33)(typescript@5.9.3)(yaml@2.9.1):
+  tsup@8.5.1(typescript@5.9.3)(yaml@2.9.1):
     dependencies:
       bundle-require: 5.1.0(esbuild@0.27.7)
       cac: 6.7.14
@@ -11159,7 +11179,7 @@ snapshots:
       fix-dts-default-cjs-exports: 1.0.1
       joycon: 3.1.1
       picocolors: 1.1.1
-      postcss-load-config: 6.0.1(postcss@8.5.33)(yaml@2.9.1)
+      postcss-load-config: 6.0.1(yaml@2.9.1)
       resolve-from: 5.0.0
       rollup: 4.65.0
       source-map: 0.7.6
@@ -11168,7 +11188,6 @@ snapshots:
       tinyglobby: 0.2.17
       tree-kill: 1.2.2
     optionalDependencies:
-      postcss: 8.5.33
       typescript: 5.9.3
     transitivePeerDependencies:
       - jiti

@@ -26,6 +26,7 @@ export const PACKAGES = Object.freeze(
       "credits",
       "db",
       "docs",
+      "documents",
       "email-verification",
       "mail",
       "notifications",
