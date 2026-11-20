@@ -130,6 +130,9 @@
     "audit": {
       "hook": "Who did what: an append-only trail in its own schema, inside the transaction or beside it, filtered, exported and redacted (Loi 25)."
     },
+    "documents": {
+      "hook": "Documents for every product: folders, documents and immutable versions behind a port, with typed errors; runs in each app’s BFF over its own store, no database client and no wall clock."
+    },
     "config": {
       "hook": "The quality kit of every TypeScript repository: ESLint configs, the dependency-cruiser preset, tsconfig bases, Prettier and the debt ratchet."
     }
