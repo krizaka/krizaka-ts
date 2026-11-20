@@ -71,8 +71,7 @@ export function createSharing(deps: SharingDeps) {
     /** Opens a link by its token: counts the open and returns what the BFF may stream. Every refusal is the same error. */
     async openLink(token: string): Promise<{ tenantId: string; documentId: string; access: LinkAccess }> {
       const link = await links.byTokenHash(hashToken(token));
-      if (!link || link.revokedAt !== null || !isAfter(link.expiresAt, clock.now()))
-        throw refuse("link refused");
+      if (!link || link.revokedAt !== null || !isAfter(link.expiresAt, clock.now())) throw refuse("link refused");
       if (!(await links.countOpen(link.tenantId, link.id))) throw refuse("link refused");
       return { tenantId: link.tenantId, documentId: link.documentId, access: link.access };
     },
