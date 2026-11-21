@@ -31,7 +31,7 @@ describe("check-advisories", () => {
       "  glob@14.0.2:",
       "    resolution: {integrity: sha512-a}",
       "",
-      "  '@scope/x@1.0.0:'",
+      "  '@scope/x@1.0.0':",
       "    resolution: {integrity: sha512-b}",
       "",
       "  '@scope/y@2.3.4(react@18.2.0)':",

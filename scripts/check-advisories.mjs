@@ -23,28 +23,26 @@ export function cmp(a, b) {
   return 0;
 }
 
+/** The `name@version` of a lockfile key line (`  '@s/x@1.0.0(peer@1)':`), or `null` when the line is not a key. */
+function keyOf(line) {
+  if (!line.startsWith("  ") || line.startsWith("   ") || !line.endsWith(":")) return null;
+  const quoted = line.slice(2, -1).replaceAll("'", "").replaceAll('"', "");
+  const peer = quoted.indexOf("(");
+  return (peer < 0 ? quoted : quoted.slice(0, peer)).replace(/:$/, "");
+}
+
 /** Every `{ name, version }` entry in the top-level `packages:` section of a pnpm v9 lockfile. */
 export function resolved(lockText) {
-  const out = [];
-  let inPackages = false;
-  for (const line of lockText.split(/\r?\n/)) {
-    if (!inPackages) {
-      if (/^packages:\s*$/.test(line)) inPackages = true;
-      continue;
-    }
-    if (/^(?!#)\S/.test(line)) break;
-    const match = /^  ([^#\s].*?)\s*$/.exec(line);
-    if (!match) continue;
-    let key = match[1].replace(/:\s*(?:\{\})?$/, "");
-    if ((key.startsWith("'") && key.endsWith("'")) || (key.startsWith('"') && key.endsWith('"'))) {
-      key = key.slice(1, -1);
-    }
-    key = key.replace(/:$/, "").replace(/\(.*$/, "");
-    const at = key.indexOf("@", 1);
-    if (at < 1 || at === key.length - 1) continue;
-    out.push({ name: key.slice(0, at), version: key.slice(at + 1) });
-  }
-  return out;
+  const lines = lockText.split(/\r?\n/);
+  const start = lines.indexOf("packages:");
+  if (start < 0) return [];
+  const end = lines.findIndex((line, i) => i > start && line !== "" && !line.startsWith(" "));
+  const section = lines.slice(start + 1, end < 0 ? undefined : end);
+  return section.flatMap((line) => {
+    const key = keyOf(line);
+    const at = key?.indexOf("@", 1) ?? -1;
+    return key && at > 0 ? [{ name: key.slice(0, at), version: key.slice(at + 1) }] : [];
+  });
 }
 
 /** Every advisory violation in `lockText`, formatted as `"<name>@<version> (needs >= <min>)"`. */
