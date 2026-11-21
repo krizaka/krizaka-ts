@@ -1,5 +1,11 @@
 # @krizaka/org
 
+## 1.14.1
+
+### Patch Changes
+
+- 8b709a7: A test now refuses any site description that names Maven Central or crates.io, where nothing of ours is published (krizaka-internal#4606).
+
 ## 1.14.0
 
 ### Minor Changes
