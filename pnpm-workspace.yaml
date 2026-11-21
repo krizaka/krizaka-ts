@@ -8,3 +8,5 @@ onlyBuiltDependencies:
 # Security pins for vulnerable transitive deps that Dependabot cannot move (a parent pins the major).
 overrides:
   "minimatch@>=7.0.0 <11.0.1": "11.0.4" # GHSA-g3hv-75wg-m249: no fix before 11 (via eslint, typescript-eslint)
+  "glob@>=9.0.0 <14.0.2": "14.0.2" # glob advisory (patched 14.0.2); parent pins 10.x
+  "esbuild@<0.28.1": "0.28.2" # esbuild advisory (patched 0.28.1); tsup and bundle-require pinned 0.27
