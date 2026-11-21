@@ -3,6 +3,8 @@ export const DOCUMENT_CODE = {
   DocumentNotFound: "DOCUMENT_NOT_FOUND",
   InvalidName: "DOCUMENT_INVALID_NAME",
   InvalidContent: "DOCUMENT_INVALID_CONTENT",
+  InvalidLink: "DOCUMENT_INVALID_LINK",
+  LinkRefused: "DOCUMENT_LINK_REFUSED",
 } as const;
 
 export type DocumentCode = (typeof DOCUMENT_CODE)[keyof typeof DOCUMENT_CODE];
