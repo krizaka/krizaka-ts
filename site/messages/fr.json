@@ -228,7 +228,7 @@
       },
       "java": {
         "title": "Krizaka Java",
-        "text": "Les mêmes briques pour Spring Boot, sur Maven Central."
+        "text": "Les mêmes briques pour Spring Boot, depuis notre propre dépôt Maven."
       },
       "ui": {
         "title": "Krizaka UI",

@@ -97,7 +97,7 @@ describe("the org JSON", () => {
 
   it("says where Java's artefacts are without naming Maven Central, and gives Kridoc its line", () => {
     const java = org.sites.find((s) => s.id === "java");
-    expect(`${java?.description.fr} ${java?.description.en}`).not.toMatch(/maven central/i);
+    for (const site of org.sites) expect(`${site.description.fr} ${site.description.en}`, site.id).not.toMatch(/maven central|crates\.io/i);
     expect(java?.description.en).toMatch(/GitHub/);
     expect(org.sites.find((s) => s.id === "kridoc")?.description.en.length).toBeGreaterThan(0);
   });
