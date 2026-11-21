@@ -1,72 +1,76 @@
-# Krizaka TS — agent contract
+# krizaka-ts — agent contract
 
-Krizaka TS is the TypeScript counterpart of Krizaka Java: backend building blocks shared by every Krizaka product, published on
-npm under `@krizaka/` (Apache-2.0). ADR: `krizaka-internal` docs/adr/.github/ADR-006-krizaka-ts-organize.md. Epic: krizaka/.github#183.
+<!-- krizaka-agents-template v2: rendered from krizaka/.github docs/standards/agents-template.md (scripts/agents-md.mjs). The one AGENTS.md standard: six sections in this order, at most 150 lines, bullets and imperatives. The conformance check « agents-template » reads the headings, the length and CLAUDE.md. Detail goes to docs/ via References, not here. -->
 
-- **A package is generic**: no import from a product, no environment variable, no vendor SDK, no ambient clock (`Clock` injected),
-  no database client (a `Query` function is passed in). Rules are data. Ports for everything else.
-- **Names are functional**: a file says what it does (`accounts.ts`, `persistence.ts`, `db.ts`), never the technology behind it
-  (`postgres.ts`, `pg-store.ts`, `mailgun.ts`); `scripts/check-file-names.mjs` (in `pnpm lint`) refuses it.
-- **Tests first**, every package with unit tests and, where it stores, an integration test against PostgreSQL (CI's service;
-  locally `ORGANIZE_DB_IT=1 DATABASE_URL=… pnpm test`). A store ships a contract kit every adapter runs.
-- **Releases**: Changesets (`pnpm changeset`), the Release workflow opens « chore: version packages » and publishes with `NPM_TOKEN`.
-- **Static rules**: ast-grep + ratchet (`pnpm lint`); the debt only goes down. Duplicated lines too (`dup-ratchet.json`).
-- **Imports**: dependency-cruiser with the shared preset of `@krizaka/config` (`.dependency-cruiser.cjs`, `pnpm run lint:deps`, one run per package): « Krizaka first » (dates go through `@krizaka/intl`), cycles, unresolvable imports, dev dependencies in production code, and `krizaka-ts-not-from-ui` (ADR-004): a package here never imports what renders (`@krizaka/ui`, tokens, fonts, icons, tailwind, charts, email). The violations that existed at adoption are recorded per package in `.dependency-cruiser-known-violations.json` and only go down: fix one, then `node scripts/deps.mjs update`; a new one is never recorded.
-- **Issues first**: every change links its issue (`Refs #n`), with a proof in the PR.
-- **Documentation site** (`site/`, ts.krizaka.com, krizaka/krizaka-ts#28): a static Next.js site on the Krizaka UI blocks, built like java.krizaka.com. One page per package, generated at build from `packages/*` (README, exports read from the TypeScript program, changelog) and the version npm lists — never hand-written, never a version typed. A new package needs its one line in `site/messages/{en,fr}.json` (`packages.<dir>`) and a line in the root README's table; `npm run lint` in `site/` fails otherwise. Deployed by DigitalOcean App Platform (`.do/app.yaml`) on every push to main; CI is `.github/workflows/site.yml`.
+## Project context
 
-## Before you open or update a pull request (coding agents)
+- Krizaka TS is the TypeScript counterpart of Krizaka Java: backend building blocks shared by every Krizaka product, published on npm under `@krizaka/` (Apache-2.0).
+- pnpm workspace (`packages/*`, `site/`), Node ≥ 22, built with turbo, tested with vitest. Registry entry: [repos.json](https://github.com/krizaka/.github/blob/main/repos.json).
+- ADR: `krizaka-internal` docs/adr/.github/ADR-006-krizaka-ts-organize.md. Epic: krizaka/.github#183.
+- Read this file first; the design notes and ADRs of this repository are in [docs/](docs/).
+- `CLAUDE.md` is the one line `@AGENTS.md`: never a second copy of it.
 
-These are the defects code review found most often on 2026-10-23. Check them yourself before you open or update a pull request:
-1. **Checks:** run the repository's full check (lint, typecheck, tests, build) and fix it. Never push a red check.
-2. **Concurrency:** any « count then insert » or « check then write » runs in one transaction with a lock, and has a concurrency test.
-3. **One gate:** a rule (limit, permission, validation) is enforced in the service, so no route can skip it. Test every route.
-4. **Errors:** a cleanup (ROLLBACK, DROP, close) never masks the original error. Rethrow it, or throw an `AggregateError` with the original first.
-5. **Validation:** validate the original input, never a truncated or pre-trimmed copy. Server and client reject the same inputs.
-6. **Accessibility:**
-   - every control has a unique label, and FR/EN pairs say their language;
-   - focus rings are never clipped by `overflow`;
-   - text never overflows its box at 360 px.
-7. **Naming:** environment variables follow `<CONTEXT>_<THING>` (`APP_`, `DATABASE_`, `AUTH_`, `MEDIA_`, `MAIL_`, `PAYMENTS_`, `AI_`…) and are declared once.
-8. **Words:** every user-facing string is in the FR and EN messages, and no colour is hard-coded.
-9. **Review threads:** answer every one. Fix it test-first, or reply with the reason, then resolve it.
+## Essential commands
 
-- **A bug means a missing guard** ([standard](https://github.com/krizaka/.github/blob/main/docs/standards/bug-means-missing-guard.md)): the fix PR first adds a guard that fails on `main`, then fixes the bug; the bug issue says why the guards missed it.
-
-**Repository layout:** the root follows [krizaka/.github `docs/standards/repo-layout.md`](https://github.com/krizaka/.github/blob/main/docs/standards/repo-layout.md); the CI guard `check-repo-layout` fails on a stray root file, and a justified extra is declared in `.repo-layout.json` with its why.
-**Merging:** main has a merge queue (ruleset « Merge queue »). `ci.yml` and `security.yml` run on `merge_group`, and the SonarCloud CI analysis (not the automatic one, which never analyses a queue branch) posts « SonarCloud Code Analysis » on the queue commit.
-
-## 9. Anti-slop (ADR-015)
-
-What a model tends to write and the code does not need. Each line points at the rule that refuses it
-([ADR-015](https://github.com/krizaka/krizaka-internal/blob/main/docs/adr/.github/ADR-015-ai-code-audit-measured-and-enforced.md), [docs/standards/guards.md](https://github.com/krizaka/.github/blob/main/docs/standards/guards.md)).
-
-1. **No defensive null on `@NullMarked` code.** No `Objects.requireNonNull` or `if (x == null)` on a value the type already
-   guarantees. Enforced by NullAway at compile time; a new package is `@NullMarked` (ArchUnit).
-2. **A closed set is a type.** An enum, a sealed interface or an `as const` object, never a string compared by hand;
-   strategies are a `Map<Kind, Strategy>` built once at startup. Enforced by PMD / ArchUnit (Java) and `no-enum-string-compare` (ast-grep).
-3. **HTTP in Java is a DTO record, `@Valid` and `ProblemDetail`.** No `Map.of("error", …)`, no entity in a response, one
-   `@RestControllerAdvice` per service. Enforced by ArchUnit.
-4. **No `*Utils`, `*Helper` or `*Manager`.** Name the thing by what it does (§4). Enforced by ArchUnit (ADR-015 §5).
-5. **`?.` and `??` in TypeScript**, not a chain of `&&` or a ternary on null. The target rules are `@typescript-eslint/prefer-optional-chain` and `prefer-nullish-coalescing`; they are not in `@krizaka/config` yet.
-6. **The build is the judge.** Compile, lint and test before every push; `krizaka-edit-check` runs on each edit (below) and
-   NullAway and ArchUnit run at pre-push and in CI. A rule is never silenced to get green.
-
-**The edit hook.** Every repository adds this to `.claude/settings.json`. After each `Edit` or `Write`, the one file is
-checked in under 10 s: ESLint with the repository's config for TypeScript, PMD with the Krizaka rules for Java (never Maven).
-A finding comes back to the agent (exit 2); a timeout is silent.
-
-```json
-{
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Edit|Write",
-        "hooks": [{ "type": "command", "command": "npx --yes -p @krizaka/config krizaka-edit-check", "timeout": 10 }]
-      }
-    ]
-  }
-}
+```bash
+pnpm install --frozen-lockfile
+pnpm run format          # prettier --write
+pnpm run lint            # turbo lint, ast-grep, ratchet, file names, deps, lockfiles, workspace guard, format check
+pnpm run typecheck
+pnpm run test            # turbo test + vitest
+pnpm run build
+pnpm run check           # lint + typecheck + test: the pre-push hook runs it
+pnpm run lint:deps       # dependency-cruiser, one run per package
+pnpm changeset           # a release note for a package change
 ```
 
-In a TypeScript repository that already depends on `@krizaka/config`, use `npx --no-install krizaka-edit-check` (no download).
+- A store's integration test: `ORGANIZE_DB_IT=1 DATABASE_URL=… pnpm test` (CI provides the PostgreSQL service).
+- Site (`site/`): `npm run lint` in `site/`.
+- Run them on what you changed before every push; CI runs the rest.
+
+## Architecture & conventions
+
+- Follow the [krizaka-engineering skill](https://github.com/krizaka/krizaka-skills/blob/main/skills/krizaka-engineering/SKILL.md); search its [packages reference](https://github.com/krizaka/krizaka-skills/blob/main/skills/krizaka-engineering/references/packages.md) before writing anything generic.
+- A package is generic: no import from a product, no environment variable, no vendor SDK, no ambient clock (`Clock` injected), no database client (a `Query` function is passed in). Rules are data. Ports for everything else.
+- Name files by what they do (`accounts.ts`, `persistence.ts`, `db.ts`), never by the technology (`postgres.ts`, `pg-store.ts`, `mailgun.ts`); `scripts/check-file-names.mjs` (in `pnpm lint`) refuses it. No `*Utils`, `*Helper`, `*Manager`.
+- Write tests first: every package has unit tests and, where it stores, an integration test against PostgreSQL. A store ships a contract kit every adapter runs.
+- Imports go through dependency-cruiser with the shared preset of `@krizaka/config` (`.dependency-cruiser.cjs`): « Krizaka first » (dates go through `@krizaka/intl`), no cycles, no unresolvable imports, no dev dependency in production code.
+- `krizaka-ts-not-from-ui` (ADR-004): a package here never imports what renders (`@krizaka/ui`, tokens, fonts, icons, tailwind, charts, email).
+- Violations that existed at adoption are in `.dependency-cruiser-known-violations.json` and only go down: fix one, then `node scripts/deps.mjs update`; never record a new one.
+- Static rules are ast-grep plus a ratchet (`pnpm lint`); the debt only goes down. Duplicated lines too (`dup-ratchet.json`).
+- A closed set is a type (`as const` object), never a string compared by hand (`no-enum-string-compare`). Use `?.` and `??`, not a chain of `&&` or a ternary on null.
+- Releases: Changesets; the Release workflow opens « chore: version packages » and publishes with `NPM_TOKEN`.
+- Documentation site (`site/`, ts.krizaka.com, krizaka/krizaka-ts#28): static Next.js on the Krizaka UI blocks, one page per package generated at build from `packages/*` (README, exports from the TypeScript program, changelog) and the version npm lists — never hand-written, never a version typed. Deployed by DigitalOcean App Platform (`.do/app.yaml`) on every push to main; CI is `.github/workflows/site.yml`.
+- A new package needs its line in `site/messages/{en,fr}.json` (`packages.<dir>`) and a line in the root README's table; `npm run lint` in `site/` fails otherwise.
+- The root layout follows [repo-layout](https://github.com/krizaka/.github/blob/main/docs/standards/repo-layout.md); the CI guard `check-repo-layout` fails on a stray root file; declare a justified extra in `.repo-layout.json` with its why.
+
+## Guard-rails & known pitfalls (read before coding)
+
+- The checks are the judge ([ADR-015](https://github.com/krizaka/krizaka-internal/blob/main/docs/adr/.github/ADR-015-ai-code-audit-measured-and-enforced.md), [guards](https://github.com/krizaka/.github/blob/main/docs/standards/guards.md)): never `--no-verify`, never a new `eslint-disable`, never a raised ratchet or baseline; a rule is never silenced to get green.
+- Concurrency: run any « count then insert » or « check then write » in one transaction with a lock, and add a concurrency test.
+- One gate: enforce a rule (limit, permission, validation) in the service so no route can skip it; test every route.
+- Errors: a cleanup (ROLLBACK, DROP, close) never masks the original error; rethrow it, or throw an `AggregateError` with the original first.
+- Validation: validate the original input, never a truncated or pre-trimmed copy; server and client reject the same inputs.
+- Accessibility: every control has a unique label, FR/EN pairs say their language, focus rings are never clipped by `overflow`, text never overflows its box at 360 px.
+- Naming: environment variables follow `<CONTEXT>_<THING>` (`APP_`, `DATABASE_`, `AUTH_`, `MEDIA_`, `MAIL_`, `PAYMENTS_`, `AI_`…) and are declared once.
+- Words: every user-facing string is in the FR and EN messages, and no colour is hard-coded.
+- A bug means a missing guard ([standard](https://github.com/krizaka/.github/blob/main/docs/standards/bug-means-missing-guard.md)): the fix PR first adds a guard that fails on `main`, then fixes the bug; the bug issue says why the guards missed it.
+- A stale install or a `*.tsbuildinfo` written against other dependencies makes typecheck fail on a clean main: the pre-push hook reinstalls from the lockfile; do the same by hand.
+- Never invent a URL, a law article, a price or a figure you did not read; write `TO VALIDATE` and say who decides.
+- Never commit a secret, a capture or a log; no production data in a session, only the dev data.
+- Keep the edit hook in `.claude/settings.json`: `krizaka-edit-check` on `Edit|Write` checks the one file with ESLint in under 10 s; a finding comes back to you.
+
+## Expected validation workflow
+
+- [ ] Run `pnpm run check` (lint, typecheck, tests) and `pnpm run build`; fix the cause of a red, never the guard.
+- [ ] Run the PostgreSQL integration tests locally once when a store or migration changed (« skipped » is not green).
+- [ ] Add a changeset when a package's published behaviour changes.
+- [ ] Update the README table and `site/messages/{en,fr}.json` for a new package.
+- [ ] Link the issue (`Refs #n`) with a proof in the PR; answer every review thread, test-first or with the reason, then resolve it.
+- [ ] One issue, one small PR; merge only with green CI, through the merge queue (`ci.yml` and `security.yml` run on `merge_group`, with the SonarCloud CI analysis).
+
+## References
+
+- [docs/](docs/): ADRs and design notes of this repository.
+- [Org standards](https://github.com/krizaka/.github/tree/main/docs/standards) of krizaka/.github; the [engineering charter](https://github.com/krizaka/.github/blob/main/AGENTS.template.md).
+- [krizaka-engineering skill](https://github.com/krizaka/krizaka-skills/blob/main/skills/krizaka-engineering/SKILL.md).

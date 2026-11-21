@@ -29,6 +29,7 @@ import {
 import { auditPage, problemsOf } from "./page-audit.mjs";
 import { auditContext } from "./settle.mjs";
 
+/** @type {[name: string, html: string, pattern: RegExp, checks?: Record<string, unknown>][]} */
 const EXPECT = [
   ["a card taller than its panel", CARD_OVER_NEXT, /overflows its panel/],
   ["a card over the next section", CARD_OVER_NEXT, /covers a neighbouring section/],

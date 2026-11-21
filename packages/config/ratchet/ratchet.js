@@ -413,6 +413,55 @@ function loweredCounters(recorded, current, report) {
 }
 
 /**
+ * Persists the ratchet file for `init` or `update` (when counters decreased or were added) and updates `report` in place.
+ * @param {{
+ *   mode: "check" | "init" | "update",
+ *   path: string,
+ *   globs: string[],
+ *   stackGlobs: string[],
+ *   allow: string[],
+ *   current: Counters,
+ *   recorded: Counters,
+ *   recordedFile: RatchetFile | undefined,
+ *   report: RatchetResult["counters"],
+ *   decreased: string[],
+ *   added: string[],
+ *   unmeasured: string[],
+ * }} state
+ * @returns {boolean}
+ */
+function persistRatchet({
+  mode,
+  path,
+  globs,
+  stackGlobs,
+  allow,
+  current,
+  recorded,
+  recordedFile,
+  report,
+  decreased,
+  added,
+  unmeasured,
+}) {
+  if (mode === "init") {
+    writeRatchet(path, { globs, stackGlobs, ...(allow.length > 0 ? { allow } : {}), counters: current });
+    return true;
+  }
+  if (mode !== "update" || !recordedFile || (decreased.length === 0 && added.length === 0)) return false;
+  const lowered = loweredCounters(recorded, current, report);
+  // a counter this version does not measure (a repository's own, or a newer preset's) is kept as recorded, never dropped
+  const recordedCounters = /** @type {Record<string, number>} */ (recordedFile.counters);
+  const counters = {
+    ...lowered,
+    ...Object.fromEntries(unmeasured.map((name) => [name, recordedCounters[name]])),
+  };
+  writeRatchet(path, { ...recordedFile, stackGlobs: recordedFile.stackGlobs ?? stackGlobs, counters });
+  for (const name of decreased) report[name].recorded = lowered[name];
+  return true;
+}
+
+/**
  * Runs the ratchet.
  * - `check` (default): fails when a counter is above its recorded value.
  * - `init`: creates the file with the current counters (refuses to overwrite one).
@@ -458,23 +507,20 @@ export async function runRatchet({ root, mode = "check", globs, file = RATCHET_F
 
   const { report, increased, decreased } = compareCounters(current, recorded);
 
-  let written = false;
-  if (mode === "init") {
-    writeRatchet(path, { globs: useGlobs, stackGlobs, ...(allow.length > 0 ? { allow } : {}), counters: current });
-    written = true;
-  } else if (mode === "update" && (decreased.length > 0 || added.length > 0) && recordedFile) {
-    const lowered = loweredCounters(recorded, current, report);
-    // a counter this version does not measure (a repository's own, or a newer preset's) is kept as recorded, never dropped
-    const counters = {
-      ...lowered,
-      ...Object.fromEntries(
-        unmeasured.map((name) => [name, /** @type {Record<string, number>} */ (recordedFile?.counters)?.[name]]),
-      ),
-    };
-    writeRatchet(path, { ...recordedFile, stackGlobs: recordedFile.stackGlobs ?? stackGlobs, counters });
-    for (const name of decreased) report[name].recorded = lowered[name];
-    written = true;
-  }
+  const written = persistRatchet({
+    mode,
+    path,
+    globs: useGlobs,
+    stackGlobs,
+    allow,
+    current,
+    recorded,
+    recordedFile,
+    report,
+    decreased,
+    added,
+    unmeasured,
+  });
 
   const shown = relative(root, path);
   return {

@@ -130,6 +130,9 @@
     "audit": {
       "hook": "Qui a fait quoi : une trace en ajout seul dans son propre schéma, dans la transaction ou à côté, filtrée, exportée et caviardée (Loi 25)."
     },
+    "documents": {
+      "hook": "Les documents de chaque produit : dossiers, documents et versions immuables derrière un port, erreurs typées ; tourne dans le BFF de chaque app sur son propre magasin, sans client de base de données ni horloge murale."
+    },
     "config": {
       "hook": "Le kit qualité de chaque dépôt TypeScript : configs ESLint, preset dependency-cruiser, bases tsconfig, Prettier et le cliquet de dette."
     }

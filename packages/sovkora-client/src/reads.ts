@@ -57,7 +57,7 @@ const shape = (what: string) =>
 /** Standard base64 of the bytes, in chunks (no `Buffer`: the package reads no runtime of its own). */
 function base64(bytes: Uint8Array): string {
   let binary = "";
-  for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCodePoint(...bytes.subarray(i, i + 0x8000));
   return btoa(binary);
 }
 
