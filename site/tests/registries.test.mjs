@@ -11,7 +11,10 @@ for (const locale of ["en", "fr"]) {
   test(`messages/${locale}.json names no registry that does not hold our packages`, () => {
     const text = readFileSync(new URL(`../messages/${locale}.json`, import.meta.url), "utf8");
     for (const [name, pattern] of Object.entries(CLAIMS)) {
-      assert.ok(PUBLISHED.includes(name) || !pattern.test(text), `${locale}.json says "${name}", where nothing is published`);
+      assert.ok(
+        PUBLISHED.includes(name) || !pattern.test(text),
+        `${locale}.json says "${name}", where nothing is published`,
+      );
     }
   });
 }
