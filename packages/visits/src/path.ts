@@ -22,5 +22,5 @@ export function normalisePath(input: string | null | undefined): string | null {
   if (path.length > MAX_PATH_LENGTH || NEVER.test(path) || FILE.test(path)) return null;
   const segments = path.split("/").filter(Boolean);
   if (segments.length > MAX_SEGMENTS) return null;
-  return [...path].some((char) => char.charCodeAt(0) <= 32) ? null : path;
+  return [...path].some((char) => (char.codePointAt(0) ?? 0) <= 32) ? null : path;
 }

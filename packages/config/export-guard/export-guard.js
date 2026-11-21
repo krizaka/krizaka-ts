@@ -46,7 +46,7 @@ function trimEnd(s, chars) {
 }
 
 /** @param {string} s */
-const squash = (s) => trimEnd(s.replace(/[\s\u00a0\u202f]+/g, "").replace(/,/g, "."), ".");
+const squash = (s) => trimEnd(s.replace(/[\s\u00a0\u202f]+/g, "").replaceAll(",", "."), ".");
 
 /** @param {string} path @param {readonly string[]} segments */
 const inPath = (path, segments) => path.split(/[/\\.]/).some((part) => segments.includes(part.toLowerCase()));
