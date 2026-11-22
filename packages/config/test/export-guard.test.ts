@@ -106,6 +106,42 @@ describe("krizaka-export-guard CLI", () => {
         [],
       );
     });
+    // React's flight client (react-client, ReactFlightClient.js, parseModelString) reads a string that starts with "$":
+    // "$$..." is an escaped literal, "$<hex>[:path]" a chunk reference with an optional property path, and "$<letter>..."
+    // a typed value ("$L" lazy, "$@" promise, "$F" server reference, "$S" symbol, "$D" date, "$n" bigint, "$Q" map,
+    // "$W" set, "$B" blob, "$K" form data, "$I" / "$-" / "$N" numbers, "$undefined"). None carries a space.
+    it("ignores a reference with a path and every prefix form", () => {
+      const refs = [
+        "$25:props:a:b",
+        "$25:props:org:footer:sites:0:href",
+        "$L3",
+        "$1",
+        "$18",
+        "$@4",
+        "$F5",
+        "$Sreact.fragment",
+        "$D2024-01-02T00:00:00.000Z",
+        "$n123",
+        "$Q6",
+        "$W7",
+        "$B8",
+        "$K9",
+        "$I",
+        "$-Infinity",
+        "$NaN",
+        "$undefined",
+      ];
+      const payload = `4:${JSON.stringify(refs)}`;
+      assert.deepEqual(rules("fr/index.txt", payload), []);
+      assert.deepEqual(
+        rules("fr/index.html", `<script>self.__next_f.push([1,${JSON.stringify(payload)}])</script>`),
+        [],
+      );
+    });
+    it("still refuses a price that only looks like a reference", () => {
+      assert.deepEqual(rules("fr/pricing/index.txt", '3:["$12.50","$12 par mois"]'), ["amount", "amount"]);
+      assert.deepEqual(rules("fr/pricing/index.txt", '3:["$$12"]'), ["amount"]);
+    });
     it("accepts the licence of the org catalogue in a data payload", () => {
       assert.deepEqual(rules("fr/index.txt", '2:{"name":"@krizaka/ui","license":"Apache-2.0"}'), []);
     });

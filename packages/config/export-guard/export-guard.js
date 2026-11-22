@@ -100,8 +100,42 @@ function elementTexts(line) {
   return [...line.matchAll(/>([^<>]*)</g)].map((m) => (m[1] ?? "").trim().toLowerCase());
 }
 
-// A React flight reference is a whole JSON string: "$1", "$L2", "$Sreact.fragment", "$undefined". Never a price.
-const FLIGHT_REF = /\\?"\$(?:[0-9a-f]+|[A-Z@][\w.]*|undefined)\\?"/g;
+// A React flight reference is a whole JSON string that starts with "$" and has no space (react-client, ReactFlightClient.js,
+// parseModelString): "$<hex>" with an optional ":path" ("$25:props:org:footer"), or "$<prefix letter, @ or ->..." ("$L2", "$@4",
+// "$Sreact.fragment", "$undefined"). "$$..." is an escaped literal, so it stays visible. Never a price.
+const isHex = (/** @type {string} */ c) => /[0-9a-f]/.test(c);
+const isPrefix = (/** @type {string} */ c) => /[A-Za-z@-]/.test(c);
+
+/** Whether `body` (what follows the "$" up to the closing quote) is a flight reference. @param {string} body */
+function isFlightBody(body) {
+  const first = body.charAt(0);
+  if (isHex(first)) {
+    let i = 1;
+    while (i < body.length && isHex(body.charAt(i))) i++;
+    return i === body.length || (body.charAt(i) === ":" && !/\s/.test(body));
+  }
+  return isPrefix(first) && !/\s/.test(body);
+}
+
+/** The line without its flight references: one linear scan, no backtracking. @param {string} line */
+function withoutFlightRefs(line) {
+  let out = "";
+  let copied = 0;
+  let next = line.indexOf('"$');
+  while (next >= 0) {
+    const at = next;
+    let end = at + 2;
+    while (end < line.length && line.charAt(end) !== '"' && line.charAt(end) !== "\\") end++;
+    const isRef = end < line.length && isFlightBody(line.slice(at + 2, end));
+    if (isRef) {
+      out += line.slice(copied, at + 1);
+      copied = end;
+    }
+    next = line.indexOf('"$', isRef ? end : at + 1);
+  }
+  return out + line.slice(copied);
+}
+
 // The org catalogue in a payload: a JSON string value under a licence key.
 const DATA_LICENCE = /\\?"licen[cs]e\\?"\s*:\s*\\?"[^"]*"/g;
 const PAYLOAD_LINE = /__next_f|type="application\/(?:ld\+)?json"/;
@@ -136,7 +170,7 @@ const email = (line, file, policy) =>
 /** @type {LineRule} */
 const amount = (line, file, policy) => {
   const allowed = new Set(policy.allowedAmounts.map(squash));
-  const text = isPayload(line, file) ? line.replace(FLIGHT_REF, '""') : line;
+  const text = isPayload(line, file) ? withoutFlightRefs(line) : line;
   return amountsOf(text)
     .filter((a) => !allowed.has(squash(a)))
     .map((a) => ({ rule: "amount", message: `amount "${a}" is not in the allowed list` }));
