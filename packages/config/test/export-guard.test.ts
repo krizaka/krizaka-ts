@@ -97,4 +97,24 @@ describe("krizaka-export-guard CLI", () => {
   it("exits 2 without a directory", () => {
     assert.equal(spawnSync("node", [BIN], { encoding: "utf8" }).status, 2);
   });
+  describe("flight and data payloads (krizaka-internal#4628)", () => {
+    const flight = '1:["$","div",null,{"children":["$L2","$3","$1f"],"x":"$Sreact.fragment","y":"$undefined"}]';
+    it("reads React flight references as references, not prices", () => {
+      assert.deepEqual(rules("fr/index.txt", flight), []);
+      assert.deepEqual(
+        rules("fr/index.html", `<script>self.__next_f.push([1,${JSON.stringify(flight)}])</script>`),
+        [],
+      );
+    });
+    it("accepts the licence of the org catalogue in a data payload", () => {
+      assert.deepEqual(rules("fr/index.txt", '2:{"name":"@krizaka/ui","license":"Apache-2.0"}'), []);
+    });
+    it("still refuses a visible product licence line", () => {
+      assert.deepEqual(rules("fr/index.html", "<p>Licence Apache-2.0</p>"), ["licence"]);
+    });
+    it("still refuses a visible amount outside the allowed list, even next to a payload", () => {
+      assert.deepEqual(rules("fr/pricing/index.html", "<p>$12</p>"), ["amount"]);
+      assert.deepEqual(rules("fr/pricing/index.txt", '3:["$","p",null,{"children":"12 $"}]'), ["amount"]);
+    });
+  });
 });
