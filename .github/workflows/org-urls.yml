@@ -54,7 +54,7 @@ jobs:
           BODY: ${{ matrix.body }}
         run: printf '%s\n' "$BODY" > "$RUNNER_TEMP/org-urls-body.md"
       - name: Raise the alert (dead URLs) or clear it
-        uses: krizaka/.github/actions/alert-issue@8300160ceb36dd8527ac7651aa396edf5284d825 # main (the alert-issue action, as stale-videos)
+        uses: krizaka/.github/actions/alert-issue@765d08535145b800cb9db2dbb118588c764313da # main (the alert-issue action, as stale-videos)
         with:
           app-id: ${{ vars.RELEASE_APP_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}

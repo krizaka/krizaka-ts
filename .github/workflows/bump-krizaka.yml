@@ -22,7 +22,7 @@ jobs:
     # The called job reads the repository (contents: read); a caller job that grants less is a startup_failure with 0 jobs (krizaka-internal#3342).
     permissions:
       contents: read
-    uses: krizaka/.github/.github/workflows/bump-krizaka.yml@8300160ceb36dd8527ac7651aa396edf5284d825 # main
+    uses: krizaka/.github/.github/workflows/bump-krizaka.yml@765d08535145b800cb9db2dbb118588c764313da # main
     with:
       packages: ${{ github.event.client_payload.packages && toJSON(github.event.client_payload.packages) || inputs.packages }}
       dry-run: ${{ inputs.dry-run == true }}
