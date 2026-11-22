@@ -100,6 +100,15 @@ function elementTexts(line) {
   return [...line.matchAll(/>([^<>]*)</g)].map((m) => (m[1] ?? "").trim().toLowerCase());
 }
 
+// A React flight reference is a whole JSON string: "$1", "$L2", "$Sreact.fragment", "$undefined". Never a price.
+const FLIGHT_REF = /\\?"\$(?:[0-9a-f]+|[A-Z@][\w.]*|undefined)\\?"/g;
+// The org catalogue in a payload: a JSON string value under a licence key.
+const DATA_LICENCE = /\\?"licen[cs]e\\?"\s*:\s*\\?"[^"]*"/g;
+const PAYLOAD_LINE = /__next_f|type="application\/(?:ld\+)?json"/;
+
+/** A line of a flight or data payload, by structure: a `.txt` flight file or an inline payload script. @param {string} line @param {string} file */
+const isPayload = (line, file) => file.toLowerCase().endsWith(".txt") || PAYLOAD_LINE.test(line);
+
 /** @type {LineRule} */
 const signIn = (line) =>
   SIGN_IN_PATH.test(line) || SIGN_IN_WORDS.test(line)
@@ -125,9 +134,10 @@ const email = (line, file, policy) =>
     : emailsOf(line).map((e) => ({ rule: "email", message: `e-mail address ${e} outside /privacy` }));
 
 /** @type {LineRule} */
-const amount = (line, _file, policy) => {
+const amount = (line, file, policy) => {
   const allowed = new Set(policy.allowedAmounts.map(squash));
-  return amountsOf(line)
+  const text = isPayload(line, file) ? line.replace(FLIGHT_REF, '""') : line;
+  return amountsOf(text)
     .filter((a) => !allowed.has(squash(a)))
     .map((a) => ({ rule: "amount", message: `amount "${a}" is not in the allowed list` }));
 };
@@ -139,8 +149,8 @@ const soon = (line, file, policy) =>
     : [];
 
 /** @type {LineRule} */
-const licence = (line, _file, policy) =>
-  (line.match(/[\w.-]+/g) ?? [])
+const licence = (line, file, policy) =>
+  ((isPayload(line, file) ? line.replace(DATA_LICENCE, "") : line).match(/[\w.-]+/g) ?? [])
     .map((token) => trimEnd(token, ".-"))
     .filter((token) => token !== policy.licence && (LICENCES.has(token) || token.startsWith("FSL-")))
     .map((token) => ({ rule: "licence", message: `licence name "${token}": the one licence is ${policy.licence}` }));
