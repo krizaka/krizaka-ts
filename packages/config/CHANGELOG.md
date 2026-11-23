@@ -1,5 +1,11 @@
 # @krizaka/config
 
+## 0.29.3
+
+### Patch Changes
+
+- ee8af83: The export guard skips the amounts inside an element marked `data-demo` whose subtree shows a visible « exemple » / « example » label, in the HTML and in the React flight payloads, by a linear scan with no allow-list of amounts. The same amount outside fails, and a `data-demo` subtree without the label fails (`demo-label`) and keeps its amounts as findings.
+
 ## 0.29.2
 
 ### Patch Changes
