@@ -1,6 +1,7 @@
 // The export guard (krizaka-internal#4148): what a product's public static export must never carry. A pure function: the
 // files of the export in, the findings out. No network, no clock, no disk (the CLI reads the folder). The product's
 // specifics (retired code names, allowed amounts, licence, status) are the policy, never a branch here.
+import { demoRegions, withoutDemoData } from "./demo-regions.js";
 import { STATUS_WORDS } from "./status-words.js";
 
 /**
@@ -14,7 +15,7 @@ import { STATUS_WORDS } from "./status-words.js";
  *   emailPaths?: readonly string[],
  *   offerPaths?: readonly string[],
  * }} Policy
- * @typedef {(line: string, file: string, policy: Policy) => { rule: string, message: string }[]} LineRule
+ * @typedef {(line: string, file: string, policy: Policy, shown: string) => { rule: string, message: string }[]} LineRule
  */
 
 const SIGN_IN_PATH = /\/sign-in(?![\w-])/i;
@@ -168,9 +169,9 @@ const email = (line, file, policy) =>
     : emailsOf(line).map((e) => ({ rule: "email", message: `e-mail address ${e} outside /privacy` }));
 
 /** @type {LineRule} */
-const amount = (line, file, policy) => {
+const amount = (_line, file, policy, shown) => {
   const allowed = new Set(policy.allowedAmounts.map(squash));
-  const text = isPayload(line, file) ? withoutFlightRefs(line) : line;
+  const text = isPayload(shown, file) ? withoutFlightRefs(shown) : shown;
   return amountsOf(text)
     .filter((a) => !allowed.has(squash(a)))
     .map((a) => ({ rule: "amount", message: `amount "${a}" is not in the allowed list` }));
@@ -214,7 +215,33 @@ export const RULES = Object.freeze([
   "soon",
   "licence",
   "status",
+  "demo-label",
 ]);
+
+/** One finding per demo region without the visible label. @param {string} content @param {ReturnType<typeof demoRegions>} regions */
+function unlabelled(content, regions) {
+  return regions
+    .filter((r) => !r.labelled)
+    .map((r) => ({
+      line: content.slice(0, r.start).split("\n").length,
+      rule: "demo-label",
+      message: "a data-demo subtree without a visible « exemple » / « example » label: its amounts are not skipped",
+    }));
+}
+
+/** The findings of one file: the demo data of a labelled `data-demo` subtree is not read by the amount rule. @param {ExportFile} f @param {Policy} policy */
+function checkFile(f, policy) {
+  const regions = demoRegions(f.content);
+  const shown = withoutDemoData(f.content, regions).split(/\r?\n/);
+  const found = f.content
+    .split(/\r?\n/)
+    .flatMap((line, i) =>
+      LINE_RULES.flatMap((rule) => rule(line, f.path, policy, shown[i] ?? line)).map((r) => ({ line: i + 1, ...r })),
+    );
+  return [...unlabelled(f.content, regions), ...found]
+    .sort((a, b) => a.line - b.line)
+    .map((r) => ({ file: f.path, ...r }));
+}
 
 /**
  * The findings of an export, in file then line order.
@@ -223,15 +250,7 @@ export const RULES = Object.freeze([
  * @returns {Finding[]}
  */
 export function checkExport(files, policy) {
-  return [...files]
-    .sort((a, b) => a.path.localeCompare(b.path))
-    .flatMap((f) =>
-      f.content
-        .split(/\r?\n/)
-        .flatMap((line, i) =>
-          LINE_RULES.flatMap((rule) => rule(line, f.path, policy)).map((r) => ({ file: f.path, line: i + 1, ...r })),
-        ),
-    );
+  return [...files].sort((a, b) => a.path.localeCompare(b.path)).flatMap((f) => checkFile(f, policy));
 }
 
 /** @param {Finding} f */

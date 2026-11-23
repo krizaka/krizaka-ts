@@ -153,4 +153,55 @@ describe("krizaka-export-guard CLI", () => {
       assert.deepEqual(rules("fr/pricing/index.txt", '3:["$","p",null,{"children":"12 $"}]'), ["amount"]);
     });
   });
+
+  describe("demo data marker", () => {
+    const labelled = "<section data-demo><p>Example</p><ul><li>1 120,00 $</li></ul></section>";
+    it("skips an amount inside a data-demo subtree that shows the example label", () => {
+      assert.deepEqual(rules("index.html", labelled), []);
+      assert.deepEqual(
+        rules("index.html", '<div data-demo="true"><h3>Exemple de facture</h3><b>2 400 $ CAD</b></div>'),
+        [],
+      );
+    });
+    it("refuses the same amount outside the subtree", () => {
+      assert.deepEqual(rules("index.html", `${labelled}<p>1 120,00 $</p>`), ["amount"]);
+      assert.deepEqual(rules("index.html", "<div data-demo><span>Example</span></div><i>5 $</i>"), ["amount"]);
+    });
+    it("refuses a data-demo subtree without the visible label, amounts included", () => {
+      assert.deepEqual(rules("index.html", "<div data-demo><p>1 120,00 $</p></div>"), ["demo-label", "amount"]);
+      assert.deepEqual(rules("index.html", '<div data-demo><p class="example" title="example">9 $</p></div>'), [
+        "demo-label",
+        "amount",
+      ]);
+    });
+    it("handles nested and void elements, comments and scripts", () => {
+      const body =
+        '<div data-demo><!-- <b> --><img src="a.png"><div><p>Exemple</p></div><br/><script>if (a < b) {}</script>3 $</div><u>4 $</u>';
+      assert.deepEqual(rules("index.html", body), ["amount"]);
+    });
+    it("works on a React flight payload, where the marker is the data-demo prop", () => {
+      const ok = '5:["$","div",null,{"data-demo":true,"children":[["$","p",null,{"children":"Example"}],"1 120 $"]}]';
+      const bare = '5:["$","div",null,{"data-demo":true,"children":["1 120 $"]}]';
+      const fake = '5:["$","div",null,{"data-demo":true,"className":"example","children":["1 120 $"]}]';
+      const after = `${ok}\n6:["$","p",null,{"children":"1 120 $"}]`;
+      const at = (content: string) => checkExport([{ path: "fr/index.txt", content }], policy).map((f) => f.rule);
+      assert.deepEqual(at(ok), []);
+      assert.deepEqual(at(bare), ["demo-label", "amount"]);
+      assert.deepEqual(at(fake), ["demo-label", "amount"]);
+      assert.deepEqual(at(after), ["amount"]);
+    });
+    it("works on the escaped payload of an inline script", () => {
+      const html =
+        '<script>self.__next_f.push([1,"5:[\\"$\\",\\"div\\",null,{\\"data-demo\\":true,\\"children\\":[\\"Example\\",\\"7 $\\"]}]"])</script>';
+      assert.deepEqual(rules("index.html", html), []);
+      assert.deepEqual(rules("index.html", html.replace("Example", "Sample")), ["demo-label", "amount"]);
+    });
+    it("reports the demo-label finding on the line of the marker", () => {
+      const found = checkExport(page("index.html", "<p>a</p>\n<div data-demo>x</div>"), policy);
+      assert.deepEqual(
+        found.map((f) => [f.rule, f.line]),
+        [["demo-label", 3]],
+      );
+    });
+  });
 });
