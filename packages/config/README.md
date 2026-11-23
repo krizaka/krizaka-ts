@@ -340,6 +340,22 @@ Steps run in order and stop at the first failure with one line, ``krizaka-hooks:
 
 Tests: `test/hooks-*.test.ts` (a real git repository per test: a refused and a passing commit, push and extension).
 
+## Demo data in the export guard (`data-demo`)
+
+`krizaka-export-guard` refuses any amount that is not in the policy's allowed list. A page that shows sample data (a demo invoice with its taxes) marks it: put the `data-demo` attribute on the element that holds the sample, and render a visible « Exemple » / « Example » label inside it (as the text of an element, not an attribute or a class). The guard then skips the amounts inside that subtree only (krizaka-internal#4678).
+
+```html
+<section data-demo>
+  <p>Exemple</p>
+  <p>Total : 1 120,00 $</p>
+</section>
+```
+
+- Use it for sample data only, never for an offer price: the same amount outside the subtree still fails.
+- A `data-demo` subtree without the visible label is itself a finding (`demo-label`) and its amounts still fail, so the marker cannot hide a price.
+- In React, `data-demo` is a prop of the element; the guard reads it in the HTML and in the flight payloads (`.txt` files and inline scripts), as the `"data-demo"` prop. Only the text of the label counts, a `className="example"` does not.
+- The check is structural: it cannot tell that CSS hides the label, so keep it visible.
+
 ## The workspace guard (`krizaka-workspace-guard`)
 
 In a pnpm workspace, a dependency that names another package of the same workspace is written `workspace:`, never a registry range: a range goes stale once the dependency is versioned (`^0.1.0` against 0.4.0), `changeset version` fails and no Version Packages pull request is opened. Run `npx --yes -p @krizaka/config krizaka-workspace-guard` from the repository root (it reads `pnpm-workspace.yaml`); it exits 1 and lists each offending dependency. Peer ranges are a published contract and stay. Rule `workspace-guard` of the org registry (krizaka/.github#388).
