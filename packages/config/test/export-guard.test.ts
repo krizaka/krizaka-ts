@@ -196,6 +196,27 @@ describe("krizaka-export-guard CLI", () => {
       assert.deepEqual(rules("index.html", html), []);
       assert.deepEqual(rules("index.html", html.replace("Example", "Sample")), ["demo-label", "amount"]);
     });
+    it("reads attributes and malformed markup without throwing", () => {
+      const labelOk = (html: string) => rules("index.html", html);
+      assert.deepEqual(labelOk("<div class=a data-demo=1 title='x > y'><p>Example</p>8 $</div>"), []);
+      assert.deepEqual(labelOk('<div title="a>b" DATA-DEMO>Exemple 8 $</div>'), []);
+      assert.deepEqual(labelOk("<img data-demo src=a.png>6 $"), ["demo-label", "amount"]);
+      assert.deepEqual(labelOk("<br data-demo/>6 $"), ["demo-label", "amount"]);
+      assert.deepEqual(labelOk("<div data-demo>Examples 6 $</div>"), ["demo-label", "amount"]);
+      assert.deepEqual(labelOk("<div data-demo>Example 6 $<!-- unclosed"), []);
+      assert.deepEqual(labelOk("<div data-demo>Example 6 $</p></div><script>x</script><style>a{}"), []);
+      assert.deepEqual(labelOk("<div data-demo title='x"), ["demo-label"]);
+      assert.deepEqual(labelOk("<div data-demo>Example<div data-demo>x</div>7 $</div> <"), []);
+    });
+    it("reads a flight payload by structure only", () => {
+      const at = (content: string) => checkExport([{ path: "a.txt", content }], policy).map((f) => f.rule);
+      assert.deepEqual(at('{"x":{"data-demo":true,"children":"Example 3 $"}}}'), []);
+      assert.deepEqual(at('{"data-demo":true,"title":"Example 3 $"}'), ["demo-label", "amount"]);
+      assert.deepEqual(at('"data-demo":true,"children":"Example 3 $"}'), ["amount"]);
+      assert.deepEqual(at('{"data-demo":true,"children":"Examples 3 $"}'), ["demo-label", "amount"]);
+      assert.deepEqual(at('{"a":"x-data-demo","data-demo" 3 $}'), ["amount"]);
+      assert.deepEqual(at('{"children":["Example",{"data-demo":true,"children":"3 $"}]}'), ["demo-label", "amount"]);
+    });
     it("reports the demo-label finding on the line of the marker", () => {
       const found = checkExport(page("index.html", "<p>a</p>\n<div data-demo>x</div>"), policy);
       assert.deepEqual(

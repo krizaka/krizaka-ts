@@ -36,6 +36,25 @@ function hasLabel(text) {
 const isNameChar = (/** @type {string} */ c) => /[A-Za-z0-9:_-]/.test(c);
 const isSpace = (/** @type {string} */ c) => c === " " || c === "\n" || c === "\t" || c === "\r" || c === "\f";
 
+/** The end of an attribute value that starts at `i` (after the "="): quoted or bare. @param {string} text @param {number} i */
+function valueEnd(text, i) {
+  const quote = text.charAt(i);
+  if (quote === '"' || quote === "'") {
+    const close = text.indexOf(quote, i + 1);
+    return close < 0 ? text.length : close + 1;
+  }
+  while (i < text.length && !isSpace(text.charAt(i)) && text.charAt(i) !== ">") i++;
+  return i;
+}
+
+/** The attribute that starts at `at`: where it ends, and whether it is `data-demo`. @param {string} text @param {number} at */
+function readAttribute(text, at) {
+  let i = at;
+  while (i < text.length && !isSpace(text.charAt(i)) && !"=/>".includes(text.charAt(i))) i++;
+  const demo = text.slice(at, i).toLowerCase() === "data-demo";
+  return { demo, end: text.charAt(i) === "=" ? valueEnd(text, i + 1) : i };
+}
+
 /**
  * The tag that starts at `at` (the "<"): its name, whether it has the `data-demo` attribute, where it ends and whether it
  * closes itself. One pass, quotes respected.
@@ -52,22 +71,12 @@ function readTag(text, at) {
   let selfClosing = false;
   while (i < text.length && text.charAt(i) !== ">") {
     const c = text.charAt(i);
-    if (isSpace(c) || c === "/") {
-      selfClosing = c === "/";
-      i++;
-      continue;
-    }
-    selfClosing = false;
-    const attrStart = i;
-    while (i < text.length && !isSpace(text.charAt(i)) && !"=/>".includes(text.charAt(i))) i++;
-    if (text.slice(attrStart, i).toLowerCase() === "data-demo") demo = true;
-    if (text.charAt(i) === "=") {
-      i++;
-      const quote = text.charAt(i);
-      if (quote === '"' || quote === "'") {
-        const close = text.indexOf(quote, i + 1);
-        i = close < 0 ? text.length : close + 1;
-      } else while (i < text.length && !isSpace(text.charAt(i)) && text.charAt(i) !== ">") i++;
+    selfClosing = c === "/";
+    if (isSpace(c) || selfClosing) i++;
+    else {
+      const attribute = readAttribute(text, i);
+      demo ||= attribute.demo;
+      i = attribute.end;
     }
   }
   return { closing, name, demo, selfClosing, end: Math.min(i + 1, text.length) };
@@ -81,19 +90,38 @@ function rawTextEnd(text, name, from) {
   return text.length;
 }
 
+/** @typedef {{ regions: DemoRegion[], open: string[], demo: { depth: number, region: DemoRegion } | null }} Scan */
+
+/** A closing tag: pops the open elements, and ends the demo region when its root is closed. @param {Scan} scan @param {{ name: string, end: number }} tag */
+function closeTag(scan, tag) {
+  const at = scan.open.lastIndexOf(tag.name);
+  if (at >= 0) scan.open.length = at;
+  if (scan.demo && scan.open.length <= scan.demo.depth) {
+    scan.demo.region.end = tag.end;
+    scan.demo = null;
+  }
+}
+
+/** An opening tag: starts a demo region (the outermost only) and pushes the element. Returns the text offset to go on from. @param {Scan} scan @param {ReturnType<typeof readTag>} tag @param {number} at @param {string} text */
+function openTag(scan, tag, at, text) {
+  const empty = tag.selfClosing || VOID.has(tag.name);
+  if (tag.demo && !scan.demo) {
+    const region = { start: at, end: empty ? tag.end : text.length, labelled: false };
+    scan.regions.push(region);
+    if (!empty) scan.demo = { depth: scan.open.length, region };
+  }
+  if (empty) return tag.end;
+  scan.open.push(tag.name);
+  return RAW_TEXT.has(tag.name) ? rawTextEnd(text, tag.name, tag.end) : tag.end;
+}
+
 /** The demo regions of the markup. @param {string} text @returns {DemoRegion[]} */
 function markupRegions(text) {
-  /** @type {DemoRegion[]} */
-  const regions = [];
-  /** @type {string[]} */
-  const open = [];
-  /** @type {{ depth: number, region: DemoRegion } | null} */
-  let demo = null;
+  /** @type {Scan} */
+  const scan = { regions: [], open: [], demo: null };
   let i = 0;
-  while (i < text.length) {
-    const lt = text.indexOf("<", i);
-    if (lt < 0) break;
-    if (demo && hasLabel(text.slice(i, lt))) demo.region.labelled = true;
+  for (let lt = text.indexOf("<"); lt >= 0; lt = text.indexOf("<", i)) {
+    if (scan.demo && hasLabel(text.slice(i, lt))) scan.demo.region.labelled = true;
     if (text.startsWith("<!--", lt)) {
       const close = text.indexOf("-->", lt + 4);
       i = close < 0 ? text.length : close + 3;
@@ -101,29 +129,10 @@ function markupRegions(text) {
     }
     const tag = readTag(text, lt);
     i = tag.end;
-    if (!tag.name) continue;
-    if (tag.closing) {
-      const at = open.lastIndexOf(tag.name);
-      if (at >= 0) open.length = at;
-      if (demo && open.length <= demo.depth) {
-        demo.region.end = tag.end;
-        demo = null;
-      }
-      continue;
-    }
-    if (tag.demo && !demo) {
-      const region = { start: lt, end: text.length, labelled: false };
-      regions.push(region);
-      if (tag.selfClosing || VOID.has(tag.name)) region.end = tag.end;
-      else demo = { depth: open.length, region };
-    }
-    if (tag.selfClosing || VOID.has(tag.name)) continue;
-    open.push(tag.name);
-    if (RAW_TEXT.has(tag.name)) {
-      i = rawTextEnd(text, tag.name, i);
-    }
+    if (tag.closing) closeTag(scan, tag);
+    else if (tag.name) i = openTag(scan, tag, lt, text);
   }
-  return regions;
+  return scan.regions;
 }
 
 /** Whether the string that holds the text at `at` is a child of an element, not a prop such as `className`. @param {string} text @param {number} at */
@@ -132,7 +141,9 @@ function isChildText(text, at) {
   if (quote > 0 && text.charAt(quote - 1) === "\\") quote--;
   const before = text.slice(Math.max(0, quote - 14), quote);
   if (!before.endsWith(":")) return true;
-  return before.replace(/[:"\\]+$/g, "").endsWith("children") && before.includes("children");
+  let end = before.length;
+  while (end > 0 && ':"\\'.includes(before.charAt(end - 1))) end--;
+  return before.slice(0, end).endsWith("children");
 }
 
 /** Whether a payload slice shows the label as the text of an element. @param {string} text */
@@ -186,7 +197,7 @@ function payloadRegions(text) {
 
 /** The demo regions of a file, outermost first, in order. @param {string} content @returns {DemoRegion[]} */
 export function demoRegions(content) {
-  if (!content.includes("data-demo")) return [];
+  if (!/data-demo/i.test(content)) return [];
   return [...markupRegions(content), ...payloadRegions(content)].sort((a, b) => a.start - b.start);
 }
 
