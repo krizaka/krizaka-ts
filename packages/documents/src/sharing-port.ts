@@ -1,5 +1,3 @@
-import type { Clock } from "./port";
-
 /** What a link opens: view only, or view and download. */
 export type LinkAccess = "view" | "download";
 
@@ -28,4 +26,4 @@ export interface LinkStore {
   revoke(tenantId: string, id: string, at: Date): Promise<void>;
 }
 
-export type { Clock };
+export type { Clock } from "./port";
