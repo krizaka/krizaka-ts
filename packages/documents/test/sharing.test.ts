@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  type Clock,
   createDocuments,
   createSharing,
   DOCUMENT_CODE,
@@ -14,7 +15,7 @@ const DAY = 86_400_000;
 async function setup() {
   let n = 0;
   let now = Date.UTC(2026, 0, 1);
-  const clock = { now: () => new Date(now) };
+  const clock: Clock = { now: () => new Date(now) };
   const documents = createDocuments({ store: memoryDocumentStore(), clock, newId: () => `id-${++n}` });
   const sharing = createSharing({
     links: memoryLinkStore(),
@@ -72,10 +73,26 @@ describe("share links", () => {
   });
   it("refuses a document of another tenant and an unknown token", async () => {
     const { sharing, doc } = await setup();
+    const { link, token } = await sharing.createLink("t1", { documentId: doc.id, access: "view" });
     expect(await code(sharing.createLink("t2", { documentId: doc.id, access: "view" }))).toBe(
       DOCUMENT_CODE.DocumentNotFound,
     );
     expect(await code(sharing.openLink("nope"))).toBe(DOCUMENT_CODE.LinkRefused);
     expect(await code(sharing.revokeLink("t2", "link-x"))).toBe(DOCUMENT_CODE.LinkRefused);
+    expect(await code(sharing.revokeLink("t2", link.id))).toBe(DOCUMENT_CODE.LinkRefused);
+    expect(await sharing.openLink(token)).toEqual({ tenantId: "t1", documentId: doc.id, access: "view" });
+    expect(await sharing.listLinks("t2", doc.id)).toEqual([]);
+  });
+  it("lists links per document and keeps the first revoke timestamp on a second revoke", async () => {
+    const { sharing, doc, advance } = await setup();
+    const { link } = await sharing.createLink("t1", { documentId: doc.id, access: "view" });
+    advance(DAY);
+    await sharing.revokeLink("t1", link.id);
+    const [firstRevoke] = await sharing.listLinks("t1", doc.id);
+    expect(firstRevoke?.revokedAt).toEqual(new Date(Date.UTC(2026, 0, 2)));
+    advance(DAY);
+    await sharing.revokeLink("t1", link.id);
+    const [secondRevoke] = await sharing.listLinks("t1", doc.id);
+    expect(secondRevoke?.revokedAt).toEqual(new Date(Date.UTC(2026, 0, 2)));
   });
 });

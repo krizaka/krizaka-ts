@@ -3,7 +3,7 @@ import type { LinkStore, ShareLink } from "./sharing-port";
 /** The link store in memory: for tests and demos; the PostgreSQL adapter must pass the same behaviour. */
 export function memoryLinkStore(): LinkStore {
   const links = new Map<string, ShareLink>();
-  const own = (link: ShareLink | undefined, tenantId: string) => (link && link.tenantId === tenantId ? link : null);
+  const own = (link: ShareLink | undefined, tenantId: string) => (link?.tenantId === tenantId ? link : null);
   return {
     async insert(link) {
       links.set(link.id, link);
@@ -25,7 +25,9 @@ export function memoryLinkStore(): LinkStore {
     },
     async revoke(tenantId, id, at) {
       const link = own(links.get(id), tenantId);
-      if (link && link.revokedAt === null) links.set(id, { ...link, revokedAt: at });
+      if (link?.revokedAt === null) {
+        links.set(id, { ...link, revokedAt: at });
+      }
     },
   };
 }
